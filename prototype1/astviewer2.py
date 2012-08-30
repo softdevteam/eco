@@ -7,16 +7,16 @@ from PyQt4.QtGui import *
 
 class Node(QGraphicsEllipseItem):
 
-    def __init__(self, name):
+    def __init__(self, ast):
         QGraphicsEllipseItem.__init__(self, 0,0,50,50)
-        self.name = name
+        self.ast = ast
         self.left = left
         self.right = right
         self.setFlag(QtGui.QGraphicsItem.ItemIsMovable)
 
     def paint(self, painter, option, widget):
         QGraphicsEllipseItem.paint(self, painter, option, widget)
-        painter.drawText(5,25, self.name)
+        painter.drawText(5,25, self.ast.getText())
 
     def setLeft(self, left):
         self.left = left
@@ -45,36 +45,47 @@ class NodeLine(QGraphicsLineItem):
         QGraphicsLineItem.paint(self, painter, option, widget)
 
 
-def drawChildren(parent, parentnode):
+class ProgramTree(object):
 
-    left_node = Node(parent.left.getText())
-    parentnode.setLeft(left_node)
-    scene.addItem(left_node)
-    line = NodeLine(parentnode, left_node)
-    scene.addItem(line)
+    def __init__(self, program):
+        self.program = program
 
-    right_node = Node(parent.right.getText())
-    parentnode.setRight(right_node)
-    scene.addItem(right_node)
-    line = NodeLine(parentnode, right_node)
-    scene.addItem(line)
 
-    if isinstance(parent.left, simpleast.Expression):
-        drawChildren(parent.left, left_node)
+    def drawChildren(self, parent):
 
-    if isinstance(parent.right, simpleast.Expression):
-        drawChildren(parent.right, right_node)
+        left = Node(parent.ast.left)
+        parent.setLeft(left)
+        scene.addItem(left)
+        line = NodeLine(parent, left)
+        scene.addItem(line)
+
+        right = Node(parent.ast.right)
+        parent.setRight(right)
+        scene.addItem(right)
+        line = NodeLine(parent, right)
+        scene.addItem(line)
+
+        if isinstance(left.ast, simpleast.Expression):
+            self.drawChildren(left)
+
+        if isinstance(right.ast, simpleast.Expression):
+            self.drawChildren(right)
+
+
+    def draw(self):
+        for s in p.statements:
+            state_node = Node(s)
+            scene.addItem(state_node)
+            if isinstance(state_node.ast, simpleast.Expression):
+                self.drawChildren(state_node)
 
 app = QApplication(sys.argv)
 grview = QGraphicsView()
 scene = QGraphicsScene()
 
 p = simpleast.createTestProgram2()
-for s in p.statements:
-    state_node = Node(s.getText())
-    scene.addItem(state_node)
-    if isinstance(s, simpleast.Expression):
-        drawChildren(s, state_node)
+tree = ProgramTree(p)
+tree.draw()
 
 grview.setScene(scene)
 
