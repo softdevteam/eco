@@ -26,24 +26,11 @@ class Node(QGraphicsEllipseItem):
         self.right = right
         self.right.setPos(self.pos() + QPointF(50,100))
 
-def drawTree(scene, tree):
-    scene.addItem(tree)
-    if not tree.left is None:
-        scene.addItem(tree.left)
-    if not tree.right is None:
-        scene.addItem(tree.right)
 
 app = QApplication(sys.argv)
 grview = QGraphicsView()
 scene = QGraphicsScene()
 
-parent = Node("parent")
-child1 = Node("child1")
-child2 = Node("child2")
-parent.setLeft(child1)
-parent.setRight(child2)
-
-#drawTree(scene, parent)
 p = simpleast.createTestProgram()
 for s in p.statements:
     st_node = Node(s.getName())
