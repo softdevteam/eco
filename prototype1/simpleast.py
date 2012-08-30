@@ -25,10 +25,15 @@ class IntLiteral(Statement):
         return str(self.value)
 
 class AddExpression(Expression):
-    def __init__(self, left, right):
+    def __init__(self, left=None, right=None):
         self.left = left
         self.right = right
 
+    def setLeft(self, left):
+        self.left = left
+
+    def setRight(self, right):
+        self.right = right
 
 def createTestProgram():
     p = Program()

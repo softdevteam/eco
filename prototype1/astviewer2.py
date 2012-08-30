@@ -45,11 +45,42 @@ class NodeLine(QGraphicsLineItem):
         QGraphicsLineItem.paint(self, painter, option, widget)
 
 
+class AstEditor(QTextEdit):
+
+    def __init__(self, program, text=None):
+        QTextEdit.__init__(self, text)
+        self.program = program
+
+    def keyPressEvent(self, e):
+        QTextEdit.keyPressEvent(self, e)
+        # space = 32
+
+        laststatement = None
+        if len(self.program.statements) > 0:
+            laststatement = self.program.statements[-1]
+
+        if 48 <= e.key() <= 57: # numbers 0-9
+            if isinstance(laststatement, simpleast.AddExpression):
+                print("adding to last expression")
+                laststatement.setRight(simpleast.IntLiteral(e.text()))
+            else:
+                self.program.addStatement(simpleast.IntLiteral(e.text()))
+
+        if e.key() == 43: # +
+            # get last statement and remove it from statement list
+            last_statement = self.program.statements.pop(-1)
+            add_expr = simpleast.AddExpression()
+            add_expr.setLeft(last_statement)
+            self.program.statements.append(add_expr)
+        print(self.program.statements)
+
+        tree.draw()
+        print(e.key())
+
 class ProgramTree(object):
 
     def __init__(self, program):
         self.program = program
-
 
     def drawChildren(self, parent):
 
@@ -71,8 +102,12 @@ class ProgramTree(object):
         if isinstance(right.ast, simpleast.Expression):
             self.drawChildren(right)
 
-
     def draw(self):
+        # clear all nodes and lines, since we are going to recreate everything
+        # XXX: reuse already created qtgraphic items and just move them to their new position
+        for item in scene.items():
+            if isinstance(item, Node) or isinstance(item, NodeLine):
+                scene.removeItem(item)
         for s in p.statements:
             state_node = Node(s)
             scene.addItem(state_node)
@@ -83,9 +118,13 @@ app = QApplication(sys.argv)
 grview = QGraphicsView()
 scene = QGraphicsScene()
 
-p = simpleast.createTestProgram2()
+p = simpleast.Program()
 tree = ProgramTree(p)
 tree.draw()
+
+qtextedit = AstEditor(p)
+qtextedit.move(-500,0)
+scene.addWidget(qtextedit)
 
 grview.setScene(scene)
 
