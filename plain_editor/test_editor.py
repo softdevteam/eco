@@ -36,7 +36,7 @@ class Tooltip(QtGui.QWidget):
         reply = QtGui.QMessageBox.question(self, 'Message',
             "Are you sure you want to quit?", "Quit", "Stay")
 
-        print reply
+        #print reply
         if reply == 0:
             event.accept()
         else:
