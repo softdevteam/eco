@@ -6,6 +6,7 @@ endoffile = "\n"
 
 identifier = "[a-zA-Z]+"
 assignment = ":="
+operation = "\+|-|\*|\/"
 
 def make_groups(**expressions):
     regex = []
@@ -15,7 +16,8 @@ def make_groups(**expressions):
         regex.append(s)
     return r"|".join(regex)
 
-regex = make_groups(Identifier=identifier, Assignment=assignment, Whitespace=whitespace)
+regex = make_groups(Identifier=identifier, Assignment=assignment, Whitespace=whitespace,
+                    Operation=operation)
 
 class Token(object):
 
