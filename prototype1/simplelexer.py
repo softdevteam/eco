@@ -7,17 +7,17 @@ endoffile = "\n"
 identifier = "[a-zA-Z]+"
 assignment = ":="
 operation = "\+|-|\*|\/"
+newrule = "\;"
 
 def make_groups(**expressions):
     regex = []
-    print(expressions)
     for name in expressions:
         s = "(?P<%s>%s)" % (name, expressions[name])
         regex.append(s)
     return r"|".join(regex)
 
 regex = make_groups(Identifier=identifier, Assignment=assignment, Whitespace=whitespace,
-                    Operation=operation)
+                    Operation=operation, Newrule=newrule)
 
 class Token(object):
 

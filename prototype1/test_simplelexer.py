@@ -28,3 +28,10 @@ def test_expression():
     assert len(l.tokens) == 5
     assert l.tokens[3].name == "Operation"
     assert l.tokens[3].value == "+"
+
+def test_newrule():
+    l = Lexer("E := E + E; E := ")
+    l.lex()
+    assert len(l.tokens) == 8
+    assert l.tokens[5].name == "Newrule"
+    assert l.tokens[5].value == ";"
