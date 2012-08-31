@@ -7,7 +7,8 @@ endoffile = "\n"
 identifier = "[a-zA-Z]+"
 assignment = ":="
 operation = "\+|-|\*|\/"
-newrule = "\;"
+conjunction = "\;"
+newrule = "\n"
 integer = "INT"
 
 def make_groups(**expressions):
@@ -18,7 +19,7 @@ def make_groups(**expressions):
     return r"|".join(regex)
 
 regex = make_groups(Identifier=identifier, Assignment=assignment, Whitespace=whitespace,
-                    Operation=operation, Newrule=newrule, Integer=integer)
+                    Operation=operation, Newrule=newrule, Integer=integer, Conjunction=conjunction)
 
 class Token(object):
 

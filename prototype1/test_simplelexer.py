@@ -30,15 +30,23 @@ def test_expression():
     assert l.tokens[3].value == "+"
 
 def test_newrule():
-    l = Lexer("E := E + E; E := ")
-    l.lex()
-    assert len(l.tokens) == 8
-    assert l.tokens[5].name == "Newrule"
-    assert l.tokens[5].value == ";"
-
-def test_newrule():
-    l = Lexer("E := E + E; E := INT")
+    l = Lexer("""E := E + E
+E := E""")
     l.lex()
     assert len(l.tokens) == 9
-    assert l.tokens[8].name == "Integer"
-    assert l.tokens[8].value == "INT"
+    assert l.tokens[5].name == "Newrule"
+    assert l.tokens[5].value == "\n"
+
+def test_integer():
+    l = Lexer("E := INT")
+    l.lex()
+    assert len(l.tokens) == 3
+    assert l.tokens[2].name == "Integer"
+    assert l.tokens[2].value == "INT"
+
+def test_conjunction():
+    l = Lexer("E := E; E")
+    l.lex()
+    assert len(l.tokens) == 5
+    assert l.tokens[3].name == "Conjunction"
+    assert l.tokens[3].value == ";"
