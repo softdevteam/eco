@@ -8,6 +8,7 @@ identifier = "[a-zA-Z]+"
 assignment = ":="
 operation = "\+|-|\*|\/"
 newrule = "\;"
+integer = "INT"
 
 def make_groups(**expressions):
     regex = []
@@ -17,7 +18,7 @@ def make_groups(**expressions):
     return r"|".join(regex)
 
 regex = make_groups(Identifier=identifier, Assignment=assignment, Whitespace=whitespace,
-                    Operation=operation, Newrule=newrule)
+                    Operation=operation, Newrule=newrule, Integer=integer)
 
 class Token(object):
 

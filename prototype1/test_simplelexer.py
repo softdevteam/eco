@@ -35,3 +35,10 @@ def test_newrule():
     assert len(l.tokens) == 8
     assert l.tokens[5].name == "Newrule"
     assert l.tokens[5].value == ";"
+
+def test_newrule():
+    l = Lexer("E := E + E; E := INT")
+    l.lex()
+    assert len(l.tokens) == 9
+    assert l.tokens[8].name == "Integer"
+    assert l.tokens[8].value == "INT"
