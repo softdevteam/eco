@@ -4,6 +4,8 @@ from PyQt4.QtCore import *
 from PyQt4 import QtGui
 from PyQt4.QtGui import *
 
+from gui.simplegui import Ui_MainWindow
+
 
 class Node(QGraphicsEllipseItem):
 
@@ -20,6 +22,7 @@ class Node(QGraphicsEllipseItem):
 
     def setLeft(self, left):
         self.left = left
+        self.left.parent = self
         self.left.setPos(self.pos() + QPointF(-50,100))
 
     def setRight(self, right):
@@ -47,9 +50,15 @@ class NodeLine(QGraphicsLineItem):
 
 class AstEditor(QTextEdit):
 
-    def __init__(self, program, text=None):
+    def __init__(self, text=None):
         QTextEdit.__init__(self, text)
+
+    def setGrammar(self, program):
         self.program = program
+
+    def setTree(self, tree):
+        # only necessary to notify the tree that the program has changed
+        self.tree = tree
 
     def keyPressEvent(self, e):
         QTextEdit.keyPressEvent(self, e)
@@ -74,27 +83,28 @@ class AstEditor(QTextEdit):
             self.program.statements.append(add_expr)
         print(self.program.statements)
 
-        tree.draw()
+        self.tree.draw()
         print(e.key())
 
 class ProgramTree(object):
 
-    def __init__(self, program):
+    def __init__(self, program, scene):
         self.program = program
+        self.scene = scene
 
     def drawChildren(self, parent):
 
         left = Node(parent.ast.left)
         parent.setLeft(left)
-        scene.addItem(left)
+        self.scene.addItem(left)
         line = NodeLine(parent, left)
-        scene.addItem(line)
+        self.scene.addItem(line)
 
         right = Node(parent.ast.right)
         parent.setRight(right)
-        scene.addItem(right)
+        self.scene.addItem(right)
         line = NodeLine(parent, right)
-        scene.addItem(line)
+        self.scene.addItem(line)
 
         if isinstance(left.ast, simpleast.Expression):
             self.drawChildren(left)
@@ -105,29 +115,62 @@ class ProgramTree(object):
     def draw(self):
         # clear all nodes and lines, since we are going to recreate everything
         # XXX: reuse already created qtgraphic items and just move them to their new position
-        for item in scene.items():
+        for item in self.scene.items():
             if isinstance(item, Node) or isinstance(item, NodeLine):
-                scene.removeItem(item)
-        for s in p.statements:
+                self.scene.removeItem(item)
+        for s in self.program.statements:
             state_node = Node(s)
-            scene.addItem(state_node)
+            self.scene.addItem(state_node)
             if isinstance(state_node.ast, simpleast.Expression):
                 self.drawChildren(state_node)
 
-app = QApplication(sys.argv)
-grview = QGraphicsView()
-scene = QGraphicsScene()
+class Window(QtGui.QMainWindow):
+    def __init__(self):
+        QtGui.QMainWindow.__init__(self)
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
 
-p = simpleast.Program()
-tree = ProgramTree(p)
-tree.draw()
+        # add a QGraphicsScene to the GUIs QGraphicsView on which we can then
+        # draw the AST
+        self.scene = QGraphicsScene()
+        self.ui.graphicsView.setScene(self.scene)
 
-qtextedit = AstEditor(p)
-qtextedit.move(-500,0)
-scene.addWidget(qtextedit)
 
-grview.setScene(scene)
 
-grview.show()
+def main():
+    app = QtGui.QApplication(sys.argv)
+    window=Window()
 
-sys.exit(app.exec_())
+    p = simpleast.Program()
+
+    # draw the tree
+    tree = ProgramTree(p, window.scene)
+    tree.draw()
+
+    # set grammar to use by editor
+    window.ui.plainTextEdit.setGrammar(p)
+    window.ui.plainTextEdit.setTree(tree)
+
+    window.show()
+    sys.exit(app.exec_())
+
+if __name__ == "__main__":
+    main()
+
+#app = QApplication(sys.argv)
+#grview = QGraphicsView()
+#scene = QGraphicsScene()
+#
+#p = simpleast.Program()
+#tree = ProgramTree(p)
+#tree.draw()
+#
+#qtextedit = AstEditor(p)
+#qtextedit.move(-500,0)
+#scene.addWidget(qtextedit)
+#
+#grview.setScene(scene)
+#
+#grview.show()
+#
+#sys.exit(app.exec_())
