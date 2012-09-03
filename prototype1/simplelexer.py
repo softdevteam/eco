@@ -38,6 +38,7 @@ class Lexer(object):
         self.pos = 0
 
     def lex(self):
+        self.tokens.append(Token("Newrule", ""))
         token = self.next()
         while token is not None:
             self.pos += len(token.value)
