@@ -2,6 +2,7 @@ import re
 
 
 RE_ID = re.compile("[a-zA-Z_][a-zA-Z0-9_]*")
+RE_EXPR = re.compile("([0-9]+[\+\*-/])+[0-9]+")
 
 class Class(object):
     def __init__(self, name):
@@ -26,6 +27,9 @@ class Statement(object):
 
     def __repr__(self):
         return self.expression
+
+class Expression(Statement):
+    pass
 
 class RecursiveDescentParser(object):
 
@@ -69,6 +73,7 @@ class RecursiveDescentParser(object):
         statements = self.parse_statements(body)
         f.statements = statements
         self.pos += 1
+        print("parsed function", f)
         return f
 
     def parse_arguments(self):
@@ -82,6 +87,7 @@ class RecursiveDescentParser(object):
             except ParseError:
                 break
         self.parse_string(")")
+        print("parsed args", args)
         return args
 
     def parse_statements(self, body):
@@ -90,12 +96,15 @@ class RecursiveDescentParser(object):
         for s in l:
             if s == "":
                 continue
-            statements.append(Statement(s))
+            expr = self.parse_expression(s)
+            if expr:
+                statements.append(Expression(expr))
+        print("Parsed statements", statements)
         return statements
 
     def parse_string(self, s):
         if self.code[self.pos:self.pos+len(s)] != s:
-            raise ParseError(s, self.code[self.pos])
+            raise ParseError(s, self)
         self.pos += len(s)
 
     def parse_id(self):
@@ -106,23 +115,33 @@ class RecursiveDescentParser(object):
         self.pos += len(name)
         return name
 
+    def parse_expression(self, code):
+        match = RE_EXPR.match(code)
+        if not match:
+            return None
+        expr = match.group(0)
+        return expr
+
+
 class ParseError(Exception):
-    def __init__(self, expected, found):
+    def __init__(self, expected, parser):
         self.expected = expected
-        self.found = found
+        self.parser = parser
 
     def __str__(self):
-        return "Expected \"%s\" found \"%s\"." % (self.expected, self.found)
+        found = self.parser.code[self.parser.pos]
+        return "Expected \"%s\" found \"%s\". (at: %s)" % (self.expected, found, self.parser.code[self.parser.pos:])
 
 if __name__ == "__main__":
     s = """
 class Test {
 
     function do1(i){
-        2+3
+        2+3+4;
+        1*2
     }
 
-    function do2(a, b){5*4-3; hello()}
+    function do2(a, b){5*4-3; 3+2}
 
 }
 
