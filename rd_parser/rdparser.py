@@ -28,8 +28,18 @@ class Statement(object):
     def __repr__(self):
         return self.expression
 
-class Expression(Statement):
-    pass
+class Expression(object):
+
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+
+    def __repr__(self):
+        return "%s(%s, %s)" % (self.__class__.__name__,self.left, self.right)
+
+class AddExpression(Expression): pass
+class MulExpression(Expression): pass
+
 
 class RecursiveDescentParser(object):
 
@@ -39,7 +49,7 @@ class RecursiveDescentParser(object):
         self.elements = []
 
     def remove_whitespace(self, code):
-        return re.sub("[ \t\n]", "", code)
+        return re.sub("[ \t\n]|#.*\n", "", code)
 
     def parse(self):
         while self.pos < len(self.code):
@@ -97,8 +107,7 @@ class RecursiveDescentParser(object):
             if s == "":
                 continue
             expr = self.parse_expression(s)
-            if expr:
-                statements.append(Expression(expr))
+            statements.append(expr)
         print("Parsed statements", statements)
         return statements
 
@@ -116,11 +125,28 @@ class RecursiveDescentParser(object):
         return name
 
     def parse_expression(self, code):
-        match = RE_EXPR.match(code)
-        if not match:
-            return None
-        expr = match.group(0)
-        return expr
+
+        if re.match("[0-9]+$", code):
+            return Statement(code)
+
+        # look for multiplications, first
+        i = 0
+        while i < len(code):
+            if code[i] == "+":
+                left = self.parse_expression(code[0:i])
+                right = self.parse_expression(code[i+1:])
+                return AddExpression(left, right)
+            i += 1
+        # now multiplications? look for add
+        i = 0
+        while i < len(code):
+            if code[i] == "*":
+                left = self.parse_expression(code[0:i])
+                right = self.parse_expression(code[i+1:])
+                return MulExpression(left, right)
+            i += 1
+
+        raise ParseError("Expression", self)
 
 
 class ParseError(Exception):
@@ -137,11 +163,14 @@ if __name__ == "__main__":
 class Test {
 
     function do1(i){
-        2+3+4;
-        1*2
+        1+2;
+        3*4
     }
 
-    function do2(a, b){5*4-3; 3+2}
+    function do2(a, b){
+        5+6*7; # => Add(5, Mul(6, 7))
+        5*6+7; # => Add(Mul(5, 6), 7)
+    }
 
 }
 
