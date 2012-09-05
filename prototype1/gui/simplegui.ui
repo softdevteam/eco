@@ -39,7 +39,7 @@
   <customwidget>
    <class>AstEditor</class>
    <extends>QPlainTextEdit</extends>
-   <header>astviewer2</header>
+   <header>astviewer</header>
   </customwidget>
  </customwidgets>
  <resources/>
