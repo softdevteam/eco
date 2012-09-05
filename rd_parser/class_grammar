@@ -1,0 +1,32 @@
+S ::= element*
+  
+  element ::= class
+            | function
+
+  class ::= "CLASS" name "{" function* "}"
+
+  function ::= "FUNC" "NAME" "(" params ")" "{" stmt* "}"
+  
+  params ::= "ID" ("," "ID")*
+           |
+
+  stmt ::= E ";"
+  
+  E ::= E "+" E
+      | E "-" E
+      | E "*" E
+      | E "/" E
+
+
+
+
+Example program:
+
+class Hello {
+    func do(i) {
+        2 + i * 4;
+    }
+    func do2() { }
+    func do3(a, b, c) { }
+}
+
