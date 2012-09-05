@@ -15,9 +15,10 @@ class Function(object):
     def __init__(self, name):
         self.name = name
         self.statements = []
+        self.args = []
 
     def __repr__(self):
-        return "func %s : %s " % (self.name, self.statements)
+        return "func %s(%s) : %s " % (self.name, self.args, self.statements)
 
 class Statement(object):
     def __init__(self, expression):
@@ -56,6 +57,10 @@ class RecursiveDescentParser(object):
         self.parse_string("function")
         name = self.parse_id()
         f = Function(name)
+
+        args = self.parse_arguments()
+        f.args.append(args)
+
         self.parse_string("{")
         i = self.pos
         while self.code[self.pos] != "}":
@@ -65,6 +70,19 @@ class RecursiveDescentParser(object):
         f.statements = statements
         self.pos += 1
         return f
+
+    def parse_arguments(self):
+        args = []
+        self.parse_string("(")
+        while True:
+            arg = self.parse_id()
+            args.append(arg)
+            try:
+                self.parse_string(",")
+            except ParseError:
+                break
+        self.parse_string(")")
+        return args
 
     def parse_statements(self, body):
         statements = []
@@ -100,11 +118,11 @@ if __name__ == "__main__":
     s = """
 class Test {
 
-    function do1{
+    function do1(i){
         2+3
     }
 
-    function do2{5*4-3; hello()}
+    function do2(a, b){5*4-3; hello()}
 
 }
 
