@@ -9,20 +9,22 @@ class Class(object):
         self.functions = []
 
     def __repr__(self):
-        return "class " + self.name + ": " + str(self.functions)
+        return "class %s: %s" % (self.name, self.functions)
 
 class Function(object):
     def __init__(self, name):
         self.name = name
-        self.body = ""
         self.statements = []
 
     def __repr__(self):
-        return "func " + str(self.name) + ": " + self.body
+        return "func %s : %s " % (self.name, self.statements)
 
 class Statement(object):
     def __init__(self, expression):
         self.expression = expression
+
+    def __repr__(self):
+        return self.expression
 
 class RecursiveDescentParser(object):
 
@@ -56,9 +58,20 @@ class RecursiveDescentParser(object):
         i = self.pos
         while self.code[self.pos] != "}":
             self.pos += 1
-        code = self.code[i:self.pos]
-        f.body = code
+        body = self.code[i:self.pos]
+        statements = self.parse_statements(body)
+        f.statements = statements
+        self.pos += 1
         return f
+
+    def parse_statements(self, body):
+        statements = []
+        l = body.split(";")
+        for s in l:
+            if s == "":
+                continue
+            statements.append(Statement(s))
+        return statements
 
     def parse_string(self, s):
         if self.code[self.pos:self.pos+len(s)] != s:
@@ -85,9 +98,11 @@ if __name__ == "__main__":
     s = """
 class Test {
 
-    function bla{
+    function do1{
         2+3
     }
+
+    function do2{5*4-3; hello()}
 
 }
 """
