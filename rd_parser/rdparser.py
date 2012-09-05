@@ -129,17 +129,13 @@ class RecursiveDescentParser(object):
         if re.match("[0-9]+$", code):
             return Statement(code)
 
-        # look for multiplications, first
+        # multiplication glues stronger, so parse addition first
         i = 0
         while i < len(code):
             if code[i] == "+":
                 left = self.parse_expression(code[0:i])
                 right = self.parse_expression(code[i+1:])
                 return AddExpression(left, right)
-            i += 1
-        # now multiplications? look for add
-        i = 0
-        while i < len(code):
             if code[i] == "*":
                 left = self.parse_expression(code[0:i])
                 right = self.parse_expression(code[i+1:])
