@@ -37,8 +37,9 @@ class RecursiveDescentParser(object):
         return re.sub("[ \t\n]", "", code)
 
     def parse(self):
-        c = self.parse_class()
-        self.elements.append(c)
+        while self.pos < len(self.code):
+            c = self.parse_class()
+            self.elements.append(c)
 
     def parse_class(self):
         self.parse_string("class")
@@ -48,6 +49,7 @@ class RecursiveDescentParser(object):
         while self.code[self.pos] != "}":
             f = self.parse_function()
             c.functions.append(f)
+        self.pos += 1
         return c
 
     def parse_function(self):
@@ -75,7 +77,7 @@ class RecursiveDescentParser(object):
 
     def parse_string(self, s):
         if self.code[self.pos:self.pos+len(s)] != s:
-            raise ParseError(char, self.code[self.pos])
+            raise ParseError(s, self.code[self.pos])
         self.pos += len(s)
 
     def parse_id(self):
@@ -105,6 +107,8 @@ class Test {
     function do2{5*4-3; hello()}
 
 }
+
+class Test2{}
 """
     p = RecursiveDescentParser(s)
     p.parse()
