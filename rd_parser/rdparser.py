@@ -8,11 +8,17 @@ class Class(object):
         self.name = name
         self.functions = []
 
+    def __repr__(self):
+        return "class " + self.name + ": " + str(self.functions)
+
 class Function(object):
     def __init__(self, name):
         self.name = name
-        self.body = None
+        self.body = ""
         self.statements = []
+
+    def __repr__(self):
+        return "func " + str(self.name) + ": " + self.body
 
 class Statement(object):
     def __init__(self, expression):
@@ -21,47 +27,43 @@ class Statement(object):
 class RecursiveDescentParser(object):
 
     def __init__(self, code):
-        self.code = code
+        self.code = self.remove_whitespace(code)
         self.pos = 0
         self.elements = []
 
-    def skip_whitespace(self):
-        while self.code[self.pos] in " \t\n":
-            self.pos += 1
+    def remove_whitespace(self, code):
+        return re.sub("[ \t\n]", "", code)
 
     def parse(self):
-        self.skip_whitespace()
         c = self.parse_class()
         self.elements.append(c)
 
     def parse_class(self):
-        if self.code[self.pos:self.pos+len("class")] != "class":
-            return None
-        self.skip_whitespace()
+        self.parse_string("class")
         name = self.parse_id()
         c = Class(name)
-        self.parse_char("{")
+        self.parse_string("{")
         while self.code[self.pos] != "}":
-            f = self.parse_func()
+            f = self.parse_function()
             c.functions.append(f)
-        self.pos += 1
         return c
 
     def parse_function(self):
-        self.skip_whitespace()
+        self.parse_string("function")
         name = self.parse_id()
         f = Function(name)
-        self.parse_char("{")
+        self.parse_string("{")
         i = self.pos
         while self.code[self.pos] != "}":
             self.pos += 1
-        code = self.code[self.pos - i]
+        code = self.code[i:self.pos]
         f.body = code
         return f
 
-    def parse_char(self, char):
-        if self.code[self.pos] != char:
+    def parse_string(self, s):
+        if self.code[self.pos:self.pos+len(s)] != s:
             raise ParseError(char, self.code[self.pos])
+        self.pos += len(s)
 
     def parse_id(self):
         match = RE_ID.match(self.code[self.pos:])
