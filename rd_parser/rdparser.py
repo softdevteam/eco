@@ -3,6 +3,9 @@ import re
 
 RE_ID = re.compile("[a-zA-Z_][a-zA-Z0-9_]*")
 RE_EXPR = re.compile("([0-9]+[\+\*-/])+[0-9]+")
+RE_PARA = re.compile("\(.*\)")
+RE_NUM = re.compile("[0-9]+")
+RE_OP = re.compile("\+|-|\*|/")
 
 class Class(object):
     def __init__(self, name):
@@ -26,7 +29,7 @@ class Statement(object):
         self.expression = expression
 
     def __repr__(self):
-        return self.expression
+        return "%s" % self.expression
 
 class Expression(object):
 
@@ -35,7 +38,7 @@ class Expression(object):
         self.right = right
 
     def __repr__(self):
-        return "%s(%s, %s)" % (self.__class__.__name__,self.left, self.right)
+        return "%s(%s, %s)" % (self.__class__.__name__, self.left, self.right)
 
 class AddExpression(Expression): pass
 class MulExpression(Expression): pass
@@ -124,6 +127,56 @@ class RecursiveDescentParser(object):
         self.pos += len(name)
         return name
 
+    def parse_expression(self, code):
+        l = self._tokenize_expression(code)
+        return self._parse_expr_tokens(l)
+
+    def _tokenize_expression(self, code):
+        l = []
+        i = 0
+        while i < len(code):
+            # find expressions in paranthesises
+            result = RE_PARA.match(code[i:])
+            if result:
+                s = result.group(0)
+                subexpr = self.parse_expression(code[i+1:i+len(s)-1])
+                l.append(subexpr)
+                i += len(s)
+
+            # tokenize the rest
+            result = RE_NUM.match(code[i:])
+            if result:
+                nums = result.group(0)
+                l.append(nums)
+                i += len(nums)
+
+            result = RE_OP.match(code[i:])
+            if result:
+                ops = result.group(0)
+                l.append(ops)
+                i += len(ops)
+        return l
+
+    def _parse_expr_tokens(self, l):
+        if len(l) == 1:
+            return Statement(l[0])
+
+        i = 0
+        while i < len(l):
+            if l[i] == "+":
+                left = self._parse_expr_tokens(l[:i])
+                right = self._parse_expr_tokens(l[i+1:])
+                return AddExpression(left, right)
+            i += 1
+
+        i = 0
+        while i < len(l):
+            if l[i] == "*":
+                left = self._parse_expr_tokens(l[:i])
+                right = self._parse_expr_tokens(l[i+1:])
+                return MulExpression(left, right)
+            i += 1
+
     def parse_expression_old(self, code):
 
         if re.match("[0-9]+$", code):
@@ -195,6 +248,11 @@ class Test {
         5+6*7; # => Add(5, Mul(6, 7))
         5*6+7; # => Add(Mul(5, 6), 7)
         (5+6)*7
+    }
+
+
+    function do3(){
+        5*6*7*(3+2)
     }
 
 }
