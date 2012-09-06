@@ -124,21 +124,49 @@ class RecursiveDescentParser(object):
         self.pos += len(name)
         return name
 
-    def parse_expression(self, code):
+    def parse_expression_old(self, code):
 
         if re.match("[0-9]+$", code):
             return Statement(code)
+
+        left = None
+
+        # parse brackets first
+        i = 0
+        plevel = 0
+        first_open = 0
+        while i < len(code):
+            if code[i] == "(":
+                if plevel == 0:
+                    first_open = i
+                plevel += 1
+            if code[i] == ")":
+                plevel -= 1
+                if plevel < 0:
+                    raise ParseError("Wrong paranthesis number", self)
+                if plevel == 0:
+                    print(code)
+                    print(code[first_open+1:i])
+                    left = self.parse_expression(code[first_open+1:i])
+                    print("found para", left)
+            i += 1
 
         # multiplication glues stronger, so parse addition first
         i = 0
         while i < len(code):
             if code[i] == "+":
-                left = self.parse_expression(code[0:i])
+                if not left:
+                    left = self.parse_expression(code[0:i])
+                print(code)
+                print(code[i+1:])
                 right = self.parse_expression(code[i+1:])
+                print("found add", left, right)
                 return AddExpression(left, right)
             if code[i] == "*":
-                left = self.parse_expression(code[0:i])
+                if not left:
+                    left = self.parse_expression(code[0:i])
                 right = self.parse_expression(code[i+1:])
+                print("found mul", left, right)
                 return MulExpression(left, right)
             i += 1
 
@@ -166,6 +194,7 @@ class Test {
     function do2(a, b){
         5+6*7; # => Add(5, Mul(6, 7))
         5*6+7; # => Add(Mul(5, 6), 7)
+        (5+6)*7
     }
 
 }
