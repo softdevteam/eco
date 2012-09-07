@@ -74,7 +74,6 @@ class Parser(object):
             i += 1
 
         tokenlist = self.lexer.tokens[self.curtok:i]
-        print(tokenlist)
 
         # skip to next rule for further parsing
         self.curtok += len(tokenlist)

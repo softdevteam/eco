@@ -46,3 +46,23 @@ def test_multiple_rules():
     assert l.tokens[3].name == "Nonterminal"
     assert l.tokens[4].name == "Mapsto"
     assert l.tokens[5].name == "Terminal"
+
+def test_grammar():
+    l = Lexer("""
+    name ::= "ID"
+           | "&" "ID"
+           | splice
+           | insert
+    """)
+    l.lex()
+
+    assert l.tokens[0].name == "Nonterminal"
+    assert l.tokens[1].name == "Mapsto"
+    assert l.tokens[2].name == "Terminal"
+    assert l.tokens[3].name == "Alternative"
+    assert l.tokens[4].name == "Terminal"
+    assert l.tokens[5].name == "Terminal"
+    assert l.tokens[6].name == "Alternative"
+    assert l.tokens[7].name == "Nonterminal"
+    assert l.tokens[8].name == "Alternative"
+    assert l.tokens[9].name == "Nonterminal"

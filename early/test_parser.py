@@ -25,3 +25,17 @@ def test_multiple_rules():
     assert p.rules[0].alternatives == [[Nonterminal("A")]]
     assert p.rules[1].alternatives == [[Terminal("\"a\"")]]
 
+def test_more_complex_grammar():
+    p = Parser("""
+    name ::= "ID"
+           | "&" "ID"
+           | splice
+           | insert
+    """)
+    p.parse()
+    assert p.rules[0].alternatives == [
+        [Terminal("\"ID\"")],
+        [Terminal("\"&\""), Terminal("\"ID\"")],
+        [Nonterminal("splice")],
+        [Nonterminal("insert")]
+    ]
