@@ -55,7 +55,7 @@ class Parser(object):
     def inc(self):
         self.curtok += 1
 
-    def gettoken(self):
+    def next_token(self):
         t = self.lexer.tokens[self.curtok]
         return t
 
@@ -92,36 +92,13 @@ class Parser(object):
         rule.alternatives.append(symbols)
         return rule
 
-    def newrule(self):
-        t = self.gettoken()
-        assert t.name == "Newrule"
-        self.inc()
-
     def parse_nonterminal(self):
-        t = self.gettoken()
+        t = self.next_token()
         assert t.name == "Nonterminal"
         self.inc()
         return Nonterminal(t.value)
 
     def parse_mappingsymbol(self):
-        t = self.gettoken()
+        t = self.next_token()
         assert t.name == "Mapsto"
         self.inc()
-
-    def operation(self):
-        t = self.gettoken()
-        assert t.name == "Operation"
-        self.inc()
-        return Operation(t.value)
-
-    def expression(self):
-        ident1 = self.identifier()
-        operation = self.operation()
-        ident2 = self.identifier()
-        return Expression(operation, ident1, ident2)
-
-    def integer(self):
-        t = self.gettoken()
-        assert t.name == "Integer"
-        self.inc()
-        return Integer()
