@@ -15,6 +15,11 @@ class Class(object):
     def __repr__(self):
         return "class %s: %s" % (self.name, self.functions)
 
+    def pprint(self, indent):
+        print("%sclass %s:" % (" " * indent, self.name))
+        for f in self.functions:
+            f.pprint(indent + 3)
+
 class Function(object):
     def __init__(self, name):
         self.name = name
@@ -24,9 +29,17 @@ class Function(object):
     def __repr__(self):
         return "func %s(%s) : %s " % (self.name, self.args, self.statements)
 
+    def pprint(self, indent):
+        print("%s|- def %s:" % (" " * indent, self.name))
+        for s in self.statements:
+            s.pprint(indent + 3)
+
 class Statement(object):
     def __init__(self, expression):
         self.expression = expression
+
+    def pprint(self, indent):
+        print("%s|- %s" % (" " * indent, self.expression))
 
     def __repr__(self):
         return "%s" % self.expression
@@ -40,6 +53,11 @@ class Expression(object):
     def __repr__(self):
         return "%s(%s, %s)" % (self.__class__.__name__, self.left, self.right)
 
+    def pprint(self, indent):
+        print("%s|- %s:" % (" " * indent, self.__class__.__name__))
+        self.left.pprint(indent + 3)
+        self.right.pprint(indent + 3)
+
 class AddExpression(Expression): pass
 class MulExpression(Expression): pass
 
@@ -50,6 +68,10 @@ class RecursiveDescentParser(object):
         self.code = self.remove_whitespace(code)
         self.pos = 0
         self.elements = []
+
+    def pprint(self):
+        for e in self.elements:
+            e.pprint(0)
 
     def remove_whitespace(self, code):
         return re.sub("[ \t\n]|#.*\n", "", code)
@@ -86,7 +108,6 @@ class RecursiveDescentParser(object):
         statements = self.parse_statements(body)
         f.statements = statements
         self.pos += 1
-        print("parsed function", f)
         return f
 
     def parse_arguments(self):
@@ -100,7 +121,6 @@ class RecursiveDescentParser(object):
             except ParseError:
                 break
         self.parse_string(")")
-        print("parsed args", args)
         return args
 
     def parse_statements(self, body):
@@ -111,7 +131,6 @@ class RecursiveDescentParser(object):
                 continue
             expr = self.parse_expression(s)
             statements.append(expr)
-        print("Parsed statements", statements)
         return statements
 
     def parse_string(self, s):
@@ -139,7 +158,7 @@ class RecursiveDescentParser(object):
             result = RE_PARA.match(code[i:])
             if result:
                 s = result.group(0)
-                subexpr = self.parse_expression(code[i+1:i+len(s)-1])
+                subexpr = self._tokenize_expression(code[i+1:i+len(s)-1])
                 l.append(subexpr)
                 i += len(s)
 
@@ -158,7 +177,10 @@ class RecursiveDescentParser(object):
         return l
 
     def _parse_expr_tokens(self, l):
+
         if len(l) == 1:
+            if isinstance(l[0], list):
+                return self._parse_expr_tokens(l[0])
             return Statement(l[0])
 
         i = 0
@@ -198,10 +220,7 @@ class RecursiveDescentParser(object):
                 if plevel < 0:
                     raise ParseError("Wrong paranthesis number", self)
                 if plevel == 0:
-                    print(code)
-                    print(code[first_open+1:i])
                     left = self.parse_expression(code[first_open+1:i])
-                    print("found para", left)
             i += 1
 
         # multiplication glues stronger, so parse addition first
@@ -210,16 +229,12 @@ class RecursiveDescentParser(object):
             if code[i] == "+":
                 if not left:
                     left = self.parse_expression(code[0:i])
-                print(code)
-                print(code[i+1:])
                 right = self.parse_expression(code[i+1:])
-                print("found add", left, right)
                 return AddExpression(left, right)
             if code[i] == "*":
                 if not left:
                     left = self.parse_expression(code[0:i])
                 right = self.parse_expression(code[i+1:])
-                print("found mul", left, right)
                 return MulExpression(left, right)
             i += 1
 
@@ -240,7 +255,7 @@ if __name__ == "__main__":
 class Test {
 
     function do1(i){
-        1+2;
+        1+2+3;
         3*4
     }
 
@@ -261,4 +276,4 @@ class Test2{}
 """
     p = RecursiveDescentParser(s)
     p.parse()
-    print(p.elements)
+    p.pprint()
