@@ -30,7 +30,7 @@ class Function(object):
         return "func %s(%s) : %s " % (self.name, self.args, self.statements)
 
     def pprint(self, indent):
-        print("%s|- def %s:" % (" " * indent, self.name))
+        print("%s|- def %s(%s):" % (" " * indent, self.name, self.args))
         for s in self.statements:
             s.pprint(indent + 3)
 
