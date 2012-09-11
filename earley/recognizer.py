@@ -5,6 +5,17 @@ class Production(object):
         self.left = left
         self.right = right
 
+    def __eq__(self, other):
+        return self.left == other.left and self.right == other.right
+
+    def __hash__(self):
+        # XXX: this is not safe
+        s = "%s|%s" % (self.left, self.right)
+        return hash(s)
+
+    def __repr__(self):
+        return "Production(%s, %s)" % (self.left, self.right)
+
 class State(object):
 
     def __init__(self, production, pos, backpointer, lookaheadsymbol):
@@ -32,6 +43,8 @@ class Recognizer(object):
         self.inputstring = inputstring
         self.lookahead = lookahead
         self.states = []
+        self.pos = 0
+        self.create_state_zero()
 
     def start(self):
         """
@@ -59,3 +72,14 @@ class Recognizer(object):
             b) Add all states from that state to this state where R comes after the dot
             c) Do this recursively with all added states
         """
+
+    def create_state_zero(self):
+        start = self.grammar[0]
+        state = set()
+        for a in start.alternatives:
+            p = Production(start.symbol, a)
+            state.add(p)
+        self.states.append(state)
+
+    def predict(self):
+        pass

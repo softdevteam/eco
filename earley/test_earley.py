@@ -3,7 +3,7 @@ from recognizer import Recognizer, State, Production
 
 grammar1 = """
 E ::= E "+" E
-E ::= a
+    | "a"
 """
 
 class TestRecognizer(object):
@@ -12,6 +12,11 @@ class TestRecognizer(object):
         p = Parser(grammar1)
         p.parse()
         self.p = p.rules
+
+    def test_production(self):
+        p1 = Production(Nonterminal("E"), [Terminal("a")])
+        p2 = Production(Nonterminal("E"), [Terminal("a")])
+        assert p1 == p2
 
     def test_state(self):
         p = Production(Nonterminal("E"), [Terminal("a")])
@@ -23,8 +28,9 @@ class TestRecognizer(object):
         s = State(p, 1, 0, Recognizer.terminal)
         assert s.equals_str("E ::= E.\"+\"E | 0")
 
-    def test_predictor(self):
+    def test_recognizer_init(self):
         r = Recognizer(self.p, "a")
-        r.predict()
-        assert r.states[0] == ["E ::= E \"+\" E", "E ::= a"]
+        s0 = r.states[0]
+        assert Production(Nonterminal("E"), [Terminal("\"a\"")]) in s0
+        assert Production(Nonterminal("E"), [Nonterminal("E"), Terminal("\"+\""), Nonterminal("E")]) in s0
 
