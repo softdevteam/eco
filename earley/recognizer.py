@@ -28,6 +28,11 @@ class State(object):
     def next_symbol(self):
         return self.p.right[self.d]
 
+    def get_lookahead(self):
+        if self.d+1 >= len(self.p.right):
+            return self.k
+        return self.p.right[self.d+1].name
+
     def __repr__(self):
         return "State(%s, %s, %s, %s)" % (self.p, self.d, self.b, self.k)
 
@@ -107,13 +112,17 @@ class Recognizer(object):
     def predict(self):
         currentstateset = self.statesets[self.pos]
         for s in currentstateset.elements:
+            print("Processing", s)
             symbol = s.next_symbol()
+            lookahead = s.get_lookahead()
             if isinstance(symbol, Nonterminal):
                 # add alternatives of that Nonterminal to stateset
                 rule = self.grammar[symbol]
                 alternatives = rule.alternatives
                 for a in alternatives:
                     p = Production(symbol, a)
-                    s = State(p, 0, self.pos, Recognizer.terminal)
+                    s = State(p, 0, self.pos, lookahead)
                     if s not in currentstateset.elements:
+                        # since we add new states to the set we are iterating over
+                        # we automatically process the new states, too
                         currentstateset.elements.append(s)
