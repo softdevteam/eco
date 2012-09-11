@@ -1,5 +1,15 @@
 from gparser import Parser, Nonterminal, Terminal
 
+
+def test_terminal():
+    t1 = Nonterminal("E")
+    t2 = Nonterminal("E")
+    assert t1 == t2
+
+    t1 = Terminal("\"a\"")
+    t2 = Terminal("\"a\"")
+    assert t1 == t2
+
 def test_simple():
     p = Parser("E ::= \"a\"")
     p.parse()
