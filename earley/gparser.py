@@ -33,13 +33,16 @@ class Nonterminal(object):
             return False
         return self.name == other.name
 
+    def __hash__(self):
+        return hash(self.name)
+
 class Parser(object):
 
     def __init__(self, code):
         self.lexer = Lexer(code)
         self.lexer.lex()
         self.curtok = 0
-        self.rules = []
+        self.rules = {}
 
     def __repr__(self):
         s = []
@@ -50,7 +53,7 @@ class Parser(object):
     def parse(self):
         while self.curtok < len(self.lexer.tokens):
             rule = self.parse_rule()
-            self.rules.append(rule)
+            self.rules[rule.symbol] = rule
 
     def inc(self):
         self.curtok += 1
