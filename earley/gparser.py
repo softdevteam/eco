@@ -9,24 +9,10 @@ class Rule(object):
     def __repr__(self):
         return "Rule(%s => %s)" % (self.symbol, self.alternatives)
 
-class Terminal(object):
+class Symbol(object):
     def __init__(self, name):
         self.name = name
-
-    def __repr__(self):
-        return "Terminal(%s)" % (self.name,)
-
-    def __eq__(self, other):
-        if other.__class__ != self.__class__:
-            return False
-        return self.name == other.name
-
-class Nonterminal(object):
-    def __init__(self, name):
-        self.name = name
-
-    def __repr__(self):
-        return "Nonterminal(%s)" % (self.name,)
+        self.raw = name.strip("\"")
 
     def __eq__(self, other):
         if other.__class__ != self.__class__:
@@ -35,6 +21,15 @@ class Nonterminal(object):
 
     def __hash__(self):
         return hash(self.name)
+
+
+class Terminal(Symbol):
+    def __repr__(self):
+        return "Terminal(%s)" % (self.name,)
+
+class Nonterminal(Symbol):
+    def __repr__(self):
+        return "Nonterminal(%s)" % (self.name,)
 
 class Parser(object):
 

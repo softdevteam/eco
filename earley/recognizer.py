@@ -1,4 +1,4 @@
-from gparser import Nonterminal
+from gparser import Nonterminal, Terminal
 
 class Production(object):
 
@@ -32,6 +32,9 @@ class State(object):
         if self.d+1 >= len(self.p.right):
             return self.k
         return self.p.right[self.d+1].name
+
+    def clone(self):
+        return State(self.p, self.d, self.b, self.k)
 
     def __repr__(self):
         return "State(%s, %s, %s, %s)" % (self.p, self.d, self.b, self.k)
@@ -72,7 +75,7 @@ class Recognizer(object):
         self.lookahead = lookahead
         self.statesets = []
         self.pos = 0
-        self.init_first_state()
+        self._init_statesets()
 
     def start(self):
         """
@@ -101,18 +104,30 @@ class Recognizer(object):
             c) Do this recursively with all added states
         """
 
-    def init_first_state(self):
+    def get_current_stateset(self):
+        return self.statesets[self.pos]
+
+    def get_current_input(self):
+        return self.inputstring[self.pos]
+
+    def get_next_stateset(self):
+        return self.statesets[self.pos+1]
+
+    def _init_statesets(self):
+        for _ in self.inputstring:
+            ss = StateSet()
+            self.statesets.append(ss)
+
         # XXX get start symbol from parser
         p = Production(None, [Nonterminal("E")])
         state = State(p, 0, 0, self.terminal)
-        s0 = StateSet()
+        s0 = self.statesets[0]
         s0.elements.append(state)
-        self.statesets.append(s0)
 
     def predict(self):
-        currentstateset = self.statesets[self.pos]
+        currentstateset = self.get_current_stateset()
         for s in currentstateset.elements:
-            print("Processing", s)
+            print("Predicting", s)
             symbol = s.next_symbol()
             lookahead = s.get_lookahead()
             if isinstance(symbol, Nonterminal):
@@ -126,3 +141,13 @@ class Recognizer(object):
                         # since we add new states to the set we are iterating over
                         # we automatically process the new states, too
                         currentstateset.elements.append(s)
+
+    def scan(self):
+        for s in self.get_current_stateset().elements:
+            print("Scanning", s)
+            if isinstance(s.next_symbol(), Terminal):
+                if s.next_symbol().raw == self.get_current_input():
+                    newstate = s.clone()
+                    newstate.d += 1
+                    print("    Adding", newstate)
+                    self.get_next_stateset().elements.append(newstate)

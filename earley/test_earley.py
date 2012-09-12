@@ -41,6 +41,16 @@ class TestRecognizer(object):
         assert s0.elements[0].equals_str("None ::= .E | 0")
 
     def test_recognizer_predict(self):
+        """
+        The predictor checks whether the next symbol is a Nonterminal. If so, it
+        adds all alternatives of that Nonterminal to the current state.
+
+        At the beginning we have the starting rule S ::= .E Thus the first
+        phase of the predictor adds all productions with 'E' on the left side
+        to the current state, which are:
+            E ::= E + E | 0
+            E ::= a     | 0
+        """
         self.r.predict()
         s0 = self.r.statesets[0]
         assert s0.elements[0].equals_str("None ::= .E | 0")
@@ -48,8 +58,29 @@ class TestRecognizer(object):
         assert s0.elements[2].equals_str("E ::= .\"a\" | 0")
 
     def test_recognizer_predict_lookahead(self):
+        """
+        In the other phases the predictor does the same with newly added
+        productions, thus adding the same productions again, but this time with
+        a different lookahead symbol (derived from E ::= E + E):
+            E ::= .E + E | 0
+            E ::= .a     | 0
+        """
         self.r.predict()
         s0 = self.r.statesets[0]
         assert s0.elements[3].equals_str("E ::= .E\"+\"E \"+\" 0")
         assert s0.elements[4].equals_str("E ::= .\"a\" \"+\" 0")
 
+    def test_recognizer_scan(self):
+        """
+        The scanner checks whether the next symbol is a Terminal and copies all
+        states with this terminal over to the next stateset, with the dot moved
+        one step further:
+            E ::= a. | 0
+            E ::= a. + 0
+        """
+        self.r.predict()
+        self.r.scan()
+        s1 = self.r.statesets[1]
+        assert s1.elements[0].equals_str("""E ::= "a". | 0""")
+        assert s1.elements[1].equals_str("""E ::= "a". \"+\" 0""")
+        assert len(s1.elements) == 2
