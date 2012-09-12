@@ -28,10 +28,22 @@ class State(object):
     def next_symbol(self):
         return self.p.right[self.d]
 
+    def end_of_production(self):
+        return len(self.p.right) == self.d
+
+    def get_left(self):
+        return self.p.left
+
     def get_lookahead(self):
         if self.d+1 >= len(self.p.right):
             return self.k
         return self.p.right[self.d+1].name
+
+    def get_backpointer(self):
+        return self.b
+
+    def get_lookahead_raw(self):
+        return self.get_lookahead().strip("\"")
 
     def clone(self):
         return State(self.p, self.d, self.b, self.k)
@@ -151,3 +163,22 @@ class Recognizer(object):
                     newstate.d += 1
                     print("    Adding", newstate)
                     self.get_next_stateset().elements.append(newstate)
+        if self.get_next_stateset() == []:
+            raise Exception("Stateset remained empty after scanning")
+        else:
+            self.pos += 1 # got to the next stateset
+
+    def complete(self):
+        for s in self.get_current_stateset().elements:
+            print("Completing", s)
+            if s.end_of_production():
+                print("    reached end of production")
+                if s.get_lookahead_raw() == self.get_current_input():
+                    print("    current_symbol == lookahead")
+                    old_state_set = self.statesets[s.get_backpointer()]
+                    for old_state in old_state_set.elements:
+                        if old_state.next_symbol() == s.get_left():
+                            print("        Adding from fromer state:", old_state)
+                            newstate = old_state.clone()
+                            newstate.d += 1
+                            self.get_current_stateset().elements.append(newstate)
