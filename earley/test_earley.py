@@ -7,6 +7,9 @@ E ::= E "+" E
     | "a"
 """
 
+S0 = StateSet()
+S0.append(State(Production(None, [Nonterminal("E")], 0, 0, "|")))
+
 class TestBasicClasses(object):
 
     def test_production(self):
@@ -60,7 +63,8 @@ class TestBasicRecognizer(object):
             E ::= E + E | 0
             E ::= a     | 0
         """
-        self.r.predict()
+        for s in self.r.get_current_stateset().elements:
+            self.r.predict(s)
         s0 = self.r.statesets[0]
         assert s0.elements[0].equals_str("None ::= .E | 0")
         assert s0.elements[1].equals_str("E ::= .E\"+\"E | 0")
@@ -74,27 +78,36 @@ class TestBasicRecognizer(object):
             E ::= .E + E + 0
             E ::= .a     + 0
         """
-        self.r.predict()
+        for s in self.r.get_current_stateset().elements:
+            self.r.predict(s)
         s0 = self.r.statesets[0]
         assert s0.elements[3].equals_str("E ::= .E\"+\"E \"+\" 0")
         assert s0.elements[4].equals_str("E ::= .\"a\" \"+\" 0")
 
     def test_scanner(self):
         """
-        The scanner checks whether the next symbol is a Terminal and copies all
-        states with this terminal over to the next stateset, with the dot moved
+        The scanner checks whether the next symbol is a Terminal, checks
+        whether it matches the next inputstring symbol and copies all states
+        with this terminal over to the next stateset, with the dot moved
         one step further:
             E ::= a. | 0
             E ::= a. + 0
         """
-        self.r.predict()
-        self.r.scan()
+        for s in self.r.get_current_stateset().elements:
+            self.r.predict(s)
+            self.r.scan(s)
         s1 = self.r.statesets[1]
         assert s1.elements[0].equals_str("""E ::= "a". | 0""")
         assert s1.elements[1].equals_str("""E ::= "a". "+" 0""")
         assert len(s1.elements) == 2
 
     def test_completer(self):
+        # run over first stateset
+        for s in self.r.get_current_stateset().elements:
+            self.r.predict(s)
+            self.r.complete(s)
+            self.r.scan(s)
+            self.r.pos += 1 # after scanning we look at the next symbol
         """
         The completer takes action if a state has reached the end of its production.
         Then the completer:
@@ -113,10 +126,10 @@ class TestBasicRecognizer(object):
             E ::= E. + E + 0
         over to S1
         """
-        self.r.predict()
-        self.r.scan()
-        self.r.pos += 1 # after scanning we look at the next symbol
-        self.r.complete()
+        # run over second stateset
+        for s in self.r.get_current_stateset().elements:
+            self.r.predict(s)
+            self.r.complete(s)
         s1 = self.r.statesets[1]
         assert s1.elements[2].equals_str("""None ::= E. | 0""")
         assert s1.elements[3].equals_str("""E ::= E."+"E | 0""")

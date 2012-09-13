@@ -124,8 +124,9 @@ class Recognizer(object):
             self.complete()
             self.scan()
             if self.get_next_stateset() == []:
-                return False
+                raise Exception("Stateset remained empty after scanning")
             self.pos += 1
+
         if self.get_next_stateset().elements == [State(0, 2, 0, Recognizer.terminal)]:
             return True
         else:
@@ -151,47 +152,43 @@ class Recognizer(object):
         s0 = self.statesets[0]
         s0.elements.append(state)
 
-    def predict(self):
+    def predict(self, s):
         currentstateset = self.get_current_stateset()
-        for s in currentstateset.elements:
-            print("Predicting", s)
-            symbol = s.next_symbol()
-            lookahead = s.get_lookahead()
-            if isinstance(symbol, Nonterminal):
-                # add alternatives of that Nonterminal to stateset
-                rule = self.grammar[symbol]
-                alternatives = rule.alternatives
-                for a in alternatives:
-                    p = Production(symbol, a)
-                    s = State(p, 0, self.pos, lookahead)
-                    if s not in currentstateset.elements:
-                        # since we add new states to the set we are iterating over
-                        # we automatically process the new states, too
-                        currentstateset.elements.append(s)
+        #for s in currentstateset.elements:
+        print("Predicting", s)
+        symbol = s.next_symbol()
+        lookahead = s.get_lookahead()
+        if isinstance(symbol, Nonterminal):
+            # add alternatives of that Nonterminal to stateset
+            rule = self.grammar[symbol]
+            alternatives = rule.alternatives
+            for a in alternatives:
+                p = Production(symbol, a)
+                s = State(p, 0, self.pos, lookahead)
+                if s not in currentstateset.elements:
+                    # since we add new states to the set we are iterating over
+                    # we automatically process the new states, too
+                    currentstateset.elements.append(s)
 
-    def scan(self):
-        for s in self.get_current_stateset().elements:
-            print("Scanning", s)
-            if isinstance(s.next_symbol(), Terminal):
-                if s.next_symbol().raw == self.get_current_input():
-                    newstate = s.clone()
-                    newstate.d += 1
-                    print("    Adding", newstate)
-                    self.get_next_stateset().elements.append(newstate)
-        if self.get_next_stateset() == []:
-            raise Exception("Stateset remained empty after scanning")
+    def scan(self, s):
+        print("Scanning", s)
+        if isinstance(s.next_symbol(), Terminal):
+            if s.next_symbol().raw == self.get_current_input():
+                newstate = s.clone()
+                newstate.d += 1
+                print("    Adding", newstate)
+                self.get_next_stateset().elements.append(newstate)
 
-    def complete(self):
-        for s in self.get_current_stateset().elements:
-            print("Completing", s)
-            if s.end_of_production():
-                print("    reached end of production")
-                if s.get_lookahead_raw() == self.get_current_input():
-                    print("    current_symbol == lookahead")
-                    old_state_set = self.statesets[s.get_backpointer()]
-                    for old_state in old_state_set.elements:
-                        if old_state.next_symbol() == s.get_left():
-                            print("        Adding from fromer state:", old_state)
-                            newstate = old_state.clone()
-                            newstate.d += 1
-                            self.get_current_stateset().elements.append(newstate)
+    def complete(self, s):
+        print("Completing", s)
+        if s.end_of_production():
+            print("    reached end of production")
+            if s.get_lookahead_raw() == self.get_current_input():
+                print("    current_symbol == lookahead")
+                old_state_set = self.statesets[s.get_backpointer()]
+                for old_state in old_state_set.elements:
+                    if old_state.next_symbol() == s.get_left():
+                        print("        Adding from fromer state:", old_state)
+                        newstate = old_state.clone()
+                        newstate.d += 1
+                        self.get_current_stateset().elements.append(newstate)
