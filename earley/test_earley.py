@@ -37,7 +37,7 @@ class TestBasicClasses(object):
         s = State(p, 1, 0, Recognizer.terminal)
         assert s.next_symbol() == Terminal("\"+\"")
 
-class TestRecognizer(object):
+class TestBasicRecognizer(object):
 
     def setup_method(self, method):
         p = Parser(grammar1)
@@ -115,9 +115,13 @@ class TestRecognizer(object):
         """
         self.r.predict()
         self.r.scan()
+        self.r.pos += 1 # after scanning we look at the next symbol
         self.r.complete()
         s1 = self.r.statesets[1]
         assert s1.elements[2].equals_str("""None ::= E. | 0""")
         assert s1.elements[3].equals_str("""E ::= E."+"E | 0""")
         assert s1.elements[4].equals_str("""E ::= E."+"E "+" 0""")
         assert len(s1.elements) == 5
+
+    def test_full(self):
+        assert self.r.isvalid()

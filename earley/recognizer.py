@@ -89,7 +89,7 @@ class Recognizer(object):
         self.pos = 0
         self._init_statesets()
 
-    def start(self):
+    def isvalid(self):
         """
         PREDICTOR:
         Condition:
@@ -115,6 +115,21 @@ class Recognizer(object):
             b) Add all states from that state to this state where R comes after the dot
             c) Do this recursively with all added states
         """
+
+        while self.pos < len(self.inputstring):
+            print("--------------------")
+            print("Step:", self.pos)
+            print("Current StateSet:", self.get_current_stateset().elements)
+            self.predict()
+            self.complete()
+            self.scan()
+            if self.get_next_stateset() == []:
+                return False
+            self.pos += 1
+        if self.get_next_stateset().elements == [State(0, 2, 0, Recognizer.terminal)]:
+            return True
+        else:
+            raise Exception("Something went wrong")
 
     def get_current_stateset(self):
         return self.statesets[self.pos]
@@ -165,8 +180,6 @@ class Recognizer(object):
                     self.get_next_stateset().elements.append(newstate)
         if self.get_next_stateset() == []:
             raise Exception("Stateset remained empty after scanning")
-        else:
-            self.pos += 1 # got to the next stateset
 
     def complete(self):
         for s in self.get_current_stateset().elements:
