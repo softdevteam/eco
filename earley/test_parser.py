@@ -49,3 +49,11 @@ def test_more_complex_grammar():
         [Nonterminal("splice")],
         [Nonterminal("insert")]
     ]
+
+def test_empty_alternative():
+    p = Parser("""
+        E ::= "a"
+            |
+    """)
+    p.parse()
+    assert p.rules[Nonterminal("E")].alternatives == [[Terminal("\"a\"")],[]]

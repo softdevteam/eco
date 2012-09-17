@@ -104,3 +104,19 @@ P ::= "a"
     p.parse()
     r = AdvancedRecognizer(p.start_symbol, p.rules, "a+a*b")
     assert r.isvalid()
+
+def test_grammar_with_empty_alternative():
+    grammar = """
+        E ::= B A B
+        A ::= "a"
+            |
+        B ::= "b"
+    """
+
+    p = Parser(grammar)
+    p.parse()
+    r = AdvancedRecognizer(p.start_symbol, p.rules, "bab")
+    assert r.isvalid()
+    r = AdvancedRecognizer(p.start_symbol, p.rules, "bb")
+    assert r.isvalid()
+

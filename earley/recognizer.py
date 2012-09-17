@@ -26,7 +26,10 @@ class State(object):
         self.k = lookaheadsymbol
 
     def next_symbol(self):
-        return self.p.right[self.d]
+        try:
+            return self.p.right[self.d]
+        except IndexError:
+            return None
 
     def isfinal(self):
         return len(self.p.right) == self.d

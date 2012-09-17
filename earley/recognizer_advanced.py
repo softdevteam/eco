@@ -93,7 +93,7 @@ class AdvancedRecognizer(object):
         print("Completing", s)
         old_state_set = self.statesets[s.get_backpointer()]
         for old_state in old_state_set.elements:
-            if old_state.next_symbol() == s.get_left():
+            if old_state.next_symbol() and old_state.next_symbol() == s.get_left():
                 print("        Adding from fromer state:", old_state)
                 newstate = old_state.clone()
                 newstate.d += 1
