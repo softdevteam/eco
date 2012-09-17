@@ -19,7 +19,7 @@ class Production(object):
 
 class State(object):
 
-    def __init__(self, production, pos, backpointer, lookaheadsymbol):
+    def __init__(self, production, pos, backpointer, lookaheadsymbol=None):
         self.p = production
         self.d = pos
         self.b = backpointer
@@ -28,7 +28,7 @@ class State(object):
     def next_symbol(self):
         return self.p.right[self.d]
 
-    def end_of_production(self):
+    def isfinal(self):
         return len(self.p.right) == self.d
 
     def get_left(self):
