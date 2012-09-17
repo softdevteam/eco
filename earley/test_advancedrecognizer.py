@@ -88,3 +88,19 @@ def test_longer_input():
     r = AdvancedRecognizer(p.start_symbol, p.rules, "a+a+a+a")
     assert r.isvalid()
 
+def test_complex_grammar():
+    grammar = """
+E ::= T
+    | E "+" T
+
+T ::= P
+    | T "*" P
+
+P ::= "a"
+    | "b"
+"""
+
+    p = Parser(grammar)
+    p.parse()
+    r = AdvancedRecognizer(p.start_symbol, p.rules, "a+a*b")
+    assert r.isvalid()
