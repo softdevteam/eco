@@ -37,6 +37,7 @@ class Parser(object):
         self.lexer = Lexer(code)
         self.lexer.lex()
         self.curtok = 0
+        self.start_symbol = None
         self.rules = {}
 
     def __repr__(self):
@@ -49,6 +50,8 @@ class Parser(object):
         while self.curtok < len(self.lexer.tokens):
             rule = self.parse_rule()
             self.rules[rule.symbol] = rule
+            if not self.start_symbol:
+                self.start_symbol = rule.symbol
 
     def inc(self):
         self.curtok += 1
