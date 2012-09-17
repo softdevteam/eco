@@ -79,3 +79,12 @@ def test_recognizer_manual_3():
 def test_auto():
     r = AdvancedRecognizer(p.start_symbol, p.rules, inputstring)
     assert r.isvalid()
+
+def test_false_input():
+    r = AdvancedRecognizer(p.start_symbol, p.rules, "a+b")
+    assert not r.isvalid()
+
+def test_longer_input():
+    r = AdvancedRecognizer(p.start_symbol, p.rules, "a+a+a+a")
+    assert r.isvalid()
+
