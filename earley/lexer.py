@@ -3,7 +3,7 @@ import re
 
 whitespace = "( |\n|\r|\t)+"
 nonterminal = "[a-zA-Z_]+"  # e.g. E, T, Nonterminal
-terminal = "\"([a-zA-Z_]+|\+|-|\*|\/|\&|{|}|\t| |\n|,)\""  # e.g. a, b, +, -
+terminal = "\"([a-zA-Z_]+|\+|-|\*|\/|\&|{|}|\t| |\n|,|;)\""  # e.g. a, b, +, -
 mapsto = "::="
 alternative = "\|"
 

@@ -134,25 +134,26 @@ def test_empty_inputstring():
 
 def test_recursion():
     grammar = """
-      A ::= A "," A
-          | B
+      Alpha ::= Beta "," Alpha
+          | Beta
           |
-      B ::= "a"
+      Beta ::= "a"
   """
 
     p = Parser(grammar)
     p.parse()
-    #assert AdvancedRecognizer(p.start_symbol, p.rules, "a,a,a").isvalid()
-    #assert AdvancedRecognizer(p.start_symbol, p.rules, "a").isvalid()
+    assert AdvancedRecognizer(p.start_symbol, p.rules, "a,a,a").isvalid()
+    assert AdvancedRecognizer(p.start_symbol, p.rules, "a").isvalid()
     assert AdvancedRecognizer(p.start_symbol, p.rules, "").isvalid()
 
 def test_simple_language():
     grammar = """
-        program ::= options program
+
+        program ::= options
                   |
 
-        options ::= class
-                  |
+        options ::= class options
+                |
 
         class ::= "class" ws string "{" classbody "}"
 
@@ -160,19 +161,24 @@ def test_simple_language():
                     |
 
         function ::= "def" ws string "{" funcbody "}"
-        funcbody ::= statement funcbody
+        funcbody ::= statement ";" funcbody
                    |
+
+        statement ::= string
 
         ws ::= ws_char ws
              |
 
         ws_char ::= " " | "\t" | "\n"
 
-        string ::= "test" | "foo"
+        string ::= "test" | "foo" | "foobar"
      """
 
     p = Parser(grammar)
     p.parse()
-    r = AdvancedRecognizer(p.start_symbol, p.rules, """class test{}""")
+    AdvancedRecognizer(p.start_symbol, p.rules, """""").isvalid()
+    AdvancedRecognizer(p.start_symbol, p.rules, """class test{}""").isvalid()
+    AdvancedRecognizer(p.start_symbol, p.rules, """class test{def foo{}}""").isvalid()
+    AdvancedRecognizer(p.start_symbol, p.rules, """class test{def foo{foobar;}}""").isvalid()
     assert r.isvalid()
 

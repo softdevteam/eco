@@ -1,6 +1,9 @@
 from gparser import Nonterminal, Terminal
 from recognizer import Production, State, StateSet
 
+class RecognitionError(Exception):
+    pass
+
 class AdvancedRecognizer(object):
 
     def __init__(self, start_symbol, grammar, inputstring, lookahead=1):
@@ -9,32 +12,31 @@ class AdvancedRecognizer(object):
         self.inputstring = inputstring
         self.lookahead = lookahead
         self.statesets = []
-        self.pos = 0   # position in stateset
-        self.s_pos = 0 # position in inputstring
+        self.pos = 0
+        self.s_pos = 0
         self._init_statesets()
 
     def read_current_input_symbol(self):
         current_stateset = self.get_current_stateset()
-        print("current_stateset", current_stateset.elements)
+
         for s in current_stateset.elements:
             self.scan(s)
             self.predict(s)
             self.complete(s)
-            if self.s_pos < len(self.inputstring) and self.get_next_stateset() == []:
-                raise Exception("Stateset remained empty after scanning")
+        if self.s_pos < len(self.inputstring) and self.get_next_stateset() == None:
+            raise RecognitionError("Stateset remained empty after scanning")
 
 
     def isvalid(self):
         while self.s_pos < len(self.inputstring):
-            print("Reading:", self.inputstring[self.s_pos:])
             try:
                 self.read_current_input_symbol()
-            except IndexError:
+            except RecognitionError:
                 return False
             self.pos += 1
 
         self.read_current_input_symbol()
-        if State(Production(None, [self.start_symbol]), 1, 0) in self.statesets[self.pos]:
+        if State(Production(None, [self.start_symbol]), 1, 0) in self.statesets[-1]:
             return True
 
         return False
@@ -43,27 +45,37 @@ class AdvancedRecognizer(object):
         return self.pos >= len(self.inputstring)
 
     def get_current_stateset(self):
-        return self.statesets[self.pos]
+        try:
+            return self.statesets[self.pos]
+        except IndexError:
+            raise RecognitionError
 
     def get_current_input(self):
         return self.inputstring[self.pos]
 
-    def get_next_stateset(self):
-        return self.statesets[self.pos+1]
-
-    def _init_statesets(self):
-        for _ in range(len(self.inputstring)+1):
+    def add_to_stateset(self, state, i):
+        try:
+            ss = self.statesets[i]
+        except IndexError:
             ss = StateSet()
             self.statesets.append(ss)
 
+        ss.elements.append(state)
+
+    def get_next_stateset(self):
+        try:
+            return self.statesets[self.pos+1]
+        except IndexError:
+            return None
+
+    def _init_statesets(self):
         # create startset
         p = Production(None, [self.start_symbol])
         state = State(p, 0, 0)
-        s0 = self.statesets[0]
-        s0.elements.append(state)
+        self.add_to_stateset(state, 0)
 
     def predict(self, s):
-        if s.isfinal() or self.end_of_string() or not isinstance(s.next_symbol(), Nonterminal):
+        if s.isfinal() or not isinstance(s.next_symbol(), Nonterminal):
             return
 
         print("Predicting", s)
@@ -86,15 +98,13 @@ class AdvancedRecognizer(object):
             return
 
         print("Scanning", s)
-        symbol_len = len(s.next_symbol().raw)
-        next_input = self.inputstring[self.s_pos:self.s_pos+symbol_len]
-        print(">>>>", next_input)
-        if s.next_symbol().raw == next_input:
+        ns = s.next_symbol().raw
+        if self.inputstring[self.s_pos:self.s_pos+len(ns)] == ns:
             newstate = s.clone()
             newstate.d += 1
             print("    Adding", newstate)
-            self.get_next_stateset().elements.append(newstate)
-            self.s_pos += symbol_len
+            self.add_to_stateset(newstate, self.pos + 1)
+            self.s_pos += len(ns)
 
     def complete(self, s):
         if not s.isfinal():
