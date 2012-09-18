@@ -120,3 +120,59 @@ def test_grammar_with_empty_alternative():
     r = AdvancedRecognizer(p.start_symbol, p.rules, "bb")
     assert r.isvalid()
 
+def test_empty_inputstring():
+    grammar = """
+        E ::= "a"
+            |
+    """
+
+    p = Parser(grammar)
+    p.parse()
+    assert AdvancedRecognizer(p.start_symbol, p.rules, "a").isvalid()
+    r = AdvancedRecognizer(p.start_symbol, p.rules, "")
+    assert r.isvalid()
+
+def test_recursion():
+    grammar = """
+      A ::= A "," A
+          | B
+          |
+      B ::= "a"
+  """
+
+    p = Parser(grammar)
+    p.parse()
+    #assert AdvancedRecognizer(p.start_symbol, p.rules, "a,a,a").isvalid()
+    #assert AdvancedRecognizer(p.start_symbol, p.rules, "a").isvalid()
+    assert AdvancedRecognizer(p.start_symbol, p.rules, "").isvalid()
+
+def test_simple_language():
+    grammar = """
+        program ::= options program
+                  |
+
+        options ::= class
+                  |
+
+        class ::= "class" ws string "{" classbody "}"
+
+        classbody ::= function classbody
+                    |
+
+        function ::= "def" ws string "{" funcbody "}"
+        funcbody ::= statement funcbody
+                   |
+
+        ws ::= ws_char ws
+             |
+
+        ws_char ::= " " | "\t" | "\n"
+
+        string ::= "test" | "foo"
+     """
+
+    p = Parser(grammar)
+    p.parse()
+    r = AdvancedRecognizer(p.start_symbol, p.rules, """class test{}""")
+    assert r.isvalid()
+

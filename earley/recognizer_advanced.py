@@ -9,26 +9,32 @@ class AdvancedRecognizer(object):
         self.inputstring = inputstring
         self.lookahead = lookahead
         self.statesets = []
-        self.pos = 0
+        self.pos = 0   # position in stateset
+        self.s_pos = 0 # position in inputstring
         self._init_statesets()
 
     def read_current_input_symbol(self):
         current_stateset = self.get_current_stateset()
-
+        print("current_stateset", current_stateset.elements)
         for s in current_stateset.elements:
             self.scan(s)
             self.predict(s)
             self.complete(s)
-            if self.pos < len(self.inputstring) and self.get_next_stateset() == []:
+            if self.s_pos < len(self.inputstring) and self.get_next_stateset() == []:
                 raise Exception("Stateset remained empty after scanning")
 
 
     def isvalid(self):
-        while self.pos <= len(self.inputstring):
-            self.read_current_input_symbol()
+        while self.s_pos < len(self.inputstring):
+            print("Reading:", self.inputstring[self.s_pos:])
+            try:
+                self.read_current_input_symbol()
+            except IndexError:
+                return False
             self.pos += 1
 
-        if State(Production(None, [self.start_symbol]), 1, 0) in self.statesets[self.pos-1]:
+        self.read_current_input_symbol()
+        if State(Production(None, [self.start_symbol]), 1, 0) in self.statesets[self.pos]:
             return True
 
         return False
@@ -80,11 +86,15 @@ class AdvancedRecognizer(object):
             return
 
         print("Scanning", s)
-        if s.next_symbol().raw == self.get_current_input():
+        symbol_len = len(s.next_symbol().raw)
+        next_input = self.inputstring[self.s_pos:self.s_pos+symbol_len]
+        print(">>>>", next_input)
+        if s.next_symbol().raw == next_input:
             newstate = s.clone()
             newstate.d += 1
             print("    Adding", newstate)
             self.get_next_stateset().elements.append(newstate)
+            self.s_pos += symbol_len
 
     def complete(self, s):
         if not s.isfinal():
