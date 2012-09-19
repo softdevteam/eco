@@ -123,9 +123,10 @@ class Recognizer(object):
             print("--------------------")
             print("Step:", self.pos)
             print("Current StateSet:", self.get_current_stateset().elements)
-            self.predict()
-            self.complete()
-            self.scan()
+            for s in self.get_next_stateset().elements:
+                self.predict()
+                self.complete()
+                self.scan()
             if self.get_next_stateset() == []:
                 raise Exception("Stateset remained empty after scanning")
             self.pos += 1

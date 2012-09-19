@@ -7,9 +7,6 @@ E ::= E "+" E
     | "a"
 """
 
-S0 = StateSet()
-S0.append(State(Production(None, [Nonterminal("E")], 0, 0, "|")))
-
 class TestBasicClasses(object):
 
     def test_production(self):
@@ -136,5 +133,3 @@ class TestBasicRecognizer(object):
         assert s1.elements[4].equals_str("""E ::= E."+"E "+" 0""")
         assert len(s1.elements) == 5
 
-    def test_full(self):
-        assert self.r.isvalid()
