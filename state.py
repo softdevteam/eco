@@ -1,3 +1,11 @@
+class StateSet(object):
+
+    def __init__(self):
+        self.elements = []
+
+    def __contains__(self, element):
+        return element in self.elements
+
 class State(object):
 
     def __init__(self, production, pos, backpointer, lookaheadsymbol=None):
