@@ -1,0 +1,32 @@
+LR(0):
+- apply and reduce productions until starting production is reduced
+
+SLR(1):
+- has kind of lookahead
+- very similar to LR(0)
+- only reduce if next symbol after identified production (right side) is allowed after its metasymbol (left side)
+- therefore needs additional FOLLOW set (per metasymbol)
+
+LR(1):
+- most powerful (deterministic) LR-method (?)
+- only reduce if next symbol follows metasymbol AND that metasymbol was created by this exact production
+- needs LOOKAHEAD sets (per Production)
+
+Example (maybe incorrect):
+--------
+
+S ::= Sb
+A ::= aSc
+B ::= aSb
+
+Current State: S ::= Sb.
+
+LR(0): always reduce
+SLR(1): only reduce if next symbol is "b" or "c"
+LR(1): only reduce if next symbol is "b" and current state came from state with B ::= aS.b
+                or if next symbol is "c" and current state came from state with C ::= aS.c
+
+LRLA(1):
+- smaller table than LR(1)
+- but also not as powerful (still powerful enough for most language constructs)
+- constructed by merging all states of an LR(1) graph that only differ in their lookahead
