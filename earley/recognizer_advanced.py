@@ -1,5 +1,9 @@
+import sys
+sys.path.append("../")
 from gparser import Nonterminal, Terminal
-from recognizer import Production, State, StateSet
+from recognizer import  StateSet
+from production import Production
+from state import State
 
 class RecognitionError(Exception):
     pass
