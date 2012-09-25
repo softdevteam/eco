@@ -1,3 +1,6 @@
+import sys
+sys.path.append("../")
+
 from gparser import Parser, Rule, Nonterminal, Terminal
 from recognizer import Recognizer, State, Production, StateSet
 import pytest

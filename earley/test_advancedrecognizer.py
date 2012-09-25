@@ -1,3 +1,6 @@
+import sys
+sys.path.append("../")
+
 from gparser import Parser, Nonterminal, Terminal
 from recognizer_advanced import AdvancedRecognizer
 from recognizer import StateSet, State, Production

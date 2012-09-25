@@ -1,3 +1,5 @@
+import sys
+sys.path.append("../")
 from gparser import Parser, Nonterminal, Terminal
 
 
