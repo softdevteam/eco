@@ -65,10 +65,10 @@ def test_closure_0():
     s1.add(s)
     closure = closure_0(r, s1)
     assert len(closure.elements) == 4
-    assert State(Production(Nonterminal("Z"), [Nonterminal("S")]), 0) in closure
-    assert State(Production(Nonterminal("S"), [Nonterminal("S"), Terminal("\"b\"")]), 0) in closure
-    assert State(Production(Nonterminal("S"), [Terminal("\"b\""), Nonterminal("A"), Terminal("\"a\"")]), 0) in closure
-    assert State(Production(Nonterminal("S"), [Terminal("\"a\"")]), 0) in closure
+    assert State(Production(Z, [S]), 0) in closure
+    assert State(Production(S, [S, b]), 0) in closure
+    assert State(Production(S, [b, A, a]), 0) in closure
+    assert State(Production(S, [a]), 0) in closure
 
     s2 = StateSet()
     s =  State(Production(F, [C, D, f]), 0)
@@ -91,7 +91,7 @@ def test_closure_0():
     assert State(Production(A, [a]), 0) in closure
 
 def test_goto_0():
-    ss = StateSet([State(Production(Nonterminal("Z"), [Nonterminal("S")]), 0)])
+    ss = StateSet([State(Production(Z, [S]), 0)])
     closure = closure_0(r, ss)
     g1 = goto_0(r, closure, b)
     expected = closure_0(r, StateSet([State(Production(S, [b, A, a]), 1)]))
