@@ -1,14 +1,32 @@
 class StateSet(object):
 
-    def __init__(self):
-        self.elements = []
+    def __init__(self, elements=None):
+        if elements:
+            self.elements = elements
+        else:
+            self.elements = []
+
+    def __getitem__(self, i):
+        return self.elements[i]
+
+    def add(self, element):
+        if element not in self.elements:
+            self.elements.append(element)
 
     def __contains__(self, element):
         return element in self.elements
 
+    def __eq__(self, other):
+        for e in self.elements:
+            if e not in other:
+                return False
+        return True
+
 class State(object):
 
-    def __init__(self, production, pos, backpointer, lookaheadsymbol=None):
+    # backpointer only necessary for earley parser
+    # lookahead only necessary for normal earley parser
+    def __init__(self, production, pos, backpointer=None, lookaheadsymbol=None):
         self.p = production
         self.d = pos
         self.b = backpointer

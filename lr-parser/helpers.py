@@ -1,7 +1,9 @@
 import sys
 sys.path.append("../")
 
-from gparser import Terminal
+from state import State, StateSet
+from production import Production
+from gparser import Terminal, Nonterminal
 
 def first(grammar, symbol):
     """
@@ -106,8 +108,32 @@ def follow_old(grammar, symbol):
             if all_empty and s != symbol:
                 result |= follow(grammar, s)
 
-def closure():
-    pass
+def closure_0(grammar, state_set):
+    print("Calculating closur_0")
+    result = StateSet()
+    # 1) Add state_set to it's own closure
+    for state in state_set.elements:
+        result.add(state)
+    # 2) If there exists an LR-element with a Nonterminal as its next symbol
+    #    add all production with this symbol on the left side to the closure
+    for state in result:
+        symbol = state.next_symbol()
+        if isinstance(symbol, Nonterminal):
+            print(symbol)
+            alternatives = grammar[symbol].alternatives
+            for a in alternatives:
+                p = Production(symbol, a)
+                s = State(p, 0)
+                print("add", state)
+                result.add(s)
+    return result
 
-def goto():
-    pass
+def goto_0(grammar, state_set, symbol):
+    result = StateSet()
+    for state in state_set:
+        s = state.next_symbol()
+        if s == symbol:
+            new_state = state.clone()
+            new_state.d += 1
+            result.add(new_state)
+    return closure_0(grammar, result)
