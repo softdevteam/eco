@@ -43,6 +43,14 @@ def first(grammar, symbol):
     return result
 
 def follow(grammar, symbol):
+    #XXX can be optimized to find all FOLLOW sets at once
+    """
+        1) Add final symbol ($) to follow(Startsymbol)
+        2) If there is a production 'X ::= symbol B' add first(B) \ {None} to follow(symbol)
+        3) a) if production 'X ::= bla symbol'
+           b) if production 'X ::= bla symbol X' and X ::= None (!!! X can be more than one Nonterminal)
+           ==> add follow(X) to follow(symbol)
+    """
     result = set()
     for rule in grammar.values():
         for alternative in rule.alternatives:
@@ -66,47 +74,6 @@ def follow(grammar, symbol):
                         if rule.symbol != symbol:
                             result |= follow(grammar, rule.symbol)
     return result
-
-def follow_old(grammar, symbol):
-    #XXX can be optimized to find all FOLLOW sets at once
-    """
-        1) Add final symbol ($) to follow(Startsymbol)
-        2) If there is a production 'X ::= symbol B' add first(B) \ {None} to follow(symbol)
-        3) a) if production 'X ::= bla symbol'
-           b) if production 'X ::= bla symbol X' and X ::= None (!!! X can be more than one Nonterminal)
-           ==> add follow(X) to follow(symbol)
-    """
-    # 1)
-    result = set()
-    for s in grammar.keys():
-        alternatives = grammar[s].alternatives
-
-        for a in alternatives:
-            # 2)
-            prev = None
-            for e in a:
-                if prev == symbol:
-                    f = first(grammar, e)
-                    f.discard(None)
-                    result |= f
-                prev = e
-            # 3a) if last element equals symbol
-            if a[-1] == symbol and s != symbol:
-                result |= follow(grammar, s)
-                continue
-            # 3b) if all elements after symbol are empty
-            found_symbol = False
-            all_empty = True
-            for e in a:
-                if e == symbol:
-                    found_symbol = True
-                    continue
-                if found_symbol:
-                    if not None in first(grammar, e):
-                        all_empty = False
-                        break
-            if all_empty and s != symbol:
-                result |= follow(grammar, s)
 
 def closure_0(grammar, state_set):
     result = StateSet()
