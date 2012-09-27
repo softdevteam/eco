@@ -20,7 +20,7 @@ class Symbol(object):
         return self.name == other.name
 
     def __hash__(self):
-        return hash(self.name)
+        return hash(self.__class__.__name__ + self.name)
 
 
 class Terminal(Symbol):

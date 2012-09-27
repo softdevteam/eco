@@ -29,6 +29,8 @@ class StateSet(object):
 
 
     def __eq__(self, other):
+        if not isinstance(other, StateSet):
+            return False
         for e in self.elements:
             if e not in other:
                 return False

@@ -75,3 +75,27 @@ def test_state_2():
     s.add(A_aSb)
 
     assert graph.state_sets[2] == s
+
+def test_edges():
+    assert graph.follow(0, S) == graph.state_sets[1]
+    assert graph.follow(0, b) == graph.state_sets[2]
+
+    assert graph.follow(1, b) == graph.state_sets[3]
+
+    assert graph.follow(2, A) == graph.state_sets[4]
+    assert graph.follow(2, a) == graph.state_sets[5]
+
+    assert graph.follow(3, S) == None
+    assert graph.follow(3, a) == None
+    assert graph.follow(3, b) == None
+    assert graph.follow(3, c) == None
+
+    assert graph.follow(4, a) == graph.state_sets[6]
+
+    assert graph.follow(5, b) == graph.state_sets[2]
+    assert graph.follow(5, S) == graph.state_sets[7]
+
+    assert graph.follow(6, S) == None
+
+    assert graph.follow(7, c) == graph.state_sets[9]
+    assert graph.follow(7, b) == graph.state_sets[8]
