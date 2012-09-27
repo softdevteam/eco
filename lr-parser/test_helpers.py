@@ -98,3 +98,7 @@ def test_goto_0():
     assert expected.elements == g1.elements
     g2 = goto_0(r, closure, a)
     assert [State(Production(S, [a]), 1)] == g2.elements
+
+    assert goto_0(r, closure, c) == StateSet()
+    assert goto_0(r, closure, d) == StateSet()
+    assert goto_0(r, closure, f) == StateSet()

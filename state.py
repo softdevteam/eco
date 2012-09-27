@@ -16,11 +16,26 @@ class StateSet(object):
     def __contains__(self, element):
         return element in self.elements
 
+    def is_empty(self):
+        return self.elements == []
+
+    def get_next_symbols(self):
+        symbols = set()
+        for state in self.elements:
+            symbol = state.next_symbol()
+            if symbol:
+                symbols.add(symbol)
+        return symbols
+
+
     def __eq__(self, other):
         for e in self.elements:
             if e not in other:
                 return False
         return True
+
+    def __str__(self):
+        return str(self.elements)
 
 class State(object):
 
