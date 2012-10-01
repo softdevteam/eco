@@ -86,14 +86,14 @@ def test_state_3():
     assert graph.state_sets[3] == s
 
 def test_edges():
-    assert graph.follow(0, S) == graph.state_sets[1]
-    assert graph.follow(0, b) == graph.state_sets[2]
+    assert graph.follow(0, S) == 1
+    assert graph.follow(0, b) == 2
 
-    assert graph.follow(2, A) == graph.state_sets[4]
-    assert graph.follow(2, c) == graph.state_sets[5]
-    assert graph.follow(2, Epsilon()) == graph.state_sets[3]
+    assert graph.follow(2, A) == 4
+    assert graph.follow(2, c) == 5
+    assert graph.follow(2, Epsilon()) == 3
 
-    assert graph.follow(4, d) == graph.state_sets[6]
+    assert graph.follow(4, d) == 6
 
 def test_get_symbols():
     assert graph.get_symbols() == set([b, c, d, Epsilon(), S, A])

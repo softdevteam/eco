@@ -2,7 +2,7 @@ import sys
 sys.path.append("../")
 
 from production import Production
-from gparser import Terminal, Nonterminal
+from gparser import Terminal, Nonterminal, Epsilon
 
 class SyntaxTableElement(object):
 
@@ -11,6 +11,9 @@ class SyntaxTableElement(object):
 
     def __eq__(self, other):
         return self.action == other.action
+
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, self.action)
 
 class FinishSymbol(object):
     def __eq__(self, other):
@@ -25,7 +28,7 @@ class Shift(SyntaxTableElement): pass
 class Reduce(SyntaxTableElement): pass
 class Accept(SyntaxTableElement):
     def __init__(self, action=None):
-        pass
+        self.action = None
 
 class SyntaxTable(object):
 
@@ -35,6 +38,7 @@ class SyntaxTable(object):
     def build(self, graph):
         start_production = Production(None, [graph.start_symbol])
         symbols = graph.get_symbols()
+        symbols.add(FinishSymbol())
         for i in range(len(graph.state_sets)):
             # accept, reduce
             state_set = graph.get_state_set(i)
@@ -49,7 +53,7 @@ class SyntaxTable(object):
             for s in symbols:
                 dest = graph.follow(i, s)
                 if dest:
-                    if isinstance(s, Terminal):
+                    if isinstance(s, Terminal) or isinstance(s, Epsilon):
                         action = Shift(dest)
                     if isinstance(s, Nonterminal):
                         action = Goto(dest)

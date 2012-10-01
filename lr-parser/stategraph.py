@@ -38,7 +38,7 @@ class StateGraph(object):
     def follow(self, from_id, symbol):
         try:
             _id = self.edges[(from_id, symbol)]
-            return self.state_sets[_id]
+            return _id
         except KeyError:
             return None
 
