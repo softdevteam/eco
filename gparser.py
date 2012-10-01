@@ -16,7 +16,7 @@ class Rule(object):
         return "Rule(%s => %s)" % (self.symbol, self.alternatives)
 
 class Symbol(object):
-    def __init__(self, name):
+    def __init__(self, name=""):
         self.name = name
         self.raw = name.strip("\"")
 
@@ -29,7 +29,6 @@ class Symbol(object):
         #XXX unsafe hashfunction
         return hash(self.__class__.__name__ + self.name)
 
-
 class Terminal(Symbol):
     def __repr__(self):
         return "Terminal(%s)" % (self.name,)
@@ -39,14 +38,16 @@ class Nonterminal(Symbol):
         return "Nonterminal(%s)" % (self.name,)
 
 class Epsilon(Symbol):
-    def __init__(self):
-        self.name = "epsilon"
 
     def __eq__(self, other):
         return isinstance(other, Epsilon)
 
     def __repr__(self):
         return self.__class__.__name__
+
+    def __hash__(self):
+        #XXX why doesn't Epsilon inherit this method from Symbol!?
+        return hash(self.__class__.__name__ + self.name)
 
 class Parser(object):
 

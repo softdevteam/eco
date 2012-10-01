@@ -3,7 +3,7 @@ sys.path.append("../")
 
 from state import State, StateSet
 from production import Production
-from gparser import Terminal, Nonterminal
+from gparser import Terminal, Nonterminal, Epsilon
 
 def first(grammar, symbol):
     """
@@ -87,6 +87,9 @@ def closure_0(grammar, state_set):
         if isinstance(symbol, Nonterminal):
             alternatives = grammar[symbol].alternatives
             for a in alternatives:
+                # create epsilon symbol if alternative is empty
+                if a == []:
+                    a = [Epsilon()]
                 p = Production(symbol, a)
                 s = State(p, 0)
                 result.add(s)

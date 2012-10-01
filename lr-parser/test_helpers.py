@@ -1,7 +1,7 @@
 import sys
 sys.path.append("../")
 
-from gparser import Parser, Terminal, Nonterminal
+from gparser import Parser, Terminal, Nonterminal, Epsilon
 from state import State, StateSet
 from production import Production
 from helpers import first, follow, closure_0, goto_0
@@ -78,7 +78,7 @@ def test_closure_0():
     assert State(Production(F, [C, D, f]), 0) in closure
     assert State(Production(C, [D, A]), 0) in closure
     assert State(Production(D, [d]), 0) in closure
-    assert State(Production(D, []), 0) in closure
+    assert State(Production(D, [Epsilon()]), 0) in closure
 
     s3 = StateSet()
     s =  State(Production(C, [D, A]), 1)
