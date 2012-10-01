@@ -6,6 +6,12 @@ class Rule(object):
         self.symbol = None
         self.alternatives = []
 
+    def add_alternative(self, alternative):
+        # create symbol for empty alternative
+        if alternative == []:
+            alternative = [Epsilon()]
+        self.alternatives.append(alternative)
+
     def __repr__(self):
         return "Rule(%s => %s)" % (self.symbol, self.alternatives)
 
@@ -20,6 +26,7 @@ class Symbol(object):
         return self.name == other.name
 
     def __hash__(self):
+        #XXX unsafe hashfunction
         return hash(self.__class__.__name__ + self.name)
 
 
@@ -30,6 +37,16 @@ class Terminal(Symbol):
 class Nonterminal(Symbol):
     def __repr__(self):
         return "Nonterminal(%s)" % (self.name,)
+
+class Epsilon(Symbol):
+    def __init__(self):
+        pass
+
+    def __eq__(self, other):
+        return isinstance(other, Epsilon)
+
+    def __repr__(self):
+        return self.__class__.__name__
 
 class Parser(object):
 
@@ -87,9 +104,9 @@ class Parser(object):
             if t.name == "Terminal":
                 symbols.append(Terminal(t.value))
             if t.name == "Alternative":
-                rule.alternatives.append(symbols)
+                rule.add_alternative(symbols)
                 symbols = []
-        rule.alternatives.append(symbols)
+        rule.add_alternative(symbols)
         return rule
 
     def parse_nonterminal(self):

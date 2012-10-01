@@ -1,6 +1,6 @@
 import sys
 sys.path.append("../")
-from gparser import Parser, Nonterminal, Terminal
+from gparser import Parser, Nonterminal, Terminal, Epsilon
 
 
 def test_terminal():
@@ -58,4 +58,4 @@ def test_empty_alternative():
             |
     """)
     p.parse()
-    assert p.rules[Nonterminal("E")].alternatives == [[Terminal("\"a\"")],[]]
+    assert p.rules[Nonterminal("E")].alternatives == [[Terminal("\"a\"")],[Epsilon()]]
