@@ -58,4 +58,4 @@ def test_empty_alternative():
             |
     """)
     p.parse()
-    assert p.rules[Nonterminal("E")].alternatives == [[Terminal("\"a\"")],[Epsilon()]]
+    assert p.rules[Nonterminal("E")].alternatives == [[Terminal("\"a\"")],[]]

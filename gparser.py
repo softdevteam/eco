@@ -8,8 +8,8 @@ class Rule(object):
 
     def add_alternative(self, alternative):
         # create symbol for empty alternative
-        if alternative == []:
-            alternative = [Epsilon()]
+        #if alternative == []:
+        #    alternative = [Epsilon()]
         self.alternatives.append(alternative)
 
     def __repr__(self):
@@ -40,7 +40,7 @@ class Nonterminal(Symbol):
 
 class Epsilon(Symbol):
     def __init__(self):
-        pass
+        self.name = "epsilon"
 
     def __eq__(self, other):
         return isinstance(other, Epsilon)
