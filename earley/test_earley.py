@@ -40,7 +40,7 @@ class TestBasicClasses(object):
         s = State(p, 1, 0, Recognizer.terminal)
         assert s.next_symbol() == Terminal("\"+\"")
 
-class NoTestBasicRecognizer(object):
+class TestBasicRecognizer(object):
 
     def setup_method(self, method):
         p = Parser(grammar1)

@@ -41,12 +41,3 @@ class StateGraph(object):
             return self.state_sets[_id]
         except KeyError:
             return None
-
-    def get_symbols(self):
-        s = set()
-        for _, symbol in self.edges.keys():
-            s.add(symbol)
-        return s
-
-    def get_state_set(self, i):
-        return self.state_sets[i]

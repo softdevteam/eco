@@ -99,6 +99,3 @@ def test_edges():
 
     assert graph.follow(7, c) == graph.state_sets[9]
     assert graph.follow(7, b) == graph.state_sets[8]
-
-def test_get_symbols():
-    assert graph.get_symbols() == set([a, b, c, S, A])
