@@ -59,5 +59,8 @@ class SyntaxTable(object):
                         action = Goto(dest)
                     self.table[(i, s)] = action
 
-    def lookup(state_id, symbol):
-        pass
+    def lookup(self, state_id, symbol):
+        try:
+            return self.table[(state_id, symbol)]
+        except KeyError:
+            return None

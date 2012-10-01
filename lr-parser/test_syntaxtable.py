@@ -63,7 +63,6 @@ def test_build():
     st = SyntaxTable()
     st.build(graph)
     for key in syntaxtable.keys():
-        print(key)
         assert st.table[key] == syntaxtable[key]
 
 def test_lookup():
