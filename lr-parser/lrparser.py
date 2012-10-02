@@ -35,7 +35,8 @@ class LRParser(object):
             c = _input[i]
             state_id = self.stack[-1]
             element = self.syntaxtable.lookup(state_id, c)
-            print(element)
+            if element is None:
+                return False
             if isinstance(element, Shift):
                 self.stack.append(c)
                 self.stack.append(element.action)
