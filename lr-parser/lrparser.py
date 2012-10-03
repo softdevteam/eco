@@ -11,17 +11,17 @@ class LRParser(object):
         parser = Parser(grammar)
         parser.parse()
 
-        graph = StateGraph(parser.start_symbol, parser.rules)
-        graph.build()
+        self.graph = StateGraph(parser.start_symbol, parser.rules)
+        self.graph.build()
 
         self.syntaxtable = SyntaxTable()
-        self.syntaxtable.build(graph)
+        self.syntaxtable.build(self.graph)
 
         self.stack = []
 
     def check(self, _input):
         l = []
-        for i in _input:
+        for i in _input.split(" "):
             l.append(Terminal("\"" + i + "\""))
         l.append(FinishSymbol())
         _input = l
@@ -31,7 +31,6 @@ class LRParser(object):
 
         i = 0
         while i < len(_input):
-            print(self.stack)
             c = _input[i]
             state_id = self.stack[-1]
             element = self.syntaxtable.lookup(state_id, c)
