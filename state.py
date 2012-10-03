@@ -87,7 +87,8 @@ class State(object):
         right = [x.name for x in self.p.right]
         right.insert(self.d, ".")
         right = "".join(right)
-        s = "%s ::= %s %s %s" % (left, right, self.k, self.b)
+        #s = "%s ::= %s %s %s" % (left, right, self.k, self.b)
+        s = "%s ::= %s" % (left, right)
         return s
 
     def equals_str(self, s):
