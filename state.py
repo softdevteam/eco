@@ -96,3 +96,14 @@ class State(object):
 
     def __eq__(self, other):
         return self.p == other.p and self.d == other.d and self.b == other.b and self.k == other.k
+
+class LR0Element(State):
+
+    def __init__(self, production, pos):
+        State.__init__(self, production, pos, None, None)
+
+class LR1Element(State):
+
+    def __init__(self, production, pos, lookahead):
+        State.__init__(self, production, pos, None, None)
+        self.lookahead = lookahead
