@@ -146,3 +146,7 @@ def closure_1(grammar, state_set):
                 s = LR1Element(p, 0, f)
                 result.add(s)
     return result
+
+# since the lookahead is copied autimatically by the LR1Element we don't need
+# to alter the goto method
+goto_1 = goto_0

@@ -122,6 +122,9 @@ class LR1Element(State):
         State.__init__(self, production, pos, None, None)
         self.lookahead = lookahead
 
+    def clone(self):
+        return LR1Element(self.p, self.d, self.lookahead)
+
     def __eq__(self, other):
         return State.__eq__(self, other) and self.lookahead == other.lookahead
 

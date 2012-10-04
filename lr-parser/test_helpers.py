@@ -126,3 +126,10 @@ def test_closure_1():
     assert LR1Element(Production(C, [D, A]), 0, set([d, f])) in closure
     assert LR1Element(Production(D, [d]), 0, set([a])) in closure
     assert LR1Element(Production(D, [epsilon]), 0, set([a])) in closure
+
+def test_goto_1():
+    lre = LR1Element(Production(Z, [S]), 0, set([finish]))
+    clone = lre.clone()
+
+    assert lre == clone
+
