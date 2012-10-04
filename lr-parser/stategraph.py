@@ -1,27 +1,37 @@
 import sys
 sys.path.append("../")
 
-from state import StateSet, State
+from state import StateSet, State, LR1Element
 from production import Production
-from helpers import first, follow, closure_0, goto_0
+from helpers import first, follow, closure_0, goto_0, closure_1, goto_1
+from syntaxtable import FinishSymbol
 
 class StateGraph(object):
 
-    def __init__(self, start_symbol, grammar):
+    def __init__(self, start_symbol, grammar, lr_type=0):
         self.grammar = grammar
         self.start_symbol = start_symbol
         self.state_sets = []
         self.edges = {}
 
+        if lr_type == 0:
+            self.closure = closure_0
+            self.goto = goto_0
+            self.start_set = StateSet([State(Production(None, [self.start_symbol]), 0)])
+        elif lr_type == 1:
+            self.closure = closure_1
+            self.goto = goto_1
+            self.start_set = StateSet([LR1Element(Production(None, [self.start_symbol]), 0, set([FinishSymbol()]))])
+
     def build(self):
-        start_set = StateSet([State(Production(None, [self.start_symbol]), 0)])
-        closure = closure_0(self.grammar, start_set)
+        start_set = self.start_set
+        closure = self.closure(self.grammar, start_set)
         self.state_sets.append(closure)
         _id = 0
         while _id < len(self.state_sets):
             state_set = self.state_sets[_id]
             for symbol in state_set.get_next_symbols():
-                new_state_set = goto_0(self.grammar, state_set, symbol)
+                new_state_set = self.goto(self.grammar, state_set, symbol)
                 if not new_state_set.is_empty():
                     self.add(_id, symbol, new_state_set)
 

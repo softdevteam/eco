@@ -1,17 +1,17 @@
 import sys
 sys.path.append("../")
 
-from gparser import Parser, Nonterminal, Terminal
+from gparser import Parser, Nonterminal, Terminal, Epsilon
 from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
 from stategraph import StateGraph
 
 class LRParser(object):
 
-    def __init__(self, grammar):
+    def __init__(self, grammar, lr_type=0):
         parser = Parser(grammar)
         parser.parse()
 
-        self.graph = StateGraph(parser.start_symbol, parser.rules)
+        self.graph = StateGraph(parser.start_symbol, parser.rules, lr_type)
         self.graph.build()
 
         self.syntaxtable = SyntaxTable()
@@ -33,12 +33,18 @@ class LRParser(object):
         while i < len(_input):
             c = _input[i]
             state_id = self.stack[-1]
+            print(state_id)
             element = self.syntaxtable.lookup(state_id, c)
+            print(element)
             if element is None:
-                return False
+                element = self.syntaxtable.lookup(state_id, Epsilon())
+                print(element)
+                if element is None:
+                    return False
             if isinstance(element, Shift):
                 self.stack.append(c)
                 self.stack.append(element.action)
+                # XXX if epsilon, dont increase i
                 i += 1
             if isinstance(element, Reduce):
                 for x in range(2*len(element.action.right)):

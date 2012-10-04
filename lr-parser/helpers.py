@@ -133,9 +133,7 @@ def closure_1(grammar, state_set):
                 betaL = []
                 betaL.extend(state.remaining_symbols())
                 betaL.append(l)
-                print(betaL)
                 f |= first(grammar, betaL)
-                print(f)
 
             alternatives = grammar[symbol].alternatives
             for a in alternatives:
@@ -147,6 +145,12 @@ def closure_1(grammar, state_set):
                 result.add(s)
     return result
 
-# since the lookahead is copied autimatically by the LR1Element we don't need
-# to alter the goto method
-goto_1 = goto_0
+def goto_1(grammar, state_set, symbol):
+    result = StateSet()
+    for state in state_set:
+        s = state.next_symbol()
+        if s == symbol:
+            new_state = state.clone()
+            new_state.d += 1
+            result.add(new_state)
+    return closure_1(grammar, result)
