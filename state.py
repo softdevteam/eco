@@ -10,6 +10,17 @@ class StateSet(object):
         return self.elements[i]
 
     def add(self, element):
+        if isinstance(element, LR1Element):
+            # merge LR1 elements if they differ only in their lookahead
+            merged = False
+            for e in self.elements:
+                if e.d == element.d and e.p == element.p:
+                    e.lookahead |= element.lookahead
+                    merged = True
+            if not merged:
+                self.elements.append(element)
+            return
+
         if element not in self.elements:
             self.elements.append(element)
 
@@ -54,6 +65,9 @@ class State(object):
             return self.p.right[self.d]
         except IndexError:
             return None
+
+    def remaining_symbols(self):
+        return self.p.right[self.d+1:]
 
     def isfinal(self):
         return len(self.p.right) == self.d
@@ -107,3 +121,9 @@ class LR1Element(State):
     def __init__(self, production, pos, lookahead):
         State.__init__(self, production, pos, None, None)
         self.lookahead = lookahead
+
+    def __eq__(self, other):
+        return State.__eq__(self, other) and self.lookahead == other.lookahead
+
+    def __repr__(self):
+        return "LR1Element(%s, %s, %s)" % (self.p, self.d, self.lookahead)

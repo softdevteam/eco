@@ -2,9 +2,10 @@ import sys
 sys.path.append("../")
 
 from gparser import Parser, Terminal, Nonterminal, Epsilon
-from state import State, StateSet
+from syntaxtable import FinishSymbol
+from state import State, StateSet, LR1Element
 from production import Production
-from helpers import first, follow, closure_0, goto_0
+from helpers import first, follow, closure_0, goto_0, closure_1
 
 grammar = """
 Z ::= S
@@ -35,6 +36,7 @@ c = Terminal("\"c\"")
 d = Terminal("\"d\"")
 f = Terminal("\"f\"")
 epsilon = Epsilon()
+finish = FinishSymbol()
 
 Z = Nonterminal("Z")
 S = Nonterminal("S")
@@ -107,3 +109,20 @@ def test_goto_0():
     assert goto_0(r, closure, c) == StateSet()
     assert goto_0(r, closure, d) == StateSet()
     assert goto_0(r, closure, f) == StateSet()
+
+def test_closure_1():
+    s1 = StateSet([LR1Element(Production(Z, [S]), 0, set([finish]))])
+    closure = closure_1(r, s1)
+    assert len(closure.elements) == 4
+    assert LR1Element(Production(Z, [S]), 0, set([finish])) in closure
+    assert LR1Element(Production(S, [S, b]), 0, set([b, finish])) in closure
+    assert LR1Element(Production(S, [b, A, a]), 0, set([b, finish])) in closure
+    assert LR1Element(Production(S, [a]), 0, set([b, finish])) in closure
+
+    s2 = StateSet([LR1Element(Production(F, [C, D, f]), 0, set([finish]))])
+    closure = closure_1(r, s2)
+    assert len(closure.elements) == 4
+    assert LR1Element(Production(F, [C, D, f]), 0, set([finish])) in closure
+    assert LR1Element(Production(C, [D, A]), 0, set([d, f])) in closure
+    assert LR1Element(Production(D, [d]), 0, set([a])) in closure
+    assert LR1Element(Production(D, [epsilon]), 0, set([a])) in closure

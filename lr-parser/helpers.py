@@ -1,9 +1,10 @@
 import sys
 sys.path.append("../")
 
-from state import State, StateSet
+from state import State, StateSet, LR1Element
 from production import Production
 from gparser import Terminal, Nonterminal, Epsilon
+from syntaxtable import FinishSymbol
 
 epsilon = Epsilon()
 
@@ -35,7 +36,7 @@ def first(grammar, symbol):
         return result
 
     # 1)
-    if isinstance(symbol, Terminal):
+    if isinstance(symbol, Terminal) or isinstance(symbol, FinishSymbol):
         return set([symbol])
 
     for a in grammar[symbol].alternatives:
@@ -127,4 +128,21 @@ def closure_1(grammar, state_set):
     for state in result:
         symbol = state.next_symbol()
         if isinstance(symbol, Nonterminal):
-            pass
+            f = set()
+            for l in state.lookahead:
+                betaL = []
+                betaL.extend(state.remaining_symbols())
+                betaL.append(l)
+                print(betaL)
+                f |= first(grammar, betaL)
+                print(f)
+
+            alternatives = grammar[symbol].alternatives
+            for a in alternatives:
+                # create epsilon symbol if alternative is empty
+                if a == []:
+                    a = [Epsilon()]
+                p = Production(symbol, a)
+                s = LR1Element(p, 0, f)
+                result.add(s)
+    return result
