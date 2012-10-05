@@ -10,7 +10,7 @@ class StateSet(object):
         return self.elements[i]
 
     def add(self, element):
-        if isinstance(element, LR1Element):
+        if False:#isinstance(element, LR1Element):
             # merge LR1 elements if they differ only in their lookahead
             merged = False
             for e in self.elements:
@@ -23,6 +23,15 @@ class StateSet(object):
 
         if element not in self.elements:
             self.elements.append(element)
+
+    def merge(self):
+        # merge states that only differ in their lookahead
+        # XXX this is slow
+        for a in self.elements:
+            for b in self.elements:
+                if a is not b and a.d == b.d and a.p == b.p:
+                    a.lookahead |= b.lookahead
+                    self.elements.remove(b)
 
     def __contains__(self, element):
         return element in self.elements
@@ -127,6 +136,11 @@ class LR1Element(State):
 
     def __eq__(self, other):
         return State.__eq__(self, other) and self.lookahead == other.lookahead
+
+    def __str__(self):
+        s = State.__str__(self)
+        s += " " + str(self.lookahead)
+        return s
 
     def __repr__(self):
         return "LR1Element(%s, %s, %s)" % (self.p, self.d, self.lookahead)

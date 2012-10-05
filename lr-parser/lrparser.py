@@ -14,12 +14,14 @@ class LRParser(object):
         self.graph = StateGraph(parser.start_symbol, parser.rules, lr_type)
         self.graph.build()
 
-        self.syntaxtable = SyntaxTable()
+        self.syntaxtable = SyntaxTable(lr_type)
         self.syntaxtable.build(self.graph)
 
         self.stack = []
 
     def check(self, _input):
+        self.stack = []
+
         l = []
         for i in _input.split(" "):
             l.append(Terminal("\"" + i + "\""))
@@ -33,21 +35,16 @@ class LRParser(object):
         while i < len(_input):
             c = _input[i]
             state_id = self.stack[-1]
-            print(state_id)
             element = self.syntaxtable.lookup(state_id, c)
-            print(element)
+            print(state_id, c)
             if element is None:
-                element = self.syntaxtable.lookup(state_id, Epsilon())
-                print(element)
-                if element is None:
-                    return False
+                return False
             if isinstance(element, Shift):
                 self.stack.append(c)
                 self.stack.append(element.action)
-                # XXX if epsilon, dont increase i
                 i += 1
             if isinstance(element, Reduce):
-                for x in range(2*len(element.action.right)):
+                for x in range(2*element.amount()):
                     self.stack.pop()
                 state_id = self.stack[-1]
                 self.stack.append(element.action.left)

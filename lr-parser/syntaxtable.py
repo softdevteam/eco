@@ -25,15 +25,22 @@ class FinishSymbol(object):
 
 class Goto(SyntaxTableElement): pass
 class Shift(SyntaxTableElement): pass
-class Reduce(SyntaxTableElement): pass
+
+class Reduce(SyntaxTableElement):
+    def amount(self):
+        if self.action.right == [Epsilon()]:
+            return 0
+        return len(self.action.right)
+
 class Accept(SyntaxTableElement):
     def __init__(self, action=None):
         self.action = None
 
 class SyntaxTable(object):
 
-    def __init__(self):
+    def __init__(self, lr_type=0):
         self.table = {}
+        self.lr_type = lr_type
 
     def build(self, graph):
         start_production = Production(None, [graph.start_symbol])
@@ -47,13 +54,17 @@ class SyntaxTable(object):
                     if state.p == start_production:
                         self.table[(i, FinishSymbol())] = Accept()
                     else:
-                        for s in symbols:
+                        if self.lr_type == 1:
+                            lookahead = state.lookahead
+                        else:
+                            lookahead = symbols
+                        for s in lookahead:
                             self.table[(i, s)] = Reduce(state.p)
             # shift, goto
             for s in symbols:
                 dest = graph.follow(i, s)
                 if dest:
-                    if isinstance(s, Terminal) or isinstance(s, Epsilon):
+                    if isinstance(s, Terminal):
                         action = Shift(dest)
                     if isinstance(s, Nonterminal):
                         action = Goto(dest)

@@ -103,9 +103,11 @@ def closure_0(grammar, state_set):
             for a in alternatives:
                 # create epsilon symbol if alternative is empty
                 if a == []:
-                    a = [Epsilon()]
+                    a = [epsilon]
                 p = Production(symbol, a)
                 s = State(p, 0)
+                if a == [epsilon]:
+                    s.d = 1
                 result.add(s)
     return result
 
@@ -142,7 +144,11 @@ def closure_1(grammar, state_set):
                     a = [Epsilon()]
                 p = Production(symbol, a)
                 s = LR1Element(p, 0, f)
+                if a == [epsilon]:
+                    s.d = 1
                 result.add(s)
+    # merge states that only differ in their lookahead
+    result.merge()
     return result
 
 def goto_1(grammar, state_set, symbol):

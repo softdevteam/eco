@@ -30,11 +30,22 @@ p = Parser(grammar)
 p.parse()
 r = p.rules
 
+grammar2 = """
+    E ::= P
+        | E "+" P
+    P ::= "a"
+"""
+
+p = Parser(grammar2)
+p.parse()
+r2 = p.rules
+
 a = Terminal("\"a\"")
 b = Terminal("\"b\"")
 c = Terminal("\"c\"")
 d = Terminal("\"d\"")
 f = Terminal("\"f\"")
+plus = Terminal("\"+\"")
 epsilon = Epsilon()
 finish = FinishSymbol()
 
@@ -45,6 +56,8 @@ B = Nonterminal("B")
 C = Nonterminal("C")
 D = Nonterminal("D")
 F = Nonterminal("F")
+E = Nonterminal("E")
+P = Nonterminal("P")
 
 def test_first():
     assert first(r, a) == set([a])
@@ -85,7 +98,7 @@ def test_closure_0():
     assert State(Production(F, [C, D, f]), 0) in closure
     assert State(Production(C, [D, A]), 0) in closure
     assert State(Production(D, [d]), 0) in closure
-    assert State(Production(D, [Epsilon()]), 0) in closure
+    assert State(Production(D, [Epsilon()]), 1) in closure
 
     s3 = StateSet()
     s =  State(Production(C, [D, A]), 1)
@@ -125,7 +138,7 @@ def test_closure_1():
     assert LR1Element(Production(F, [C, D, f]), 0, set([finish])) in closure
     assert LR1Element(Production(C, [D, A]), 0, set([d, f])) in closure
     assert LR1Element(Production(D, [d]), 0, set([a])) in closure
-    assert LR1Element(Production(D, [epsilon]), 0, set([a])) in closure
+    assert LR1Element(Production(D, [epsilon]), 1, set([a])) in closure
 
 def test_goto_1():
     lre = LR1Element(Production(Z, [S]), 0, set([finish]))
@@ -133,3 +146,12 @@ def test_goto_1():
 
     assert lre == clone
 
+def test_closure_recursion():
+    s1 = StateSet([LR1Element(Production(Z, [E]), 0, set([finish]))])
+
+    closure = closure_1(r2, s1)
+    assert len(closure.elements) == 4
+    assert LR1Element(Production(Z, [E]), 0, set([finish])) in closure
+    assert LR1Element(Production(E, [P]), 0, set([plus, finish])) in closure
+    assert LR1Element(Production(E, [E, plus, P]), 0, set([plus, finish])) in closure
+    assert LR1Element(Production(P, [a]), 0, set([plus, finish])) in closure

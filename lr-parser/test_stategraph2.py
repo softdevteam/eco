@@ -54,7 +54,7 @@ def test_state_2():
     s = StateSet()
     s.add(State(S_bAd, 1))
     s.add(State(A_c, 0))
-    s.add(State(A_None, 0))
+    s.add(State(A_None, 1))
     assert graph.state_sets[2] == s
 
 def test_state_4():
@@ -62,38 +62,37 @@ def test_state_4():
     # S ::= bA.d
     s = StateSet()
     s.add(State(S_bAd, 2))
-    assert graph.state_sets[4] == s
+    assert s in graph.state_sets
 
 def test_state_6():
-    # State 4
+    # State 6
     # S ::= bAd.
     s = StateSet()
     s.add(State(S_bAd, 3))
-    assert graph.state_sets[6] == s
+    assert s in graph.state_sets
 
 def test_state_5():
     # State 5
     # A ::= c.
     s = StateSet()
     s.add(State(A_c, 1))
-    assert graph.state_sets[5] == s
+    assert s in graph.state_sets
 
 def test_state_3():
     # State 3
     # A ::= .
     s = StateSet()
     s.add(State(A_None, 1))
-    assert graph.state_sets[3] == s
+    assert s in graph.state_sets
 
 def test_edges():
     assert graph.follow(0, S) == 1
     assert graph.follow(0, b) == 2
 
-    assert graph.follow(2, A) == 4
-    assert graph.follow(2, c) == 5
-    assert graph.follow(2, Epsilon()) == 3
+    assert graph.follow(2, A) == 3
+    assert graph.follow(2, c) == 4
 
-    assert graph.follow(4, d) == 6
+    assert graph.follow(3, d) == 5
 
 def test_get_symbols():
-    assert graph.get_symbols() == set([b, c, d, Epsilon(), S, A])
+    assert graph.get_symbols() == set([b, c, d, S, A])

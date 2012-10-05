@@ -32,38 +32,21 @@ syntaxtable = {
 
     (1, FinishSymbol()): Accept(),
 
-    (2, Epsilon()): Shift(3),
-    (2, c): Shift(5),
-    (2, A): Goto(4),
+    (2, c): Shift(4),
+    (2, A): Goto(3),
+    (2, d): Reduce(A_None),
 
-    (3, b): Reduce(A_None),
-    (3, c): Reduce(A_None),
-    (3, d): Reduce(A_None),
-    (3, Epsilon()): Reduce(A_None),
-    (3, FinishSymbol()): Reduce(A_None),
+    (3, d): Shift(5),
 
-    (4, d): Shift(6),
+    (4, d): Reduce(A_c),
 
-    (5, b): Reduce(A_c),
-    (5, c): Reduce(A_c),
-    (5, d): Reduce(A_c),
-    (5, Epsilon()): Reduce(A_c),
-    (5, FinishSymbol()): Reduce(A_c),
-
-    (6, b): Reduce(S_bAd),
-    (6, c): Reduce(S_bAd),
-    (6, d): Reduce(S_bAd),
-    (6, Epsilon()): Reduce(S_bAd),
-    (6, FinishSymbol()): Reduce(S_bAd),
+    (5, FinishSymbol()): Reduce(S_bAd),
 }
 
 def test_build():
-    graph = StateGraph(p.start_symbol, p.rules)
+    graph = StateGraph(p.start_symbol, p.rules, 1)
     graph.build()
-    st = SyntaxTable()
+    st = SyntaxTable(1)
     st.build(graph)
     for key in syntaxtable.keys():
         assert st.table[key] == syntaxtable[key]
-
-def test_lookup():
-    pass
