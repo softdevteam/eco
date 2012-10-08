@@ -78,13 +78,6 @@ def test_state_5():
     s.add(State(A_c, 1))
     assert s in graph.state_sets
 
-def test_state_3():
-    # State 3
-    # A ::= .
-    s = StateSet()
-    s.add(State(A_None, 1))
-    assert s in graph.state_sets
-
 def test_edges():
     assert graph.follow(0, S) == 1
     assert graph.follow(0, b) == 2

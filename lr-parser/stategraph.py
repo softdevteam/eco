@@ -60,3 +60,35 @@ class StateGraph(object):
 
     def get_state_set(self, i):
         return self.state_sets[i]
+
+    def convert_lalr(self):
+        removelist = set([])
+        l = len(self.state_sets)
+        for i in range(l):
+            if i in removelist:
+                continue
+            for j in range(l):
+                if j in removelist:
+                    continue
+                s1 = self.state_sets[i]
+                s2 = self.state_sets[j]
+                if s1 is not s2 and s1.equals(s2, False):
+                    for e in s2:
+                        s1.add(e) # this should automatically merge the lookahead of the states
+                    s1.merge()
+                    for key in self.edges:
+                        fromid, symbol = key
+                        to = self.edges[key]
+                        if fromid == j:
+                            fromid == i
+                        if to == j:
+                            to == i
+                        self.edges.pop(key)
+                        self.edges[(fromid, symbol)] = to
+                    removelist.add(j)
+        l = list(removelist)
+        l.sort()
+        l.reverse()
+        for j in l:
+            self.state_sets.pop(j)
+

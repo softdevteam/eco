@@ -52,6 +52,9 @@ class StateSet(object):
 
 
     def __eq__(self, other):
+        return self.equals(other, True)
+
+    def equals(self, other, with_lookahead=True):
         if not isinstance(other, StateSet):
             return False
         e1 = self
@@ -60,9 +63,19 @@ class StateSet(object):
             e1, e2 = e2, e1
 
         for e in e1.elements:
-            if e not in e2:
+            if not e2.has(e, with_lookahead):
                 return False
         return True
+
+    def has(self, element, with_lookahead=True):
+        for e in self.elements:
+            if not with_lookahead:
+                if State.__eq__(e, element):
+                    return True
+            else:
+                if element == e:
+                    return True
+        return False
 
     def __str__(self):
         return str(self.elements)
@@ -140,7 +153,7 @@ class LR1Element(State):
         self.lookahead = lookahead
 
     def clone(self):
-        return LR1Element(self.p, self.d, self.lookahead)
+        return LR1Element(self.p, self.d, set(self.lookahead))
 
     def __eq__(self, other):
         return State.__eq__(self, other) and self.lookahead == other.lookahead
