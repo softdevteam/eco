@@ -9,6 +9,9 @@ class StateSet(object):
     def __getitem__(self, i):
         return self.elements[i]
 
+    def __len__(self):
+        return len(self.elements)
+
     def add(self, element):
         if False:#isinstance(element, LR1Element):
             # merge LR1 elements if they differ only in their lookahead
@@ -51,8 +54,13 @@ class StateSet(object):
     def __eq__(self, other):
         if not isinstance(other, StateSet):
             return False
-        for e in self.elements:
-            if e not in other:
+        e1 = self
+        e2 = other
+        if len(e2) > len(e1):
+            e1, e2 = e2, e1
+
+        for e in e1.elements:
+            if e not in e2:
                 return False
         return True
 

@@ -1,6 +1,5 @@
 from lexer import Lexer
 
-
 def test_rule_easy():
     l = Lexer("E ::= \"a\"")
     l.lex()
