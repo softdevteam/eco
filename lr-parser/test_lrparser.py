@@ -71,3 +71,26 @@ def test_epsilon2():
     assert lrp.check("a b c") == True
     assert lrp.check("a c") == True
     assert lrp.check("a b b") == False
+
+def test_recursion():
+    grammar = """
+        S ::= "b" S
+            |
+    """
+    lrp = LRParser(grammar, 1)
+    assert lrp.check("b b b b b b b b b b b") == True
+    assert lrp.check("b b") == True
+    assert lrp.check("b") == True
+    assert lrp.check("") == False
+
+def test_recursion2():
+    grammar = """
+        S ::= "b" A
+        A ::= S
+            |
+    """
+    lrp = LRParser(grammar, 1)
+    assert lrp.check("b b b b b b b b b b b") == True
+    assert lrp.check("b b") == True
+    assert lrp.check("b") == True
+    assert lrp.check("") == False
