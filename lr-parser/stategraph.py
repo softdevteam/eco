@@ -5,6 +5,7 @@ from state import StateSet, State, LR1Element
 from production import Production
 from helpers import first, follow, closure_0, goto_0, closure_1, goto_1
 from syntaxtable import FinishSymbol
+from constants import LR0, LR1, LALR
 
 class StateGraph(object):
 
@@ -14,11 +15,11 @@ class StateGraph(object):
         self.state_sets = []
         self.edges = {}
 
-        if lr_type == 0:
+        if lr_type == LR0:
             self.closure = closure_0
             self.goto = goto_0
             self.start_set = StateSet([State(Production(None, [self.start_symbol]), 0)])
-        elif lr_type == 1:
+        elif lr_type == LR1 or lr_type == LALR:
             self.closure = closure_1
             self.goto = goto_1
             self.start_set = StateSet([LR1Element(Production(None, [self.start_symbol]), 0, set([FinishSymbol()]))])

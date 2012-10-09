@@ -3,6 +3,7 @@ sys.path.append("../")
 
 from production import Production
 from gparser import Terminal, Nonterminal, Epsilon
+from constants import LR0, LR1, LALR
 
 class SyntaxTableElement(object):
 
@@ -38,7 +39,7 @@ class Accept(SyntaxTableElement):
 
 class SyntaxTable(object):
 
-    def __init__(self, lr_type=0):
+    def __init__(self, lr_type=LR0):
         self.table = {}
         self.lr_type = lr_type
 
@@ -54,7 +55,7 @@ class SyntaxTable(object):
                     if state.p == start_production:
                         self.table[(i, FinishSymbol())] = Accept()
                     else:
-                        if self.lr_type == 1:
+                        if self.lr_type in [LR1, LALR]:
                             lookahead = state.lookahead
                         else:
                             lookahead = symbols

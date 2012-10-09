@@ -4,15 +4,19 @@ sys.path.append("../")
 from gparser import Parser, Nonterminal, Terminal, Epsilon
 from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
 from stategraph import StateGraph
+from constants import LR0, LR1, LALR
 
 class LRParser(object):
 
-    def __init__(self, grammar, lr_type=0):
+    def __init__(self, grammar, lr_type=LR0):
         parser = Parser(grammar)
         parser.parse()
 
         self.graph = StateGraph(parser.start_symbol, parser.rules, lr_type)
         self.graph.build()
+
+        if lr_type == LALR:
+            self.graph.convert_lalr()
 
         self.syntaxtable = SyntaxTable(lr_type)
         self.syntaxtable.build(self.graph)

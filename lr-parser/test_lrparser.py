@@ -1,4 +1,5 @@
 from lrparser import LRParser
+from constants import LR0, LR1, LALR
 
 grammar = """
     S ::= "a" B "d"
@@ -67,7 +68,12 @@ def test_epsilon2():
         B ::= "b"
             |
     """
-    lrp = LRParser(grammar, 1)
+    lrp = LRParser(grammar, LR0)
+    assert lrp.check("a b c") == True
+    assert lrp.check("a c") == True
+    assert lrp.check("a b b") == False
+
+    lrp = LRParser(grammar, LALR)
     assert lrp.check("a b c") == True
     assert lrp.check("a c") == True
     assert lrp.check("a b b") == False
@@ -77,7 +83,14 @@ def test_recursion():
         S ::= "b" S
             |
     """
-    lrp = LRParser(grammar, 1)
+
+    lrp = LRParser(grammar, LR0)
+    assert lrp.check("b b b b b b b b b b b") == True
+    assert lrp.check("b b") == True
+    assert lrp.check("b") == True
+    assert lrp.check("") == False
+
+    lrp = LRParser(grammar, LALR)
     assert lrp.check("b b b b b b b b b b b") == True
     assert lrp.check("b b") == True
     assert lrp.check("b") == True
@@ -89,7 +102,13 @@ def test_recursion2():
         A ::= S
             |
     """
-    lrp = LRParser(grammar, 1)
+    lrp = LRParser(grammar, LR0)
+    assert lrp.check("b b b b b b b b b b b") == True
+    assert lrp.check("b b") == True
+    assert lrp.check("b") == True
+    assert lrp.check("") == False
+
+    lrp = LRParser(grammar, LALR)
     assert lrp.check("b b b b b b b b b b b") == True
     assert lrp.check("b b") == True
     assert lrp.check("b") == True
