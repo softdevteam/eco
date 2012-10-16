@@ -113,3 +113,36 @@ def test_recursion2():
     assert lrp.check("b b") == True
     assert lrp.check("b") == True
     assert lrp.check("") == False
+
+def notest_small_language():
+    grammar = """
+        program ::= ws class program
+
+        ws ::= ws ws_char
+                     |
+        ws_char ::= "\n" | "\t" | "\r"
+
+        id ::= id_char id
+             |
+
+        id_char ::= "a"|"b"|"c"|"d"|"e"|"f"|"g"|"h"|"i"|"j"|"k"|"l"|"m"|"n"|"o"|"p"|"q"|"r"|"s"|"t"|"u"|"v"|"w"|"x"|"y"|"z"
+                  |
+
+        class ::= "class" ws id ws "{" functions "}"
+        functions ::= ws function ws functions
+                    |
+        function ::= "function" ws id ws "{" func_body "}"
+        func_body ::= ws
+    """
+
+    lrp = LRParser(grammar, LR0)
+    assert lrp.check("""class test { function hello { } }""") == True
+
+    lrp = LRParser(grammar, LALR)
+    assert lrp.check("""
+        class test {
+            function hello {
+            }
+        }
+    """) == True
+
