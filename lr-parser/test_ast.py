@@ -2,6 +2,7 @@ import sys
 sys.path.append("../")
 
 from lrparser import LRParser
+from incparser import IncParser
 from constants import LR0, LR1, LALR
 from astree import AST, Node
 from gparser import Parser, Nonterminal, Terminal, Epsilon
@@ -23,7 +24,7 @@ n1 = Terminal("\"1\"")
 n2 = Terminal("\"2\"")
 n3 = Terminal("\"3\"")
 
-def test_ast():
+def notest_ast():
     lrp = LRParser(grammar)
     lrp.check("1 + 2 * 3")
     ast = lrp.get_ast()
@@ -39,3 +40,18 @@ def test_ast():
             ])
         ])
     ) == ast
+
+    lrp.check("1 + 2 * 1")
+    ast2 = lrp.get_ast()
+
+def test_incparser_ast():
+    lrp = IncParser(grammar)
+
+    lrp.check("1 + 2 * 3")
+    ast1 = lrp.get_ast()
+
+    lrp.check("1 + 2 * 1")
+    ast2 = lrp.get_ast()
+
+    # reparsing should reuse parent node
+    assert ast1.parent is ast2.parent
