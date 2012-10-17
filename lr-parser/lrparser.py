@@ -26,7 +26,7 @@ class LRParser(object):
         self.ast_stack = []
 
     def check(self, _input):
-        self.stack = []
+        self.reset()
 
         l = []
         # XXX need an additional lexer to do this right
@@ -76,3 +76,7 @@ class LRParser(object):
 
     def get_ast(self):
         return AST(self.ast_stack[0])
+
+    def reset(self):
+        self.stack = []
+        self.ast_stack = []
