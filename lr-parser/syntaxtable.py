@@ -24,6 +24,9 @@ class FinishSymbol(object):
         # XXX hack: may cause errors if grammar consist of same symbol
         return hash("FinishSymbol123")
 
+    def __repr__(self):
+        return "$"
+
 class Goto(SyntaxTableElement): pass
 class Shift(SyntaxTableElement): pass
 
