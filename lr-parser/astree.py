@@ -10,6 +10,7 @@ class Node(object):
         self.symbol = symbol
         self.children = children
         self.state = state
+        self.parent = None
         for c in self.children:
             c.parent = self
 
@@ -17,9 +18,7 @@ class Node(object):
         siblings = self.parent.children
         last = None
         for i in range(len(siblings)-1, -1, -1):
-            print(i, siblings[i])
             if siblings[i] is self:
-                print(self)
                 return last
             else:
                 last = siblings[i]
