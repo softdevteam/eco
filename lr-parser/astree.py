@@ -10,6 +10,22 @@ class Node(object):
         self.symbol = symbol
         self.children = children
         self.state = state
+        for c in self.children:
+            c.parent = self
+
+    def right_sibling(self):
+        siblings = self.parent.children
+        last = None
+        for i in range(len(siblings)-1, -1, -1):
+            print(i, siblings[i])
+            if siblings[i] is self:
+                print(self)
+                return last
+            else:
+                last = siblings[i]
+
+    def __repr__(self):
+        return "Node(%s, %s, %s)" % (self.symbol, self.state, self.children)
 
     def pprint(self, indent=0):
         print(" "*indent, self.symbol, ":", self.state)

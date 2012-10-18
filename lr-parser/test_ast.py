@@ -24,6 +24,16 @@ n1 = Terminal("\"1\"")
 n2 = Terminal("\"2\"")
 n3 = Terminal("\"3\"")
 
+def test_node():
+    i1 = Node(1, 0, [])
+    i2 = Node(2, 0, [])
+    plus = Node("+", 0, [])
+    parent = Node("T", 0, [i1, plus, i2])
+
+    assert i1.right_sibling() is plus
+    assert plus.right_sibling() is i2
+    assert i2.right_sibling() is None
+
 def notest_ast():
     lrp = LRParser(grammar)
     lrp.check("1 + 2 * 3")
