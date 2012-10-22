@@ -31,3 +31,8 @@ class Node(object):
         indent += 4
         for c in self.children:
             c.pprint(indent)
+
+    def __eq__(self, other):
+        if isinstance(other, Node):
+            return other.symbol == self.symbol and other.state == self.state and other.children == self.children
+        return False

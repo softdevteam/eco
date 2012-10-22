@@ -33,59 +33,89 @@ class IncParser(object):
             self.previous_version = self.get_ast()
             return result
 
+        self.all_changes = []
+        _input = self.prepare_input(_input)
+        self.find_changes(iter(_input))
         _inputiter = iter(_input)
 
         self.stack = []
         self.current_state = 0
+        self.stack.append(Node(FinishSymbol(), 0, []))
         bos = self.previous_version.parent.children[0]
         la = self.pop_lookahead(bos)
 
         while(True):
-            print(la, "\n-------")
+            print("STACK:", self.stack)
+            print("NODE:", la)
+            print("CURRENT STATE", self.current_state)
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol):
                 print("terminal")
                 if self.has_changed(la):
-                    pass # XXX relex
+                    print("relex")
+                    #self.relex(la) # XXX relex
+                    #XXX also adjust state
+                    next_terminal = next(_inputiter)
+                    print("NEXTTERMINAL", next_terminal)
+                    la.symbol = next_terminal
+                    self.all_changes.remove(la)
                 else:
                     element = self.syntaxtable.lookup(self.current_state, la.symbol)
                     if isinstance(element, Accept):
                         return True
                     elif isinstance(element, Shift):
+                        print("Shift")
                         self.stack.append(la)
-                        self.stack.append(element.action)
+                        la.state = element.action
                         self.current_state = element.action
                         la = self.pop_lookahead(la)
                     elif isinstance(element, Reduce):
+                        print("Reduce", element.action)
                         children = []
                         for i in range(element.amount()):
-                            children.append(self.stack.pop())
-                        self.current_state = self.stack[-1]
+                            children.insert(0, self.stack.pop())
+                        self.current_state = self.stack[-1].state
+                        print("Stack[-1]", self.stack[-1])
 
-                        self.stack.append(Node(element.action.left, children))
                         goto = self.syntaxtable.lookup(self.current_state, element.action.left)
-                        self.stack.append(goto.action)
-                    elif action is None:
+                        new_node = Node(element.action.left, goto.action, children)
+                        self.stack.append(new_node)
+                        self.current_state = new_node.state
+                    elif element is None:
+                        print("ERROR")
                         return False
             else: # Nonterminal
                 print("nonterminal")
                 if self.has_changed(la):
+                    print("has changed")
                     la = self.left_breakdown(la)
                 else:
+                    print("has not changed")
                     # perform reductions
                     next_terminal = next(_inputiter)
                     a = self.syntaxtable.lookup(self.current_state, next_terminal)
                     if isinstance(a, Reduce):
+                        print("REDUCE")
                         #perform
                         pass
                     if self.shiftable(la):
-                        goto = self.syntaxtable.lookup(self.current_state, la.symbol)
-                        self.stack.append(la)
+                        print("SHIFTABLE")
+                        self.shift(la)
                         self.right_breakdown()
+                        print("STACK after shift:", self.stack)
                         la = self.pop_lookahead(la)
+                    else:
+                        la = self.left_breakdown(la)
+            print("---------------")
+
+    def left_breakdown(self, la):
+        if len(la.children) > 0:
+            return la.children[0]
+        else:
+            return self.pop_lookahead(la)
 
     def right_breakdown(self):
         node = self.stack.pop()
-        while(isinstance(node, Nonterminal)):
+        while(isinstance(node.symbol, Nonterminal)):
             for c in node.children:
                 self.shift(c)
             node = self.stack.pop()
@@ -105,19 +135,41 @@ class IncParser(object):
             return True
         return False
 
+    def find_changes(self, inputiter):
+        # XXX later we'll work on the ast the whole time
+        # so nodes are marked as changed while typing
+        changed = []
+        ast = self.previous_version
+        nodes = [ast.parent]
+        while nodes != []:
+            node = nodes.pop()
+            if isinstance(node.symbol, Terminal):
+                i = next(inputiter)
+                if i != node.symbol:
+                    print("changed", node, i)
+                    temp = node
+                    changed.append(temp)
+                    while(temp.parent is not None):
+                        changed.append(temp.parent)
+                        temp = temp.parent
+            nodes.extend(list(reversed(node.children)))
+        self.all_changes = changed
+
     def has_changed(self, node):
-        # XXX fill with content
-        return False
+        return node in self.all_changes
 
-    def check(self, _input):
-        self.reset()
-
+    def prepare_input(self, _input):
         l = []
         # XXX need an additional lexer to do this right
         for i in _input.split(" "):
             l.append(Terminal("\"" + i + "\""))
         l.append(FinishSymbol())
-        _input = l
+        return l
+
+    def check(self, _input):
+        self.reset()
+
+        _input = self.prepare_input(_input)
 
         self.stack.append(FinishSymbol())
         self.stack.append(0)
@@ -173,3 +225,4 @@ class IncParser(object):
     def reset(self):
         self.stack = []
         self.ast_stack = []
+        self.all_changes = []
