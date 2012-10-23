@@ -47,10 +47,10 @@ class IncParser(object):
                     children = []
                     for t in tokens:
                         children.append(Node(Terminal("\"%s\"" % (t,)), -1, []))
-                    la.parent.set_children(children)
+                    pos = la.parent.replace_children(la, children)
                     self.all_changes.remove(la)
                     self.previous_version.pprint()
-                    la = la.parent.children[0]
+                    la = la.parent.children[pos]
                 else:
                     element = self.syntaxtable.lookup(self.current_state, la.symbol)
                     if isinstance(element, Accept):

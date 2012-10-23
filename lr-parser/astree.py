@@ -14,10 +14,16 @@ class Node(object):
         for c in self.children:
             c.parent = self
 
-    def set_children(self, children):
-        self.children = children
+    def replace_children(self, la, children):
+        i = 0
         for c in self.children:
-            c.parent = self
+            if c is la:
+                self.children.pop(i)
+                for newchild in children:
+                    self.children.insert(i, newchild)
+                    newchild.parent = self
+                return i
+            i += 1
 
     def right_sibling(self):
         siblings = self.parent.children

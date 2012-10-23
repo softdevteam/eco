@@ -54,15 +54,42 @@ def test_multiple_changes_at_once():
     assert C.symbol == Nonterminal("C")
     assert C.children[0].symbol == Terminal("\"a\"")
     # put insertion into this Node
-    a = Terminal("\"a\"")
-    b = Terminal("\"b\"")
     changed_node = C.children[0]
     changed_node.symbol.name = "b b a"
-    lrp.all_changes.append(changed_node)
-    while(changed_node.parent):
-        changed_node = changed_node.parent
-        lrp.all_changes.append(changed_node)
+    apply_change(lrp, changed_node)
     lrp.previous_version.pprint()
+    lrp.inc_parse()
+    lrp.stack[1].pprint()
+    assert False
+
+def apply_change(lrp, node):
+    lrp.all_changes.append(node)
+    while(node.parent):
+        node = node.parent
+        lrp.all_changes.append(node)
+
+def test_multiple_changes_2():
+    lrp = IncParser(grammar, LR1)
+    lrp.check("1 + 2")
+    lrp.previous_version = lrp.get_ast()
+    ast = lrp.previous_version
+    i2 = ast.parent.children[1].children[2].children[0].children[0]
+    assert i2.symbol == Terminal("\"2\"")
+    i2.symbol.name = "1 * 1"
+    apply_change(lrp, i2)
+    lrp.inc_parse()
+    lrp.stack[1].pprint()
+    assert False
+
+def test_multiple_changes_3():
+    lrp = IncParser(grammar, LR1)
+    lrp.check("1 + 2")
+    lrp.previous_version = lrp.get_ast()
+    ast = lrp.previous_version
+    i2 = ast.parent.children[1].children[1]
+    assert i2.symbol == Terminal("\"+\"")
+    i2.symbol.name = "*"
+    apply_change(lrp, i2)
     lrp.inc_parse()
     lrp.stack[1].pprint()
     assert False
