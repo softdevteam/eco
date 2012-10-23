@@ -27,7 +27,80 @@ class IncParser(object):
 
         self.previous_version = None
 
-    def inc_parse(self, _input):
+    def inc_parse(self):
+        self.stack = []
+        self.current_state = 0
+        self.stack.append(Node(FinishSymbol(), 0, []))
+        bos = self.previous_version.parent.children[0]
+        la = self.pop_lookahead(bos)
+
+        while(True):
+            print("STACK:", self.stack)
+            print("NODE:", la)
+            print("CURRENT STATE", self.current_state)
+            if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
+                print("terminal")
+                if self.has_changed(la):
+                    print("relex")
+                    text = la.symbol.name
+                    tokens = text.split(" ")
+                    children = []
+                    for t in tokens:
+                        children.append(Node(Terminal("\"%s\"" % (t,)), -1, []))
+                    la.parent.set_children(children)
+                    self.all_changes.remove(la)
+                    self.previous_version.pprint()
+                    la = la.parent.children[0]
+                else:
+                    element = self.syntaxtable.lookup(self.current_state, la.symbol)
+                    if isinstance(element, Accept):
+                        return True
+                    elif isinstance(element, Shift):
+                        print("Shift")
+                        self.stack.append(la)
+                        la.state = element.action
+                        self.current_state = element.action
+                        la = self.pop_lookahead(la)
+                    elif isinstance(element, Reduce):
+                        print("Reduce", element.action)
+                        children = []
+                        for i in range(element.amount()):
+                            children.insert(0, self.stack.pop())
+                        self.current_state = self.stack[-1].state
+                        print("Stack[-1]", self.stack[-1])
+
+                        goto = self.syntaxtable.lookup(self.current_state, element.action.left)
+                        new_node = Node(element.action.left, goto.action, children)
+                        self.stack.append(new_node)
+                        self.current_state = new_node.state
+                    elif element is None:
+                        print("ERROR")
+                        return False
+            else: # Nonterminal
+                print("nonterminal")
+                if self.has_changed(la):
+                    print("has changed")
+                    la = self.left_breakdown(la)
+                else:
+                    print("has not changed")
+                    # perform reductions
+                    #next_terminal = next(_inputiter)
+                    #a = self.syntaxtable.lookup(self.current_state, next_terminal)
+                    #if isinstance(a, Reduce):
+                    #    print("REDUCE")
+                        #perform
+                    #    pass
+                    if self.shiftable(la):
+                        print("SHIFTABLE")
+                        self.shift(la)
+                        self.right_breakdown()
+                        print("STACK after shift:", self.stack)
+                        la = self.pop_lookahead(la)
+                    else:
+                        la = self.left_breakdown(la)
+            print("---------------")
+
+    def inc_parse_old(self, _input):
         if not self.previous_version:
             result = self.check(_input)
             self.previous_version = self.get_ast()
@@ -48,7 +121,7 @@ class IncParser(object):
             print("STACK:", self.stack)
             print("NODE:", la)
             print("CURRENT STATE", self.current_state)
-            if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol):
+            if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
                 print("terminal")
                 if self.has_changed(la):
                     print("relex")
@@ -138,15 +211,16 @@ class IncParser(object):
     def find_changes(self, inputiter):
         # XXX later we'll work on the ast the whole time
         # so nodes are marked as changed while typing
+        print("-------- find changes -----")
         changed = []
         ast = self.previous_version
         nodes = [ast.parent]
         while nodes != []:
             node = nodes.pop()
-            if isinstance(node.symbol, Terminal):
+            if isinstance(node.symbol, Terminal) or isinstance(node.symbol, Epsilon):
                 i = next(inputiter)
                 if i != node.symbol:
-                    print("changed", node, i)
+                    print("changed", node, "to", i)
                     temp = node
                     changed.append(temp)
                     while(temp.parent is not None):
@@ -154,6 +228,7 @@ class IncParser(object):
                         temp = temp.parent
             nodes.extend(list(reversed(node.children)))
         self.all_changes = changed
+        print("---------------------------")
 
     def has_changed(self, node):
         return node in self.all_changes
@@ -161,8 +236,9 @@ class IncParser(object):
     def prepare_input(self, _input):
         l = []
         # XXX need an additional lexer to do this right
-        for i in _input.split(" "):
-            l.append(Terminal("\"" + i + "\""))
+        if _input != "":
+            for i in _input.split(" "):
+                l.append(Terminal("\"" + i + "\""))
         l.append(FinishSymbol())
         return l
 
@@ -180,10 +256,14 @@ class IncParser(object):
             state_id = self.stack[-1]
             element = self.syntaxtable.lookup(state_id, c)
 
+            print(element)
+            print(state_id)
+            print(c)
             if element is None:
                 return False
 
             if isinstance(element, Shift):
+                print("shift")
                 self.stack.append(c)
                 self.stack.append(element.action)
                 i += 1
@@ -191,6 +271,7 @@ class IncParser(object):
                 self.ast_stack.append(Node(c, element.action, []))
 
             if isinstance(element, Reduce):
+                print("reduce")
                 for x in range(2*element.amount()):
                     self.stack.pop()
                 state_id = self.stack[-1]
@@ -211,7 +292,10 @@ class IncParser(object):
         l = []
         # action = Production
         for e in element.action.right:
-            l.append(self.ast_stack.pop())
+            if e == Epsilon():
+                l.append(Node(Epsilon(), 0, []))
+            else:
+                l.append(self.ast_stack.pop())
         l.reverse()
         n = Node(element.action.left, state, l)
         self.ast_stack.append(n)

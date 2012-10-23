@@ -14,6 +14,11 @@ class Node(object):
         for c in self.children:
             c.parent = self
 
+    def set_children(self, children):
+        self.children = children
+        for c in self.children:
+            c.parent = self
+
     def right_sibling(self):
         siblings = self.parent.children
         last = None
