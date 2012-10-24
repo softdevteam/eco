@@ -9,7 +9,7 @@ grammar = """
         | T
     T ::= T "*" P
         | P
-    P ::= "1" | "2"
+    P ::= "1" | "2" | "3" | "4"
 """
 
 def test_input():
@@ -96,12 +96,14 @@ def test_multiple_changes_2():
     lrp.check("1 + 2")
     lrp.previous_version = lrp.get_ast()
     ast = lrp.previous_version
+    Viewer().show_tree(lrp.previous_version.parent.children[1])
     i2 = ast.parent.children[1].children[2].children[0].children[0]
     assert i2.symbol == Terminal("\"2\"")
-    i2.symbol.name = "1 * 1"
+    i2.symbol.name = "3 * 4"
     apply_change(lrp, i2)
     lrp.inc_parse()
     lrp.stack[1].pprint()
+    Viewer().show_tree(lrp.stack[1])
     assert False
 
 def test_multiple_changes_3():
@@ -109,10 +111,12 @@ def test_multiple_changes_3():
     lrp.check("1 + 2")
     lrp.previous_version = lrp.get_ast()
     ast = lrp.previous_version
+    Viewer().show_tree(lrp.previous_version.parent.children[1])
     i2 = ast.parent.children[1].children[1]
     assert i2.symbol == Terminal("\"+\"")
     i2.symbol.name = "*"
     apply_change(lrp, i2)
     lrp.inc_parse()
     lrp.stack[1].pprint()
+    Viewer().show_tree(lrp.stack[1])
     assert False
