@@ -2,6 +2,7 @@ from incparser import IncParser
 from constants import LR0, LR1, LALR
 from gparser import Terminal, Nonterminal
 from astree import Node
+from viewer import Viewer
 
 grammar = """
     E ::= E "+" T
@@ -60,6 +61,28 @@ def test_multiple_changes_at_once():
     lrp.previous_version.pprint()
     lrp.inc_parse()
     lrp.stack[1].pprint()
+    assert False
+
+def test_deletion():
+    grammar = """
+        S ::= C S
+            | C
+        C ::= "a" | "b"
+    """
+    lrp = IncParser(grammar, LR1)
+    lrp.check("a a a")
+    lrp.previous_version = lrp.get_ast()
+    ast = lrp.previous_version
+    Viewer().show_tree(lrp.previous_version.parent)
+
+    C = ast.parent.children[1].children[1].children[0]
+    assert C.symbol == Nonterminal("C")
+    assert C.children[0].symbol == Terminal("\"a\"")
+    # delete terminal node
+    C.children.pop(0)
+    apply_change(lrp, C)
+    lrp.inc_parse()
+    Viewer().show_tree(lrp.stack[1])
     assert False
 
 def apply_change(lrp, node):
