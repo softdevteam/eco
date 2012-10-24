@@ -50,7 +50,7 @@ class LRParser(object):
                 self.stack.append(element.action)
                 i += 1
             if isinstance(element, Reduce):
-                self.add_to_ast(element)
+                #self.add_to_ast(element)
                 for x in range(2*element.amount()):
                     self.stack.pop()
                 state_id = self.stack[-1]
