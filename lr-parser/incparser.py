@@ -301,9 +301,9 @@ class IncParser(object):
         self.ast_stack.append(n)
 
     def get_ast(self):
-        bos = Node("bos", 0, [])
+        bos = Node(Terminal("bos"), 0, [])
         eos = Node(FinishSymbol(), 0, [])
-        root = Node("Root", 0, [bos, self.ast_stack[0], eos])
+        root = Node(Nonterminal("Root"), 0, [bos, self.ast_stack[0], eos])
         return AST(root)
 
     def reset(self):

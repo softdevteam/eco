@@ -128,7 +128,7 @@ class State(object):
             left = "None"
         else:
             left = self.p.left.name
-        right = [x.name for x in self.p.right]
+        right = [x.name.strip("\"") for x in self.p.right]
         right.insert(self.d, ".")
         right = "".join(right)
         #s = "%s ::= %s %s %s" % (left, right, self.k, self.b)
@@ -160,7 +160,10 @@ class LR1Element(State):
 
     def __str__(self):
         s = State.__str__(self)
-        s += " " + str(self.lookahead)
+        l = []
+        for t in self.lookahead:
+            l.append(t.name.strip("\""))
+        s += " {%s}" % (", ".join(l),)
         return s
 
     def __repr__(self):

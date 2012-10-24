@@ -17,6 +17,9 @@ class SyntaxTableElement(object):
         return "%s(%s)" % (self.__class__.__name__, self.action)
 
 class FinishSymbol(object):
+    def __init__(self):
+        self.name = "eos"
+
     def __eq__(self, other):
         return isinstance(other, FinishSymbol)
 
