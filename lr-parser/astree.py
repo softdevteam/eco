@@ -1,3 +1,8 @@
+import sys
+sys.path.append("../")
+
+from gparser import Nonterminal
+
 class AST(object):
     def __init__(self, parent):
         self.parent = parent
@@ -6,9 +11,12 @@ class AST(object):
         stack = []
         stack.append(self.parent.children[1]) # skip bos
         #XXX speed things up later by having a list/dict of all terminal nodes
-        for e in stack:
+        while stack != []:
+            e = stack.pop(0)
+            if isinstance(e.symbol, Nonterminal):
+                stack.extend(e.children)
+                continue
             if e.pos + len(e.symbol.name) >= pos:
-                e.pprint()
                 return e
 
     def adjust_nodes_after_node(self, node, change):
@@ -34,8 +42,15 @@ class Node(object):
         for c in self.children:
             c.parent = self
 
+
+    def set_children(self, children):
+        self.children = children
+        for c in self.children:
+            c.parent = self
+
     def replace_children(self, la, children):
         i = 0
+        children.reverse()
         for c in self.children:
             if c is la:
                 self.children.pop(i)
@@ -46,6 +61,7 @@ class Node(object):
             i += 1
 
     def right_sibling(self):
+        print("right_sibling", self)
         siblings = self.parent.children
         last = None
         for i in range(len(siblings)-1, -1, -1):

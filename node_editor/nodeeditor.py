@@ -28,8 +28,6 @@ class NodeEditor(QTextEdit):
         lrp = self.getLRP()
         current_node = self.getCurrentNodeFromPosition()
         print("Current Node:", current_node)
-        print(current_node.symbol)
-        print(e.key())
 
         QTextEdit.keyPressEvent(self, e)
         cursor = self.textCursor()
@@ -41,10 +39,14 @@ class NodeEditor(QTextEdit):
                 current_node.delete(pos)
             else:
                 current_node.insert(e.text(), pos)
-            current_node.changed = True
             # find all nodes that come after the changed node
             change = pos - self.lastpos
             lrp.previous_version.adjust_nodes_after_node(current_node, change)
+            # mark changed nodes
+            current_node.changed = True
+            while current_node.parent:
+                current_node = current_node.parent
+                current_node.changed = True
         self.lastpos = pos
 
     def getCurrentNodeText(self):
@@ -55,6 +57,7 @@ class NodeEditor(QTextEdit):
     def getCurrentNodeFromPosition(self):
         cursor_pos = self.textCursor().position()
         ast = self.getLRP().previous_version
+        print("POS", cursor_pos)
         return ast.find_node_at_pos(cursor_pos)
 
     def getLRP(self):
@@ -66,12 +69,18 @@ class Window(QtGui.QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        self.connect(self.ui.pushButton, SIGNAL("clicked()"), self.btIncparser)
+        self.connect(self.ui.pushButton, SIGNAL("clicked()"), self.btReparse)
+        self.connect(self.ui.pushButton_2, SIGNAL("clicked()"), self.btRefresh)
 
         self.lrp = IncParser(grammar, 1)
         self.lrp.init_ast()
 
-    def btIncparser(self):
+    def btRefresh(self):
+        image = Viewer().get_tree_image(self.lrp.previous_version.parent)
+        self.lrp.previous_version.parent.pprint()
+        self.showImage(image)
+
+    def btReparse(self):
         self.lrp.inc_parse()
         image = Viewer().get_tree_image(self.lrp.previous_version.parent)
         self.lrp.previous_version.parent.pprint()

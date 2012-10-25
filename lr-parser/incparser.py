@@ -53,13 +53,17 @@ class IncParser(object):
                 if la.changed:#self.has_changed(la):
                     print("relex")
                     text = la.symbol.name
+                    oldpos = la.pos
+                    print("lapos", oldpos)
                     tokens = text.split(" ")
                     children = []
                     for t in tokens:
-                        children.append(Node(Terminal(t), -1, []))
+                        children.append(Node(Terminal(t), -1, [], oldpos))
+                        oldpos += len(t)
+                        oldpos += 1 # add whitespace
                     pos = la.parent.replace_children(la, children)
                     #self.all_changes.remove(la)
-                    #la.changed = False
+                    la.changed = False
                     self.previous_version.pprint()
                     la = la.parent.children[pos]
                 else:
@@ -70,7 +74,7 @@ class IncParser(object):
                         #XXX change parse so that stack is [bos, startsymbol, eos]
                         bos = self.previous_version.parent.children[0]
                         eos = self.previous_version.parent.children[-1]
-                        self.previous_version.parent.children = [bos, self.stack[1], eos]
+                        self.previous_version.parent.set_children([bos, self.stack[1], eos])
                         return True
                     elif isinstance(element, Shift):
                         print("Shift")
@@ -95,7 +99,8 @@ class IncParser(object):
                         return False
             else: # Nonterminal
                 print("nonterminal")
-                if self.has_changed(la):
+                if la.changed:#self.has_changed(la):
+                    la.changed = False
                     print("has changed")
                     la = self.left_breakdown(la)
                 else:
@@ -216,6 +221,7 @@ class IncParser(object):
         self.current_state = la.state
 
     def pop_lookahead(self, la):
+        print("pop_lookahead", la)
         while(la.right_sibling() is None):
             la = la.parent
         return la.right_sibling()
