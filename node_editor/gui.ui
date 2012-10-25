@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>599</height>
+    <width>943</width>
+    <height>611</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -31,6 +31,16 @@
       </property>
      </widget>
     </item>
+    <item row="0" column="2">
+     <widget class="QGraphicsView" name="graphicsView"/>
+    </item>
+    <item row="0" column="1">
+     <widget class="QPushButton" name="pushButton">
+      <property name="text">
+       <string>Incparse()</string>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -38,7 +48,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>943</width>
      <height>19</height>
     </rect>
    </property>

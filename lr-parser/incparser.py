@@ -5,7 +5,9 @@ from gparser import Parser, Nonterminal, Terminal, Epsilon
 from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
 from stategraph import StateGraph
 from constants import LR0, LR1, LALR
-from astree import AST, Node
+from astree import AST, TextNode
+
+Node = TextNode
 
 class IncParser(object):
 
@@ -24,8 +26,16 @@ class IncParser(object):
 
         self.stack = []
         self.ast_stack = []
+        self.all_changes = []
 
         self.previous_version = None
+
+    def init_ast(self):
+        bos = Node(Terminal("bos"), 0, [])
+        eos = Node(FinishSymbol(), 0, [])
+        empty = Node(Terminal(""), 0,  [], 0)
+        root = Node(Nonterminal("Root"), 0, [bos, empty, eos])
+        self.previous_version = AST(root)
 
     def inc_parse(self):
         self.stack = []
@@ -40,7 +50,7 @@ class IncParser(object):
             print("CURRENT STATE", self.current_state)
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
                 print("terminal")
-                if self.has_changed(la):
+                if la.changed:#self.has_changed(la):
                     print("relex")
                     text = la.symbol.name
                     tokens = text.split(" ")
@@ -48,17 +58,24 @@ class IncParser(object):
                     for t in tokens:
                         children.append(Node(Terminal("\"%s\"" % (t,)), -1, []))
                     pos = la.parent.replace_children(la, children)
-                    self.all_changes.remove(la)
+                    #self.all_changes.remove(la)
+                    #la.changed = False
                     self.previous_version.pprint()
                     la = la.parent.children[pos]
                 else:
                     element = self.syntaxtable.lookup(self.current_state, la.symbol)
                     if isinstance(element, Accept):
+                        print("Accept")
+                        self.stack[1].pprint()
+                        #XXX change parse so that stack is [bos, startsymbol, eos]
+                        bos = self.previous_version.parent.children[0]
+                        eos = self.previous_version.parent.children[-1]
+                        self.previous_version.parent.children = [bos, self.stack[1], eos]
                         return True
                     elif isinstance(element, Shift):
                         print("Shift")
-                        self.stack.append(la)
                         la.state = element.action
+                        self.stack.append(la)
                         self.current_state = element.action
                         la = self.pop_lookahead(la)
                     elif isinstance(element, Reduce):

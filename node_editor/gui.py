@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Wed Oct 24 16:25:27 2012
+# Created: Thu Oct 25 10:42:13 2012
 #      by: PyQt4 UI code generator 4.9.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -17,7 +17,7 @@ except AttributeError:
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName(_fromUtf8("MainWindow"))
-        MainWindow.resize(800, 599)
+        MainWindow.resize(943, 611)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -35,9 +35,15 @@ class Ui_MainWindow(object):
         self.textEdit.setSizePolicy(sizePolicy)
         self.textEdit.setObjectName(_fromUtf8("textEdit"))
         self.gridLayout.addWidget(self.textEdit, 0, 0, 1, 1)
+        self.graphicsView = QtGui.QGraphicsView(self.centralwidget)
+        self.graphicsView.setObjectName(_fromUtf8("graphicsView"))
+        self.gridLayout.addWidget(self.graphicsView, 0, 2, 1, 1)
+        self.pushButton = QtGui.QPushButton(self.centralwidget)
+        self.pushButton.setObjectName(_fromUtf8("pushButton"))
+        self.gridLayout.addWidget(self.pushButton, 0, 1, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 19))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 943, 19))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(MainWindow)
@@ -49,5 +55,6 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
+        self.pushButton.setText(QtGui.QApplication.translate("MainWindow", "Incparse()", None, QtGui.QApplication.UnicodeUTF8))
 
 from nodeeditor import NodeEditor

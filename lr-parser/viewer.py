@@ -33,6 +33,13 @@ class Viewer(object):
         temp = urllib.request.urlretrieve(url)
         self.show(temp[0])
 
+    def get_tree_image(self, tree):
+        s = self.create_ast_string(tree)
+        url = "https://chart.googleapis.com/chart?cht=gv&chl=graph{%s}" % (s,)
+        print(url)
+        temp = urllib.request.urlretrieve(url)
+        return temp[0]
+
     def create_graph_string(self, graph):
         s = []
         i = 0
@@ -52,17 +59,16 @@ class Viewer(object):
 
         return ";".join(s)
 
-
     def create_ast_string(self, ast):
         s = []
         l = [ast]
         while len(l) > 0:
             node = l.pop(0)
             node_id = id(node)
-            s.append("%s[label=%s]" % (node_id, node.symbol.name))
+            s.append("%s[label=\"%s\"]" % (node_id, node.symbol.name))
             for c in node.children:
                 child_id = id(c)
-                s.append("%s[label=%s]" % (child_id, c.symbol.name))
+                s.append("%s[label=\"%s\"]" % (child_id, c.symbol.name))
                 s.append("%s--%s" % (node_id, id(c)))
                 l.append(c)
         return ";".join(s)

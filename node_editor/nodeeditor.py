@@ -1,54 +1,51 @@
 import sys
+sys.path.append("../lr-parser/")
 from PyQt4.QtCore import *
 from PyQt4 import QtGui
 from PyQt4.QtGui import *
 
 from gui import Ui_MainWindow
 
+from incparser import IncParser
+from viewer import Viewer
+
+
+grammar = """
+    E ::= T
+        | E "+" T
+    T ::= P
+        | T "*" P
+    P ::= "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
+"""
+
 class NodeEditor(QTextEdit):
 
     def __init__(self, text=None):
-        self.nodes = [TextNode([], 0)]
-        self.current_node_text = []
-        self.typing_start = 0
-        self.typing_end = 0
         self.lastpos = 0
         QTextEdit.__init__(self, text)
 
     def keyPressEvent(self, e):
+        lrp = self.getLRP()
         current_node = self.getCurrentNodeFromPosition()
-        print(current_node)
+        print("Current Node:", current_node)
+        print(current_node.symbol)
         print(e.key())
 
         QTextEdit.keyPressEvent(self, e)
         cursor = self.textCursor()
         pos = cursor.position()
 
-        if e.key() == 32: # key=space
-            self.typing_end = pos-1
-            # create new node
-            node = TextNode([], pos)
-            self.nodes.append(node)
-            self.current_node_text = []
-            # reset variables
-            self.typing_start = pos
-        else:
-            # type directly into current node
-            if e.text() != "":
-                if e.key() == 16777219:
-                    current_node.delete(pos)
-                else:
-                    current_node.insert(e.text(), pos)
-                # find all nodes that come after the changed node
-                change = pos - self.lastpos
-                found = False
-                for n in self.nodes:
-                    if found:
-                        n.pos += change
-                    if n is current_node:
-                        found = True
+        # type directly into current node
+        if e.text() != "":
+            if e.key() == 16777219:
+                current_node.delete(pos)
+            else:
+                current_node.insert(e.text(), pos)
+            current_node.changed = True
+            # find all nodes that come after the changed node
+            change = pos - self.lastpos
+            lrp.previous_version.adjust_nodes_after_node(current_node, change)
         self.lastpos = pos
-        print(self.nodes)
 
     def getCurrentNodeText(self):
         start = self.typing_start
@@ -56,39 +53,35 @@ class NodeEditor(QTextEdit):
         return self.toPlainText()[start:end]
 
     def getCurrentNodeFromPosition(self):
-        #XXX not very fast
         cursor_pos = self.textCursor().position()
-        for node in self.nodes:
-            if node.pos + len(node.text) >= cursor_pos:
-                return node
+        ast = self.getLRP().previous_version
+        return ast.find_node_at_pos(cursor_pos)
 
-class TextNode(object):
-    def __init__(self, text, pos):
-        self.text = text
-        self.pos = pos
-
-    def change_pos(self, i):
-        self.pos += i
-
-    def change_text(self, text):
-        self.text = text
-
-    def insert(self, char, pos):
-        internal_pos = pos - self.pos
-        self.text.insert(internal_pos-1, char)
-
-    def delete(self, pos):
-        internal_pos = pos - self.pos
-        self.text.pop(internal_pos)
-
-    def __repr__(self):
-        return "(%s, %s)" % ("".join(self.text), self.pos)
+    def getLRP(self):
+        return self.parent().parent().lrp
 
 class Window(QtGui.QMainWindow):
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+
+        self.connect(self.ui.pushButton, SIGNAL("clicked()"), self.btIncparser)
+
+        self.lrp = IncParser(grammar, 1)
+        self.lrp.init_ast()
+
+    def btIncparser(self):
+        self.lrp.inc_parse()
+        image = Viewer().get_tree_image(self.lrp.previous_version.parent)
+        self.lrp.previous_version.parent.pprint()
+        self.showImage(image)
+
+    def showImage(self, imagefile):
+        scene = QGraphicsScene()
+        item = QGraphicsPixmapItem(QPixmap(imagefile))
+        scene.addItem(item);
+        self.ui.graphicsView.setScene(scene)
 
 def main():
     app = QtGui.QApplication(sys.argv)
