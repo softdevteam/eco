@@ -46,6 +46,8 @@ class NodeEditor(QTextEdit):
             current_node.mark_changed()
         self.lastpos = pos
 
+        self.parent().parent().btRefresh()
+
     def getCurrentNodeText(self):
         start = self.typing_start
         end = self.typing_end

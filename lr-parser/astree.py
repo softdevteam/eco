@@ -7,16 +7,34 @@ class AST(object):
     def __init__(self, parent):
         self.parent = parent
 
-    def find_node_at_pos(self, pos):
+    def find_node_at_pos(self, pos, node=None):
+        if node is None:
+           node = self.parent.children[1]
+
+        if isinstance(node.symbol, Nonterminal):
+            for child in node.children:
+                result = self.find_node_at_pos(pos, child)
+                if result:
+                    return result
+
+        if node.pos + len(node.symbol.name) >= pos:
+            print("----------------")
+            return node
+
+
+    def find_node_at_pos_iterative(self, pos): #not working
+        print("FIND NODE AT POS", pos)
         stack = []
         stack.append(self.parent.children[1]) # skip bos
         #XXX speed things up later by having a list/dict of all terminal nodes
         while stack != []:
             e = stack.pop(0)
+            print(e)
             if isinstance(e.symbol, Nonterminal):
                 stack.extend(e.children)
                 continue
             if e.pos + len(e.symbol.name) >= pos:
+                print("----------------")
                 return e
 
     def adjust_nodes_after_node(self, node, change):
@@ -69,6 +87,7 @@ class Node(object):
     def right_sibling(self):
         print("right_sibling", self)
         siblings = self.parent.children
+        print("   siblings", siblings)
         last = None
         for i in range(len(siblings)-1, -1, -1):
             if siblings[i] is self:
@@ -80,7 +99,7 @@ class Node(object):
         return "Node(%s, %s, %s)" % (self.symbol, self.state, self.children)
 
     def pprint(self, indent=0):
-        print(" "*indent, self.symbol, ":", self.state, "(", id(self), ")")
+        print(" "*indent, self.symbol, ":", self.state)
         indent += 4
         for c in self.children:
             c.pprint(indent)
