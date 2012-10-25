@@ -42,6 +42,12 @@ class Node(object):
         for c in self.children:
             c.parent = self
 
+    def mark_changed(self):
+        node = self
+        node.changed = True
+        while node.parent:
+            node = node.parent
+            node.changed = True
 
     def set_children(self, children):
         self.children = children
@@ -105,9 +111,13 @@ class TextNode(Node):
 
     def delete(self, pos):
         l = list(self.symbol.name)
-        internal_pos = pos - self.pos
-        l.pop(internal_pos)
-        self.symbol.name = "".join(l)
+        if len(l) == 0: # if node already empty: delete
+            self.parent.children.remove(self)
+            self.parent.mark_changed()
+        else:
+            internal_pos = pos - self.pos
+            l.pop(internal_pos)
+            self.symbol.name = "".join(l)
 
     def __repr__(self):
         return "TextNode(%s, %s, %s, %s)" % (self.symbol, self.state, self.children, self.pos)

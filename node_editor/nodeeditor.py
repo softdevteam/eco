@@ -43,10 +43,7 @@ class NodeEditor(QTextEdit):
             change = pos - self.lastpos
             lrp.previous_version.adjust_nodes_after_node(current_node, change)
             # mark changed nodes
-            current_node.changed = True
-            while current_node.parent:
-                current_node = current_node.parent
-                current_node.changed = True
+            current_node.mark_changed()
         self.lastpos = pos
 
     def getCurrentNodeText(self):
