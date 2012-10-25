@@ -17,8 +17,7 @@ class Rule(object):
 
 class Symbol(object):
     def __init__(self, name=""):
-        self.name = name
-        self.raw = name.strip("\"")
+        self.name = name.strip("\"")
 
     def __eq__(self, other):
         if other.__class__ != self.__class__:

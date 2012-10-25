@@ -8,25 +8,25 @@ def test_terminal():
     t2 = Nonterminal("E")
     assert t1 == t2
 
-    t1 = Terminal("\"a\"")
-    t2 = Terminal("\"a\"")
+    t1 = Terminal("a")
+    t2 = Terminal("a")
     assert t1 == t2
 
 def test_simple():
     p = Parser("E ::= \"a\"")
     p.parse()
     assert p.rules[Nonterminal("E")].symbol == Nonterminal("E")
-    assert p.rules[Nonterminal("E")].alternatives == [[Terminal("\"a\"")]]
+    assert p.rules[Nonterminal("E")].alternatives == [[Terminal("a")]]
 
 def test_multiple_symbols():
     p = Parser("E ::= A \"a\"")
     p.parse()
-    assert p.rules[Nonterminal("E")].alternatives == [[Nonterminal("A"), Terminal("\"a\"")]]
+    assert p.rules[Nonterminal("E")].alternatives == [[Nonterminal("A"), Terminal("a")]]
 
 def test_alternatives():
     p = Parser("E ::= A | \"a\"")
     p.parse()
-    assert p.rules[Nonterminal("E")].alternatives == [[Nonterminal("A")], [Terminal("\"a\"")]]
+    assert p.rules[Nonterminal("E")].alternatives == [[Nonterminal("A")], [Terminal("a")]]
 
 def test_multiple_rules():
     p = Parser("""
@@ -35,7 +35,7 @@ def test_multiple_rules():
     """)
     p.parse()
     assert p.rules[Nonterminal("E")].alternatives == [[Nonterminal("A")]]
-    assert p.rules[Nonterminal("A")].alternatives == [[Terminal("\"a\"")]]
+    assert p.rules[Nonterminal("A")].alternatives == [[Terminal("a")]]
 
 def test_more_complex_grammar():
     p = Parser("""
@@ -46,8 +46,8 @@ def test_more_complex_grammar():
     """)
     p.parse()
     assert p.rules[Nonterminal("name")].alternatives == [
-        [Terminal("\"ID\"")],
-        [Terminal("\"&\""), Terminal("\"ID\"")],
+        [Terminal("ID")],
+        [Terminal("&"), Terminal("ID")],
         [Nonterminal("splice")],
         [Nonterminal("insert")]
     ]
@@ -58,4 +58,4 @@ def test_empty_alternative():
             |
     """)
     p.parse()
-    assert p.rules[Nonterminal("E")].alternatives == [[Terminal("\"a\"")],[]]
+    assert p.rules[Nonterminal("E")].alternatives == [[Terminal("a")],[]]

@@ -31,7 +31,7 @@ class LRParser(object):
         l = []
         # XXX need an additional lexer to do this right
         for i in _input.split(" "):
-            l.append(Terminal("\"" + i + "\""))
+            l.append(Terminal(i))
         l.append(FinishSymbol())
         _input = l
 

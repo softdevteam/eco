@@ -53,7 +53,7 @@ def test_multiple_changes_at_once():
     #            ...
     C = ast.parent.children[1].children[1].children[0]
     assert C.symbol == Nonterminal("C")
-    assert C.children[0].symbol == Terminal("\"a\"")
+    assert C.children[0].symbol == Terminal("a")
     # put insertion into this Node
     changed_node = C.children[0]
     changed_node.symbol.name = "b b a"
@@ -77,7 +77,7 @@ def test_deletion():
 
     C = ast.parent.children[1].children[1].children[0]
     assert C.symbol == Nonterminal("C")
-    assert C.children[0].symbol == Terminal("\"a\"")
+    assert C.children[0].symbol == Terminal("a")
     # delete terminal node
     C.children.pop(0)
     apply_change(lrp, C)
@@ -98,7 +98,7 @@ def test_multiple_changes_2():
     ast = lrp.previous_version
     Viewer().show_tree(lrp.previous_version.parent.children[1])
     i2 = ast.parent.children[1].children[2].children[0].children[0]
-    assert i2.symbol == Terminal("\"2\"")
+    assert i2.symbol == Terminal("2")
     i2.symbol.name = "3 * 4"
     apply_change(lrp, i2)
     lrp.inc_parse()
@@ -113,7 +113,7 @@ def test_multiple_changes_3():
     ast = lrp.previous_version
     Viewer().show_tree(lrp.previous_version.parent.children[1])
     i2 = ast.parent.children[1].children[1]
-    assert i2.symbol == Terminal("\"+\"")
+    assert i2.symbol == Terminal("+")
     i2.symbol.name = "*"
     apply_change(lrp, i2)
     lrp.inc_parse()

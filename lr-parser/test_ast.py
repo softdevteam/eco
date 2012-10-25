@@ -18,11 +18,11 @@ grammar = """
 E = Nonterminal("E")
 T = Nonterminal("T")
 P = Nonterminal("P")
-plus = Terminal("\"+\"")
-mul = Terminal("\"*\"")
-n1 = Terminal("\"1\"")
-n2 = Terminal("\"2\"")
-n3 = Terminal("\"3\"")
+plus = Terminal("+")
+mul = Terminal("*")
+n1 = Terminal("1")
+n2 = Terminal("2")
+n3 = Terminal("3")
 
 def test_node():
     i1 = Node(1, 0, [])

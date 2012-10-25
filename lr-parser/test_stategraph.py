@@ -18,9 +18,9 @@ p = Parser(grammar)
 p.parse()
 r = p.rules
 
-a = Terminal("\"a\"")
-b = Terminal("\"b\"")
-c = Terminal("\"c\"")
+a = Terminal("a")
+b = Terminal("b")
+c = Terminal("c")
 Z = Nonterminal("Z")
 S = Nonterminal("S")
 A = Nonterminal("A")

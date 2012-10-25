@@ -56,7 +56,7 @@ class IncParser(object):
                     tokens = text.split(" ")
                     children = []
                     for t in tokens:
-                        children.append(Node(Terminal("\"%s\"" % (t,)), -1, []))
+                        children.append(Node(Terminal(t), -1, []))
                     pos = la.parent.replace_children(la, children)
                     #self.all_changes.remove(la)
                     #la.changed = False
@@ -255,7 +255,7 @@ class IncParser(object):
         # XXX need an additional lexer to do this right
         if _input != "":
             for i in _input.split(" "):
-                l.append(Terminal("\"" + i + "\""))
+                l.append(Terminal(i))
         l.append(FinishSymbol())
         return l
 

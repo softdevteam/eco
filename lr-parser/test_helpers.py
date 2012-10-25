@@ -40,12 +40,12 @@ p = Parser(grammar2)
 p.parse()
 r2 = p.rules
 
-a = Terminal("\"a\"")
-b = Terminal("\"b\"")
-c = Terminal("\"c\"")
-d = Terminal("\"d\"")
-f = Terminal("\"f\"")
-plus = Terminal("\"+\"")
+a = Terminal("a")
+b = Terminal("b")
+c = Terminal("c")
+d = Terminal("d")
+f = Terminal("f")
+plus = Terminal("+")
 epsilon = Epsilon()
 finish = FinishSymbol()
 
