@@ -65,7 +65,7 @@ class Viewer(object):
         while len(l) > 0:
             node = l.pop(0)
             node_id = id(node)
-            s.append("%s[label=\"%s\\n%s\\np%s\"]" % (node_id, node.symbol.name, node_id, id(node.parent)))
+            s.append("%s[label=\"%s\"]" % (node_id, node.symbol.name))
             for c in node.children:
                 child_id = id(c)
                 #s.append("%s[label=\"%s\n%s\"]" % (child_id, c.symbol.name, id(c)))
