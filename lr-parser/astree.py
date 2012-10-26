@@ -7,7 +7,7 @@ class AST(object):
     def __init__(self, parent):
         self.parent = parent
 
-    def find_node_at_pos(self, pos, node=None):
+    def find_node_at_pos(self, pos, node=None): #recursive
         if node is None:
            node = self.parent.children[1]
 
@@ -18,23 +18,19 @@ class AST(object):
                     return result
 
         if node.pos + len(node.symbol.name) >= pos:
-            print("----------------")
             return node
 
 
     def find_node_at_pos_iterative(self, pos): #not working
-        print("FIND NODE AT POS", pos)
         stack = []
         stack.append(self.parent.children[1]) # skip bos
         #XXX speed things up later by having a list/dict of all terminal nodes
         while stack != []:
             e = stack.pop(0)
-            print(e)
             if isinstance(e.symbol, Nonterminal):
                 stack.extend(e.children)
                 continue
             if e.pos + len(e.symbol.name) >= pos:
-                print("----------------")
                 return e
 
     def adjust_nodes_after_node(self, node, change):
@@ -85,9 +81,7 @@ class Node(object):
             i += 1
 
     def right_sibling(self):
-        print("right_sibling", self, id(self))
         siblings = self.parent.children
-        print("   siblings", siblings)
         last = None
         for i in range(len(siblings)-1, -1, -1):
             if siblings[i] is self:
@@ -114,11 +108,6 @@ class TextNode(Node):
         Node.__init__(self, symbol, state, children)
         self.pos = pos
         self.changed = False
-
-    def __setattr__(self, name, value):
-        if name == "parent" and self.symbol.name == "1":
-            print("**********************************", id(value))
-        super().__setattr__(name, value)
 
     def change_pos(self, i):
         self.pos += i

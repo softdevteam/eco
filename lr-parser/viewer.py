@@ -36,7 +36,6 @@ class Viewer(object):
     def get_tree_image(self, tree):
         s = self.create_ast_string(tree)
         url = "https://chart.googleapis.com/chart?cht=gv&chl=graph{%s}" % (s,)
-        print(url)
         temp = urllib.request.urlretrieve(url)
         return temp[0]
 
