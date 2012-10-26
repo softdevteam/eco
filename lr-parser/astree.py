@@ -108,6 +108,7 @@ class TextNode(Node):
         Node.__init__(self, symbol, state, children)
         self.pos = pos
         self.changed = False
+        self.seen = 0
 
     def change_pos(self, i):
         self.pos += i

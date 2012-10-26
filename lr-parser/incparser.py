@@ -47,6 +47,7 @@ class IncParser(object):
         la = self.pop_lookahead(bos)
 
         while(True):
+            la.seen += 1
             print("STACK:", self.stack)
             print("NODE:", la, id(la))
             print("PARENT", la.parent, id(la.parent))
