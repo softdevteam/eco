@@ -85,7 +85,7 @@ class Node(object):
             i += 1
 
     def right_sibling(self):
-        print("right_sibling", self)
+        print("right_sibling", self, id(self))
         siblings = self.parent.children
         print("   siblings", siblings)
         last = None
@@ -114,6 +114,11 @@ class TextNode(Node):
         Node.__init__(self, symbol, state, children)
         self.pos = pos
         self.changed = False
+
+    def __setattr__(self, name, value):
+        if name == "parent" and self.symbol.name == "1":
+            print("**********************************", id(value))
+        super().__setattr__(name, value)
 
     def change_pos(self, i):
         self.pos += i

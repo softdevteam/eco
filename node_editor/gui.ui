@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>943</width>
-    <height>611</height>
+    <width>1114</width>
+    <height>719</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -52,6 +52,9 @@
       </item>
      </layout>
     </item>
+    <item row="0" column="6">
+     <widget class="QGraphicsView" name="graphicsView_2"/>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -59,7 +62,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>943</width>
+     <width>1114</width>
      <height>19</height>
     </rect>
    </property>

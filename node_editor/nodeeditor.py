@@ -76,20 +76,21 @@ class Window(QtGui.QMainWindow):
 
     def btRefresh(self):
         image = Viewer().get_tree_image(self.lrp.previous_version.parent)
-        self.lrp.previous_version.parent.pprint()
-        self.showImage(image)
+        self.showImage(self.ui.graphicsView, image)
 
     def btReparse(self):
         self.lrp.inc_parse()
         image = Viewer().get_tree_image(self.lrp.previous_version.parent)
-        self.lrp.previous_version.parent.pprint()
-        self.showImage(image)
+        self.showImage(self.ui.graphicsView, image)
 
-    def showImage(self, imagefile):
+        image = Viewer().get_tree_image(self.lrp.get_stack_tree())
+        self.showImage(self.ui.graphicsView_2, image)
+
+    def showImage(self, graphicsview, imagefile):
         scene = QGraphicsScene()
         item = QGraphicsPixmapItem(QPixmap(imagefile))
         scene.addItem(item);
-        self.ui.graphicsView.setScene(scene)
+        graphicsview.setScene(scene)
 
 def main():
     app = QtGui.QApplication(sys.argv)

@@ -27,6 +27,7 @@ class IncParser(object):
         self.stack = []
         self.ast_stack = []
         self.all_changes = []
+        self.undo = []
 
         self.previous_version = None
 
@@ -39,6 +40,7 @@ class IncParser(object):
 
     def inc_parse(self):
         self.stack = []
+        self.undo = []
         self.current_state = 0
         self.stack.append(Node(FinishSymbol(), 0, []))
         bos = self.previous_version.parent.children[0]
@@ -46,7 +48,10 @@ class IncParser(object):
 
         while(True):
             print("STACK:", self.stack)
-            print("NODE:", la)
+            print("NODE:", la, id(la))
+            print("PARENT", la.parent, id(la.parent))
+            for c in la.children:
+                print("CHILD:", c, id(c))
             print("CURRENT STATE", self.current_state)
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
                 print("terminal")
@@ -91,11 +96,20 @@ class IncParser(object):
                         print("Stack[-1]", self.stack[-1])
 
                         goto = self.syntaxtable.lookup(self.current_state, element.action.left)
+
+                        # save childrens parents state
+                        for c in children:
+                            self.undo.append((c, 'parent', c.parent))
+
                         new_node = Node(element.action.left, goto.action, children)
                         self.stack.append(new_node)
                         self.current_state = new_node.state
                     elif element is None:
                         print("ERROR")
+                        # undo all changes
+                        while len(self.undo) > 0:
+                            node, attribute, value = self.undo.pop(0)
+                            setattr(node, attribute, value)
                         return False
             else: # Nonterminal
                 print("nonterminal")
@@ -328,6 +342,11 @@ class IncParser(object):
         eos = Node(FinishSymbol(), 0, [])
         root = Node(Nonterminal("Root"), 0, [bos, self.ast_stack[0], eos])
         return AST(root)
+
+    def get_stack_tree(self):
+        root = Node(Nonterminal("Stack"), 0, [])
+        root.children = self.stack
+        return root
 
     def reset(self):
         self.stack = []
