@@ -2,8 +2,12 @@
 import sys
 sys.path.append("../")
 import urllib.request
+import pydot
 
 class Viewer(object):
+
+    def __init__(self, dot_type='google'):
+        self.dot_type = dot_type
 
     def show_ast(self, grammar, _input):
         from incparser import IncParser
@@ -34,10 +38,41 @@ class Viewer(object):
         self.show(temp[0])
 
     def get_tree_image(self, tree):
-        s = self.create_ast_string(tree)
-        url = "https://chart.googleapis.com/chart?cht=gv&chl=graph{%s}" % (s,)
-        temp = urllib.request.urlretrieve(url)
-        return temp[0]
+        if self.dot_type == 'google':
+            s = self.create_ast_string(tree)
+            url = "https://chart.googleapis.com/chart?cht=gv&chl=graph{%s}" % (s,)
+            temp = urllib.request.urlretrieve(url)
+            return temp[0]
+        elif self.dot_type == 'pydot':
+            graph = pydot.Dot(graph_type='graph')
+            self.add_node_to_pydot(tree, graph)
+            graph.write_png('temp.png')
+            return 'temp.png'
+
+    def add_node_to_pydot(self, node, graph):
+
+        dotnode = pydot.Node(id(node), label="%s (%s)" % (node.symbol.name, node.seen))
+        graph.add_node(dotnode)
+
+        for c in node.children:
+            c_node = self.add_node_to_pydot(c, graph)
+            graph.add_edge(pydot.Edge(dotnode, c_node))
+
+        return dotnode
+
+    def create_ast_string(self, ast):
+        s = []
+        l = [ast]
+        while len(l) > 0:
+            node = l.pop(0)
+            node_id = id(node)
+            s.append("%s[label=\"%s (%s)\"]" % (node_id, node.symbol.name, node.seen))
+            for c in node.children:
+                child_id = id(c)
+                #s.append("%s[label=\"%s\n%s\"]" % (child_id, c.symbol.name, id(c)))
+                s.append("%s--%s" % (node_id, id(c)))
+                l.append(c)
+        return ";".join(s)
 
     def create_graph_string(self, graph):
         s = []
@@ -56,20 +91,6 @@ class Viewer(object):
             end = graph.edges[key]
             s.append("%s->%s [label=\"%s\"]" % (start, end, key[1].name.strip("\"")))
 
-        return ";".join(s)
-
-    def create_ast_string(self, ast):
-        s = []
-        l = [ast]
-        while len(l) > 0:
-            node = l.pop(0)
-            node_id = id(node)
-            s.append("%s[label=\"%s (%s)\"]" % (node_id, node.symbol.name, node.seen))
-            for c in node.children:
-                child_id = id(c)
-                #s.append("%s[label=\"%s\n%s\"]" % (child_id, c.symbol.name, id(c)))
-                s.append("%s--%s" % (node_id, id(c)))
-                l.append(c)
         return ";".join(s)
 
     def show(self, image):

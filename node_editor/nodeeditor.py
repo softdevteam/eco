@@ -80,7 +80,7 @@ class Window(QtGui.QMainWindow):
 
     def btReparse(self):
         self.lrp.inc_parse()
-        image = Viewer().get_tree_image(self.lrp.previous_version.parent)
+        image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent)
         self.showImage(self.ui.graphicsView, image)
 
     def showImage(self, graphicsview, imagefile):
