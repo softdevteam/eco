@@ -343,11 +343,6 @@ class IncParser(object):
         root = Node(Nonterminal("Root"), 0, [bos, self.ast_stack[0], eos])
         return AST(root)
 
-    def get_stack_tree(self):
-        root = Node(Nonterminal("Stack"), 0, [])
-        root.children = self.stack
-        return root
-
     def reset(self):
         self.stack = []
         self.ast_stack = []

@@ -83,9 +83,6 @@ class Window(QtGui.QMainWindow):
         image = Viewer().get_tree_image(self.lrp.previous_version.parent)
         self.showImage(self.ui.graphicsView, image)
 
-        image = Viewer().get_tree_image(self.lrp.get_stack_tree())
-        self.showImage(self.ui.graphicsView_2, image)
-
     def showImage(self, graphicsview, imagefile):
         scene = QGraphicsScene()
         item = QGraphicsPixmapItem(QPixmap(imagefile))

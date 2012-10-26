@@ -52,9 +52,6 @@
       </item>
      </layout>
     </item>
-    <item row="0" column="6">
-     <widget class="QGraphicsView" name="graphicsView_2"/>
-    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
