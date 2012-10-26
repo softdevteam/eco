@@ -136,86 +136,6 @@ class IncParser(object):
                         la = self.left_breakdown(la)
             print("---------------")
 
-    def inc_parse_old(self, _input):
-        if not self.previous_version:
-            result = self.check(_input)
-            self.previous_version = self.get_ast()
-            return result
-
-        self.all_changes = []
-        _input = self.prepare_input(_input)
-        self.find_changes(iter(_input))
-        _inputiter = iter(_input)
-
-        self.stack = []
-        self.current_state = 0
-        self.stack.append(Node(FinishSymbol(), 0, []))
-        bos = self.previous_version.parent.children[0]
-        la = self.pop_lookahead(bos)
-
-        while(True):
-            print("STACK:", self.stack)
-            print("NODE:", la)
-            print("CURRENT STATE", self.current_state)
-            if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
-                print("terminal")
-                if self.has_changed(la):
-                    print("relex")
-                    #self.relex(la) # XXX relex
-                    #XXX also adjust state
-                    next_terminal = next(_inputiter)
-                    print("NEXTTERMINAL", next_terminal)
-                    la.symbol = next_terminal
-                    self.all_changes.remove(la)
-                else:
-                    element = self.syntaxtable.lookup(self.current_state, la.symbol)
-                    if isinstance(element, Accept):
-                        return True
-                    elif isinstance(element, Shift):
-                        print("Shift")
-                        self.stack.append(la)
-                        la.state = element.action
-                        self.current_state = element.action
-                        la = self.pop_lookahead(la)
-                    elif isinstance(element, Reduce):
-                        print("Reduce", element.action)
-                        children = []
-                        for i in range(element.amount()):
-                            children.insert(0, self.stack.pop())
-                        self.current_state = self.stack[-1].state
-                        print("Stack[-1]", self.stack[-1])
-
-                        goto = self.syntaxtable.lookup(self.current_state, element.action.left)
-                        new_node = Node(element.action.left, goto.action, children)
-                        self.stack.append(new_node)
-                        self.current_state = new_node.state
-                    elif element is None:
-                        print("ERROR")
-                        return False
-            else: # Nonterminal
-                print("nonterminal")
-                if self.has_changed(la):
-                    print("has changed")
-                    la = self.left_breakdown(la)
-                else:
-                    print("has not changed")
-                    # perform reductions
-                    next_terminal = next(_inputiter)
-                    a = self.syntaxtable.lookup(self.current_state, next_terminal)
-                    if isinstance(a, Reduce):
-                        print("REDUCE")
-                        #perform
-                        pass
-                    if self.shiftable(la):
-                        print("SHIFTABLE")
-                        self.shift(la)
-                        self.right_breakdown()
-                        print("STACK after shift:", self.stack)
-                        la = self.pop_lookahead(la)
-                    else:
-                        la = self.left_breakdown(la)
-            print("---------------")
-
     def left_breakdown(self, la):
         if len(la.children) > 0:
             return la.children[0]
@@ -278,52 +198,6 @@ class IncParser(object):
                 l.append(Terminal(i))
         l.append(FinishSymbol())
         return l
-
-    def check(self, _input):
-        self.reset()
-
-        _input = self.prepare_input(_input)
-
-        self.stack.append(FinishSymbol())
-        self.stack.append(0)
-
-        i = 0
-        while i < len(_input):
-            c = _input[i]
-            state_id = self.stack[-1]
-            element = self.syntaxtable.lookup(state_id, c)
-
-            print(element)
-            print(state_id)
-            print(c)
-            if element is None:
-                return False
-
-            if isinstance(element, Shift):
-                print("shift")
-                self.stack.append(c)
-                self.stack.append(element.action)
-                i += 1
-                # add shifted terminal to ast stack
-                self.ast_stack.append(Node(c, element.action, []))
-
-            if isinstance(element, Reduce):
-                print("reduce")
-                for x in range(2*element.amount()):
-                    self.stack.pop()
-                state_id = self.stack[-1]
-                self.stack.append(element.action.left)
-
-                goto = self.syntaxtable.lookup(state_id, element.action.left)
-                assert isinstance(goto, Goto)
-                self.stack.append(goto.action)
-
-                # add Nonterminal after Goto (setting nodes on ast_stack as
-                # children)
-                self.reduce_ast(element, goto.action)
-
-            if isinstance(element, Accept):
-                return True
 
     def reduce_ast(self, element, state):
         l = []
