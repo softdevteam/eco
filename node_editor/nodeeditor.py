@@ -1,5 +1,8 @@
+from __future__ import print_function
+
 import sys
 sys.path.append("../lr-parser/")
+
 from PyQt4.QtCore import *
 from PyQt4 import QtGui
 from PyQt4.QtGui import *
@@ -38,7 +41,7 @@ class NodeEditor(QTextEdit):
             if e.key() == 16777219:
                 current_node.delete(pos)
             else:
-                current_node.insert(e.text(), pos)
+                current_node.insert(str(e.text()), pos)
             # find all nodes that come after the changed node
             change = pos - self.lastpos
             lrp.previous_version.adjust_nodes_after_node(current_node, change)

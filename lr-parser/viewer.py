@@ -1,7 +1,6 @@
 #https://chart.googleapis.com/chart?chs=250x100&cht=gv&chl=graph{A--B--C}
 import sys
 sys.path.append("../")
-import urllib.request
 import pydot
 
 class Viewer(object):
@@ -17,6 +16,7 @@ class Viewer(object):
         self.show_tree(lrp.get_ast().parent)
 
     def show_graph(self, grammar):
+        import urllib.request
         from gparser import Parser
         from stategraph import StateGraph
         parser = Parser(grammar)
@@ -39,6 +39,7 @@ class Viewer(object):
 
     def get_tree_image(self, tree):
         if self.dot_type == 'google':
+            import urllib.request
             s = self.create_ast_string(tree)
             url = "https://chart.googleapis.com/chart?cht=gv&chl=graph{%s}" % (s,)
             temp = urllib.request.urlretrieve(url)

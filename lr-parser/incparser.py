@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import sys
 sys.path.append("../")
 
@@ -70,13 +72,11 @@ class IncParser(object):
                     pos = la.parent.replace_children(la, children)
                     #self.all_changes.remove(la)
                     la.changed = False
-                    self.previous_version.pprint()
                     la = la.parent.children[pos]
                 else:
                     element = self.syntaxtable.lookup(self.current_state, la.symbol)
                     if isinstance(element, Accept):
                         print("Accept")
-                        self.stack[1].pprint()
                         #XXX change parse so that stack is [bos, startsymbol, eos]
                         bos = self.previous_version.parent.children[0]
                         eos = self.previous_version.parent.children[-1]
