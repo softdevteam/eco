@@ -229,7 +229,6 @@ class IncParser(object):
                 lookahead = lookahead | state.lookahead
             else:
                 s = state.next_symbol()
-                print(s)
                 if isinstance(s, Terminal):
                     lookahead.add(s)
 

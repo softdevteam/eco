@@ -104,6 +104,7 @@ class Window(QtGui.QMainWindow):
 
 def main():
     app = QtGui.QApplication(sys.argv)
+    app.setStyle('cde')
     window=Window()
 
     window.show()
