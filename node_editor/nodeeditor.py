@@ -29,6 +29,9 @@ class NodeEditor(QTextEdit):
 
     def keyPressEvent(self, e):
         lrp = self.getLRP()
+        if self.document().isEmpty():
+            lrp.init_ast()
+
         current_node = self.getCurrentNodeFromPosition()
         print("Current Node:", current_node)
 
