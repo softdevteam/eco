@@ -77,8 +77,8 @@ class Window(QtGui.QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        self.connect(self.ui.pushButton, SIGNAL("clicked()"), self.btReparse)
-        self.connect(self.ui.pushButton_2, SIGNAL("clicked()"), self.btRefresh)
+        #self.connect(self.ui.pushButton, SIGNAL("clicked()"), self.btReparse)
+        #self.connect(self.ui.pushButton_2, SIGNAL("clicked()"), self.btRefresh)
 
         self.lrp = IncParser(grammar, 1)
         self.lrp.init_ast()
