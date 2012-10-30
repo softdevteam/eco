@@ -50,6 +50,11 @@ class StateSet(object):
                 symbols.add(symbol)
         return symbols
 
+    def get_next_lookahead_symbols(self):
+        symbols = set()
+        for lrelement in self.elements:
+            symbols |= lrelement.lookahead
+        return symbols
 
     def __eq__(self, other):
         return self.equals(other, True)

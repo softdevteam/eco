@@ -124,6 +124,9 @@ class TextNode(Node):
         self.symbol.name = "".join(l)
 
     def delete(self, pos):
+        self.backspace(pos)
+
+    def backspace(self, pos):
         l = list(self.symbol.name)
         if len(l) == 0: # if node already empty: delete
             self.parent.children.remove(self)

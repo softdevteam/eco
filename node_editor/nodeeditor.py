@@ -33,12 +33,16 @@ class NodeEditor(QTextEdit):
         print("Current Node:", current_node)
 
         QTextEdit.keyPressEvent(self, e)
+
         cursor = self.textCursor()
         pos = cursor.position()
 
         # type directly into current node
+        print(e.key())
         if e.text() != "":
             if e.key() == 16777219:
+                current_node.backspace(pos)
+            elif e.key() == 16777223:
                 current_node.delete(pos)
             else:
                 current_node.insert(str(e.text()), pos)
@@ -50,6 +54,8 @@ class NodeEditor(QTextEdit):
         self.lastpos = pos
 
         self.parent().parent().btReparse()
+
+        self.parent().parent().showLookahead()
 
     def getCurrentNodeText(self):
         start = self.typing_start
@@ -85,6 +91,10 @@ class Window(QtGui.QMainWindow):
         self.lrp.inc_parse()
         image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent)
         self.showImage(self.ui.graphicsView, image)
+
+    def showLookahead(self):
+        la = self.lrp.get_next_possible_symbols()
+        self.ui.lineEdit.setText(la)
 
     def showImage(self, graphicsview, imagefile):
         scene = QGraphicsScene()

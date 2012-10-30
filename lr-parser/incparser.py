@@ -30,6 +30,7 @@ class IncParser(object):
         self.ast_stack = []
         self.all_changes = []
         self.undo = []
+        self.last_shift_state = 0
 
         self.previous_version = None
 
@@ -88,6 +89,8 @@ class IncParser(object):
                         self.stack.append(la)
                         self.current_state = element.action
                         la = self.pop_lookahead(la)
+
+                        self.last_shift_state = element.action
                     elif isinstance(element, Reduce):
                         print("Reduce", element.action)
                         children = []
@@ -217,6 +220,23 @@ class IncParser(object):
         eos = Node(FinishSymbol(), 0, [])
         root = Node(Nonterminal("Root"), 0, [bos, self.ast_stack[0], eos])
         return AST(root)
+
+    def get_next_possible_symbols(self):
+        stateset = self.graph.state_sets[self.last_shift_state]
+        lookahead = set()
+        for state in stateset.elements:
+            if state.isfinal():
+                lookahead = lookahead | state.lookahead
+            else:
+                s = state.next_symbol()
+                print(s)
+                if isinstance(s, Terminal):
+                    lookahead.add(s)
+
+        s = []
+        for symbol in lookahead:
+            s.append(symbol.name)
+        return ", ".join(s)
 
     def reset(self):
         self.stack = []

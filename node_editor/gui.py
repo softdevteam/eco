@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Fri Oct 26 15:52:56 2012
+# Created: Mon Oct 29 17:45:06 2012
 #      by: PyQt4 UI code generator 4.9.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -40,6 +40,9 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.graphicsView, 0, 5, 1, 1)
         self.verticalLayout = QtGui.QVBoxLayout()
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
+        self.lineEdit = QtGui.QLineEdit(self.centralwidget)
+        self.lineEdit.setObjectName(_fromUtf8("lineEdit"))
+        self.verticalLayout.addWidget(self.lineEdit)
         self.pushButton_2 = QtGui.QPushButton(self.centralwidget)
         self.pushButton_2.setObjectName(_fromUtf8("pushButton_2"))
         self.verticalLayout.addWidget(self.pushButton_2)
