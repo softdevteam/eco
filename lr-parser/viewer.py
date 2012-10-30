@@ -12,8 +12,12 @@ class Viewer(object):
         from incparser import IncParser
         from constants import LR1
         lrp = IncParser(grammar, LR1)
-        lrp.check(_input)
-        self.show_tree(lrp.get_ast().parent)
+        lrp.init_ast()
+        start_node = lrp.previous_version.find_node_at_pos(0)
+        start_node.insert(_input, 0)
+        start_node.mark_changed()
+        lrp.inc_parse()
+        self.show(self.get_tree_image(lrp.previous_version.parent))
 
     def show_graph(self, grammar):
         import urllib.request
@@ -26,10 +30,13 @@ class Viewer(object):
         graph = StateGraph(parser.start_symbol, parser.rules, LR1)
         graph.build()
 
-        s = self.create_graph_string(graph)
-        url = "https://chart.googleapis.com/chart?cht=gv&chl=digraph{%s}" % (s,)
-        temp = urllib.request.urlretrieve(url)
-        self.show(temp[0])
+        if self.dot_type == 'google':
+            s = self.create_graph_string(graph)
+            url = "https://chart.googleapis.com/chart?cht=gv&chl=digraph{%s}" % (s,)
+            temp = urllib.request.urlretrieve(url)
+            self.show(temp[0])
+        elif self.dot_type == 'pydot':
+            self.show(self.create_pydot_graph(graph))
 
     def show_tree(self, tree):
         s = self.create_ast_string(tree)
@@ -46,17 +53,17 @@ class Viewer(object):
             return temp[0]
         elif self.dot_type == 'pydot':
             graph = pydot.Dot(graph_type='graph')
-            self.add_node_to_pydot(tree, graph)
+            self.add_node_to_tree(tree, graph)
             graph.write_png('temp.png')
             return 'temp.png'
 
-    def add_node_to_pydot(self, node, graph):
+    def add_node_to_tree(self, node, graph):
 
         dotnode = pydot.Node(id(node), label="%s (%s)" % (node.symbol.name, node.seen))
         graph.add_node(dotnode)
 
         for c in node.children:
-            c_node = self.add_node_to_pydot(c, graph)
+            c_node = self.add_node_to_tree(c, graph)
             graph.add_edge(pydot.Edge(dotnode, c_node))
 
         return dotnode
@@ -74,6 +81,26 @@ class Viewer(object):
                 s.append("%s--%s" % (node_id, id(c)))
                 l.append(c)
         return ";".join(s)
+
+    def create_pydot_graph(self, graph):
+        pydotgraph = pydot.Dot(graph_type='digraph')
+
+        i = 0
+        for stateset in graph.state_sets:
+            stateset_info = []
+            for state in stateset:
+                stateset_info.append(str(state))
+            dotnode = pydot.Node(i, shape='rect', label="%s\n%s" % (i, "\n".join(stateset_info)))
+            pydotgraph.add_node(dotnode)
+            i += 1
+
+        for key in graph.edges.keys():
+            start = key[0]
+            end = graph.edges[key]
+            pydotgraph.add_edge(pydot.Edge(pydot.Node(start), pydot.Node(end), label=key[1].name))
+
+        pydotgraph.write_png('temp.png')
+        return 'temp.png'
 
     def create_graph_string(self, graph):
         s = []

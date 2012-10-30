@@ -8,5 +8,5 @@ grammar = """
     P ::= "1" | "2"
 """
 
-Viewer().show_ast(grammar, "1 * 2")
-Viewer().show_graph(grammar)
+Viewer("pydot").show_ast(grammar, "1 * 2")
+Viewer("pydot").show_graph(grammar)
