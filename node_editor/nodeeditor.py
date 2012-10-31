@@ -18,7 +18,7 @@ grammar = """
         | E "+" T
     T ::= P
         | T "*" P
-    P ::= "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
+    P ::= "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10"
 """
 
 class NodeEditor(QTextEdit):
@@ -56,7 +56,8 @@ class NodeEditor(QTextEdit):
             current_node.mark_changed()
         self.lastpos = pos
 
-        self.parent().parent().btReparse()
+        current_node = self.getCurrentNodeFromPosition()
+        self.parent().parent().btReparse(current_node)
 
         self.parent().parent().showLookahead()
 
@@ -90,13 +91,13 @@ class Window(QtGui.QMainWindow):
         image = Viewer().get_tree_image(self.lrp.previous_version.parent)
         self.showImage(self.ui.graphicsView, image)
 
-    def btReparse(self):
+    def btReparse(self, selected_node):
         self.lrp.inc_parse()
-        image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent)
+        image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node)
         self.showImage(self.ui.graphicsView, image)
 
     def showLookahead(self):
-        la = self.lrp.get_next_possible_symbols()
+        la = self.lrp.get_next_symbols_string()
         self.ui.lineEdit.setText(la)
 
     def showImage(self, graphicsview, imagefile):

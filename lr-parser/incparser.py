@@ -60,20 +60,49 @@ class IncParser(object):
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
                 print("terminal")
                 if la.changed:#self.has_changed(la):
-                    print("relex")
-                    text = la.symbol.name
-                    oldpos = la.pos
-                    print("lapos", oldpos)
-                    tokens = text.split(" ")
-                    children = []
-                    for t in tokens:
-                        children.append(Node(Terminal(t), -1, [], oldpos))
-                        oldpos += len(t)
-                        oldpos += 1 # add whitespace
-                    pos = la.parent.replace_children(la, children)
-                    #self.all_changes.remove(la)
-                    la.changed = False
-                    la = la.parent.children[pos]
+                    # scannerless
+                    print("-------------SCANNERLESS-----------------")
+                    options = self.get_next_possible_symbols(self.current_state)
+                    print("options", options)
+                    print("la", la)
+                    #XXX find longest match !!!
+                    longest_match = ""
+                    for o in options:
+                        if la.symbol.name == o.name:
+                            la.changed = False
+                            longest_match = ""
+                            print("exact match")
+                            break
+                        elif la.symbol.name.startswith(o.name):
+                            if o.name > longest_match:
+                                longest_match = o.name
+
+                    if longest_match == "": # no match found
+                        la.changed = False # continue without changing node
+                    else:
+                        print("found", longest_match)
+                        newnode = Node(Terminal(longest_match), -1, [], la.pos)
+                        la.parent.insert_before_node(la, newnode)
+                        la.pos = la.pos + len(longest_match)
+                        la.symbol.name = la.symbol.name[len(longest_match):]
+                        la = newnode
+                        #la.changed = False
+                    # if none found: lexing error -> undo
+                    print("--------------- END ----------------------")
+                    # scannerless end
+                    #print("relex")
+                    #text = la.symbol.name
+                    #oldpos = la.pos
+                    #tokens = text.split(" ")
+                    #children = []
+                    #for t in tokens:
+                    #    children.append(Node(Terminal(t), -1, [], oldpos))
+                    #    oldpos += len(t)
+                    #    oldpos += 1 # add whitespace
+                    #pos = la.parent.replace_children(la, children)
+                    ##self.all_changes.remove(la)
+                    #la.changed = False
+                    #la = la.parent.children[pos]
                 else:
                     element = self.syntaxtable.lookup(self.current_state, la.symbol)
                     if isinstance(element, Accept):
@@ -221,8 +250,8 @@ class IncParser(object):
         root = Node(Nonterminal("Root"), 0, [bos, self.ast_stack[0], eos])
         return AST(root)
 
-    def get_next_possible_symbols(self):
-        stateset = self.graph.state_sets[self.last_shift_state]
+    def get_next_possible_symbols(self, state_id):
+        stateset = self.graph.state_sets[state_id]
         lookahead = set()
         for state in stateset.elements:
             if state.isfinal():
@@ -231,6 +260,12 @@ class IncParser(object):
                 s = state.next_symbol()
                 if isinstance(s, Terminal):
                     lookahead.add(s)
+
+        return lookahead
+
+    def get_next_symbols_string(self):
+
+        lookahead = self.get_next_possible_symbols(self.last_shift_state)
 
         s = []
         for symbol in lookahead:

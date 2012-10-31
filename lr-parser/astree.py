@@ -1,7 +1,7 @@
 import sys
 sys.path.append("../")
 
-from gparser import Nonterminal
+from gparser import Nonterminal, Terminal
 
 class AST(object):
     def __init__(self, parent):
@@ -80,6 +80,15 @@ class Node(object):
                 return i
             i += 1
 
+    def insert_before_node(self, node, newnode):
+        i = 0
+        for c in self.children:
+            if c is node:
+                self.children.insert(i, newnode)
+                newnode.parent = self
+                return
+            i += 1
+
     def right_sibling(self):
         siblings = self.parent.children
         last = None
@@ -114,14 +123,14 @@ class TextNode(Node):
         self.pos += i
 
     def change_text(self, text):
-        self.symbol.name = text
+        self.symbol = Terminal(text)
 
     def insert(self, char, pos):
         #XXX change type of name to list for all symbols
         l = list(self.symbol.name)
         internal_pos = pos - self.pos
         l.insert(internal_pos-1, char)
-        self.symbol.name = "".join(l)
+        self.change_text("".join(l))
 
     def delete(self, pos):
         self.backspace(pos)
@@ -134,7 +143,7 @@ class TextNode(Node):
         else:
             internal_pos = pos - self.pos
             l.pop(internal_pos)
-            self.symbol.name = "".join(l)
+            self.change_text("".join(l))
 
     def __repr__(self):
         return "TextNode(%s, %s, %s, %s)" % (self.symbol, self.state, self.children, self.pos)

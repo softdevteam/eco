@@ -44,7 +44,7 @@ class Viewer(object):
         temp = urllib.request.urlretrieve(url)
         self.show(temp[0])
 
-    def get_tree_image(self, tree):
+    def get_tree_image(self, tree, selected_node):
         if self.dot_type == 'google':
             import urllib.request
             s = self.create_ast_string(tree)
@@ -54,6 +54,12 @@ class Viewer(object):
         elif self.dot_type == 'pydot':
             graph = pydot.Dot(graph_type='graph')
             self.add_node_to_tree(tree, graph)
+
+            # mark currently selected node as red
+            m = graph.get_node(str(id(selected_node)))
+            if len(m) > 0:
+                m[0].set('color','red')
+
             graph.write_png('temp.png')
             return 'temp.png'
 
