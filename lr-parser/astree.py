@@ -137,7 +137,7 @@ class TextNode(Node):
 
     def backspace(self, pos):
         l = list(self.symbol.name)
-        if len(l) == 0: # if node already empty: delete
+        if len(l) == 1: # if node already empty: delete
             self.parent.children.remove(self)
             self.parent.mark_changed()
         else:
