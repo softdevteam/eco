@@ -12,11 +12,18 @@ class PriorityLexer(object):
 
         self.eat_all()
 
-    def priority(self, name):
+    def get_priority(self, name):
         return self.rules[name][0]
 
-    def class_type(self, name):
+    def get_cls(self, name):
         return self.rules[name][1]
+
+    def matches(self, text, cls):
+        for k in self.rules.keys():
+            m = re.match("^"+k+"$", text)
+            if m:
+                return True
+        return False
 
     def eat_all(self):
         while self.pos < len(self.code):
