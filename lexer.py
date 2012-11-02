@@ -4,6 +4,7 @@ import re
 whitespace = "( |\n|\r|\t)+"
 nonterminal = "[a-zA-Z_]+"  # e.g. E, T, Nonterminal
 terminal = "\"([0-9]+|[a-zA-Z_]+|\+|-|\*|\/|\&|{|}|\t| |\n|\r|,|;)\""  # e.g. a, b, +, -
+terminal = "\"[^\"]*\""  # everthing except ticks
 mapsto = "::="
 alternative = "\|"
 

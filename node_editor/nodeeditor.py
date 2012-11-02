@@ -23,13 +23,13 @@ grammar = """
         | E "+" T
     T ::= P
         | T "*" P
-    P ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10"
+    P ::= "INT"
 """
 
 priorities = """
     "[0-9]+":INT
-    "[+]":PLUS
-    "[*]":MUL
+    "[+]":+
+    "[*]":*
 """
 
 class NodeEditor(QTextEdit):
@@ -78,8 +78,8 @@ class NodeEditor(QTextEdit):
         # special case: empty starting node
         if node.symbol.name == "":
             node.change_text(text)
-            regex = self.getPL().regex(text)
-            node.regex = regex
+            node.regex = self.getPL().regex(text)
+            node.lookup = self.getPL().name(text)
             return True
 
         new_text = list(node.symbol.name)
@@ -113,6 +113,7 @@ class NodeEditor(QTextEdit):
         priorit = self.getPL().priority(text)
         new_node = TextNode(symbol, state, children, pos)
         new_node.regex = regex
+        new_node.lookup = self.getPL().name(text)
         # add to left node
         sorted_nodes[0].parent.insert_after_node(sorted_nodes[0], new_node)
 

@@ -19,6 +19,13 @@ class PriorityLexer(object):
                 return self.rules[k][0]
         return False
 
+    def name(self, text):
+        for k in self.rules.keys():
+            m = re.match("^"+k+"$", text)
+            if m:
+                return self.rules[k][1]
+        return False
+
     def regex(self, text):
         for k in self.rules.keys():
             m = re.match("^"+k+"$", text)
@@ -56,7 +63,7 @@ class PriorityLexer(object):
         return result
 
     def eat_name(self):
-        m = re.match("[a-zA-Z0-9]+", self.code[self.pos:])
+        m = re.match("[a-zA-Z0-9+*]+", self.code[self.pos:])
         if m:
             result = m.group(0)
             self.pos += len(result)

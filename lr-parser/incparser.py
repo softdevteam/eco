@@ -55,7 +55,7 @@ class IncParser(object):
             la.seen += 1
             print("--------------------")
             print("STACK:", self.stack)
-            print("NODE:", la, id(la))
+            print("NODE:", la, la.regex)
             print("PARENT", la.parent, id(la.parent))
             for c in la.children:
                 print("CHILD:", c, id(c))
@@ -108,7 +108,12 @@ class IncParser(object):
                     #la.changed = False
                     #la = la.parent.children[pos]
                 else:
-                    element = self.syntaxtable.lookup(self.current_state, la.symbol)
+                    if la.lookup != "":
+                        lookup_symbol = Terminal(la.lookup)
+                    else:
+                        lookup_symbol = la.symbol
+                    print("LOOKUPSYMBOL", lookup_symbol)
+                    element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
                     if isinstance(element, Accept):
                         print("Accept")
                         #XXX change parse so that stack is [bos, startsymbol, eos]

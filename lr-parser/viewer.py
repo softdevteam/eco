@@ -57,7 +57,6 @@ class Viewer(object):
 
             # mark currently selected node as red
             for node in selected_node:
-                print(node)
                 m = graph.get_node(str(id(node)))
                 if len(m) > 0:
                     m[0].set('color','red')

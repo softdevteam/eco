@@ -182,6 +182,8 @@ class TextNode(Node):
         self.seen = 0
 
         self.regex = ""
+        self.text = ""
+        self.lookup = ""
         self.priority = 999999 # XXX change to maxint later or reverse priority
 
     def matches(self, text):
