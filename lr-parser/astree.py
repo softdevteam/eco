@@ -10,9 +10,14 @@ class AST(object):
         self.progress = 0
 
     def get_nodes_at_position(self, pos, a=None, b=None):
+        """
+        Searches all nodes that match the current cursor position in the TextField.
+        As a side effect all passed nodes are updated with their position in the document.
+        """
         progress = 0
         node = self.parent.children[0]
         while node is not None:
+            node.position = progress
             progress += len(node.symbol.name)
 
             if pos < progress:
@@ -178,6 +183,7 @@ class TextNode(Node):
     def __init__(self, symbol, state, children, pos=-1):
         Node.__init__(self, symbol, state, children)
         self.pos = pos
+        self.position = 0
         self.changed = False
         self.seen = 0
 
@@ -207,7 +213,7 @@ class TextNode(Node):
     def insert(self, char, pos):
         #XXX change type of name to list for all symbols
         l = list(self.symbol.name)
-        internal_pos = pos - self.pos
+        internal_pos = pos - self.position
         l.insert(internal_pos-1, char)
         self.change_text("".join(l))
 

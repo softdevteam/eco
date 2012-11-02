@@ -55,7 +55,7 @@ class NodeEditor(QTextEdit):
         # type directly into current node
         print(e.key())
         if e.text() != "":
-            self.change_node_by_priority(selected_nodes, str(e.text()), pos)
+            self.apply_change_to_nodes(selected_nodes, str(e.text()), pos)
             #if e.key() == 16777219:
             #    selected_node.backspace(pos)
             #elif e.key() == 16777223:
@@ -64,7 +64,7 @@ class NodeEditor(QTextEdit):
             #    selected_node.insert(str(e.text()), pos)
             # find all nodes that come after the changed node
             change = pos - self.lastpos
-            lrp.previous_version.adjust_nodes_after_node(selected_nodes, change)
+            #lrp.previous_version.adjust_nodes_after_node(selected_nodes, change)
             # mark changed nodes
             #selected_node.mark_changed()
         self.lastpos = pos
@@ -75,6 +75,9 @@ class NodeEditor(QTextEdit):
         self.parent().parent().showLookahead()
 
     def change_node(self, node, text, pos):
+        if node is None:
+            return None
+
         # special case: empty starting node
         if node.symbol.name == "":
             node.change_text(text)
@@ -83,36 +86,30 @@ class NodeEditor(QTextEdit):
             return True
 
         new_text = list(node.symbol.name)
-        new_text.insert(pos, text)
-        print("Check match", node, "matches", "".join(new_text), "using", node.regex)
+        new_text.insert(pos - node.position - 1, text)
         if node.matches("".join(new_text)):
-            print("Sucess")
             node.change_text("".join(new_text))
             return True
         else:
-            print("Fail")
             return False
 
-    def change_node_by_priority(self, nodes, text, pos):
+    def apply_change_to_nodes(self, nodes, text, pos):
         try:
             nodes.remove(None)
-        except ValueError:
+        except:
             pass
+        # sort nodes by priority
         sorted_nodes = sorted(nodes, key=lambda node: node.priority)
-
         for node in sorted_nodes:
+            # try to change node and continue with the next one if the change isn't valid
             result = self.change_node(node, text, pos)
             if result:
                 return
-        # no match => create new node(s) (split if necessary)
-        symbol = Terminal(text)
-        state = -1
-        children = []
-        pos = pos
-        regex = self.getPL().regex(text)
-        priorit = self.getPL().priority(text)
-        new_node = TextNode(symbol, state, children, pos)
-        new_node.regex = regex
+        # if none of the nodes matches, insert a new node
+        # XXX split the current selected node if cursor is inside text
+        new_node = TextNode(Terminal(text), -1, [], pos)
+        new_node.regex = self.getPL().regex(text)
+        new_node.priority = self.getPL().priority(text)
         new_node.lookup = self.getPL().name(text)
         # add to left node
         sorted_nodes[0].parent.insert_after_node(sorted_nodes[0], new_node)
