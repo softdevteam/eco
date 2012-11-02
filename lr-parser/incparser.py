@@ -35,13 +35,15 @@ class IncParser(object):
         self.previous_version = None
 
     def init_ast(self):
-        bos = Node(Terminal("bos"), 0, [])
+        bos = Node(Terminal(""), 0, [])
         eos = Node(FinishSymbol(), 0, [])
         empty = Node(Terminal(""), 0,  [], 0)
+        empty.priority -= 1
         root = Node(Nonterminal("Root"), 0, [bos, empty, eos])
         self.previous_version = AST(root)
 
     def inc_parse(self):
+        print("============ NEW INCREMENTAL PARSE ================= ")
         self.stack = []
         self.undo = []
         self.current_state = 0
@@ -51,6 +53,7 @@ class IncParser(object):
 
         while(True):
             la.seen += 1
+            print("--------------------")
             print("STACK:", self.stack)
             print("NODE:", la, id(la))
             print("PARENT", la.parent, id(la.parent))
@@ -60,6 +63,7 @@ class IncParser(object):
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
                 print("terminal")
                 if la.changed:#self.has_changed(la):
+                    assert False # with prelexing you should never end up here!
                     # scannerless
                     print("-------------SCANNERLESS-----------------")
                     options = self.get_next_possible_symbols(self.current_state)
@@ -168,6 +172,7 @@ class IncParser(object):
                     else:
                         la = self.left_breakdown(la)
             print("---------------")
+        print("============ INCREMENTAL PARSE END ================= ")
 
     def left_breakdown(self, la):
         if len(la.children) > 0:

@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import sys
+sys.path.append("../")
 sys.path.append("../lr-parser/")
 
 from PyQt4.QtCore import *
@@ -9,8 +10,12 @@ from PyQt4.QtGui import *
 
 from gui import Ui_MainWindow
 
+from plexer import PriorityLexer
 from incparser import IncParser
 from viewer import Viewer
+
+from gparser import Terminal
+from astree import TextNode
 
 
 grammar = """
@@ -21,6 +26,12 @@ grammar = """
     P ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10"
 """
 
+priorities = """
+    "[0-9]+":INT
+    "[+]":PLUS
+    "[*]":MUL
+"""
+
 class NodeEditor(QTextEdit):
 
     def __init__(self, text=None):
@@ -28,12 +39,13 @@ class NodeEditor(QTextEdit):
         QTextEdit.__init__(self, text)
 
     def keyPressEvent(self, e):
+        print("====================== KEYPRESS ============================")
         lrp = self.getLRP()
         if self.document().isEmpty():
             lrp.init_ast()
 
-        current_node = self.getCurrentNodeFromPosition()
-        print("Current Node:", current_node)
+        selected_nodes = self.getNodesAtPosition()
+        print("Selected Nodes:", selected_nodes)
 
         QTextEdit.keyPressEvent(self, e)
 
@@ -43,34 +55,82 @@ class NodeEditor(QTextEdit):
         # type directly into current node
         print(e.key())
         if e.text() != "":
-            if e.key() == 16777219:
-                current_node.backspace(pos)
-            elif e.key() == 16777223:
-                current_node.delete(pos)
-            else:
-                current_node.insert(str(e.text()), pos)
+            self.change_node_by_priority(selected_nodes, str(e.text()), pos)
+            #if e.key() == 16777219:
+            #    selected_node.backspace(pos)
+            #elif e.key() == 16777223:
+            #    selected_node.delete(pos)
+            #else:
+            #    selected_node.insert(str(e.text()), pos)
             # find all nodes that come after the changed node
             change = pos - self.lastpos
-            lrp.previous_version.adjust_nodes_after_node(current_node, change)
+            lrp.previous_version.adjust_nodes_after_node(selected_nodes, change)
             # mark changed nodes
-            current_node.mark_changed()
+            #selected_node.mark_changed()
         self.lastpos = pos
 
-        current_node = self.getCurrentNodeFromPosition()
-        self.parent().parent().btReparse(current_node)
+        selected_nodes = self.getNodesAtPosition()
+        self.parent().parent().btReparse(selected_nodes)
 
         self.parent().parent().showLookahead()
+
+    def change_node(self, node, text, pos):
+        # special case: empty starting node
+        if node.symbol.name == "":
+            node.change_text(text)
+            regex = self.getPL().regex(text)
+            node.regex = regex
+            return True
+
+        new_text = list(node.symbol.name)
+        new_text.insert(pos, text)
+        print("Check match", node, "matches", "".join(new_text), "using", node.regex)
+        if node.matches("".join(new_text)):
+            print("Sucess")
+            node.change_text("".join(new_text))
+            return True
+        else:
+            print("Fail")
+            return False
+
+    def change_node_by_priority(self, nodes, text, pos):
+        try:
+            nodes.remove(None)
+        except ValueError:
+            pass
+        sorted_nodes = sorted(nodes, key=lambda node: node.priority)
+
+        for node in sorted_nodes:
+            result = self.change_node(node, text, pos)
+            if result:
+                return
+        # no match => create new node(s) (split if necessary)
+        symbol = Terminal(text)
+        state = -1
+        children = []
+        pos = pos
+        regex = self.getPL().regex(text)
+        priorit = self.getPL().priority(text)
+        new_node = TextNode(symbol, state, children, pos)
+        new_node.regex = regex
+        # add to left node
+        sorted_nodes[0].parent.insert_after_node(sorted_nodes[0], new_node)
 
     def getCurrentNodeText(self):
         start = self.typing_start
         end = self.typing_end
         return self.toPlainText()[start:end]
 
-    def getCurrentNodeFromPosition(self):
+    def getNodesAtPosition(self):
+        pl = self.getPL()
+        #XXX return only one node if "inside" text
         cursor_pos = self.textCursor().position()
         ast = self.getLRP().previous_version
-        print("POS", cursor_pos)
-        return ast.find_node_at_pos(cursor_pos)
+        nodes = ast.get_nodes_at_position(cursor_pos)
+        return nodes
+
+    def getPL(self):
+        return self.parent().parent().pl
 
     def getLRP(self):
         return self.parent().parent().lrp
@@ -86,6 +146,8 @@ class Window(QtGui.QMainWindow):
 
         self.lrp = IncParser(grammar, 1)
         self.lrp.init_ast()
+
+        self.pl = PriorityLexer(priorities)
 
     def btRefresh(self):
         image = Viewer().get_tree_image(self.lrp.previous_version.parent)

@@ -56,9 +56,11 @@ class Viewer(object):
             self.add_node_to_tree(tree, graph)
 
             # mark currently selected node as red
-            m = graph.get_node(str(id(selected_node)))
-            if len(m) > 0:
-                m[0].set('color','red')
+            for node in selected_node:
+                print(node)
+                m = graph.get_node(str(id(node)))
+                if len(m) > 0:
+                    m[0].set('color','red')
 
             graph.write_png('temp.png')
             return 'temp.png'
