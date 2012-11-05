@@ -83,6 +83,7 @@ class NodeEditor(QTextEdit):
         if node is None:
             return None
 
+        #XXX bos and eos not changable
         # special case: empty starting node
         if node.symbol.name == "":
             print("    node is empty")

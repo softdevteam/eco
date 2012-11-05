@@ -153,6 +153,15 @@ class Node(object):
             else:
                 last = siblings[i]
 
+    def left_sibling(self):
+        siblings = self.parent.children
+        last = None
+        for i in range(len(siblings)):
+            if siblings[i] is self:
+                return last
+            else:
+                last = siblings[i]
+
     def next_terminal(self):
         node = self
         while node.right_sibling() is None:
@@ -162,6 +171,18 @@ class Node(object):
 
         while node.children != []:
             node = node.children[0]
+
+        return node
+
+    def previous_terminal(self):
+        node = self
+        while node.left_sibling() is None:
+            node = node.parent
+
+        node = node.left_sibling()
+
+        while node.children != []:
+            node = node.children[-1]
 
         return node
 
@@ -224,6 +245,15 @@ class TextNode(Node):
         print("backspace or delete", self, pos)
         l = list(self.symbol.name)
         if len(l) == 1: # if node going to be empty: delete
+            #XXX merge remaining nodes here
+            left = self.previous_terminal()
+            right = self.next_terminal()
+            newtext = left.symbol.name + right.symbol.name
+            if left.matches(newtext):
+                left.change_text(newtext)
+                right.mark_changed()
+                right.parent.children.remove(right)
+            print("Merge", left, right)
             self.mark_changed()
             self.parent.children.remove(self)
         else:
