@@ -75,44 +75,78 @@ class NodeEditor(QTextEdit):
         self.parent().parent().showLookahead()
 
     def change_node(self, node, text, pos):
+        print("change_node", node, text, pos)
         if node is None:
             return None
 
         # special case: empty starting node
         if node.symbol.name == "":
+            print("    node is empty")
             node.change_text(text)
             node.regex = self.getPL().regex(text)
             node.lookup = self.getPL().name(text)
             return True
 
+        print("   not empty")
         new_text = list(node.symbol.name)
-        new_text.insert(pos - node.position - 1, text)
+        internal_position = pos - node.position - 1
+        new_text.insert(internal_position, text)
         if node.matches("".join(new_text)):
             node.change_text("".join(new_text))
+            print("   node changed", node)
             return True
         else:
+            print("   not changed")
             return False
 
     def apply_change_to_nodes(self, nodes, text, pos):
+        print("apply_changes", nodes, text, pos)
         try:
             nodes.remove(None)
         except:
             pass
         # sort nodes by priority
         sorted_nodes = sorted(nodes, key=lambda node: node.priority)
+
+        # CASE 1: inside text -> change or split
+        if len(sorted_nodes) == 1:
+            node = sorted_nodes[0]
+            internal_pos = pos - node.position - 1
+            result = self.change_node(node, text, pos)
+            if result:
+                return
+            text1 = node.symbol.name[:internal_pos]
+            text2 = node.symbol.name[internal_pos:]
+            text3 = text
+            print(text1, text2, text3)
+
+            node.change_text(text1) # this may result in a invalid node
+            node2 = self.create_new_node(text2)
+            node.parent.insert_after_node(node, node2)
+            self.apply_change_to_nodes([node, node2], text, pos)
+
+            return
+
+        # CASE 2: between two nodes -> choose correct node and change it
+
         for node in sorted_nodes:
             # try to change node and continue with the next one if the change isn't valid
             result = self.change_node(node, text, pos)
             if result:
                 return
         # if none of the nodes matches, insert a new node
-        # XXX split the current selected node if cursor is inside text
-        new_node = TextNode(Terminal(text), -1, [], pos)
-        new_node.regex = self.getPL().regex(text)
-        new_node.priority = self.getPL().priority(text)
-        new_node.lookup = self.getPL().name(text)
+        print("no match at all, creating new node instead. insertion after", nodes[0])
+        new_node = self.create_new_node(text)
         # add to left node
-        sorted_nodes[0].parent.insert_after_node(sorted_nodes[0], new_node)
+        nodes[0].parent.insert_after_node(nodes[0], new_node)
+
+    def create_new_node(self, text):
+        symbol = Terminal(text)
+        node = TextNode(symbol, -1, [], -1)
+        node.regex = self.getPL().regex(text)
+        node.priority = self.getPL().priority(text)
+        node.lookup = self.getPL().name(text)
+        return node
 
     def getCurrentNodeText(self):
         start = self.typing_start

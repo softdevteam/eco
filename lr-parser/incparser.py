@@ -11,6 +11,10 @@ from astree import AST, TextNode
 
 Node = TextNode
 
+# deactivate parser output for now
+def print(*args, **kwargs):
+    pass
+
 class IncParser(object):
 
     def __init__(self, grammar, lr_type=LR0):
