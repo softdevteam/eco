@@ -221,13 +221,15 @@ class TextNode(Node):
         self.backspace(pos)
 
     def backspace(self, pos):
+        print("backspace or delete")
         l = list(self.symbol.name)
         if len(l) == 1: # if node already empty: delete
             self.parent.children.remove(self)
             self.parent.mark_changed()
         else:
-            internal_pos = pos - self.pos
+            internal_pos = pos - self.position
             l.pop(internal_pos)
+            print(l)
             self.change_text("".join(l))
 
     def __repr__(self):

@@ -55,11 +55,15 @@ class NodeEditor(QTextEdit):
         # type directly into current node
         print(e.key())
         if e.text() != "":
-            self.apply_change_to_nodes(selected_nodes, str(e.text()), pos)
-            #if e.key() == 16777219:
-            #    selected_node.backspace(pos)
-            #elif e.key() == 16777223:
-            #    selected_node.delete(pos)
+            if e.key() == 16777219:
+                selected_nodes[0].backspace(pos)
+            elif e.key() == 16777223:
+                if selected_nodes[1] is not None:
+                    selected_nodes[1].backspace(pos)
+                else:
+                    selected_nodes[0].backspace(pos)
+            else:
+                self.apply_change_to_nodes(selected_nodes, str(e.text()), pos)
             #else:
             #    selected_node.insert(str(e.text()), pos)
             # find all nodes that come after the changed node
