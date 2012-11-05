@@ -12,7 +12,7 @@ from astree import AST, TextNode
 Node = TextNode
 
 # deactivate parser output for now
-def print(*args, **kwargs):
+def noprint(*args, **kwargs):
     pass
 
 class IncParser(object):
@@ -60,12 +60,11 @@ class IncParser(object):
             print("--------------------")
             print("STACK:", self.stack)
             print("NODE:", la, la.regex)
-            print("PARENT", la.parent, id(la.parent))
-            for c in la.children:
-                print("CHILD:", c, id(c))
+            #print("PARENT", la.parent, id(la.parent))
+            #for c in la.children:
+            #    print("CHILD:", c, id(c))
             print("CURRENT STATE", self.current_state)
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
-                print("terminal")
                 if la.changed:#self.has_changed(la):
                     assert False # with prelexing you should never end up here!
                     # scannerless
