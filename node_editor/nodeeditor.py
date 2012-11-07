@@ -17,6 +17,7 @@ from viewer import Viewer
 from gparser import Terminal
 from astree import TextNode
 
+from languages import languages
 
 grammar = """
     E ::= T
@@ -30,6 +31,17 @@ priorities = """
     "[0-9]+":INT
     "[+]":+
     "[*]":*
+"""
+
+
+grammar = """
+    S ::= "a" | "abc" | "bc"
+"""
+
+priorities = """
+    "[abc]":abc
+    "[bc]":bc
+    "[a]":a
 """
 
 class NodeEditor(QTextEdit):
@@ -74,9 +86,9 @@ class NodeEditor(QTextEdit):
         self.lastpos = pos
 
         selected_nodes = self.getNodesAtPosition()
-        self.parent().parent().btReparse(selected_nodes)
+        self.getWindow().btReparse(selected_nodes)
 
-        self.parent().parent().showLookahead()
+        self.getWindow().showLookahead()
 
     def change_node(self, node, text, pos):
         print("change_node", node, text, pos)
@@ -167,10 +179,14 @@ class NodeEditor(QTextEdit):
         return nodes
 
     def getPL(self):
-        return self.parent().parent().pl
+        #XXX better way to find window
+        return self.getWindow().pl
 
     def getLRP(self):
-        return self.parent().parent().lrp
+        return self.getWindow().lrp
+
+    def getWindow(self):
+        return self.parent().parent().parent()
 
 class Window(QtGui.QMainWindow):
     def __init__(self):
@@ -179,12 +195,37 @@ class Window(QtGui.QMainWindow):
         self.ui.setupUi(self)
 
         #self.connect(self.ui.pushButton, SIGNAL("clicked()"), self.btReparse)
-        #self.connect(self.ui.pushButton_2, SIGNAL("clicked()"), self.btRefresh)
+
+        # init with a grammar and priorities
+        self.ui.teGrammar.document().setPlainText(grammar)
+        self.ui.tePriorities.document().setPlainText(priorities)
+        self.connect(self.ui.btUpdate, SIGNAL("clicked()"), self.btUpdateGrammar)
 
         self.lrp = IncParser(grammar, 1)
         self.lrp.init_ast()
 
         self.pl = PriorityLexer(priorities)
+
+        for l in languages:
+            self.ui.listWidget.addItem(str(l))
+
+        self.connect(self.ui.listWidget, SIGNAL("itemClicked(QListWidgetItem *)"), self.loadLanguage)
+
+    def loadLanguage(self, item):
+        language = languages[self.ui.listWidget.row(item)]
+        self.ui.teGrammar.document().setPlainText(language.grammar)
+        self.ui.tePriorities.document().setPlainText(language.priorities)
+        self.btUpdateGrammar()
+
+    def btUpdateGrammar(self):
+        new_grammar = str(self.ui.teGrammar.document().toPlainText())
+        new_priorities = str(self.ui.tePriorities.document().toPlainText())
+        self.lrp = IncParser(new_grammar, 1)
+        self.lrp.init_ast()
+        self.pl = PriorityLexer(new_priorities)
+
+        self.ui.textEdit.document().setPlainText("")
+        self.ui.graphicsView.setScene(QGraphicsScene())
 
     def btRefresh(self):
         image = Viewer().get_tree_image(self.lrp.previous_version.parent)
