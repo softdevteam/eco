@@ -201,10 +201,11 @@ class Window(QtGui.QMainWindow):
         self.ui.tePriorities.document().setPlainText(priorities)
         self.connect(self.ui.btUpdate, SIGNAL("clicked()"), self.btUpdateGrammar)
 
-        self.lrp = IncParser(grammar, 1)
-        self.lrp.init_ast()
+        self.btUpdateGrammar()
+        #self.lrp = IncParser(grammar, 1)
+        #self.lrp.init_ast()
 
-        self.pl = PriorityLexer(priorities)
+        #self.pl = PriorityLexer(priorities)
 
         for l in languages:
             self.ui.listWidget.addItem(str(l))
@@ -226,6 +227,9 @@ class Window(QtGui.QMainWindow):
 
         self.ui.textEdit.document().setPlainText("")
         self.ui.graphicsView.setScene(QGraphicsScene())
+
+        img = Viewer("pydot").create_pydot_graph(self.lrp.graph)
+        self.showImage(self.ui.gvStategraph, img)
 
     def btRefresh(self):
         image = Viewer().get_tree_image(self.lrp.previous_version.parent)

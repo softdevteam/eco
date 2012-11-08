@@ -106,8 +106,8 @@ class Viewer(object):
             end = graph.edges[key]
             pydotgraph.add_edge(pydot.Edge(pydot.Node(start), pydot.Node(end), label=key[1].name))
 
-        pydotgraph.write_png('temp.png')
-        return 'temp.png'
+        pydotgraph.write_png('graphtemp.png')
+        return 'graphtemp.png'
 
     def create_graph_string(self, graph):
         s = []
