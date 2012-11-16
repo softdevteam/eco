@@ -8,15 +8,15 @@ terminal = "\"[^\"]*\""  # everthing except ticks
 mapsto = "::="
 alternative = "\|"
 
-def make_groups(**expressions):
+def make_groups(expressions):
     regex = []
     for name in expressions:
         s = "(?P<%s>%s)" % (name, expressions[name])
         regex.append(s)
     return r"|".join(regex)
 
-regex = make_groups(Nonterminal=nonterminal, Terminal=terminal, Mapsto=mapsto,
-                    Whitespace=whitespace, Alternative=alternative)
+regex = make_groups({"Nonterminal":nonterminal, "Terminal":terminal, "Mapsto":mapsto,
+                    "Whitespace":whitespace, "Alternative":alternative})
 
 class Token(object):
 
@@ -33,6 +33,11 @@ class Lexer(object):
         self.tokens = []
         self.code = code
         self.pos = 0
+        self.regex = regex
+
+    def set_regex(self, expressions):
+        self.regex = make_groups(expressions)
+        print(self.regex)
 
     def lex(self):
         token = self.next()
@@ -41,14 +46,18 @@ class Lexer(object):
             if token.name != "Whitespace":
                 self.tokens.append(token)
             token = self.next()
+        if self.pos == len(self.code):
+            return True
+        return False
 
     def next(self):
-        m = re.match(regex, self.code[self.pos:])
+        m = re.match(self.regex, self.code[self.pos:])
         if m:
             result = m.groupdict()
             for r in result:
                 value = result[r]
                 if value is not None:
+                    print("returning", r, value)
                     return Token(r, value)
 
 

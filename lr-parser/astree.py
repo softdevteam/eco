@@ -200,6 +200,11 @@ class Node(object):
             return other.symbol == self.symbol and other.state == self.state and other.children == self.children
         return False
 
+import string
+lowercase = set(list(string.ascii_lowercase))
+uppercase = set(list(string.ascii_uppercase))
+digits = set(list(string.digits))
+
 class TextNode(Node):
     def __init__(self, symbol, state, children, pos=-1):
         Node.__init__(self, symbol, state, children)
@@ -221,6 +226,18 @@ class TextNode(Node):
 
         m = re.match("^" + self.regex + "$", new)
         if m:
+            return True
+        return False
+
+    def char_in_regex(self, c):
+        if c in self.regex:
+            #XXX be carefull to not accidentially match chars with non-escaped regex chars like ., [, etc
+            return True
+        if c in lowercase and re.findall("\[.*a-z.*\]", self.regex):
+            return True
+        if c in uppercase and re.findall("\[.*A-Z.*\]", self.regex):
+            return True
+        if c in digits and re.findall("\[.*0-9.*\]", self.regex):
             return True
         return False
 

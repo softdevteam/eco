@@ -39,9 +39,9 @@ grammar = """
 """
 
 priorities = """
-    "[abc]":abc
-    "[bc]":bc
-    "[a]":a
+    "abc":abc
+    "bc":bc
+    "a":a
 """
 
 class NodeEditor(QTextEdit):
@@ -75,7 +75,16 @@ class NodeEditor(QTextEdit):
                 else:
                     selected_nodes[0].backspace(pos)
             else:
-                self.apply_change_to_nodes(selected_nodes, str(e.text()), pos)
+                if len(selected_nodes) == 1:
+                    # split, insert new node, repair
+                    pass
+                else:
+                    # insert node, repair
+                    newnode = self.create_new_node(str(e.text()))
+                    node = selected_nodes[0]
+                    node.parent.insert_after_node(node, newnode)
+                    self.repair(newnode)
+                #self.apply_change_to_nodes(selected_nodes, str(e.text()), pos)
             #else:
             #    selected_node.insert(str(e.text()), pos)
             # find all nodes that come after the changed node
@@ -89,6 +98,98 @@ class NodeEditor(QTextEdit):
         self.getWindow().btReparse(selected_nodes)
 
         self.getWindow().showLookahead()
+
+    def repair(self, startnode):
+        print("========== Starting Repair procedure ==========")
+        regex_list = []
+        # find all regexs that include the new input string
+        for regex in self.getPL().rules.keys():
+            if self.in_regex(startnode.symbol.name, regex):
+                regex_list.append(regex)
+        print("    Possible regex:", regex_list)
+
+        # expand to the left as long as all chars of those tokens are inside one of the regexs
+        left_tokens = self.get_matching_tokens(startnode, regex_list, "left")
+        left_tokens.reverse()
+        # expand to the right as long as tokens may match
+        right_tokens = self.get_matching_tokens(startnode, regex_list, "right")
+        # merge all tokens together
+        print("   Tokenlist:", left_tokens, right_tokens)
+        newtoken_text = []
+        for token in left_tokens:
+            newtoken_text.append(token.symbol.name)
+        newtoken_text.append(startnode.symbol.name)
+        for token in right_tokens:
+            newtoken_text.append(token.symbol.name)
+        print("    Relexing:", "".join(newtoken_text))
+
+        # relex token
+        from lexer import Lexer
+        lex = Lexer("".join(newtoken_text))
+        regex_dict = {}
+        i = 0
+        for regex in self.getPL().rules.keys():
+            regex_dict["Group_" + str(i)] = regex
+            i += 1
+        lex.set_regex(regex_dict)
+        success = lex.lex()
+        print(lex.tokens)
+
+        # if relexing successfull, replace old tokens with new ones
+        if success:
+            parent = startnode.parent
+            # remove old tokens
+            for token in left_tokens:
+                token.parent.children.remove(token)
+            for token in right_tokens:
+                token.parent.children.remove(token)
+            # create and insert new tokens
+            lex.tokens.reverse()
+            for token in lex.tokens:
+                node = self.create_new_node(token.value)
+                parent.insert_after_node(startnode, node)
+            parent.children.remove(startnode)
+
+    def get_matching_tokens(self, startnode, regex_list, direction):
+        token_list = []
+        done = False
+        token = startnode
+        while not done:
+            if direction == "left":
+                token = token.left_sibling()
+            elif direction == "right":
+                token = token.right_sibling()
+            if token is None:
+                break
+            if token.symbol.name == "":
+                break
+            for c in token.symbol.name:
+                match = False
+                for regex in regex_list:
+                    if self.in_regex(c, regex):
+                        match = True
+                        break
+                if not match:
+                    done = True # reached a character that matches no regex
+                    break
+            if not done:
+                token_list.append(token)
+        return token_list
+
+    def in_regex(self, c, regex):
+        import string, re
+        if c in regex:
+            if c not in ["+", ".", "*"]:
+            # XXX be carefull to not accidentially match chars with non-escaped
+            # regex chars like ., [, etc (only escaped ones)
+                return True
+        if c in string.lowercase and re.findall("\[.*a-z.*\]", regex):
+            return True
+        if c in string.uppercase and re.findall("\[.*A-Z.*\]", regex):
+            return True
+        if c in string.digits and re.findall("\[.*0-9.*\]", regex):
+            return True
+        return False
 
     def change_node(self, node, text, pos):
         print("change_node", node, text, pos)

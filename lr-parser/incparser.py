@@ -43,7 +43,7 @@ class IncParser(object):
         eos = Node(FinishSymbol(), 0, [])
         empty = Node(Terminal(""), 0,  [], 0)
         empty.priority -= 1
-        root = Node(Nonterminal("Root"), 0, [bos, empty, eos])
+        root = Node(Nonterminal("Root"), 0, [bos, eos])
         self.previous_version = AST(root)
 
     def inc_parse(self):
@@ -59,7 +59,7 @@ class IncParser(object):
             la.seen += 1
             print("--------------------")
             print("STACK:", self.stack)
-            print("NODE:", la, la.regex)
+            print("NODE:", la, la.regex, la.lookup)
             #print("PARENT", la.parent, id(la.parent))
             #for c in la.children:
             #    print("CHILD:", c, id(c))

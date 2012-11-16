@@ -17,14 +17,14 @@ class PriorityLexer(object):
             m = re.match("^"+k+"$", text)
             if m:
                 return self.rules[k][0]
-        return False
+        return ""
 
     def name(self, text):
         for k in self.rules.keys():
             m = re.match("^"+k+"$", text)
             if m:
                 return self.rules[k][1]
-        return False
+        return ""
 
     def regex(self, text):
         for k in self.rules.keys():
@@ -80,3 +80,14 @@ class PriorityLexer(object):
         if m:
             result = m.group(0)
             self.pos += len(result)
+
+    def get_all_possible_chars(self, terminal):
+        import string
+        chars = set()
+        if len(re.findall("\[.*a-z.*\]", terminal)) > 0:
+            chars |= set(list(string.ascii_lowercase))
+        if len(re.findall("\[.*A-Z.*\]", terminal)) > 0:
+            chars |= set(list(string.ascii_lowercase))
+        if len(re.findall("\[.*0-9.*\]", terminal)) > 0:
+            chars |= set(list(string.ascii_lowercase))
+
