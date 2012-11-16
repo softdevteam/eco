@@ -75,15 +75,22 @@ class NodeEditor(QTextEdit):
                 else:
                     selected_nodes[0].backspace(pos)
             else:
-                if len(selected_nodes) == 1:
+                if selected_nodes[1] is None:
+                    node = selected_nodes[0]
                     # split, insert new node, repair
-                    pass
+                    internal_position = pos - node.position - 1
+                    node2 = self.create_new_node(str(e.text()))
+                    node3 = self.create_new_node(node.symbol.name[internal_position:])
+                    node.symbol.name = node.symbol.name[:internal_position]
+                    node.parent.insert_after_node(node, node2)
+                    node.parent.insert_after_node(node2, node3)
+                    newnode = node2
                 else:
                     # insert node, repair
                     newnode = self.create_new_node(str(e.text()))
                     node = selected_nodes[0]
                     node.parent.insert_after_node(node, newnode)
-                    self.repair(newnode)
+                self.repair(newnode)
                 #self.apply_change_to_nodes(selected_nodes, str(e.text()), pos)
             #else:
             #    selected_node.insert(str(e.text()), pos)
