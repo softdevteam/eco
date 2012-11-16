@@ -114,7 +114,7 @@ class NodeEditor(QTextEdit):
         # expand to the right as long as tokens may match
         right_tokens = self.get_matching_tokens(startnode, regex_list, "right")
         # merge all tokens together
-        print("   Tokenlist:", left_tokens, right_tokens)
+        print("    Tokenlist:", left_tokens, right_tokens)
         newtoken_text = []
         for token in left_tokens:
             newtoken_text.append(token.symbol.name)
@@ -156,9 +156,9 @@ class NodeEditor(QTextEdit):
         token = startnode
         while not done:
             if direction == "left":
-                token = token.left_sibling()
+                token = token.previous_terminal()
             elif direction == "right":
-                token = token.right_sibling()
+                token = token.next_terminal()
             if token is None:
                 break
             if token.symbol.name == "":
