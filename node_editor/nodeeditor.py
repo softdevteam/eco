@@ -15,7 +15,7 @@ from incparser import IncParser
 from viewer import Viewer
 
 from gparser import Terminal
-from astree import TextNode
+from astree import TextNode, BOS, EOS
 
 from languages import languages
 
@@ -67,13 +67,38 @@ class NodeEditor(QTextEdit):
         # type directly into current node
         print(e.key())
         if e.text() != "":
-            if e.key() == 16777219:
-                selected_nodes[0].backspace(pos)
-            elif e.key() == 16777223:
-                if selected_nodes[1] is not None:
-                    selected_nodes[1].backspace(pos)
-                else:
+            if e.key() in [Qt.Key_Delete, Qt.Key_Backspace]:
+                if selected_nodes[1] is None:   # inside node
                     selected_nodes[0].backspace(pos)
+                    repairnode = selected_nodes[0]
+                else: # between two nodes
+                    if e.key() == Qt.Key_Delete: # delete
+                        node = selected_nodes[1]
+                        other = selected_nodes[0]
+                    else:
+                        node = selected_nodes[0]
+                        other = selected_nodes[1]
+                    node.backspace(pos)
+                    if not node.deleted:
+                        repairnode = node
+                    else:
+                        if isinstance(other, BOS):
+                            repairnode = node.next_terminal()
+                        elif isinstance(other, EOS):
+                            repairnode = node.previous_terminal()
+                        else:
+                            repairnode = other
+            #if e.key() == 16777219: # backspace
+            #    selected_nodes[0].backspace(pos)
+            #    if selected_nodes[1] is None:
+            #        newnode = selected_nodes[0].previous_terminal()
+            #    else:
+            #        newnode = selected_nodes[1]
+            #elif e.key() == 16777224: # delete (pos is the same because the cursor has already changed)
+            #    if selected_nodes[1] is not None:
+            #        selected_nodes[1].backspace(pos)
+            #    else:
+            #        selected_nodes[0].backspace(pos)
             else:
                 if selected_nodes[1] is None:
                     node = selected_nodes[0]
@@ -84,13 +109,14 @@ class NodeEditor(QTextEdit):
                     node.symbol.name = node.symbol.name[:internal_position]
                     node.parent.insert_after_node(node, node2)
                     node.parent.insert_after_node(node2, node3)
-                    newnode = node2
+                    repairnode = node2
                 else:
                     # insert node, repair
                     newnode = self.create_new_node(str(e.text()))
                     node = selected_nodes[0]
                     node.parent.insert_after_node(node, newnode)
-                self.repair(newnode)
+                    repairnode = newnode
+            self.repair(repairnode)
                 #self.apply_change_to_nodes(selected_nodes, str(e.text()), pos)
             #else:
             #    selected_node.insert(str(e.text()), pos)

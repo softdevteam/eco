@@ -7,7 +7,7 @@ from gparser import Parser, Nonterminal, Terminal, Epsilon
 from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
 from stategraph import StateGraph
 from constants import LR0, LR1, LALR
-from astree import AST, TextNode
+from astree import AST, TextNode, BOS, EOS
 
 Node = TextNode
 
@@ -39,8 +39,8 @@ class IncParser(object):
         self.previous_version = None
 
     def init_ast(self):
-        bos = Node(Terminal(""), 0, [])
-        eos = Node(FinishSymbol(), 0, [])
+        bos = BOS(Terminal(""), 0, [])
+        eos = EOS(FinishSymbol(), 0, [])
         empty = Node(Terminal(""), 0,  [], 0)
         empty.priority -= 1
         root = Node(Nonterminal("Root"), 0, [bos, eos])

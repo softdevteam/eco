@@ -24,7 +24,9 @@ class AST(object):
                 return [node, None]
 
             if pos == progress:
-                return [node, node.next_terminal()]
+                other = node.next_terminal()
+                other.position = progress
+                return [node, other]
 
             node = node.next_terminal()
 
@@ -212,6 +214,7 @@ class TextNode(Node):
         self.position = 0
         self.changed = False
         self.seen = 0
+        self.deleted = False
 
         self.regex = ""
         self.text = ""
@@ -259,20 +262,22 @@ class TextNode(Node):
         self.backspace(pos)
 
     def backspace(self, pos):
-        print("backspace or delete", self, pos)
+        print("delete", self, "Pos:", pos,  "selfpos", self.position)
         l = list(self.symbol.name)
         if len(l) == 1: # if node going to be empty: delete
             #XXX merge remaining nodes here
-            left = self.previous_terminal()
-            right = self.next_terminal()
-            newtext = left.symbol.name + right.symbol.name
-            if left.matches(newtext):
-                left.change_text(newtext)
-                right.mark_changed()
-                right.parent.children.remove(right)
-            print("Merge", left, right)
-            self.mark_changed()
-            self.parent.children.remove(self)
+            #left = self.previous_terminal()
+            #right = self.next_terminal()
+            #newtext = left.symbol.name + right.symbol.name
+            #if left.matches(newtext):
+            #    left.change_text(newtext)
+            #    right.mark_changed()
+            #    right.parent.children.remove(right)
+            #print("Merge", left, right)
+            if isinstance(self.symbol, Terminal):
+                self.mark_changed()
+                self.parent.children.remove(self)
+                self.deleted = True
         else:
             internal_pos = pos - self.position
             l.pop(internal_pos)
@@ -282,3 +287,8 @@ class TextNode(Node):
     def __repr__(self):
         return "TextNode(%s, %s, %s, %s)" % (self.symbol, self.state, self.children, self.pos)
 
+class BOS(TextNode):
+    pass
+
+class EOS(TextNode):
+    pass
