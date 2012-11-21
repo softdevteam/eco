@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Thu Nov  8 16:06:52 2012
-#      by: PyQt4 UI code generator 4.9.4
+# Created: Wed Nov 21 13:03:00 2012
+#      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -17,7 +17,7 @@ except AttributeError:
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName(_fromUtf8("MainWindow"))
-        MainWindow.resize(1114, 719)
+        MainWindow.resize(1156, 753)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -25,11 +25,17 @@ class Ui_MainWindow(object):
         MainWindow.setSizePolicy(sizePolicy)
         self.centralwidget = QtGui.QWidget(MainWindow)
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))
-        self.gridLayout = QtGui.QGridLayout(self.centralwidget)
-        self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
-        self.verticalLayout = QtGui.QVBoxLayout()
+        self.horizontalLayout_3 = QtGui.QHBoxLayout(self.centralwidget)
+        self.horizontalLayout_3.setObjectName(_fromUtf8("horizontalLayout_3"))
+        self.splitter = QtGui.QSplitter(self.centralwidget)
+        self.splitter.setOrientation(QtCore.Qt.Horizontal)
+        self.splitter.setObjectName(_fromUtf8("splitter"))
+        self.layoutWidget = QtGui.QWidget(self.splitter)
+        self.layoutWidget.setObjectName(_fromUtf8("layoutWidget"))
+        self.verticalLayout = QtGui.QVBoxLayout(self.layoutWidget)
+        self.verticalLayout.setMargin(0)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
-        self.groupBox_2 = QtGui.QGroupBox(self.centralwidget)
+        self.groupBox_2 = QtGui.QGroupBox(self.layoutWidget)
         self.groupBox_2.setObjectName(_fromUtf8("groupBox_2"))
         self.verticalLayout_3 = QtGui.QVBoxLayout(self.groupBox_2)
         self.verticalLayout_3.setObjectName(_fromUtf8("verticalLayout_3"))
@@ -51,7 +57,7 @@ class Ui_MainWindow(object):
         self.lineEdit.setObjectName(_fromUtf8("lineEdit"))
         self.verticalLayout_3.addWidget(self.lineEdit)
         self.verticalLayout.addWidget(self.groupBox_2)
-        self.groupBox = QtGui.QGroupBox(self.centralwidget)
+        self.groupBox = QtGui.QGroupBox(self.layoutWidget)
         self.groupBox.setObjectName(_fromUtf8("groupBox"))
         self.verticalLayout_2 = QtGui.QVBoxLayout(self.groupBox)
         self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
@@ -71,8 +77,7 @@ class Ui_MainWindow(object):
         self.btUpdate.setObjectName(_fromUtf8("btUpdate"))
         self.verticalLayout_2.addWidget(self.btUpdate)
         self.verticalLayout.addWidget(self.groupBox)
-        self.gridLayout.addLayout(self.verticalLayout, 1, 1, 1, 2)
-        self.tabWidget = QtGui.QTabWidget(self.centralwidget)
+        self.tabWidget = QtGui.QTabWidget(self.splitter)
         self.tabWidget.setObjectName(_fromUtf8("tabWidget"))
         self.tab = QtGui.QWidget()
         self.tab.setObjectName(_fromUtf8("tab"))
@@ -98,10 +103,10 @@ class Ui_MainWindow(object):
         self.listWidget.setObjectName(_fromUtf8("listWidget"))
         self.horizontalLayout.addWidget(self.listWidget)
         self.tabWidget.addTab(self.tab_3, _fromUtf8(""))
-        self.gridLayout.addWidget(self.tabWidget, 1, 3, 1, 1)
+        self.horizontalLayout_3.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1114, 19))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1156, 19))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
