@@ -20,10 +20,19 @@ class PriorityLexer(object):
         return ""
 
     def name(self, text):
+        rules = []
         for k in self.rules.keys():
-            m = re.match("^"+k+"$", text)
+            regex = k
+            lookup = self.rules[k][1]
+            pos = self.rules[k][0]
+            rules.append((pos, regex, lookup))
+
+        # sort by priority
+        rules = sorted(rules, key=lambda node: node[0])
+        for k in rules:
+            m = re.match("^"+k[1]+"$", text)
             if m:
-                return self.rules[k][1]
+                return k[2]
         return ""
 
     def regex(self, text):
