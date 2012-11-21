@@ -14,21 +14,26 @@ class AST(object):
         Searches all nodes that match the current cursor position in the TextField.
         As a side effect all passed nodes are updated with their position in the document.
         """
+        print("================== get nodes at pos ================== ")
         progress = 0
         node = self.parent.children[0]
         while node is not None:
             node.position = progress
             progress += len(node.symbol.name)
 
+            print("node", node)
             if pos < progress:
                 return [node, None]
 
             if pos == progress:
+                print("pos == progress")
                 other = node.next_terminal()
+                print("other", other)
                 other.position = progress
                 return [node, other]
 
             node = node.next_terminal()
+        print ("================ end get nodes at pos ================ ")
 
 
     def get_nodes_at_position_old(self, pos, node=None, bla=0):
@@ -147,6 +152,8 @@ class Node(object):
             i += 1
 
     def right_sibling(self):
+        if not self.parent:
+            return None
         siblings = self.parent.children
         last = None
         for i in range(len(siblings)-1, -1, -1):
@@ -165,6 +172,7 @@ class Node(object):
                 last = siblings[i]
 
     def next_terminal(self):
+        print("next_terminal", self)
         node = self
         while node.right_sibling() is None:
             node = node.parent
@@ -173,6 +181,10 @@ class Node(object):
 
         while node.children != []:
             node = node.children[0]
+
+        # fix for empty rules resulting in nonterminals without children
+        if isinstance(node.symbol, Nonterminal):
+            return node.next_terminal()
 
         return node
 
@@ -185,6 +197,9 @@ class Node(object):
 
         while node.children != []:
             node = node.children[-1]
+
+        if isinstance(node.symbol, Nonterminal):
+            return node.next_terminal()
 
         return node
 
@@ -287,8 +302,12 @@ class TextNode(Node):
     def __repr__(self):
         return "TextNode(%s, %s, %s, %s)" % (self.symbol, self.state, self.children, self.pos)
 
-class BOS(TextNode):
+class SpecialTextNode(TextNode):
+    def backspace(self, pos):
+        return
+
+class BOS(SpecialTextNode):
     pass
 
-class EOS(TextNode):
+class EOS(SpecialTextNode):
     pass
