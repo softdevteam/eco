@@ -59,7 +59,7 @@ class IncParser(object):
             la.seen += 1
             print("--------------------")
             print("STACK:", self.stack)
-            print("NODE:", la, la.regex, la.lookup)
+            print("NODE:", la, "regex", la.regex, "lookup", la.lookup)
             #print("PARENT", la.parent, id(la.parent))
             #for c in la.children:
             #    print("CHILD:", c, id(c))
@@ -111,6 +111,11 @@ class IncParser(object):
                     #la.changed = False
                     #la = la.parent.children[pos]
                 else:
+                    # ignore spaces
+                    #if la.lookup == "WS":
+                    #    self.stack.append(la)
+                    #    la = self.pop_lookahead(la)
+                    #    continue
                     if la.lookup != "":
                         lookup_symbol = Terminal(la.lookup)
                     else:
