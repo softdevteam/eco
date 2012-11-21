@@ -47,7 +47,6 @@ priorities = """
 class NodeEditor(QTextEdit):
 
     def __init__(self, text=None):
-        self.lastpos = 0
         QTextEdit.__init__(self, text)
 
     def keyPressEvent(self, e):
@@ -64,8 +63,6 @@ class NodeEditor(QTextEdit):
         cursor = self.textCursor()
         pos = cursor.position()
 
-        # type directly into current node
-        print(e.key())
         if e.text() != "":
             if e.key() in [Qt.Key_Delete, Qt.Key_Backspace]:
                 if selected_nodes[1] is None:   # inside node
@@ -88,17 +85,6 @@ class NodeEditor(QTextEdit):
                             repairnode = node.previous_terminal()
                         else:
                             repairnode = other
-            #if e.key() == 16777219: # backspace
-            #    selected_nodes[0].backspace(pos)
-            #    if selected_nodes[1] is None:
-            #        newnode = selected_nodes[0].previous_terminal()
-            #    else:
-            #        newnode = selected_nodes[1]
-            #elif e.key() == 16777224: # delete (pos is the same because the cursor has already changed)
-            #    if selected_nodes[1] is not None:
-            #        selected_nodes[1].backspace(pos)
-            #    else:
-            #        selected_nodes[0].backspace(pos)
             else:
                 if selected_nodes[1] is None:
                     node = selected_nodes[0]
@@ -117,15 +103,6 @@ class NodeEditor(QTextEdit):
                     node.parent.insert_after_node(node, newnode)
                     repairnode = newnode
             self.repair(repairnode)
-                #self.apply_change_to_nodes(selected_nodes, str(e.text()), pos)
-            #else:
-            #    selected_node.insert(str(e.text()), pos)
-            # find all nodes that come after the changed node
-            change = pos - self.lastpos
-            #lrp.previous_version.adjust_nodes_after_node(selected_nodes, change)
-            # mark changed nodes
-            #selected_node.mark_changed()
-        self.lastpos = pos
 
         selected_nodes = self.getNodesAtPosition() # needed for coloring selected nodes
         self.getWindow().btReparse(selected_nodes)
@@ -142,12 +119,11 @@ class NodeEditor(QTextEdit):
         print("    Possible regex:", regex_list)
 
         # expand to the left as long as all chars of those tokens are inside one of the regexs
-        print("get left matching tokens")
         left_tokens = self.get_matching_tokens(startnode, regex_list, "left")
         left_tokens.reverse()
         # expand to the right as long as tokens may match
-        print("get right matching tokens")
         right_tokens = self.get_matching_tokens(startnode, regex_list, "right")
+
         # merge all tokens together
         print("    Tokenlist:", left_tokens, right_tokens)
         newtoken_text = []
@@ -229,73 +205,6 @@ class NodeEditor(QTextEdit):
             return True
         return False
 
-    def change_node(self, node, text, pos):
-        print("change_node", node, text, pos)
-        if node is None:
-            return None
-
-        #XXX bos and eos not changable
-        # special case: empty starting node
-        if node.symbol.name == "":
-            print("    node is empty")
-            node.change_text(text)
-            node.regex = self.getPL().regex(text)
-            node.lookup = self.getPL().name(text)
-            return True
-
-        print("   not empty")
-        new_text = list(node.symbol.name)
-        internal_position = pos - node.position - 1
-        new_text.insert(internal_position, text)
-        if node.matches("".join(new_text)):
-            node.change_text("".join(new_text))
-            print("   node changed", node)
-            return True
-        else:
-            print("   not changed")
-            return False
-
-    def apply_change_to_nodes(self, nodes, text, pos):
-        print("apply_changes", nodes, text, pos)
-        try:
-            nodes.remove(None)
-        except:
-            pass
-        # sort nodes by priority
-        sorted_nodes = sorted(nodes, key=lambda node: node.priority)
-
-        # CASE 1: inside text -> change or split
-        if len(sorted_nodes) == 1:
-            node = sorted_nodes[0]
-            internal_pos = pos - node.position - 1
-            result = self.change_node(node, text, pos)
-            if result:
-                return
-            text1 = node.symbol.name[:internal_pos]
-            text2 = node.symbol.name[internal_pos:]
-            text3 = text
-            print(text1, text2, text3)
-
-            node.change_text(text1) # this may result in a invalid node
-            node2 = self.create_new_node(text2)
-            node.parent.insert_after_node(node, node2)
-            self.apply_change_to_nodes([node, node2], text, pos)
-
-            return
-
-        # CASE 2: between two nodes -> choose correct node and change it
-
-        for node in sorted_nodes:
-            # try to change node and continue with the next one if the change isn't valid
-            result = self.change_node(node, text, pos)
-            if result:
-                return
-        # if none of the nodes matches, insert a new node
-        print("no match at all, creating new node instead. insertion after", nodes[0])
-        new_node = self.create_new_node(text)
-        # add to left node
-        nodes[0].parent.insert_after_node(nodes[0], new_node)
-
     def create_new_node(self, text):
         symbol = Terminal(text)
         node = TextNode(symbol, -1, [], -1)
@@ -304,28 +213,22 @@ class NodeEditor(QTextEdit):
         node.lookup = self.getPL().name(text)
         return node
 
-    def getCurrentNodeText(self):
-        start = self.typing_start
-        end = self.typing_end
-        return self.toPlainText()[start:end]
-
     def getNodesAtPosition(self):
         pl = self.getPL()
-        #XXX return only one node if "inside" text
         cursor_pos = self.textCursor().position()
         ast = self.getLRP().previous_version
         nodes = ast.get_nodes_at_position(cursor_pos)
         return nodes
 
     def getPL(self):
-        #XXX better way to find window
         return self.getWindow().pl
 
     def getLRP(self):
         return self.getWindow().lrp
 
     def getWindow(self):
-        return self.parent().parent().parent()
+        #XXX better way to find window
+        return self.parent().parent().parent().parent().parent()
 
 class Window(QtGui.QMainWindow):
     def __init__(self):
@@ -341,10 +244,6 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.btUpdate, SIGNAL("clicked()"), self.btUpdateGrammar)
 
         self.btUpdateGrammar()
-        #self.lrp = IncParser(grammar, 1)
-        #self.lrp.init_ast()
-
-        #self.pl = PriorityLexer(priorities)
 
         for l in languages:
             self.ui.listWidget.addItem(str(l))
@@ -391,7 +290,7 @@ class Window(QtGui.QMainWindow):
 
 def main():
     app = QtGui.QApplication(sys.argv)
-    app.setStyle('cde')
+    app.setStyle('cleanlooks')
     window=Window()
 
     window.show()
