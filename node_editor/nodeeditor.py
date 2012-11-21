@@ -127,7 +127,7 @@ class NodeEditor(QTextEdit):
             #selected_node.mark_changed()
         self.lastpos = pos
 
-        selected_nodes = self.getNodesAtPosition()
+        selected_nodes = self.getNodesAtPosition() # needed for coloring selected nodes
         self.getWindow().btReparse(selected_nodes)
 
         self.getWindow().showLookahead()
@@ -142,9 +142,11 @@ class NodeEditor(QTextEdit):
         print("    Possible regex:", regex_list)
 
         # expand to the left as long as all chars of those tokens are inside one of the regexs
+        print("get left matching tokens")
         left_tokens = self.get_matching_tokens(startnode, regex_list, "left")
         left_tokens.reverse()
         # expand to the right as long as tokens may match
+        print("get right matching tokens")
         right_tokens = self.get_matching_tokens(startnode, regex_list, "right")
         # merge all tokens together
         print("    Tokenlist:", left_tokens, right_tokens)
@@ -182,6 +184,7 @@ class NodeEditor(QTextEdit):
                 node = self.create_new_node(token.value)
                 parent.insert_after_node(startnode, node)
             parent.children.remove(startnode)
+        print("============== End Repair ================")
 
     def get_matching_tokens(self, startnode, regex_list, direction):
         token_list = []
@@ -195,6 +198,8 @@ class NodeEditor(QTextEdit):
             if token is None:
                 break
             if token.symbol.name == "":
+                break
+            if isinstance(token, BOS) or isinstance(token, EOS):
                 break
             for c in token.symbol.name:
                 match = False
