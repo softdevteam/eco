@@ -17,9 +17,9 @@ calc1 = Language("Basic calculator",
     P ::= "INT"
 """,
 """
-    "[0-9]+":INT
-    "[+]":+
-    "[*]":*
+    "[ ]*[0-9]+":INT
+    "[ ]*\+":+
+    "[ ]*\*":*
 """)
 
 merge1 = Language("Grammar to test merging behaviour",
@@ -44,6 +44,21 @@ ambiguity1 = Language("Ambiguous grammar",
 """)
 
 
+test = Language("Test grammar",
+"""
+    S ::= N "x" "+" "x" N
+          | N "x" "*" "x" N
+    N ::= "1" | "2" | "3"
+"""
+,
+"""
+    "1":1
+    "2":2
+    "3":3
+    "\+":+
+    "\*":*
+    "x":x
+""")
    #class_body ::= function_definition
    #function_definition ::= "function" id "{" function_body "}"
    #function_body ::= statements
@@ -350,4 +365,4 @@ string ::= "[a-zA-Z]+"
 """
 )
 
-languages = [calc1, merge1, ambiguity1, mylang]
+languages = [calc1, merge1, ambiguity1, mylang, test]

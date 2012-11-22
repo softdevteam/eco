@@ -172,7 +172,6 @@ class Node(object):
                 last = siblings[i]
 
     def next_terminal(self):
-        print("next_terminal", self)
         node = self
         while node.right_sibling() is None:
             node = node.parent

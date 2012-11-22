@@ -111,6 +111,7 @@ class NodeEditor(QTextEdit):
 
     def repair(self, startnode):
         print("========== Starting Repair procedure ==========")
+        print("Startnode", startnode)
         regex_list = []
         # find all regexs that include the new input string
         for regex in self.getPL().rules.keys():
@@ -193,15 +194,23 @@ class NodeEditor(QTextEdit):
     def in_regex(self, c, regex):
         import string, re
         if c in regex:
-            if c not in ["+", ".", "*"]:
-            # XXX be carefull to not accidentially match chars with non-escaped
-            # regex chars like ., [, etc (only escaped ones)
+            if c not in ["+", "*", "."]:
                 return True
+
+            if c == "+" and regex.find("\+") != -1:
+                return True
+            if c == "*" and regex.find("\*") != -1:
+                return True
+            if c == "." and regex.find("\.") != -1:
+                return True
+            return False
         if c in string.lowercase and re.findall("\[.*a-z.*\]", regex):
             return True
         if c in string.uppercase and re.findall("\[.*A-Z.*\]", regex):
             return True
         if c in string.digits and re.findall("\[.*0-9.*\]", regex):
+            return True
+        if c == " ":
             return True
         return False
 

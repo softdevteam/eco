@@ -107,10 +107,21 @@ class Parser(object):
             if t.name == "Terminal":
                 symbols.append(Terminal(t.value))
             if t.name == "Alternative":
+                symbols = self.add_implicit_whitespaces(symbols)
                 rule.add_alternative(symbols)
                 symbols = []
+        symbols = self.add_implicit_whitespaces(symbols)
         rule.add_alternative(symbols)
         return rule
+
+    def add_implicit_whitespaces(self, l):
+        return l
+        with_whitespaces = []
+        for e in l:
+            with_whitespaces.append(e)
+            if e is not l[-1]:
+                with_whitespaces.append(Terminal("WS"))
+        return with_whitespaces
 
     def parse_nonterminal(self):
         t = self.next_token()
