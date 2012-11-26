@@ -198,7 +198,7 @@ class Node(object):
             node = node.children[-1]
 
         if isinstance(node.symbol, Nonterminal):
-            return node.next_terminal()
+            return node.previous_terminal()
 
         return node
 
@@ -299,7 +299,7 @@ class TextNode(Node):
             self.change_text("".join(l))
 
     def __repr__(self):
-        return "TextNode(%s, %s, %s, %s)" % (self.symbol, self.state, self.children, self.pos)
+        return "%s(%s, %s, %s, %s)" % (self.__class__.__name__, self.symbol, self.state, self.children, self.pos)
 
 class SpecialTextNode(TextNode):
     def backspace(self, pos):

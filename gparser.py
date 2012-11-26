@@ -33,11 +33,11 @@ class Symbol(object):
 
 class Terminal(Symbol):
     def __repr__(self):
-        return "Terminal(%s)" % (self.name,)
+        return "Terminal('%s')" % (self.name,)
 
 class Nonterminal(Symbol):
     def __repr__(self):
-        return "Nonterminal(%s)" % (self.name,)
+        return "Nonterminal('%s')" % (self.name,)
 
 class Epsilon(Symbol):
 
