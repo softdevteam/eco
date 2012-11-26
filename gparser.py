@@ -53,12 +53,13 @@ class Epsilon(Symbol):
 
 class Parser(object):
 
-    def __init__(self, code):
+    def __init__(self, code, whitespaces=False):
         self.lexer = Lexer(code)
         self.lexer.lex()
         self.curtok = 0
         self.start_symbol = None
         self.rules = {}
+        self.whitespaces = whitespaces
 
     def __repr__(self):
         s = []
@@ -74,11 +75,12 @@ class Parser(object):
                 self.start_symbol = rule.symbol
 
         # add whitespace rule
-        ws_rule = Rule()
-        ws_rule.symbol = Nonterminal("WS")
-        ws_rule.add_alternative([Terminal("_")])
-        ws_rule.add_alternative([]) # or empty
-        self.rules[ws_rule.symbol] = ws_rule
+        if self.whitespaces:
+            ws_rule = Rule()
+            ws_rule.symbol = Nonterminal("WS")
+            ws_rule.add_alternative([Terminal("_")])
+            ws_rule.add_alternative([]) # or empty
+            self.rules[ws_rule.symbol] = ws_rule
 
     def inc(self):
         self.curtok += 1
@@ -113,7 +115,8 @@ class Parser(object):
                 symbols.append(Nonterminal(t.value))
             if t.name == "Terminal":
                 symbols.append(Terminal(t.value))
-                symbols.append(Nonterminal("WS"))
+                if self.whitespaces:
+                    symbols.append(Nonterminal("WS"))
             if t.name == "Alternative":
                 rule.add_alternative(symbols)
                 symbols = []

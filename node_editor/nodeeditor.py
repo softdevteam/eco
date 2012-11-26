@@ -274,7 +274,8 @@ class Window(QtGui.QMainWindow):
     def btUpdateGrammar(self):
         new_grammar = str(self.ui.teGrammar.document().toPlainText())
         new_priorities = str(self.ui.tePriorities.document().toPlainText())
-        self.lrp = IncParser(new_grammar, 1)
+        whitespaces = self.ui.cb_add_implicit_ws.isChecked()
+        self.lrp = IncParser(new_grammar, 1, whitespaces)
         self.lrp.init_ast()
         self.pl = PriorityLexer(new_priorities)
 

@@ -17,8 +17,8 @@ def print(*args, **kwargs):
 
 class IncParser(object):
 
-    def __init__(self, grammar, lr_type=LR0):
-        parser = Parser(grammar)
+    def __init__(self, grammar, lr_type=LR0, whitespaces=False):
+        parser = Parser(grammar, whitespaces)
         parser.parse()
 
         self.graph = StateGraph(parser.start_symbol, parser.rules, lr_type)
