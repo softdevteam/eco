@@ -72,7 +72,7 @@ class PriorityLexer(object):
         return result
 
     def eat_name(self):
-        m = re.match("[a-zA-Z0-9+*]+", self.code[self.pos:])
+        m = re.match("[^\n]*", self.code[self.pos:])
         if m:
             result = m.group(0)
             self.pos += len(result)
@@ -82,7 +82,7 @@ class PriorityLexer(object):
         if self.code[self.pos] == char:
             self.pos += 1
         else:
-            raise Exception("Couldn't find char:", char)
+            raise Exception("Couldn't find char:", char, ". Found instead:", self.code[self.pos])
 
     def eat_whitespace(self):
         m = re.match("\s*", self.code[self.pos:])
