@@ -18,9 +18,9 @@ calc1 = Language("Basic calculator",
 """,
 """
     "[0-9]+":INT
-    "\+":+
-    "\*":*
-    "[ ]+":_
+    "\\+":+
+    "\\*":*
+    "[ \\n\\t\\r]+":_
 """)
 
 merge1 = Language("Grammar to test merging behaviour",
@@ -85,7 +85,7 @@ mylang = Language("Java-ish language",
     "\(\)":()
     "function":function
     "[a-zA-Z]+":ID
-    "[ ]+":_
+    "[ \\n\\t\\r]+":_
 """)
 
 #%token int_const char_const float_const id string enumeration_const

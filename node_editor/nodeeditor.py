@@ -63,7 +63,9 @@ class NodeEditor(QTextEdit):
         cursor = self.textCursor()
         pos = cursor.position()
 
-        if e.text() != "":
+        text = e.text()
+
+        if text != "":
             if e.key() in [Qt.Key_Delete, Qt.Key_Backspace]:
                 if selected_nodes[1] is None:   # inside node
                     selected_nodes[0].backspace(pos)
@@ -90,7 +92,7 @@ class NodeEditor(QTextEdit):
                     node = selected_nodes[0]
                     # split, insert new node, repair
                     internal_position = pos - node.position - 1
-                    node2 = self.create_new_node(str(e.text()))
+                    node2 = self.create_new_node(str(text))
                     node3 = self.create_new_node(node.symbol.name[internal_position:])
                     node.symbol.name = node.symbol.name[:internal_position]
                     node.parent.insert_after_node(node, node2)
@@ -98,7 +100,7 @@ class NodeEditor(QTextEdit):
                     repairnode = node2
                 else:
                     # insert node, repair
-                    newnode = self.create_new_node(str(e.text()))
+                    newnode = self.create_new_node(str(text))
                     node = selected_nodes[0]
                     node.parent.insert_after_node(node, newnode)
                     repairnode = newnode
@@ -196,6 +198,7 @@ class NodeEditor(QTextEdit):
         return token_list
 
     def in_regex(self, c, regex):
+        #XXX write regex parser that returns all possible tokens
         import string, re
         if c in regex:
             if c not in ["+", "*", "."]:
@@ -214,7 +217,7 @@ class NodeEditor(QTextEdit):
             return True
         if c in string.digits and re.findall("\[.*0-9.*\]", regex):
             return True
-        if c == " " and regex == "[ ]+":
+        if c in [" ", "\n", "\t", "\r"] and regex == "[ \\n\\t\\r]+":
             return True
         return False
 
