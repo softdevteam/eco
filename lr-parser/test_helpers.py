@@ -40,12 +40,14 @@ p = Parser(grammar2)
 p.parse()
 r2 = p.rules
 
+
 a = Terminal("a")
 b = Terminal("b")
 c = Terminal("c")
 d = Terminal("d")
 f = Terminal("f")
 plus = Terminal("+")
+mul = Terminal("*")
 epsilon = Epsilon()
 finish = FinishSymbol()
 
@@ -55,9 +57,12 @@ A = Nonterminal("A")
 B = Nonterminal("B")
 C = Nonterminal("C")
 D = Nonterminal("D")
-F = Nonterminal("F")
 E = Nonterminal("E")
+F = Nonterminal("F")
+G = Nonterminal("G")
 P = Nonterminal("P")
+T = Nonterminal("T")
+
 
 def test_first():
     assert first(r, a) == set([a])
@@ -66,8 +71,8 @@ def test_first():
     assert first(r, S) == set([a, b])
     assert first(r, A) == set([a])
     assert first(r, B) == first(r, A)
-    assert first(r, C) == set([d, a])
     assert first(r, D) == set([d, epsilon])
+    assert first(r, C) == set([d, a])
     assert first(r, F) == set([d, a])
     assert first(r, [D, A]) == set([d, a])
     assert first(r, [C, D, f]) == set([d, a])
@@ -155,3 +160,33 @@ def test_closure_recursion():
     assert LR1Element(Production(E, [P]), 0, set([plus, finish])) in closure
     assert LR1Element(Production(E, [E, plus, P]), 0, set([plus, finish])) in closure
     assert LR1Element(Production(P, [a]), 0, set([plus, finish])) in closure
+
+
+grammar3 = """
+    E ::= T
+        | E "+" T
+    T ::= P
+        | T "*" P
+    P ::= "a"
+    C ::= C "c"
+        |
+    D ::= D "d"
+        | F
+    F ::= "f" |
+    G ::= C D
+"""
+
+p = Parser(grammar3)
+p.parse()
+r3 = p.rules
+
+def test_first_bug():
+    assert first(r3, E) == set([a])
+    assert first(r3, P) == set([a])
+    assert first(r3, T) == set([a])
+    assert first(r3, [mul, T, plus]) == set([mul])
+    assert first(r3, [plus, T, plus]) == set([plus])
+    assert first(r3, [T, plus]) == set([a])
+    assert first(r3, C) == set([c, epsilon])
+    assert first(r3, D) == set([f, d, epsilon])
+    assert first(r3, G) == set([c, d, f, epsilon])

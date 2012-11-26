@@ -8,7 +8,48 @@ from syntaxtable import FinishSymbol
 
 epsilon = Epsilon()
 
+
 def first(grammar, symbol):
+
+    if isinstance(symbol, Terminal) or isinstance(symbol, FinishSymbol):
+        return set([symbol])
+
+    if isinstance(symbol, list):
+        alternatives = [symbol]
+        symbol = None
+    else:
+        alternatives = grammar[symbol].alternatives
+
+    result = set()
+
+    for a in alternatives:
+        if a == []:
+            result.add(epsilon)
+
+    # repeat steps until first set doesn't change anymore
+    # this is necessary because later alternatives may change the outcome of
+    # earlier alternatives
+    changed = True
+    while changed:
+        former_result = result.copy()
+        for a in alternatives:
+            for element in a:
+                if element == symbol:
+                    f = set(result) # copy
+                else:
+                    f = first(grammar, element)
+                result = result.union(f.difference(set([epsilon])))
+
+                if not epsilon in f:
+                    break
+
+                if element is a[-1]: # reached last element
+                    result.add(epsilon)
+        if former_result == result:
+            changed = False
+    return result
+
+def old_first(grammar, symbol):
     """
     1) If symbol is terminal, return {symbol}
     2) If there exists a production 'symbol ::= None', add 'None'
@@ -16,7 +57,7 @@ def first(grammar, symbol):
        (without None) until one Xi has no None-alternative. Only add None if all
        of them have the None-alternative
     """
-
+    print("find first of:", symbol)
     result = set()
 
     # 0) If symbol consists of multiple symbols join all of their first sets as
@@ -24,6 +65,7 @@ def first(grammar, symbol):
     if isinstance(symbol, list): # XXX or set?
         for s in symbol:
             f = first(grammar, s)
+            print("first of", s, "=", f)
             if not epsilon in f:
                 result |= f
                 break
@@ -39,17 +81,31 @@ def first(grammar, symbol):
     if isinstance(symbol, Terminal) or isinstance(symbol, FinishSymbol):
         return set([symbol])
 
+
+    has_epsilon = False
     for a in grammar[symbol].alternatives:
-        # 2)
         if a == []:
             result.add(epsilon)
+            has_epsilon = True
+
+    for a in grammar[symbol].alternatives:
+        print("looking at alternative", a)
+        # 2)
+        if a == []:
+            # already treated
+            continue
 
         # 3)
         all_none = True
         for e in a:
             # avoid recursion
             if e == symbol:
-                continue
+                # skip recursive symbol and continue with next terminal if rule has an epsilon alternative
+                if has_epsilon:
+                    continue
+                else:
+                    all_none = False
+                    break
             f = first(grammar, e)
             try:
                 f.remove(epsilon)
@@ -60,7 +116,6 @@ def first(grammar, symbol):
                 break
         if all_none:
             result.add(epsilon)
-
     return result
 
 def follow(grammar, symbol):
