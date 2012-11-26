@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Mon Nov 26 12:45:20 2012
+# Created: Mon Nov 26 16:26:00 2012
 #      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -56,6 +56,12 @@ class Ui_MainWindow(object):
         self.lineEdit = QtGui.QLineEdit(self.groupBox_2)
         self.lineEdit.setObjectName(_fromUtf8("lineEdit"))
         self.verticalLayout_3.addWidget(self.lineEdit)
+        self.label_2 = QtGui.QLabel(self.groupBox_2)
+        self.label_2.setObjectName(_fromUtf8("label_2"))
+        self.verticalLayout_3.addWidget(self.label_2)
+        self.leParserStatus = QtGui.QLineEdit(self.groupBox_2)
+        self.leParserStatus.setObjectName(_fromUtf8("leParserStatus"))
+        self.verticalLayout_3.addWidget(self.leParserStatus)
         self.verticalLayout.addWidget(self.groupBox_2)
         self.groupBox = QtGui.QGroupBox(self.layoutWidget)
         self.groupBox.setObjectName(_fromUtf8("groupBox"))
@@ -133,6 +139,7 @@ class Ui_MainWindow(object):
         self.groupBox_2.setTitle(QtGui.QApplication.translate("MainWindow", "Input", None, QtGui.QApplication.UnicodeUTF8))
         self.label_3.setText(QtGui.QApplication.translate("MainWindow", "Program input:", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("MainWindow", "Next possible input:", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_2.setText(QtGui.QApplication.translate("MainWindow", "Parsing status:", None, QtGui.QApplication.UnicodeUTF8))
         self.groupBox.setTitle(QtGui.QApplication.translate("MainWindow", "Language", None, QtGui.QApplication.UnicodeUTF8))
         self.label_4.setText(QtGui.QApplication.translate("MainWindow", "Grammar:", None, QtGui.QApplication.UnicodeUTF8))
         self.label_5.setText(QtGui.QApplication.translate("MainWindow", "Priorities:", None, QtGui.QApplication.UnicodeUTF8))

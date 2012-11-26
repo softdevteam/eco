@@ -61,6 +61,16 @@
            <item>
             <widget class="QLineEdit" name="lineEdit"/>
            </item>
+           <item>
+            <widget class="QLabel" name="label_2">
+             <property name="text">
+              <string>Parsing status:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="leParserStatus"/>
+           </item>
           </layout>
          </widget>
         </item>

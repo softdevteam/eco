@@ -294,7 +294,11 @@ class Window(QtGui.QMainWindow):
 
     def btReparse(self, selected_node):
         whitespaces = self.ui.cb_toggle_ws.isChecked()
-        self.lrp.inc_parse()
+        status = self.lrp.inc_parse()
+        if status:
+            self.ui.leParserStatus.setText("Accept")
+        else:
+            self.ui.leParserStatus.setText("Error")
         image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node, whitespaces)
         self.showImage(self.ui.graphicsView, image)
 
