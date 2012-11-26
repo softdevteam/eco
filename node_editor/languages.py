@@ -17,9 +17,10 @@ calc1 = Language("Basic calculator",
     P ::= "INT"
 """,
 """
-    "[ ]*[0-9]+":INT
-    "[ ]*\+":+
-    "[ ]*\*":*
+    "[0-9]+":INT
+    "\+":+
+    "\*":*
+    "[ ]+":_
 """)
 
 merge1 = Language("Grammar to test merging behaviour",
@@ -74,15 +75,17 @@ mylang = Language("Java-ish language",
     function_body ::= statement
                     |
     statement ::= id "()"
-    id ::= ws "ID" ws
-    ws ::= "WS"
+    id ::= "ID"
 """
 ,
 """
-    "[ \t\n\r]+":WS
     "class":class
+    "{":{
+    "}":}
+    "\(\)":()
     "function":function
     "[a-zA-Z]+":ID
+    "[ ]+":_
 """)
 
 #%token int_const char_const float_const id string enumeration_const
