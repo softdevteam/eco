@@ -73,6 +73,13 @@ class Parser(object):
             if not self.start_symbol:
                 self.start_symbol = rule.symbol
 
+        # add whitespace rule
+        ws_rule = Rule()
+        ws_rule.symbol = Nonterminal("WS")
+        ws_rule.add_alternative([Terminal("_")])
+        ws_rule.add_alternative([]) # or empty
+        self.rules[ws_rule.symbol] = ws_rule
+
     def inc(self):
         self.curtok += 1
 
@@ -106,11 +113,10 @@ class Parser(object):
                 symbols.append(Nonterminal(t.value))
             if t.name == "Terminal":
                 symbols.append(Terminal(t.value))
+                symbols.append(Nonterminal("WS"))
             if t.name == "Alternative":
-                symbols = self.add_implicit_whitespaces(symbols)
                 rule.add_alternative(symbols)
                 symbols = []
-        symbols = self.add_implicit_whitespaces(symbols)
         rule.add_alternative(symbols)
         return rule
 
