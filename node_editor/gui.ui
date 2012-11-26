@@ -115,7 +115,7 @@
           <widget class="QGraphicsView" name="graphicsView"/>
          </item>
          <item row="1" column="0">
-          <widget class="QCheckBox" name="cb_toogle_ws">
+          <widget class="QCheckBox" name="cb_toggle_ws">
            <property name="text">
             <string>Show whitespace nodes</string>
            </property>

@@ -44,7 +44,7 @@ class Viewer(object):
         temp = urllib.request.urlretrieve(url)
         self.show(temp[0])
 
-    def get_tree_image(self, tree, selected_node):
+    def get_tree_image(self, tree, selected_node, whitespaces=True):
         if self.dot_type == 'google':
             import urllib.request
             s = self.create_ast_string(tree)
@@ -53,7 +53,7 @@ class Viewer(object):
             return temp[0]
         elif self.dot_type == 'pydot':
             graph = pydot.Dot(graph_type='graph')
-            self.add_node_to_tree(tree, graph)
+            self.add_node_to_tree(tree, graph, whitespaces)
 
             # mark currently selected node as red
             for node in selected_node:
@@ -64,13 +64,15 @@ class Viewer(object):
             graph.write_png('temp.png')
             return 'temp.png'
 
-    def add_node_to_tree(self, node, graph):
+    def add_node_to_tree(self, node, graph, whitespaces):
 
         dotnode = pydot.Node(id(node), label="%s (%s)" % (node.symbol.name, node.seen))
         graph.add_node(dotnode)
 
         for c in node.children:
-            c_node = self.add_node_to_tree(c, graph)
+            if not whitespaces and c.symbol.name == "WS":
+                continue
+            c_node = self.add_node_to_tree(c, graph, whitespaces)
             graph.add_edge(pydot.Edge(dotnode, c_node))
 
         return dotnode

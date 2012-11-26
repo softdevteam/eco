@@ -109,6 +109,10 @@ class NodeEditor(QTextEdit):
 
         self.getWindow().showLookahead()
 
+    def update_info(self):
+        selected_nodes = self.getNodesAtPosition() # needed for coloring selected nodes
+        self.getWindow().btReparse(selected_nodes)
+
     def repair(self, startnode):
         print("========== Starting Repair procedure ==========")
         print("Startnode", startnode)
@@ -252,6 +256,8 @@ class Window(QtGui.QMainWindow):
         self.ui.tePriorities.document().setPlainText(priorities)
         self.connect(self.ui.btUpdate, SIGNAL("clicked()"), self.btUpdateGrammar)
 
+        self.connect(self.ui.cb_toggle_ws, SIGNAL("clicked()"), self.ui.textEdit.update_info)
+
         self.btUpdateGrammar()
 
         for l in languages:
@@ -279,12 +285,13 @@ class Window(QtGui.QMainWindow):
         self.showImage(self.ui.gvStategraph, img)
 
     def btRefresh(self):
-        image = Viewer().get_tree_image(self.lrp.previous_version.parent)
+        image = Viewer().get_tree_image(self.lrp.previous_version.parent, whitespaces)
         self.showImage(self.ui.graphicsView, image)
 
     def btReparse(self, selected_node):
+        whitespaces = self.ui.cb_toggle_ws.isChecked()
         self.lrp.inc_parse()
-        image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node)
+        image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node, whitespaces)
         self.showImage(self.ui.graphicsView, image)
 
     def showLookahead(self):
