@@ -104,7 +104,7 @@
       </widget>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
-        <number>0</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="tab">
         <attribute name="title">
@@ -113,6 +113,16 @@
         <layout class="QGridLayout" name="gridLayout_2">
          <item row="0" column="0">
           <widget class="QGraphicsView" name="graphicsView"/>
+         </item>
+         <item row="1" column="0">
+          <widget class="QCheckBox" name="cb_toogle_ws">
+           <property name="text">
+            <string>Show whitespace nodes</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -130,9 +140,19 @@
         <attribute name="title">
          <string>Grammars</string>
         </attribute>
-        <layout class="QHBoxLayout" name="horizontalLayout">
+        <layout class="QVBoxLayout" name="verticalLayout_4">
          <item>
           <widget class="QListWidget" name="listWidget"/>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="cb_add_implicit_ws">
+           <property name="text">
+            <string>Add implicit whitespaces to grammar</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>

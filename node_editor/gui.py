@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Wed Nov 21 13:03:00 2012
+# Created: Mon Nov 26 12:40:26 2012
 #      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -86,6 +86,10 @@ class Ui_MainWindow(object):
         self.graphicsView = QtGui.QGraphicsView(self.tab)
         self.graphicsView.setObjectName(_fromUtf8("graphicsView"))
         self.gridLayout_2.addWidget(self.graphicsView, 0, 0, 1, 1)
+        self.cb_toogle_ws = QtGui.QCheckBox(self.tab)
+        self.cb_toogle_ws.setChecked(True)
+        self.cb_toogle_ws.setObjectName(_fromUtf8("cb_toogle_ws"))
+        self.gridLayout_2.addWidget(self.cb_toogle_ws, 1, 0, 1, 1)
         self.tabWidget.addTab(self.tab, _fromUtf8(""))
         self.tab_2 = QtGui.QWidget()
         self.tab_2.setObjectName(_fromUtf8("tab_2"))
@@ -97,11 +101,15 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_2, _fromUtf8(""))
         self.tab_3 = QtGui.QWidget()
         self.tab_3.setObjectName(_fromUtf8("tab_3"))
-        self.horizontalLayout = QtGui.QHBoxLayout(self.tab_3)
-        self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
+        self.verticalLayout_4 = QtGui.QVBoxLayout(self.tab_3)
+        self.verticalLayout_4.setObjectName(_fromUtf8("verticalLayout_4"))
         self.listWidget = QtGui.QListWidget(self.tab_3)
         self.listWidget.setObjectName(_fromUtf8("listWidget"))
-        self.horizontalLayout.addWidget(self.listWidget)
+        self.verticalLayout_4.addWidget(self.listWidget)
+        self.cb_add_implicit_ws = QtGui.QCheckBox(self.tab_3)
+        self.cb_add_implicit_ws.setChecked(True)
+        self.cb_add_implicit_ws.setObjectName(_fromUtf8("cb_add_implicit_ws"))
+        self.verticalLayout_4.addWidget(self.cb_add_implicit_ws)
         self.tabWidget.addTab(self.tab_3, _fromUtf8(""))
         self.horizontalLayout_3.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
@@ -117,7 +125,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuFile.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -129,8 +137,10 @@ class Ui_MainWindow(object):
         self.label_4.setText(QtGui.QApplication.translate("MainWindow", "Grammar:", None, QtGui.QApplication.UnicodeUTF8))
         self.label_5.setText(QtGui.QApplication.translate("MainWindow", "Priorities:", None, QtGui.QApplication.UnicodeUTF8))
         self.btUpdate.setText(QtGui.QApplication.translate("MainWindow", "Update", None, QtGui.QApplication.UnicodeUTF8))
+        self.cb_toogle_ws.setText(QtGui.QApplication.translate("MainWindow", "Show whitespace nodes", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QtGui.QApplication.translate("MainWindow", "AST", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QtGui.QApplication.translate("MainWindow", "Stategraph", None, QtGui.QApplication.UnicodeUTF8))
+        self.cb_add_implicit_ws.setText(QtGui.QApplication.translate("MainWindow", "Add implicit whitespaces to grammar", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), QtGui.QApplication.translate("MainWindow", "Grammars", None, QtGui.QApplication.UnicodeUTF8))
         self.menuFile.setTitle(QtGui.QApplication.translate("MainWindow", "File", None, QtGui.QApplication.UnicodeUTF8))
 
