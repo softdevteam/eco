@@ -12,7 +12,7 @@ from astree import AST, TextNode, BOS, EOS
 Node = TextNode
 
 # deactivate parser output for now
-def noprint(*args, **kwargs):
+def print(*args, **kwargs):
     pass
 
 class IncParser(object):
@@ -60,9 +60,6 @@ class IncParser(object):
             print("--------------------")
             print("STACK:", self.stack)
             print("NODE:", la, "regex", la.regex, "lookup", la.lookup)
-            #print("PARENT", la.parent, id(la.parent))
-            #for c in la.children:
-            #    print("CHILD:", c, id(c))
             print("CURRENT STATE", self.current_state)
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
                 if la.changed:#self.has_changed(la):
