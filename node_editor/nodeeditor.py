@@ -50,7 +50,7 @@ class NodeEditor(QTextEdit):
         QTextEdit.__init__(self, text)
 
     def keyPressEvent(self, e):
-        print("====================== KEYPRESS ============================")
+        print("====================== KEYPRESS (>>%s<<) ============================" % (e.text(),))
         lrp = self.getLRP()
         if self.document().isEmpty():
             lrp.init_ast()
@@ -210,7 +210,7 @@ class NodeEditor(QTextEdit):
             return True
         if c in string.digits and re.findall("\[.*0-9.*\]", regex):
             return True
-        if c == " ":
+        if c == " " and regex == "[ ]+":
             return True
         return False
 
