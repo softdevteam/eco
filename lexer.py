@@ -2,7 +2,7 @@ import sys
 import re
 
 whitespace = "( |\n|\r|\t)+"
-nonterminal = "[a-zA-Z_]+"  # e.g. E, T, Nonterminal
+nonterminal = "[a-zA-Z_0-9]+"  # e.g. E, T, Nonterminal
 terminal = "\"([0-9]+|[a-zA-Z_]+|\+|-|\*|\/|\&|{|}|\t| |\n|\r|,|;)\""  # e.g. a, b, +, -
 terminal = "\"[^\"]*\""  # everthing except ticks
 mapsto = "::="
@@ -37,7 +37,6 @@ class Lexer(object):
 
     def set_regex(self, expressions):
         self.regex = make_groups(expressions)
-        print(self.regex)
 
     def lex(self):
         token = self.next()
@@ -57,7 +56,6 @@ class Lexer(object):
             for r in result:
                 value = result[r]
                 if value is not None:
-                    print("returning", r, value)
                     return Token(r, value)
 
 

@@ -269,6 +269,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.listWidget, SIGNAL("itemClicked(QListWidgetItem *)"), self.loadLanguage)
 
     def loadLanguage(self, item):
+        print("Loading Language...")
         language = languages[self.ui.listWidget.row(item)]
         self.ui.teGrammar.document().setPlainText(language.grammar)
         self.ui.tePriorities.document().setPlainText(language.priorities)
@@ -278,6 +279,7 @@ class Window(QtGui.QMainWindow):
         new_grammar = str(self.ui.teGrammar.document().toPlainText())
         new_priorities = str(self.ui.tePriorities.document().toPlainText())
         whitespaces = self.ui.cb_add_implicit_ws.isChecked()
+        print("Creating Incremental Parser")
         self.lrp = IncParser(new_grammar, 1, whitespaces)
         self.lrp.init_ast()
         self.pl = PriorityLexer(new_priorities)

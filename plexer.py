@@ -30,21 +30,21 @@ class PriorityLexer(object):
         # sort by priority
         rules = sorted(rules, key=lambda node: node[0])
         for k in rules:
-            m = re.match("^"+k[1]+"$", text)
+            m = re.match("^("+k[1]+")$", text)
             if m:
                 return k[2]
         return ""
 
     def regex(self, text):
         for k in self.rules.keys():
-            m = re.match("^"+k+"$", text)
+            m = re.match("^("+k+")$", text)
             if m:
                 return k
         return ""
 
     def matches(self, text, cls):
         for k in self.rules.keys():
-            m = re.match("^"+k+"$", text)
+            m = re.match("^("+k+")$", text)
             if m:
                 return True
         return False
@@ -59,6 +59,7 @@ class PriorityLexer(object):
         terminal = self.eat_terminal()
         self.eat_char(":")
         name = self.eat_name()
+        print("Found rule", terminal)
         self.rules[terminal] = (self.rule_count, name)
         self.rule_count += 1
 

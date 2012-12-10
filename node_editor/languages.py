@@ -33,15 +33,50 @@ merge1 = Language("Grammar to test merging behaviour",
     "[a]":a
 """)
 
-ambiguity1 = Language("Ambiguous grammar",
+not_in_lr1 = Language("Not in LR(1): Type abf (then it is not possible to type x although it should be)",
 """
-    S ::= "a" | "bc" | "abc"
+    S ::= Rule1 | Rule2
+    Rule1 ::= "a" "b" Rule1b "f" "x"
+    Rule1b ::= "c" "d" "e"
+        |
+
+    Rule2 ::= "a" "b" Rule2b "f" "y"
+    Rule2b ::= "c" "d" "f"
+        |
 """
 ,
 """
-    "abc":abc
-    "ab":ab
     "a":a
+    "b":b
+    "c":c
+    "d":d
+    "e":e
+    "f":f
+    "x":x
+    "y":y
+""")
+
+not_in_lr1_fixed = Language("Not in LR(1) (fixed)",
+"""
+    S ::= Rule1 | Rule2
+    Rule1 ::= "a" "b" Rule1b "f" "x"
+        | "a" "b" "f" "x"
+    Rule1b ::= "c" "d" "e"
+
+    Rule2 ::= "a" "b" Rule2b "f" "y"
+        | "a" "b" "f" "y"
+    Rule2b ::= "c" "d" "f"
+"""
+,
+"""
+    "a":a
+    "b":b
+    "c":c
+    "d":d
+    "e":e
+    "f":f
+    "x":x
+    "y":y
 """)
 
 
@@ -86,6 +121,196 @@ mylang = Language("Java-ish language",
     "function":function
     "[a-zA-Z]+":ID
     "[ \\n\\t\\r]+":_
+""")
+
+
+smalltalk = Language("Smalltalk",
+#"""
+#Character ::= "CHAR"
+#WhitespaceCharacter ::= "WHITESPACE"
+#DecimalDigit ::= "INT"
+#Letter ::= "LETTER"
+#Comment ::= "COMMENT"
+#OptionalWhitespace ::= OptionalWhitespace2
+#OptionalWhitespace2 ::= OptionalWhitespace2 WhitespaceCharacter3
+#    |
+#OptionalWhitespace3 ::= WhitespaceCharacter | Comment
+#Whitespace ::= Whitespace2 OptionalWhitespace
+#Whitespace2 ::= WhitespaceCharacter | Comment
+#
+#LetterOrDigit ::= DecimalDigit | Letter
+#Identifier ::= Identifier2 Identifier3
+#Identifier2 ::= Letter | "_"
+#Identifier3 ::= Identifier3 Identifier4
+#    |
+#Identifier4 ::= LetterOrDigit | "_"
+#Reference ::= Identifier
+#
+#ConstantReference ::= "nil"
+#    | "false"
+#    | "true"
+#
+#PseudoVariableReference ::= "self"
+#    | "super"
+#    | "thisContext"
+#
+#ReservedIdentifier ::= PseudoVariableReference
+#    | ConstantReference
+#
+#BindableIdentifier ::= Identifier - ReservedIdentifier
+#Keyword ::= Identifier ":"
+#KeywordMessageSelector ::= Keyword KeywordMessageSelector2
+#KeywordMessageSelector2 ::= Keyword
+#    |
+#IntegerLiteral ::= "-" UnsignedIntegerLiteral
+#    | UnsignedIntegerLiteral
+#UnsignedIntegerLiteral ::= DecimalIntegerLiteral
+#    | Radix "r" BaseNIntegerLiteral
+#DecimalIntegerLiteral ::= DecimalIntegerLiteral DecimalDigit
+#    |
+#Radix ::= DecimalIntegerLiteral
+#BaseNIntegerLiteral ::= BaseNIntegerLiteral LetterOrDigit
+#    |
+#
+#-----
+#"""
+"""
+MethodDeclaration ::= MethodHeader ExecutableCode
+
+MethodHeader ::= UnaryMethodHeader
+               | BinaryMethodHeader
+               | KeywordMethodHeader
+
+UnaryMethodHeader ::= UnaryMessageSelector
+UnaryMessageSelector ::= Identifier
+UnaryMessageChain ::= UnaryMessageChain OptionalWhitespace UnaryMessage
+                    | OptionalWhitespace UnaryMessage
+
+BinaryMethodHeader ::= BinaryMessageSelector BindableIdentifier
+BinaryMessageSelector ::= BinaryMessageSelector BinarySelectorChar
+                        | BinarySelectorChar
+BinarySelectorChar ::= "~" | "!" | "@" | "%" | "&" | "*" | "-" | "+" | "=" | "|" | "\\" | "<" | ">" | "," | "?" | "/"
+
+
+KeywordMethodHeader ::= KeywordMethodHeaderSegment KeywordMethodHeaderLoop
+                      | KeywordMethodHeaderSegment
+KeywordMethodHeaderLoop ::= KeywordMethodHeaderLoop Whitespace KeywordMethodHeaderSegment
+                          | Whitespace KeywordMethodHeaderSegment
+KeywordMethodHeaderSegment ::= Keyword OptionalWhitespace BindableIdentifier
+
+ExecutableCode ::= LocalVariableDeclarationList Statements FinalStatement
+                 | LocalVariableDeclarationList
+                 | Statements FinalStatement
+                 |
+
+LocalVariableDeclarationList ::=
+    OptionalWhitespace "|" OptionalWhitespace LocalVariableDeclarationList2 OptionalWhitespace "|"
+LocalVariableDeclarationList2 ::= BindableIdentifier
+                                | BindableIdentifier LocalVariableDeclarationList3
+LocalVariableDeclarationList3 ::=
+    LocalVariableDeclarationList3 Whitespace BindableIdentifier
+
+MethodReturnOperator ::= OptionalWhitespace "^"
+
+Statements ::= Statements "." Statement
+             | Statement
+
+Statement ::=  AssignmentOperation Expression
+AssignmentOperation ::= AssignmentOperation BindableIdentifier ":="
+                      | BindableIdentifier ":="
+
+FinalStatement ::= MethodReturnOperator Statement
+                 | Statement
+
+Expression ::= Operand Expression2
+             | Operand
+Expression2 ::= OptionalWhitespace MessageChain Expression3
+              | OptionalWhitespace MessageChain
+Expression3 ::= Expression3 OptionalWhitespace CascadedMessage
+    | OptionalWhitespace CascadedMessage
+
+CascadedMessage ::= ";" OptionalWhitespace MessageChain
+MessageChain ::= UnaryMessage BinaryMessageChain
+               | UnaryMessage BinaryMessageChain KeywordMessage
+               | UnaryMessage UnaryMessageChain BinaryMessageChain
+               | UnaryMessage UnaryMessageChain BinaryMessageChain KeywordMessage
+               | BinaryMessage BinaryMessageChain
+               | BinaryMessage BinaryMessageChain KeywordMessage
+               | KeywordMessage
+
+KeywordMessage ::= KeywordMessageSegment KeywordMessageSegmentLoop
+KeywordMessageSegmentLoop ::= KeywordMessageSegmentLoop KeywordMessage
+    |
+
+KeywordMessageSegment ::= Keyword OptionalWhitespace KeywordMessageArgument
+KeywordMessageArgument ::= BinaryMessageOperand BinaryMessageChain
+BinaryMessageChain ::= BinaryMessageChain OptionalWhitespace BinaryMessage
+    |
+BinaryMessage ::= BinaryMessageSelector OptionalWhitespace BinaryMessageOperand
+BinaryMessageOperand ::= Operand UnaryMessageChain
+UnaryMessage ::= UnaryMessageSelector
+
+Operand ::= Literal
+    | Reference
+    | NestedExpression
+
+NestedExpression ::= "(" Statement OptionalWhitespace ")"
+
+Literal ::= ConstantReference
+    | IntegerLiteral
+    | ScaledDecimalLiteral
+    | FloatingPointLiteral
+    | CharacterLiteral
+    | StringLiteral
+    | SymbolLiteral
+    | ArrayLiteral
+    | BlockLiteral
+
+BlockLiteral ::= "[" FormalBlockArgumentDeclarationListOption ExecutableCode OptionalWhitespace "]"
+FormalBlockArgumentDeclarationListOption ::= FormalBlockArgumentDeclarationList
+    |
+
+FormalBlockArgumentDeclarationLoop ::= FormalBlockArgumentDeclarationLoop FormalBlockArgumentDeclaration
+    |
+
+FormalBlockArgumentDeclaration ::= ":" BindableIdentifier
+FormalBlockArgumentDeclarationList ::= FormalBlockArgumentDeclaration FormalBlockArgumentDeclarationLoop
+
+OptionalWhitespace ::= Whitespace
+    |
+
+Whitespace ::= "WS"
+
+Reference ::= Identifier
+BindableIdentifier ::= Identifier
+Identifier ::= "IDENT"
+Keyword ::= Identifier ":"
+ConstantReference ::= "CONSTANT"
+IntegerLiteral ::= "INTEGER"
+ScaledDecimalLiteral ::= "SCALEDDECIMAL"
+FloatingPointLiteral ::= "FLOAT"
+CharacterLiteral ::= "CHARLIT"
+StringLiteral ::= "STRING"
+SymbolLiteral ::= "#" ConstantReference
+    | "#" StringLiteral
+ArrayLiteral ::= "#" "(" ArrayElement ")"
+ArrayElementLoop ::= ArrayElementLoop Whitespace ArrayElement
+    | ArrayElement
+
+ArrayElement ::= Identifier | Literal
+
+"""
+,
+"""
+"[ \\t\\r\\n]+":"WS"
+":="::=
+"nil|false|true":"CONSTANT"
+"[a-zA-Z_][a-zA-Z0-9_]*":"IDENT"
+"[0-9]+":"INTEGER"
+"[0-9]+?(\.[0-9])s[0-9]":"SCALEDDECIMAL"
+"[0-9]+\.[0-9]+":"FLOAT"
+"$.":"CHARLIT"
+"abc":"STRING"
 """)
 
 #%token int_const char_const float_const id string enumeration_const
@@ -368,4 +593,27 @@ string ::= "[a-zA-Z]+"
 """
 )
 
-languages = [calc1, merge1, ambiguity1, mylang, test]
+
+lisp = Language("Lisp",
+"""
+s_expression ::= atomic_symbol
+    | "(" s_expression "." s_expression ")"
+    | list
+list ::= "(" s_expression list_loop ")"
+list_loop ::= list_loop s_expression
+    |
+atomic_symbol ::= letter atom_part
+atom_part ::= empty
+    | letter atom_part
+    | number atom_part
+letter ::= "LETTER"
+number ::= "INT"
+empty ::= " "
+""",
+"""
+"[a-z]":"LETTER"
+"[0-9]":"INT"
+""")
+
+
+languages = [calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, lisp]

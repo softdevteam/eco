@@ -12,21 +12,24 @@ from astree import AST, TextNode, BOS, EOS
 Node = TextNode
 
 # deactivate parser output for now
-def print(*args, **kwargs):
+def noprint(*args, **kwargs):
     pass
 
 class IncParser(object):
 
     def __init__(self, grammar, lr_type=LR0, whitespaces=False):
+        print("Parsing Grammar")
         parser = Parser(grammar, whitespaces)
         parser.parse()
 
+        print("Creating Stategraph")
         self.graph = StateGraph(parser.start_symbol, parser.rules, lr_type)
         self.graph.build()
 
         if lr_type == LALR:
             self.graph.convert_lalr()
 
+        print("Creating Syntaxtable")
         self.syntaxtable = SyntaxTable(lr_type)
         self.syntaxtable.build(self.graph)
 
