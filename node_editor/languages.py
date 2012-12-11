@@ -668,5 +668,18 @@ A ::= "a" [ "b" {"c"}] "d"
 "d":d
 """)
 
+ebnf_grouping = Language("EBNF: Alternatives in group",
+"""
+A ::= "a" ( "b" | "c" | "d" ) "e"
+""",
+"""
+"a":a
+"b":b
+"c":c
+"d":d
+"e":e
+""")
+
 languages = [calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, lisp,
-             ebnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, ebnf_option_loop]
+             ebnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, ebnf_option_loop,
+             ebnf_grouping]

@@ -102,3 +102,13 @@ def test_option_rule():
     assert p.rules[Nonterminal("A")].alternatives == [[Terminal("a"), Nonterminal("A_option")]]
     assert p.rules[Nonterminal("A_option")].alternatives == [[Terminal("b"), Terminal("g")],
                                                             [Terminal("g")]]
+def test_group_rule():
+    p = Parser("""
+        A ::= "a" ( "b" | "c" ) "g"
+    """)
+    p.parse()
+    print(p.rules)
+    assert p.rules[Nonterminal("A")].alternatives == [[Terminal("a"), Nonterminal("A_group1")]]
+    assert p.rules[Nonterminal("A_group1")].alternatives == [[Terminal("b"), Nonterminal("A_group2")],
+                                                             [Terminal("c"), Nonterminal("A_group2")]]
+    assert p.rules[Nonterminal("A_group2")].alternatives == [[Terminal("g")]]

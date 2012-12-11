@@ -125,8 +125,23 @@ class Parser(object):
                         newrule.add_alternative(s.children + remaining_tokens) # A_option ::= b c
                         newrule.add_alternative(remaining_tokens)              #            | c
                         new_rules.append(newrule)
+                    if s.name == "group":
+                        # Example: A ::= a [b | c] d
+                        remaining_tokens = a[i+1:] # [c]
+                        group1_symbol = Nonterminal("%s_group1" % (original_rule.symbol.name,))
+                        group2_symbol = Nonterminal("%s_group2" % (original_rule.symbol.name,))
+                        a[i:] = [group1_symbol] # A ::= a A_group
 
+                        newrule = Rule()
+                        newrule.symbol = group1_symbol
+                        for c in s.children:
+                            newrule.add_alternative([c, group2_symbol]) # A_option ::= b A_option2 | c A_option2
+                        new_rules.append(newrule)
 
+                        newrule = Rule()
+                        newrule.symbol = group2_symbol
+                        newrule.add_alternative(remaining_tokens)              # A_option2 ::= d
+                        new_rules.append(newrule)
                 i += 1
         for rule in new_rules:
             self.rules[rule.symbol] = rule
@@ -161,7 +176,10 @@ class Parser(object):
         self.curtok += len(tokenlist)
 
         # parse right side of rule
+        # XXX rewrite Loop, Option, Group into separate methods (getting rid of
+        # the symbols_level and adding the pipe check to group
         symbols_level.append([]) # first symbols level
+        mode = None
         for t in tokenlist:
             if t.name == "Nonterminal":
                 symbols_level[-1].append(Nonterminal(t.value))
@@ -170,10 +188,13 @@ class Parser(object):
                 if self.whitespaces:
                     symbols_level[-1].append(Nonterminal("WS"))
             elif t.name == "Alternative":
-                rule.add_alternative(symbols_level.pop())
-                symbols_level.append([])
+                if mode == None:
+                    rule.add_alternative(symbols_level.pop())
+                    symbols_level.append([])
             elif t.name in ["Loop_Start", "Option_Start", "Group_Start"]:
                 symbols_level.append([])
+                if t.name == "Group_Start":
+                    mode = "group"
             elif t.name == "Loop_End":
                 symbols = symbols_level.pop()
                 token = ExtendedSymbol("loop", symbols)
@@ -182,6 +203,11 @@ class Parser(object):
                 symbols = symbols_level.pop()
                 token = ExtendedSymbol("option", symbols)
                 symbols_level[-1].append(token)
+            elif t.name == "Group_End":
+                symbols = symbols_level.pop()
+                token = ExtendedSymbol("group", symbols)
+                symbols_level[-1].append(token)
+                mode = None
 
 
         assert symbols_level[0] is symbols_level[-1]
