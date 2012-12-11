@@ -647,5 +647,26 @@ A ::= "a" { "b" } {"c"}
 "d":d
 """)
 
+ebnf_option = Language("EBNF: Option",
+"""
+A ::= "a" [ "b" ] "c"
+""",
+"""
+"a":a
+"b":b
+"c":c
+""")
+
+ebnf_option_loop = Language("EBNF: Loop within Option",
+"""
+A ::= "a" [ "b" {"c"}] "d"
+""",
+"""
+"a":a
+"b":b
+"c":c
+"d":d
+""")
+
 languages = [calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, lisp,
-             ebnf_loop, ebnf_loop_nested, ebnf_loop_multiple]
+             ebnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, ebnf_option_loop]

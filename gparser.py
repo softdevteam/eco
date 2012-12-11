@@ -112,8 +112,21 @@ class Parser(object):
                         newrule = Rule()
                         newrule.symbol = loop_symbol
                         newrule.add_alternative(s.children + [loop_symbol]) # A_loop ::= b A_loop
-                        newrule.add_alternative(remaining_tokens)              #          | c
+                        newrule.add_alternative(remaining_tokens)           #          | c
                         new_rules.append(newrule)
+                    if s.name == "option":
+                        # Example: A ::= a [b] c
+                        remaining_tokens = a[i+1:] # [c]
+                        option_symbol = Nonterminal("%s_option" % (original_rule.symbol.name,))
+                        a[i:] = [option_symbol] # A ::= a A_option
+
+                        newrule = Rule()
+                        newrule.symbol = option_symbol
+                        newrule.add_alternative(s.children + remaining_tokens) # A_option ::= b c
+                        newrule.add_alternative(remaining_tokens)              #            | c
+                        new_rules.append(newrule)
+
+
                 i += 1
         for rule in new_rules:
             self.rules[rule.symbol] = rule
@@ -159,25 +172,17 @@ class Parser(object):
             elif t.name == "Alternative":
                 rule.add_alternative(symbols_level.pop())
                 symbols_level.append([])
-            elif t.name == "Loop_Start":
+            elif t.name in ["Loop_Start", "Option_Start", "Group_Start"]:
                 symbols_level.append([])
-                # on encountering a loop, finish current rule and create new
-                # loop rule, continuning with the remaining symbols
-                # new_rule = Rule()
-                # new_rule.symbol = Nonterminal("%s_loop%s" % (rule.symbol.name, loop_count))
-                # symbols.append(new_rule.symbol)
-                # rule.add_alternative(symbols)
-                # rules.append(rule)
-                # rule = new_rule
-                # symbols = []
-                # loop_count += 1
             elif t.name == "Loop_End":
                 symbols = symbols_level.pop()
                 token = ExtendedSymbol("loop", symbols)
                 symbols_level[-1].append(token)
-                #symbols.append(rule.symbol)
-                #rule.add_alternative(symbols)
-                #symbols = []
+            elif t.name == "Option_End":
+                symbols = symbols_level.pop()
+                token = ExtendedSymbol("option", symbols)
+                symbols_level[-1].append(token)
+
 
         assert symbols_level[0] is symbols_level[-1]
         rule.add_alternative(symbols_level[-1])

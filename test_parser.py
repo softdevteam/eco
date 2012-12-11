@@ -93,3 +93,12 @@ def test_loop_multiple():
                                                             [Nonterminal("A_loop_loop")]]
     assert p.rules[Nonterminal("A_loop_loop")].alternatives == [[Terminal("g"), Nonterminal("A_loop_loop")],
                                                             []]
+def test_option_rule():
+    p = Parser("""
+        A ::= "a" [ "b" ] "g"
+    """)
+    p.parse()
+    print(p.rules)
+    assert p.rules[Nonterminal("A")].alternatives == [[Terminal("a"), Nonterminal("A_option")]]
+    assert p.rules[Nonterminal("A_option")].alternatives == [[Terminal("b"), Terminal("g")],
+                                                            [Terminal("g")]]
