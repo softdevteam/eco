@@ -316,7 +316,7 @@ class Window(QtGui.QMainWindow):
 
 def main():
     app = QtGui.QApplication(sys.argv)
-    app.setStyle('cleanlooks')
+    app.setStyle('gtk')
     window=Window()
 
     window.show()

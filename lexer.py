@@ -7,6 +7,12 @@ terminal = "\"([0-9]+|[a-zA-Z_]+|\+|-|\*|\/|\&|{|}|\t| |\n|\r|,|;)\""  # e.g. a,
 terminal = "\"[^\"]*\""  # everthing except ticks
 mapsto = "::="
 alternative = "\|"
+option_start = "\["
+option_end = "\]"
+loop_start = "\{"
+loop_end = "\}"
+group_start = "\("
+group_end = "\)"
 
 def make_groups(expressions):
     regex = []
@@ -16,7 +22,9 @@ def make_groups(expressions):
     return r"|".join(regex)
 
 regex = make_groups({"Nonterminal":nonterminal, "Terminal":terminal, "Mapsto":mapsto,
-                    "Whitespace":whitespace, "Alternative":alternative})
+                    "Whitespace":whitespace, "Alternative":alternative, "Option_Start":option_start,
+                    "Option_End":option_end, "Loop_Start":loop_start, "Loop_End":loop_end,
+                    "Group_Start":group_start, "Group_End": group_end})
 
 class Token(object):
 

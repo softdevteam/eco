@@ -615,5 +615,37 @@ empty ::= " "
 "[0-9]":"INT"
 """)
 
+ebnf_loop = Language("EBNF: Loops",
+"""
+A ::= "a" { "b" } "c"
+""",
+"""
+"a":a
+"b":b
+"c":c
+""")
 
-languages = [calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, lisp]
+ebnf_loop_nested = Language("EBNF: Loops (nested)",
+"""
+A ::= "a" { "b" {"c"} } "d"
+""",
+"""
+"a":a
+"b":b
+"c":c
+"d":d
+""")
+
+ebnf_loop_multiple = Language("EBNF: Loops (multiple)",
+"""
+A ::= "a" { "b" } {"c"}
+""",
+"""
+"a":a
+"b":b
+"c":c
+"d":d
+""")
+
+languages = [calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, lisp,
+             ebnf_loop, ebnf_loop_nested, ebnf_loop_multiple]

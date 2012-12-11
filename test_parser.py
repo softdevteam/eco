@@ -59,3 +59,37 @@ def test_empty_alternative():
     """)
     p.parse()
     assert p.rules[Nonterminal("E")].alternatives == [[Terminal("a")],[]]
+
+def test_loop_rule():
+    p = Parser("""
+        A ::= "a" { "b" } "g"
+    """)
+    p.parse()
+    print(p.rules)
+    assert p.rules[Nonterminal("A")].alternatives == [[Terminal("a"), Nonterminal("A_loop")]]
+    assert p.rules[Nonterminal("A_loop")].alternatives == [[Terminal("b"), Nonterminal("A_loop")],
+                                                            [Terminal("g")]]
+
+def test_loop_nested():
+    p = Parser("""
+        A ::= "a" { "b" {"c"} } "g"
+    """)
+    p.parse()
+    print(p.rules)
+    assert p.rules[Nonterminal("A")].alternatives == [[Terminal("a"), Nonterminal("A_loop")]]
+    assert p.rules[Nonterminal("A_loop")].alternatives == [[Terminal("b"), Nonterminal("A_loop_loop")],
+                                                            [Terminal("g")]]
+    assert p.rules[Nonterminal("A_loop_loop")].alternatives == [[Terminal("c"), Nonterminal("A_loop_loop")],
+                                                                [Nonterminal("A_loop")]]
+
+def test_loop_multiple():
+    p = Parser("""
+        A ::= "a" { "b" } {"g"}
+    """)
+    p.parse()
+    print(p.rules)
+    assert p.rules[Nonterminal("A")].alternatives == [[Terminal("a"), Nonterminal("A_loop")]]
+    assert p.rules[Nonterminal("A_loop")].alternatives == [[Terminal("b"), Nonterminal("A_loop")],
+                                                            [Nonterminal("A_loop_loop")]]
+    assert p.rules[Nonterminal("A_loop_loop")].alternatives == [[Terminal("g"), Nonterminal("A_loop_loop")],
+                                                            []]

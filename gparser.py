@@ -51,6 +51,15 @@ class Epsilon(Symbol):
         #XXX why doesn't Epsilon inherit this method from Symbol!?
         return hash(self.__class__.__name__ + self.name)
 
+class ExtendedSymbol(object):
+
+    def __init__(self, name, children):
+        self.children = children
+        self.name = name
+
+    def __repr__(self):
+        return "%s(%s)" % (self.name, self.children)
+
 class Parser(object):
 
     def __init__(self, code, whitespaces=False):
@@ -70,9 +79,12 @@ class Parser(object):
     def parse(self):
         while self.curtok < len(self.lexer.tokens):
             rule = self.parse_rule()
-            self.rules[rule.symbol] = rule
+
             if not self.start_symbol:
                 self.start_symbol = rule.symbol
+
+            self.rules[rule.symbol] = rule
+            self.transform_ebnf(rule)
 
         # add whitespace rule
         if self.whitespaces:
@@ -82,6 +94,31 @@ class Parser(object):
             ws_rule.add_alternative([]) # or empty
             self.rules[ws_rule.symbol] = ws_rule
 
+    def transform_ebnf(self, original_rule):
+        # XXX can be made faster by setting a flag if there is a ebnf token
+        # in the rule or not (can be done in first parse)
+        new_rules = []
+        for a in original_rule.alternatives:
+            symbols = []
+            i = 0
+            for s in a:
+                if isinstance(s, ExtendedSymbol):
+                    if s.name == "loop":
+                        # Example: A ::= a {b} c
+                        remaining_tokens = a[i+1:] # [c]
+                        loop_symbol = Nonterminal("%s_loop" % (original_rule.symbol.name,))
+                        a[i:] = [loop_symbol] # A ::= a A_loop
+
+                        newrule = Rule()
+                        newrule.symbol = loop_symbol
+                        newrule.add_alternative(s.children + [loop_symbol]) # A_loop ::= b A_loop
+                        newrule.add_alternative(remaining_tokens)              #          | c
+                        new_rules.append(newrule)
+                i += 1
+        for rule in new_rules:
+            self.rules[rule.symbol] = rule
+            self.transform_ebnf(rule)
+
     def inc(self):
         self.curtok += 1
 
@@ -90,6 +127,8 @@ class Parser(object):
         return t
 
     def parse_rule(self):
+        symbols_level = []
+        loop_count = 0
         rule = Rule()
         rule.symbol = self.parse_nonterminal()
 
@@ -109,18 +148,39 @@ class Parser(object):
         self.curtok += len(tokenlist)
 
         # parse right side of rule
-        symbols = []
+        symbols_level.append([]) # first symbols level
         for t in tokenlist:
             if t.name == "Nonterminal":
-                symbols.append(Nonterminal(t.value))
-            if t.name == "Terminal":
-                symbols.append(Terminal(t.value))
+                symbols_level[-1].append(Nonterminal(t.value))
+            elif t.name == "Terminal":
+                symbols_level[-1].append(Terminal(t.value))
                 if self.whitespaces:
-                    symbols.append(Nonterminal("WS"))
-            if t.name == "Alternative":
-                rule.add_alternative(symbols)
-                symbols = []
-        rule.add_alternative(symbols)
+                    symbols_level[-1].append(Nonterminal("WS"))
+            elif t.name == "Alternative":
+                rule.add_alternative(symbols_level.pop())
+                symbols_level.append([])
+            elif t.name == "Loop_Start":
+                symbols_level.append([])
+                # on encountering a loop, finish current rule and create new
+                # loop rule, continuning with the remaining symbols
+                # new_rule = Rule()
+                # new_rule.symbol = Nonterminal("%s_loop%s" % (rule.symbol.name, loop_count))
+                # symbols.append(new_rule.symbol)
+                # rule.add_alternative(symbols)
+                # rules.append(rule)
+                # rule = new_rule
+                # symbols = []
+                # loop_count += 1
+            elif t.name == "Loop_End":
+                symbols = symbols_level.pop()
+                token = ExtendedSymbol("loop", symbols)
+                symbols_level[-1].append(token)
+                #symbols.append(rule.symbol)
+                #rule.add_alternative(symbols)
+                #symbols = []
+
+        assert symbols_level[0] is symbols_level[-1]
+        rule.add_alternative(symbols_level[-1])
         return rule
 
     def add_implicit_whitespaces(self, l):
