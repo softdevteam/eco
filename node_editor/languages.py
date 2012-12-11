@@ -625,6 +625,17 @@ A ::= "a" { "b" } "c"
 "c":c
 """)
 
+bnf_loop = Language("BNF: Loops (for comparing graph differences)",
+"""
+A ::= "a" B
+B ::= b B | c
+""",
+"""
+"a":a
+"b":b
+"c":c
+""")
+
 ebnf_loop_nested = Language("EBNF: Loops (nested)",
 """
 A ::= "a" { "b" {"c"} } "d"
@@ -657,6 +668,16 @@ A ::= "a" [ "b" ] "c"
 "c":c
 """)
 
+bnf_option = Language("BNF: Option (for comparing)",
+"""
+A ::= "a" "c" | "a" "b" "c"
+""",
+"""
+"a":a
+"b":b
+"c":c
+""")
+
 ebnf_option_loop = Language("EBNF: Loop within Option",
 """
 A ::= "a" [ "b" {"c"}] "d"
@@ -680,6 +701,20 @@ A ::= "a" ( "b" | "c" | "d" ) "e"
 "e":e
 """)
 
+bnf_grouping = Language("BNF: Alternatives in group (for comparing)",
+"""
+A ::= "a" "b" "e"
+    | "a" "c" "e"
+    | "a" "d" "e"
+""",
+"""
+"a":a
+"b":b
+"c":c
+"d":d
+"e":e
+""")
+
 languages = [calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, lisp,
-             ebnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, ebnf_option_loop,
-             ebnf_grouping]
+             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
+             ebnf_grouping, bnf_grouping]
