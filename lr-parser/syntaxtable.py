@@ -66,6 +66,8 @@ class SyntaxTable(object):
                         else:
                             lookahead = symbols
                         for s in lookahead:
+                            if self.table.has_key((i,s)):
+                                print("CONFLICT", (i,s))
                             self.table[(i, s)] = Reduce(state.p)
             # shift, goto
             for s in symbols:
@@ -75,6 +77,8 @@ class SyntaxTable(object):
                         action = Shift(dest)
                     if isinstance(s, Nonterminal):
                         action = Goto(dest)
+                    if self.table.has_key((i,s)):
+                        print("CONFLICT", (i,s))
                     self.table[(i, s)] = action
 
     def lookup(self, state_id, symbol):

@@ -157,6 +157,7 @@ class NodeEditor(QTextEdit):
         if success:
             parent = startnode.parent
             # remove old tokens
+            # XXX this removes the first appearance of that token (which isn't always the one relexed)
             for token in left_tokens:
                 token.parent.children.remove(token)
             for token in right_tokens:
@@ -287,8 +288,8 @@ class Window(QtGui.QMainWindow):
         self.ui.textEdit.document().setPlainText("")
         self.ui.graphicsView.setScene(QGraphicsScene())
 
-        img = Viewer("pydot").create_pydot_graph(self.lrp.graph)
-        self.showImage(self.ui.gvStategraph, img)
+        #img = Viewer("pydot").create_pydot_graph(self.lrp.graph)
+        #self.showImage(self.ui.gvStategraph, img)
 
     def btRefresh(self):
         image = Viewer().get_tree_image(self.lrp.previous_version.parent, whitespaces)

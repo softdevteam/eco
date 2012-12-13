@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 sys.path.append("../")
 
@@ -30,12 +31,12 @@ class StateGraph(object):
         self.state_sets.append(closure)
         _id = 0
         while _id < len(self.state_sets):
+            print(".", end='')
             state_set = self.state_sets[_id]
             for symbol in state_set.get_next_symbols():
                 new_state_set = self.goto(self.grammar, state_set, symbol)
                 if not new_state_set.is_empty():
                     self.add(_id, symbol, new_state_set)
-
             _id += 1
 
     def add(self, from_id, symbol, state_set):

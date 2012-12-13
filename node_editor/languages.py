@@ -593,6 +593,188 @@ string ::= "[a-zA-Z]+"
 """
 )
 
+smalltalk_ebnf = Language("Smalltalk EBNF",
+"""
+MethodDeclaration ::= OptionalWhitespace MethodHeader ExecutableCode
+
+FormalBlockArgumentDeclaration ::= ":" BindableIdentifier
+FormalBlockArgumentDeclarationList ::= FormalBlockArgumentDeclaration {Whitespace FormalBlockArgumentDeclaration}
+BlockLiteral ::= "[" [OptionalWhitespace FormalBlockArgumentDeclarationList OptionalWhitespace "|"] ExecutableCode OptionalWhitespace "]"
+
+Literal ::= ConstantReference
+          | IntegerLiteral
+          | ScaledDecimalLiteral
+          | FloatingPointLiteral
+          | CharacterLiteral
+          | StringLiteral
+          | SymbolLiteral
+          | ArrayLiteral
+          | BlockLiteral
+
+NestedExpression ::= "(" Statement OptionalWhitespace ")"
+Operand ::= Literal
+          | Reference
+          | NestedExpression
+
+UnaryMessage ::= UnaryMessageSelector
+UnaryMessageSelector ::= Identifier
+UnaryMessageChain ::= {OptionalWhitespace UnaryMessage}
+BinaryMessageOperand ::= Operand UnaryMessageChain
+BinaryMessage ::= BinaryMessageSelector OptionalWhitespace BinaryMessageOperand
+BinaryMessageChain ::= {OptionalWhitespace BinaryMessage}
+KeywordMessageArgument ::= BinaryMessageOperand BinaryMessageChain
+KeywordMessageSegment ::= Keyword OptionalWhitespace KeywordMessageArgument
+KeywordMessage ::= KeywordMessageSegment {OptionalWhitespace KeywordMessageSegment}
+MessageChain ::=
+                  UnaryMessage UnaryMessageChain BinaryMessageChain [KeywordMessage]
+                | BinaryMessage BinaryMessageChain [KeywordMessage]
+                | KeywordMessage
+CascadedMessage ::= ";" OptionalWhitespace MessageChain
+Expression ::= Operand [OptionalWhitespace MessageChain {OptionalWhitespace CascadedMessage}]
+
+AssignmentOperation ::= OptionalWhitespace BindableIdentifier OptionalWhitespace ":="
+Statement ::= {AssignmentOperation} OptionalWhitespace Expression
+MethodReturnOperator ::= OptionalWhitespace "^"
+FinalStatement ::= [MethodReturnOperator] Statement
+LocalVariableDeclarationList ::= OptionalWhitespace "|" OptionalWhitespace [BindableIdentifier {Whitespace BindableIdentifier}] OptionalWhitespace "|"
+ExecutableCode ::= [LocalVariableDeclarationList] [{Statement OptionalWhitespace "."} FinalStatement ["."]]
+
+UnaryMethodHeader ::= UnaryMessageSelector
+BinaryMethodHeader ::= BinaryMessageSelector OptionalWhitespace BindableIdentifier
+KeywordMethodHeaderSegment ::= Keyword OptionalWhitespace BindableIdentifier
+KeywordMethodHeader ::= KeywordMethodHeaderSegment {Whitespace KeywordMethodHeaderSegment}
+MethodHeader ::=
+                UnaryMethodHeader
+                | BinaryMethodHeader
+                 | KeywordMethodHeader
+
+
+OptionalWhitespace ::= Whitespace
+    |
+
+Whitespace ::= "WS"
+
+BinaryMessageSelector ::= "BINARYSELECTOR"
+Reference ::= Identifier
+BindableIdentifier ::= Identifier
+Identifier ::= "IDENT"
+Keyword ::= Identifier ":"
+ConstantReference ::= "CONSTANT"
+IntegerLiteral ::= "INTEGER"
+ScaledDecimalLiteral ::= "SCALEDDECIMAL"
+FloatingPointLiteral ::= "FLOAT"
+CharacterLiteral ::= "CHARLIT"
+StringLiteral ::= "STRING"
+SymbolLiteral ::= "#" ConstantReference
+    | "#" StringLiteral
+ArrayLiteral ::= "#" "(" ArrayElement ")"
+ArrayElementLoop ::= ArrayElementLoop Whitespace ArrayElement
+    | ArrayElement
+
+ArrayElement ::= Identifier | Literal
+""",
+"""
+"[ \\t\\r\\n]+":"WS"
+":="::=
+"nil|false|true":"CONSTANT"
+"[a-zA-Z_][a-zA-Z0-9_]*":"IDENT"
+"[0-9]+":"INTEGER"
+"[0-9]+?(\.[0-9])s[0-9]":"SCALEDDECIMAL"
+"[0-9]+\.[0-9]+":"FLOAT"
+"$.":"CHARLIT"
+"abc":"STRING"
+"[~!@%&*-+=|\\<>,?/]+":"BINARYSELECTOR"
+""")
+
+smalltalk_ebnf_nows = Language("Smalltalk EBNF (no whitespaces)",
+"""
+MethodDeclaration ::= MethodHeader ExecutableCode
+
+FormalBlockArgumentDeclaration ::= ":" BindableIdentifier
+FormalBlockArgumentDeclarationList ::= FormalBlockArgumentDeclaration {FormalBlockArgumentDeclaration}
+BlockLiteral ::= "[" [FormalBlockArgumentDeclarationList "|"] ExecutableCode "]"
+
+Literal ::= ConstantReference
+          | IntegerLiteral
+          | ScaledDecimalLiteral
+          | FloatingPointLiteral
+          | CharacterLiteral
+          | StringLiteral
+          | SymbolLiteral
+          | ArrayLiteral
+          | BlockLiteral
+
+NestedExpression ::= "(" Statement ")"
+Operand ::= Literal
+          | Reference
+          | NestedExpression
+
+UnaryMessage ::= UnaryMessageSelector
+UnaryMessageSelector ::= Identifier
+UnaryMessageChain ::= {UnaryMessage}
+BinaryMessageOperand ::= Operand UnaryMessageChain
+BinaryMessage ::= BinaryMessageSelector BinaryMessageOperand
+BinaryMessageChain ::= {BinaryMessage}
+KeywordMessageArgument ::= BinaryMessageOperand BinaryMessageChain
+KeywordMessageSegment ::= Keyword KeywordMessageArgument
+KeywordMessage ::= KeywordMessageSegment {KeywordMessageSegment}
+MessageChain ::=
+                  UnaryMessage UnaryMessageChain BinaryMessageChain [KeywordMessage]
+                | BinaryMessage BinaryMessageChain [KeywordMessage]
+                | KeywordMessage
+CascadedMessage ::= ";" MessageChain
+Expression ::= Operand [MessageChain {CascadedMessage}]
+
+AssignmentOperation ::= BindableIdentifier ":="
+Statement ::= {AssignmentOperation} Expression
+MethodReturnOperator ::= "^"
+FinalStatement ::= [MethodReturnOperator] Statement
+LocalVariableDeclarationList ::= "|" [BindableIdentifier {BindableIdentifier}] "|"
+ExecutableCode ::= [LocalVariableDeclarationList] [{Statement "."} FinalStatement ["."]]
+
+UnaryMethodHeader ::= UnaryMessageSelector
+BinaryMethodHeader ::= BinaryMessageSelector BindableIdentifier
+BinaryMessageSelector ::= BinarySelectorChar [BinarySelectorChar]
+BinarySelectorChar ::= "BINARYSELECTOR"
+KeywordMethodHeaderSegment ::= Keyword BindableIdentifier
+KeywordMethodHeader ::= KeywordMethodHeaderSegment {KeywordMethodHeaderSegment}
+MethodHeader ::=
+                UnaryMethodHeader
+                | BinaryMethodHeader
+                 | KeywordMethodHeader
+
+
+Reference ::= Identifier
+BindableIdentifier ::= Identifier
+Identifier ::= "IDENT"
+Keyword ::= Identifier ":"
+ConstantReference ::= "CONSTANT"
+IntegerLiteral ::= "INTEGER"
+ScaledDecimalLiteral ::= "SCALEDDECIMAL"
+FloatingPointLiteral ::= "FLOAT"
+CharacterLiteral ::= "CHARLIT"
+StringLiteral ::= "STRING"
+SymbolLiteral ::= "#" ConstantReference
+    | "#" StringLiteral
+ArrayLiteral ::= "#" "(" ArrayElement ")"
+ArrayElementLoop ::= ArrayElementLoop ArrayElement
+    | ArrayElement
+
+ArrayElement ::= Identifier | Literal
+""",
+"""
+"[ \\t\\r\\n]+":"WS"
+":="::=
+"nil|false|true":"CONSTANT"
+"[a-zA-Z_][a-zA-Z0-9_]*":"IDENT"
+"[0-9]+":"INTEGER"
+"[0-9]+?(\.[0-9])s[0-9]":"SCALEDDECIMAL"
+"[0-9]+\.[0-9]+":"FLOAT"
+"$.":"CHARLIT"
+"abc":"STRING"
+"[~!@%&*-+=|\\<>,?/]":"BINARYSELECTOR"
+""")
+
 
 lisp = Language("Lisp",
 """
@@ -715,6 +897,31 @@ A ::= "a" "b" "e"
 "e":e
 """)
 
-languages = [calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, lisp,
+test = Language("Extract from Smalltalk EBNF to show shift/reduce conflict",
+"""
+Start ::= Keyword [Local]
+Keyword ::= "x" {WS "x"}
+Local ::= WS "|" WS "x"
+OptWS ::= WS |
+WS ::= "_"
+""",
+"""
+"x":x
+"_":_
+""")
+
+test2 = Language("test2",
+"""
+Z ::= A B
+A ::= "x" {Y}
+B ::= Y "x"
+Y ::= "y" |
+""",
+"""
+"x":x
+"y":y
+""")
+
+languages = [calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, smalltalk_ebnf, lisp,
              ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
-             ebnf_grouping, bnf_grouping]
+             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows]

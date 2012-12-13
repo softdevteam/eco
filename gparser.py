@@ -80,6 +80,7 @@ class Parser(object):
         while self.curtok < len(self.lexer.tokens):
             rule = self.parse_rule()
 
+            print("parsed rule", rule.symbol)
             if not self.start_symbol:
                 self.start_symbol = rule.symbol
 
