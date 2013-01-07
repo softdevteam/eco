@@ -5,7 +5,7 @@ from gparser import Parser, Terminal, Nonterminal, Epsilon
 from syntaxtable import FinishSymbol
 from state import State, StateSet, LR1Element
 from production import Production
-from helpers import first, follow, closure_0, goto_0, closure_1
+from helpers import follow, closure_0, goto_0, closure_1, Helper
 
 grammar = """
 Z ::= S
@@ -63,26 +63,31 @@ G = Nonterminal("G")
 P = Nonterminal("P")
 T = Nonterminal("T")
 
+helper1 = Helper(r)
+first = helper1.first
+follow = helper1.follow
 
 def test_first():
-    assert first(r, a) == set([a])
-    assert first(r, b) == set([b])
-    assert first(r, c) == set([c])
-    assert first(r, S) == set([a, b])
-    assert first(r, A) == set([a])
-    assert first(r, B) == first(r, A)
-    assert first(r, D) == set([d, epsilon])
-    assert first(r, C) == set([d, a])
-    assert first(r, F) == set([d, a])
-    assert first(r, [D, A]) == set([d, a])
-    assert first(r, [C, D, f]) == set([d, a])
+    assert first(a) == set([a])
+    assert first(b) == set([b])
+    assert first(c) == set([c])
+    assert first(S) == set([a, b])
+    assert first(A) == set([a])
+    assert first(B) == first(A)
+    assert first(D) == set([d, epsilon])
+    assert first(C) == set([d, a])
+    assert first(F) == set([d, a])
+    assert first([D, A]) == set([d, a])
+    assert first([C, D, f]) == set([d, a])
+
+    assert first([finish]) == set([finish])
 
 def test_follow():
-    assert follow(r, S) == set([b, c])
-    assert follow(r, A) == set([a, b, d, f])
-    assert follow(r, B) == set([])
-    assert follow(r, C) == set([d, f])
-    assert follow(r, D) == set([a, f])
+    assert follow(S) == set([b, c])
+    assert follow(A) == set([a, b, d, f])
+    assert follow(B) == set([])
+    assert follow(C) == set([d, f])
+    assert follow(D) == set([a, f])
 
 def test_closure_0():
     s1 = StateSet()
@@ -130,7 +135,7 @@ def test_goto_0():
 
 def test_closure_1():
     s1 = StateSet([LR1Element(Production(Z, [S]), 0, set([finish]))])
-    closure = closure_1(r, s1)
+    closure = helper1.closure_1(s1)
     assert len(closure.elements) == 4
     assert LR1Element(Production(Z, [S]), 0, set([finish])) in closure
     assert LR1Element(Production(S, [S, b]), 0, set([b, finish])) in closure
@@ -181,12 +186,14 @@ p.parse()
 r3 = p.rules
 
 def test_first_bug():
-    assert first(r3, E) == set([a])
-    assert first(r3, P) == set([a])
-    assert first(r3, T) == set([a])
-    assert first(r3, [mul, T, plus]) == set([mul])
-    assert first(r3, [plus, T, plus]) == set([plus])
-    assert first(r3, [T, plus]) == set([a])
-    assert first(r3, C) == set([c, epsilon])
-    assert first(r3, D) == set([f, d, epsilon])
-    assert first(r3, G) == set([c, d, f, epsilon])
+    first_calc = Helper(r3)
+    first = first_calc.first
+    assert first(E) == set([a])
+    assert first(P) == set([a])
+    assert first(T) == set([a])
+    assert first([mul, T, plus]) == set([mul])
+    assert first([plus, T, plus]) == set([plus])
+    assert first([T, plus]) == set([a])
+    assert first(C) == set([c, epsilon])
+    assert first(D) == set([f, d, epsilon])
+    assert first(G) == set([c, d, f, epsilon])

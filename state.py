@@ -13,6 +13,8 @@ class StateSet(object):
         return len(self.elements)
 
     def add(self, element):
+        # can't do this anymore since imediat merging will prevent the closure
+        # from looking at equal elements with different lookahead
         if False:#isinstance(element, LR1Element):
             # merge LR1 elements if they differ only in their lookahead
             merged = False
@@ -64,8 +66,11 @@ class StateSet(object):
             return False
         e1 = self
         e2 = other
-        if len(e2) > len(e1):
-            e1, e2 = e2, e1
+        #XXX why not equal only?
+        #if len(e2) > len(e1):
+        #    e1, e2 = e2, e1
+        if len(e1) != len(e2):
+            return False
 
         for e in e1.elements:
             if not e2.has(e, with_lookahead):

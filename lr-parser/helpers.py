@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 sys.path.append("../")
 
@@ -8,8 +9,202 @@ from syntaxtable import FinishSymbol
 
 epsilon = Epsilon()
 
+def noprint(*args, **kwargs):
+    pass
 
-def first(grammar, symbol):
+class Helper(object):
+
+    def __init__(self, grammar):
+        self.grammar = grammar
+        self.first_dict = {}
+        self.follow_dict = {}
+        self.calculate_first()
+        self.calculate_follow()
+        self.goto_count = {}
+
+    def first(self, symbol):
+        if isinstance(symbol, list):
+            return self.first_list(symbol)
+        if isinstance(symbol, Terminal) or isinstance(symbol, FinishSymbol):
+            return set([symbol])
+        if self.first_dict.__contains__(symbol):
+            return self.first_dict[symbol]
+        else:
+            return set()
+
+    def follow(self, symbol):
+        if self.follow_dict.__contains__(symbol):
+            return self.follow_dict[symbol]
+        else:
+            return set()
+
+    def first_list(self, l):
+        first_set = set()
+        for element in l:
+            first = self.first(element)
+            first_set |= first.difference(set([epsilon]))
+            if not epsilon in first:
+                break
+            if element == l[-1]:
+                first_set.add(epsilon)
+        return first_set
+
+    def calculate_first(self):
+        changes = True
+        while changes:
+            changes = False
+            for left_symbol in self.grammar:
+                oldfirst = self.first(left_symbol)
+                additional_first = set()
+                for a in self.grammar[left_symbol].alternatives:
+                    # if rule has empty alternative, add epsilon
+                    if a == []:
+                        additional_first.add(epsilon)
+                        continue
+                    for element in a:
+                        next_first = self.first(element)
+                        # add first without epsilon
+                        additional_first |= next_first.difference(set([epsilon]))
+                        if not epsilon in next_first:
+                            # if first hasn't epsilon then don't look at remaining symbols
+                            break
+                        # if reached here and element is last in list then all symbols have a epsilon rule
+                        if element is a[-1]:
+                            additional_first.add(epsilon)
+                newfirst = oldfirst | additional_first
+                if newfirst != oldfirst:
+                    self.first_dict[left_symbol] = newfirst
+                    changes = True
+
+    def calculate_follow(self):
+        """
+            1) Add final symbol ($) to follow(Startsymbol)
+            2) If there is a production 'X ::= symbol B' add first(B) \ {None} to follow(symbol)
+            3) a) if production 'X ::= A symbol'
+               b) if production 'X ::= A symbol X' and X ::= None (!!! X can be more than one Nonterminal)
+               ==> add follow(X) to follow(symbol)
+        """
+
+        changes = True
+        while changes:
+            changes = False
+            for rule in self.grammar.values():
+                for alternative in rule.alternatives:
+                    for i in range(len(alternative)):
+                        oldfollow = self.follow(alternative[i])
+                        additionalfollow = set()
+                        following_symbols = alternative[i+1:]
+                        f = self.first(following_symbols)
+                        # 3)
+                        if following_symbols == [] or epsilon in f:
+                            additionalfollow |= self.follow(rule.symbol)
+                        else:
+                            # 2)
+                            f.discard(epsilon)
+                            additionalfollow |= f
+                        newfollow = oldfollow | additionalfollow
+                        if newfollow != oldfollow:
+                            self.follow_dict[alternative[i]] = newfollow
+                            changes = True
+
+    def closure_0(self, state_set):
+        print("BEGIN CLOSURE 0")
+        result = StateSet()
+        # 1) Add state_set to it's own closure
+        for state in state_set.elements:
+            result.add(state)
+        # 2) If there exists an LR-element with a Nonterminal as its next symbol
+        #    add all production with this symbol on the left side to the closure
+        i=0
+        for state in result:
+            print("closurecount", i)
+            print(state)
+            symbol = state.next_symbol()
+            if isinstance(symbol, Nonterminal):
+                alternatives = self.grammar[symbol].alternatives
+                for a in alternatives:
+                    # create epsilon symbol if alternative is empty
+                    if a == []:
+                        a = [epsilon]
+                    p = Production(symbol, a)
+                    s = State(p, 0)
+                    if a == [epsilon]:
+                        s.d = 1
+                    result.add(s)
+            i += 1
+        return result
+
+    def goto_0(self, state_set, symbol):
+        result = StateSet()
+        for state in state_set:
+            s = state.next_symbol()
+            if s == symbol:
+                new_state = state.clone()
+                new_state.d += 1
+                result.add(new_state)
+        return self.closure_0(result)
+
+    def closure_1(self, state_set):
+        print("BEGIN CLOSURE 1")
+        #print("closure")
+        result = StateSet()
+        # Step 1
+        #print("step1")
+        #print("stateset length", len(state_set.elements))
+        for state in state_set.elements:
+            #print("blabla")
+            result.add(state)
+        # Step 2
+        print("Startset", result.elements)
+        i=0
+        for state in result:
+            print("closurecount", i)
+            print(state)
+            symbol = state.next_symbol()
+            if isinstance(symbol, Nonterminal):
+                f = set()
+                for l in state.lookahead:
+                    betaL = []
+                    betaL.extend(state.remaining_symbols())
+                    betaL.append(l)
+                    f |= self.first(betaL)
+
+                alternatives = self.grammar[symbol].alternatives
+                for a in alternatives:
+                    # create epsilon symbol if alternative is empty
+                    if a == []:
+                        a = [Epsilon()]
+                    p = Production(symbol, a)
+                    s = LR1Element(p, 0, f)
+                    if a == [epsilon]:
+                        s.d = 1
+                    print("adding", s)
+                    result.add(s)
+                    #result.merge()
+            i += 1
+        # merge states that only differ in their lookahead
+        result.merge()
+        #print("merging")
+        #print("closure END")
+        return result
+
+    def goto_1(self, state_set, symbol):
+        try:
+            self.goto_count[(id(state_set), symbol)] += 1
+        except KeyError:
+            self.goto_count[(id(state_set), symbol)] = 1
+        print("goto", state_set, symbol, self.goto_count[(id(state_set), symbol)])
+        result = StateSet()
+        for state in state_set:
+            s = state.next_symbol()
+            if s == symbol:
+                new_state = state.clone()
+                new_state.d += 1
+                result.add(new_state)
+        print("goto END")
+        return self.closure_1(result)
+
+def old2_first(grammar, symbol):
 
     if isinstance(symbol, Terminal) or isinstance(symbol, FinishSymbol):
         return set([symbol])
@@ -37,7 +232,7 @@ def first(grammar, symbol):
                 if element == symbol:
                     f = set(result) # copy
                 else:
-                    f = first(grammar, element)
+                    f = old2_first(grammar, element)
                 result = result.union(f.difference(set([epsilon])))
 
                 if not epsilon in f:
@@ -190,7 +385,7 @@ def closure_1(grammar, state_set):
                 betaL = []
                 betaL.extend(state.remaining_symbols())
                 betaL.append(l)
-                f |= first(grammar, betaL)
+                f |= old2_first(grammar, betaL)
 
             alternatives = grammar[symbol].alternatives
             for a in alternatives:

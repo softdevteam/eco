@@ -901,7 +901,7 @@ test = Language("Extract from Smalltalk EBNF to show shift/reduce conflict",
 """
 Start ::= Keyword [Local]
 Keyword ::= "x" {WS "x"}
-Local ::= WS "|" WS "x"
+Local ::= OptWS "|" OptWS "x"
 OptWS ::= WS |
 WS ::= "_"
 """,
@@ -922,6 +922,22 @@ Y ::= "y" |
 "y":y
 """)
 
+pager = Language("Grammar to test efficient LR(1) as described by Pager",
+"""
+X ::= "a" Y "d" | "a" Z "c" | "a" T | "b" Y "e" | "b" Z "d" | "b" T
+Y ::= "t" W | "u" X
+Z ::= "t" "u"
+T ::= "u" X "a"
+W ::= "u" V
+V ::= 
+""",
+"""
+"x":x
+"y":y
+""")
+from lang_java import java
+from lang_java_v1 import javav1
+
 languages = [calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, smalltalk_ebnf, lisp,
              ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
-             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows]
+             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, pager]

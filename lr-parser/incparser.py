@@ -24,6 +24,7 @@ class IncParser(object):
 
         print("Creating Stategraph")
         self.graph = StateGraph(parser.start_symbol, parser.rules, lr_type)
+        print("Building Stategraph")
         self.graph.build()
 
         if lr_type == LALR:
