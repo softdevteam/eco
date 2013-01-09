@@ -7,6 +7,8 @@ from production import Production
 from gparser import Terminal, Nonterminal, Epsilon
 from syntaxtable import FinishSymbol
 
+from time import time
+
 epsilon = Epsilon()
 
 def noprint(*args, **kwargs):
@@ -108,35 +110,39 @@ class Helper(object):
                             changes = True
 
     def closure_0(self, state_set):
-        print("BEGIN CLOSURE 0")
-        result = StateSet()
+        result = set()
         # 1) Add state_set to it's own closure
-        for state in state_set.elements:
-            result.add(state)
+        for element in state_set.elements:
+            result.add(element)
         # 2) If there exists an LR-element with a Nonterminal as its next symbol
         #    add all production with this symbol on the left side to the closure
-        i=0
-        for state in result:
-            print("closurecount", i)
-            print(state)
-            symbol = state.next_symbol()
-            if isinstance(symbol, Nonterminal):
-                alternatives = self.grammar[symbol].alternatives
-                for a in alternatives:
-                    # create epsilon symbol if alternative is empty
-                    if a == []:
-                        a = [epsilon]
-                    p = Production(symbol, a)
-                    s = State(p, 0)
-                    if a == [epsilon]:
-                        s.d = 1
-                    result.add(s)
-            i += 1
-        return result
+        temp = result
+        while 1:
+            newelements = set()
+            # closure of temp
+            for state in temp:
+                symbol = state.next_symbol()
+                if isinstance(symbol, Nonterminal):
+                    alternatives = self.grammar[symbol].alternatives
+                    for a in alternatives:
+                        # create epsilon symbol if alternative is empty
+                        if a == []:
+                            a = [epsilon]
+                        p = Production(symbol, a)
+                        s = State(p, 0)
+                        if a == [epsilon]:
+                            s.d = 1
+                        newelements.add(s)
+            # add new elements to result
+            temp = newelements.difference(result) # remove elements already in result
+            result.update(temp)
+            if len(temp) == 0: # no new elements were added
+                break
+        return StateSet(result)
 
     def goto_0(self, state_set, symbol):
         result = StateSet()
-        for state in state_set:
+        for state in state_set.elements:
             s = state.next_symbol()
             if s == symbol:
                 new_state = state.clone()
@@ -145,47 +151,62 @@ class Helper(object):
         return self.closure_0(result)
 
     def closure_1(self, state_set):
-        print("BEGIN CLOSURE 1")
-        #print("closure")
-        result = StateSet()
+        la_dict = {}
+        result = set()
+        working_set = set()
         # Step 1
-        #print("step1")
-        #print("stateset length", len(state_set.elements))
-        for state in state_set.elements:
-            #print("blabla")
-            result.add(state)
+        for element in state_set.elements:
+            la_dict[element] = element.lookahead
+            result.add(element)
+            working_set.add(element)
         # Step 2
-        print("Startset", result.elements)
         i=0
-        for state in result:
-            print("closurecount", i)
-            print(state)
-            symbol = state.next_symbol()
-            if isinstance(symbol, Nonterminal):
-                f = set()
-                for l in state.lookahead:
-                    betaL = []
-                    betaL.extend(state.remaining_symbols())
-                    betaL.append(l)
-                    f |= self.first(betaL)
+        temp = working_set
+        while 1:
+            newelements = set()
+            for state in temp:
+                symbol = state.next_symbol()
+                if isinstance(symbol, Nonterminal):
+                    f = set()
+                    for l in state.lookahead:
+                        betaL = []
+                        betaL.extend(state.remaining_symbols())
+                        betaL.append(l)
+                        f |= self.first(betaL)
 
-                alternatives = self.grammar[symbol].alternatives
-                for a in alternatives:
-                    # create epsilon symbol if alternative is empty
-                    if a == []:
-                        a = [Epsilon()]
-                    p = Production(symbol, a)
-                    s = LR1Element(p, 0, f)
-                    if a == [epsilon]:
-                        s.d = 1
-                    print("adding", s)
-                    result.add(s)
-                    #result.merge()
+                    alternatives = self.grammar[symbol].alternatives
+                    for a in alternatives:
+                        # create epsilon symbol if alternative is empty
+                        if a == []:
+                            a = [Epsilon()]
+                        p = Production(symbol, a)
+                        s = LR1Element(p, 0, f)
+                        if a == [epsilon]:
+                            s.d = 1
+                        # NEW ELEMENT:
+                        # 1. completely new (+lookahead): add to result
+                        # 2. new lookahead: update lookahead in la_dict
+                        # -> add to new working set
+                        # 3. already known: ignore
+                        if s in result:
+                            if s.lookahead.issubset(la_dict[s]):   # lookahead in combination with state already known
+                                continue
+                            else:
+                                la_dict[s] |= s.lookahead   # new lookahead
+                        else:
+                            la_dict[s] = s.lookahead        # completely new
+                        result.add(s)
+                        newelements.add(s)
+            temp = newelements
+            if len(temp) == 0:
+                break
             i += 1
+        # add lookaheads
+        for element in result:
+            element.lookahead = la_dict[element]
         # merge states that only differ in their lookahead
-        result.merge()
-        #print("merging")
-        #print("closure END")
+        result = StateSet(result)
+        #result.merge()
         return result
 
     def goto_1(self, state_set, symbol):

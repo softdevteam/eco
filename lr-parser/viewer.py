@@ -97,7 +97,7 @@ class Viewer(object):
         i = 0
         for stateset in graph.state_sets:
             stateset_info = []
-            for state in stateset:
+            for state in stateset.elements:
                 stateset_info.append(str(state))
             dotnode = pydot.Node(i, shape='rect', label="%s\n%s" % (i, "\n".join(stateset_info)))
             pydotgraph.add_node(dotnode)

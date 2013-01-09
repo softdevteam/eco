@@ -2,11 +2,12 @@ from __future__ import print_function
 import sys
 sys.path.append("../")
 
-from state import StateSet, State, LR1Element
+from state import StateSet, State, LR1Element, LR0Element
 from production import Production
 from helpers import closure_0, goto_0, Helper
 from syntaxtable import FinishSymbol
 from constants import LR0, LR1, LALR
+from time import time
 
 class StateGraph(object):
 
@@ -15,31 +16,83 @@ class StateGraph(object):
         self.start_symbol = start_symbol
         self.state_sets = []
         self.edges = {}
+        self.ids = {}
+
+        self.goto_time = 0
+        self.add_time = 0
+        self.closure_time = 0
+        self.addcount = 0
 
         helper = Helper(grammar)
         if lr_type == LR0:
             self.closure = helper.closure_0
             self.goto = helper.goto_0
-            self.start_set = StateSet([State(Production(None, [self.start_symbol]), 0)])
+            self.start_set = StateSet([LR0Element(Production(None, [self.start_symbol]), 0)])
         elif lr_type == LR1 or lr_type == LALR:
             self.closure = helper.closure_1
             self.goto = helper.goto_1
             self.start_set = StateSet([LR1Element(Production(None, [self.start_symbol]), 0, set([FinishSymbol()]))])
 
     def build(self):
-        print("go")
+        State._hashtime = 0
+        start = time()
         start_set = self.start_set
         closure = self.closure(start_set)
         self.state_sets.append(closure)
+        self.ids[closure] = 0
         _id = 0
         while _id < len(self.state_sets):
             print(_id)
             state_set = self.state_sets[_id]
-            for symbol in state_set.get_next_symbols():
-                new_state_set = self.goto(state_set, symbol)
-                if not new_state_set.is_empty():
-                    self.add(_id, symbol, new_state_set)
+            new_gotos = {}
+            goto_start = time()
+            # create new sets first, then calculate closure
+            for lrelement in state_set.elements:
+                symbol = lrelement.next_symbol()
+                if not symbol:
+                    continue
+                new_element = lrelement.clone()
+                new_element.d += 1
+                try:
+                    # basically goto
+                    new_gotos[symbol].add(new_element)
+                except KeyError:
+                    new_gotos[symbol] = set([new_element])
+            # now calculate closure and add result to state_sets
+            goto_end = time()
+            self.goto_time += goto_end - goto_start
+            for ss in new_gotos:
+                closure_start = time()
+                new_state_set = self.closure(StateSet(new_gotos[ss]))
+                closure_end = time()
+                #print("before", len(new_state_set.elements))
+                #new_state_set.merge()
+                #print("after", len(new_state_set.elements))
+                self.closure_time += closure_end - closure_start
+                self.add(_id, ss, new_state_set)
+
+
+           #for symbol in state_set.get_next_symbols(): #XXX investigate speed
+           #    goto_start = time()
+           #    new_state_set = self.goto(state_set, symbol)
+           #    goto_end = time()
+           #    print("goto time", goto_end - goto_start)
+           #    if not new_state_set.is_empty():
+           #        add_start = time()
+           #        self.add(_id, symbol, new_state_set)
+           #        add_end = time()
+           #        print("add time", add_end - add_start)
             _id += 1
+            #print("elements", len(state_set.elements))
+            #print("closure time", self.closure_time)
+            self.closure_time = 0
+        end = time()
+        print("add time", self.add_time)
+        print("closure time", self.closure_time)
+        print("goto time", self.goto_time)
+        print("hashtime", StateSet._hashtime)
+        print("addcount", self.addcount)
+        print("Finished building Stategraph in ", end-start)
 
     def find_stateset_without_lookahead(self, state_set):
         for ss in self.state_sets:
@@ -57,24 +110,29 @@ class StateGraph(object):
     def add(self, from_id, symbol, state_set):
         #XXX lalr hack: merge states that only differ in there lookahead
 
-        ss = self.find_stateset_without_lookahead(state_set)
-        if ss:
-            #print("found existing stateset -> merging")
-            #print(ss)
-            #print(state_set)
-            self.merge_lookahead(ss, state_set)
-            _id = self.state_sets.index(ss)
-        else:
-            self.state_sets.append(state_set)
-            _id = len(self.state_sets)-1
-        self.edges[(from_id, symbol)] = _id
-
-       #if state_set not in self.state_sets:
+       #ss = self.find_stateset_without_lookahead(state_set)
+       #if ss:
+       #    #print("found existing stateset -> merging")
+       #    #print(ss)
+       #    #print(state_set)
+       #    self.merge_lookahead(ss, state_set)
+       #    _id = self.state_sets.index(ss)
+       #else:
        #    self.state_sets.append(state_set)
        #    _id = len(self.state_sets)-1
-       #else:
-       #    _id = self.state_sets.index(state_set)
        #self.edges[(from_id, symbol)] = _id
+
+        #if state_set not in self.state_sets: # slow
+        add_start = time()
+        _id = self.ids.get(state_set)
+        add_end = time()
+        self.add_time += add_end - add_start
+        if _id is None:
+            self.addcount += 1
+            self.state_sets.append(state_set)
+            _id = len(self.state_sets)-1
+            self.ids[state_set] = _id
+        self.edges[(from_id, symbol)] = _id
 
     def follow(self, from_id, symbol):
         try:

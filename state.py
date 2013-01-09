@@ -1,42 +1,31 @@
+from time import time
 class StateSet(object):
+
+    _hashtime = 0
 
     def __init__(self, elements=None):
         if elements:
             self.elements = elements
         else:
-            self.elements = []
-
-    def __getitem__(self, i):
-        return self.elements[i]
+            self.elements = set()
 
     def __len__(self):
         return len(self.elements)
 
     def add(self, element):
-        # can't do this anymore since imediat merging will prevent the closure
-        # from looking at equal elements with different lookahead
-        if False:#isinstance(element, LR1Element):
-            # merge LR1 elements if they differ only in their lookahead
-            merged = False
-            for e in self.elements:
-                if e.d == element.d and e.p == element.p:
-                    e.lookahead |= element.lookahead
-                    merged = True
-            if not merged:
-                self.elements.append(element)
-            return
-
         if element not in self.elements:
-            self.elements.append(element)
+            self.elements.add(element)
 
     def merge(self):
         # merge states that only differ in their lookahead
         # XXX this is slow
+        delete = set()
         for a in self.elements:
             for b in self.elements:
                 if a is not b and a.d == b.d and a.p == b.p:
                     a.lookahead |= b.lookahead
-                    self.elements.remove(b)
+                    delete.add(b)
+        self.elements.difference_update(delete)
 
     def __contains__(self, element):
         return element in self.elements
@@ -59,9 +48,17 @@ class StateSet(object):
         return symbols
 
     def __eq__(self, other):
-        return self.equals(other, True)
+        temp = LR1Element.__eq__
+        LR1Element.__eq__ = LR1Element.equal_with_la
+        result = self.elements == other.elements
+        LR1Element.__eq__ = temp
+        return result
+        #return self.equals(other, True)
 
     def equals(self, other, with_lookahead=True):
+        if with_lookahead:
+            return self.elements == other.elements
+
         if not isinstance(other, StateSet):
             return False
         e1 = self
@@ -90,6 +87,15 @@ class StateSet(object):
     def __str__(self):
         return str(self.elements)
 
+    def __hash__(self):
+        start = time()
+        _hash = 0
+        for element in self.elements:
+            _hash ^= hash(element)
+        end = time()
+        StateSet._hashtime += end-start
+        return _hash
+
 class State(object):
 
     # backpointer only necessary for earley parser
@@ -99,6 +105,7 @@ class State(object):
         self.d = pos
         self.b = backpointer
         self.k = lookaheadsymbol
+        self._hash = None
 
     def next_symbol(self):
         try:
@@ -151,10 +158,21 @@ class State(object):
     def __eq__(self, other):
         return self.p == other.p and self.d == other.d and self.b == other.b and self.k == other.k
 
+    def __hash__(self):
+        if self._hash is None:
+            self._hash = hash(self.p) ^ hash(self.d)
+        return self._hash
+
 class LR0Element(State):
 
     def __init__(self, production, pos):
         State.__init__(self, production, pos, None, None)
+
+    def __eq__(self, other):
+        return self.p == other.p and self.d == other.d
+
+    def __hash__(self):
+        return hash(self.p) ^ hash(self.d)
 
 class LR1Element(State):
 
@@ -166,6 +184,9 @@ class LR1Element(State):
         return LR1Element(self.p, self.d, set(self.lookahead))
 
     def __eq__(self, other):
+        return State.__eq__(self, other)# and self.lookahead == other.lookahead
+
+    def equal_with_la(self, other):
         return State.__eq__(self, other) and self.lookahead == other.lookahead
 
     def __str__(self):

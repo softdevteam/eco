@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Mon Nov 26 16:26:00 2012
+# Created: Wed Jan  9 12:19:23 2013
 #      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -17,7 +17,7 @@ except AttributeError:
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName(_fromUtf8("MainWindow"))
-        MainWindow.resize(1156, 753)
+        MainWindow.resize(878, 733)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -113,14 +113,14 @@ class Ui_MainWindow(object):
         self.listWidget.setObjectName(_fromUtf8("listWidget"))
         self.verticalLayout_4.addWidget(self.listWidget)
         self.cb_add_implicit_ws = QtGui.QCheckBox(self.tab_3)
-        self.cb_add_implicit_ws.setChecked(True)
+        self.cb_add_implicit_ws.setChecked(False)
         self.cb_add_implicit_ws.setObjectName(_fromUtf8("cb_add_implicit_ws"))
         self.verticalLayout_4.addWidget(self.cb_add_implicit_ws)
         self.tabWidget.addTab(self.tab_3, _fromUtf8(""))
         self.horizontalLayout_3.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1156, 19))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 878, 22))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))

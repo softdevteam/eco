@@ -31,8 +31,8 @@ class IncParser(object):
             self.graph.convert_lalr()
 
         print("Creating Syntaxtable")
-        self.syntaxtable = SyntaxTable(lr_type)
-        self.syntaxtable.build(self.graph)
+        #self.syntaxtable = SyntaxTable(lr_type)
+        #self.syntaxtable.build(self.graph)
 
         self.stack = []
         self.ast_stack = []
