@@ -218,8 +218,10 @@ class NodeEditor(QTextEdit):
             return True
         if c in string.digits and re.findall("\[.*0-9.*\]", regex):
             return True
-        if c in [" ", "\n", "\t", "\r"] and regex == "[ \\n\\t\\r]+":
+        if regex == "[ \\n\\t\\r]+" and re.findall(regex, c):
             return True
+        #if c in [" ", "\n", "\t", "\r"] and regex == "[ \\n\\t\\r]+":
+        #    return True
         return False
 
     def create_new_node(self, text):
@@ -268,6 +270,23 @@ class Window(QtGui.QMainWindow):
             self.ui.listWidget.addItem(str(l))
 
         self.connect(self.ui.listWidget, SIGNAL("itemClicked(QListWidgetItem *)"), self.loadLanguage)
+        self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
+
+    def openfile(self):
+        filename = QFileDialog.getOpenFileName()#"Open File", "", "Files (*.*)")
+        for c in open(filename, "r").read()[:-1]:
+            print(c)
+            if ord(c) in range(97, 122): # a-z
+                key = ord(c) - 32
+                modifier = Qt.NoModifier
+            elif ord(c) in range(65, 90): # A-Z
+                key = ord(c)
+                modifier = Qt.ShiftModifier
+            else:   # !, {, }, ...
+                key = ord(c)
+                modifier = Qt.NoModifier
+            event = QKeyEvent(QEvent.KeyPress, key, modifier, c)
+            QCoreApplication.postEvent(self.ui.textEdit, event)
 
     def loadLanguage(self, item):
         print("Loading Language...")
@@ -288,8 +307,8 @@ class Window(QtGui.QMainWindow):
         self.ui.textEdit.document().setPlainText("")
         self.ui.graphicsView.setScene(QGraphicsScene())
 
-        img = Viewer("pydot").create_pydot_graph(self.lrp.graph)
-        self.showImage(self.ui.gvStategraph, img)
+        #img = Viewer("pydot").create_pydot_graph(self.lrp.graph)
+        #self.showImage(self.ui.gvStategraph, img)
 
     def btRefresh(self):
         image = Viewer().get_tree_image(self.lrp.previous_version.parent, whitespaces)

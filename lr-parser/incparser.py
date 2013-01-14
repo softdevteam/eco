@@ -3,6 +3,8 @@ from __future__ import print_function
 import sys
 sys.path.append("../")
 
+import pickle, time
+
 from gparser import Parser, Nonterminal, Terminal, Epsilon
 from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
 from stategraph import StateGraph
@@ -22,17 +24,29 @@ class IncParser(object):
         parser = Parser(grammar, whitespaces)
         parser.parse()
 
-        print("Creating Stategraph")
-        self.graph = StateGraph(parser.start_symbol, parser.rules, lr_type)
-        print("Building Stategraph")
-        self.graph.build()
+        filename = "".join([str(hash(grammar) ^ hash(whitespaces)), ".pcl"])
+        try:
+            print("Try to unpickle former stategraph")
+            f = open(filename, "r")
+            start = time.time()
+            self.graph = pickle.load(f)
+            end = time.time()
+            print("unpickling done in", end-start)
+        except IOError:
+            print("could not unpickle old graph")
+            print("Creating Stategraph")
+            self.graph = StateGraph(parser.start_symbol, parser.rules, lr_type)
+            print("Building Stategraph")
+            self.graph.build()
+            print("Pickling")
+            pickle.dump(self.graph, open(filename, "w"))
 
         if lr_type == LALR:
             self.graph.convert_lalr()
 
         print("Creating Syntaxtable")
-        #self.syntaxtable = SyntaxTable(lr_type)
-        #self.syntaxtable.build(self.graph)
+        self.syntaxtable = SyntaxTable(lr_type)
+        self.syntaxtable.build(self.graph)
 
         self.stack = []
         self.ast_stack = []
@@ -41,6 +55,7 @@ class IncParser(object):
         self.last_shift_state = 0
 
         self.previous_version = None
+        print("Incemental parser done")
 
     def init_ast(self):
         bos = BOS(Terminal(""), 0, [])

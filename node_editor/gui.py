@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Wed Jan  9 12:19:23 2013
+# Created: Fri Jan 11 15:18:29 2013
 #      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -48,6 +48,9 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.textEdit.sizePolicy().hasHeightForWidth())
         self.textEdit.setSizePolicy(sizePolicy)
+        font = QtGui.QFont()
+        font.setFamily(_fromUtf8("Monospace"))
+        self.textEdit.setFont(font)
         self.textEdit.setObjectName(_fromUtf8("textEdit"))
         self.verticalLayout_3.addWidget(self.textEdit)
         self.label = QtGui.QLabel(self.groupBox_2)
@@ -128,6 +131,9 @@ class Ui_MainWindow(object):
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName(_fromUtf8("statusbar"))
         MainWindow.setStatusBar(self.statusbar)
+        self.actionOpen = QtGui.QAction(MainWindow)
+        self.actionOpen.setObjectName(_fromUtf8("actionOpen"))
+        self.menuFile.addAction(self.actionOpen)
         self.menubar.addAction(self.menuFile.menuAction())
 
         self.retranslateUi(MainWindow)
@@ -150,5 +156,6 @@ class Ui_MainWindow(object):
         self.cb_add_implicit_ws.setText(QtGui.QApplication.translate("MainWindow", "Add implicit whitespaces to grammar", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), QtGui.QApplication.translate("MainWindow", "Grammars", None, QtGui.QApplication.UnicodeUTF8))
         self.menuFile.setTitle(QtGui.QApplication.translate("MainWindow", "File", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionOpen.setText(QtGui.QApplication.translate("MainWindow", "Open...", None, QtGui.QApplication.UnicodeUTF8))
 
 from nodeeditor import NodeEditor

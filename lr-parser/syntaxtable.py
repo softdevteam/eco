@@ -56,7 +56,7 @@ class SyntaxTable(object):
         for i in range(len(graph.state_sets)):
             # accept, reduce
             state_set = graph.get_state_set(i)
-            for state in state_set:
+            for state in state_set.elements:
                 if state.isfinal():
                     if state.p == start_production:
                         self.table[(i, FinishSymbol())] = Accept()
@@ -67,7 +67,7 @@ class SyntaxTable(object):
                             lookahead = symbols
                         for s in lookahead:
                             if self.table.has_key((i,s)):
-                                print("CONFLICT", (i,s))
+                                print("CONFLICT", (i,s), "before:", self.table[(i,s)], "now:", "Reduce(", state.p, ")")
                             self.table[(i, s)] = Reduce(state.p)
             # shift, goto
             for s in symbols:
@@ -78,7 +78,7 @@ class SyntaxTable(object):
                     if isinstance(s, Nonterminal):
                         action = Goto(dest)
                     if self.table.has_key((i,s)):
-                        print("CONFLICT", (i,s))
+                        print("CONFLICT", (i,s), "before:", self.table[(i,s)], "now:", action)
                     self.table[(i, s)] = action
 
     def lookup(self, state_id, symbol):

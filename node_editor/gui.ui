@@ -49,6 +49,11 @@
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
+             <property name="font">
+              <font>
+               <family>Monospace</family>
+              </font>
+             </property>
             </widget>
            </item>
            <item>
@@ -184,10 +189,16 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionOpen"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionOpen">
+   <property name="text">
+    <string>Open...</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>

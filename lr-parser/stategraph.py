@@ -42,7 +42,12 @@ class StateGraph(object):
         self.ids[closure] = 0
         _id = 0
         while _id < len(self.state_sets):
-            print(_id)
+            #print(_id)
+            if _id % 1000 == 0:
+                sys.stdout.write(".")
+            if _id % 10000 == 0:
+                sys.stdout.write("\n")
+            sys.stdout.flush()
             state_set = self.state_sets[_id]
             new_gotos = {}
             goto_start = time()
@@ -85,7 +90,7 @@ class StateGraph(object):
             _id += 1
             #print("elements", len(state_set.elements))
             #print("closure time", self.closure_time)
-            self.closure_time = 0
+            #self.closure_time = 0
         end = time()
         print("add time", self.add_time)
         print("closure time", self.closure_time)
@@ -93,6 +98,8 @@ class StateGraph(object):
         print("hashtime", StateSet._hashtime)
         print("addcount", self.addcount)
         print("Finished building Stategraph in ", end-start)
+        self.closure = None
+        self.goto = None
 
     def find_stateset_without_lookahead(self, state_set):
         for ss in self.state_sets:
@@ -125,14 +132,14 @@ class StateGraph(object):
         #if state_set not in self.state_sets: # slow
         add_start = time()
         _id = self.ids.get(state_set)
-        add_end = time()
-        self.add_time += add_end - add_start
-        if _id is None:
+        if _id is None: # new state
             self.addcount += 1
             self.state_sets.append(state_set)
             _id = len(self.state_sets)-1
             self.ids[state_set] = _id
         self.edges[(from_id, symbol)] = _id
+        add_end = time()
+        self.add_time += add_end - add_start
 
     def follow(self, from_id, symbol):
         try:
