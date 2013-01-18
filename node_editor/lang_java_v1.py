@@ -114,8 +114,8 @@ FieldDeclaration ::=
 	| MethodDeclaration
 	| ConstructorDeclaration
 	| StaticInitializer
-        | NonStaticInitializer
-        | TypeDeclaration
+    | NonStaticInitializer
+    | TypeDeclaration
 
 FieldVariableDeclaration ::=
 	  Modifiers TypeSpecifier VariableDeclarators
@@ -132,7 +132,7 @@ VariableDeclarator ::=
 VariableInitializer ::=
 	  Expression
 	| "{" "}"
-        | "{" ArrayInitializers "}"
+    | "{" ArrayInitializers "}"
 
 ArrayInitializers ::=
 	  VariableInitializer
@@ -156,11 +156,11 @@ ParameterList ::=
 
 Parameter ::=
 	  TypeSpecifier DeclaratorName
-        | "FINAL" TypeSpecifier DeclaratorName
+    | "FINAL" TypeSpecifier DeclaratorName
 
 DeclaratorName ::=
 	  "IDENTIFIER"
-        | DeclaratorName "OP_DIM"
+    | DeclaratorName "OP_DIM"
 
 Throws ::=
 	  "THROWS" ClassNameList
@@ -209,8 +209,8 @@ Statement ::=
 	  EmptyStatement
 	| LabelStatement
 	| ExpressionStatement ";"
-        | SelectionStatement
-        | IterationStatement
+    | SelectionStatement
+    | IterationStatement
 	| JumpStatement
 	| GuardingStatement
 	| Block
@@ -219,7 +219,7 @@ EmptyStatement ::= ";"
 
 LabelStatement ::=
 	  "IDENTIFIER" ":"
-        | "CASE" ConstantExpression ":"
+    | "CASE" ConstantExpression ":"
 	| "DEFAULT" ":"
 
 ExpressionStatement ::=
@@ -227,8 +227,8 @@ ExpressionStatement ::=
 
 SelectionStatement ::=
 	  "IF" "(" Expression ")" Statement
-        | "IF" "(" Expression ")" Statement "ELSE" Statement
-        | "SWITCH" "(" Expression ")" Block
+    | "IF" "(" Expression ")" Statement "ELSE" Statement
+    | "SWITCH" "(" Expression ")" Block
 
 IterationStatement ::=
 	  "WHILE" "(" Expression ")" Statement
@@ -308,9 +308,9 @@ ArrayAccess ::=
 FieldAccess ::=
 	  NotJustName "." "IDENTIFIER"
 	| RealPostfixExpression "." "IDENTIFIER"
-        | QualifiedName "." "THIS"
-        | QualifiedName "." "CLASS"
-        | PrimitiveType "." "CLASS"
+    | QualifiedName "." "THIS"
+    | QualifiedName "." "CLASS"
+    | PrimitiveType "." "CLASS"
 
 MethodCall ::=
 	  MethodAccess "(" ArgumentList ")"
@@ -428,12 +428,12 @@ RelationalExpression ::=
 
 EqualityExpression ::=
 	  RelationalExpression
-        | EqualityExpression "OP_EQ" RelationalExpression
-        | EqualityExpression "OP_NE" RelationalExpression
+    | EqualityExpression "OP_EQ" RelationalExpression
+    | EqualityExpression "OP_NE" RelationalExpression
 
 AndExpression ::=
 	  EqualityExpression
-        | AndExpression "&" EqualityExpression
+    | AndExpression "&" EqualityExpression
 
 ExclusiveOrExpression ::=
 	  AndExpression
@@ -523,7 +523,7 @@ ConstantExpression ::=
 "jnull":JNULL
 "new":NEW
 "instanceof":INSTANCEOF
-"^|\*":OP_DIM
+"\^|\*":OP_DIM
 "\+\+":OP_INC
 "\-\-":OP_DEC
 ";":;

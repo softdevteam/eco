@@ -8,6 +8,85 @@ class Language(object):
     def __str__(self):
         return self.name
 
+java_error = Language("Java Error",
+"""
+S ::= AssignmentExpression
+
+AssignmentExpression ::=
+	  MultiplicativeExpression ";"
+	| UnaryExpression "Z"
+
+MultiplicativeExpression ::=
+	  CastExpression
+
+CastExpression ::= UnaryExpression
+
+UnaryExpression ::=
+      "INC" UnaryExpression
+    | "DEC" UnaryExpression
+    | MethodCall
+
+MethodCall ::=
+	"IDENTIFIER" "(" ")"
+
+MethodAccess ::=
+	QualifiedName
+
+QualifiedName ::= "IDENTIFIER"
+
+AssignmentOperator ::= "&"
+
+"""
+,
+"""
+    "[a-z]+":IDENTIFIER
+    "\(":(
+    "\)":)
+    ";":;
+    "\&":&
+""")
+
+java_error_simplified = Language("Java Error (simplified)",
+"""
+Start ::= S
+
+S ::=
+	  X "x"
+	| Y "y"
+
+X ::=
+	  A
+
+A ::= Y
+
+Y ::=
+      "INC" Y
+    | B
+
+B ::= "b"
+
+"""
+,
+"""
+    "b":b
+    "x":x
+    "y":y
+""")
+
+super_simple = Language("Shifting optimisation",
+"""
+    S ::= X | Y
+    X ::= "x" B
+    Y ::= "y" B
+    B ::= "b"
+"""
+,
+"""
+    "x":x
+    "y":y
+    "b":b
+""")
+
 calc1 = Language("Basic calculator",
 """
     E ::= T
@@ -937,7 +1016,8 @@ V ::=
 """)
 from lang_java import java
 from lang_java_v1 import javav1
+from lang_java_extract import javav1_e
 
-languages = [calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, smalltalk_ebnf, lisp,
+languages = [java_error, java_error_simplified, super_simple, calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, smalltalk_ebnf, lisp,
              ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
-             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, pager]
+             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, pager]
