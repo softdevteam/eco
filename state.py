@@ -48,10 +48,10 @@ class StateSet(object):
         return symbols
 
     def __eq__(self, other):
-        temp = LR1Element.__eq__
-        LR1Element.__eq__ = LR1Element.equal_with_la
+        #temp = LR1Element.__eq__
+        #LR1Element.__eq__ = LR1Element.equal_with_la
         result = self.elements == other.elements
-        LR1Element.__eq__ = temp
+        #LR1Element.__eq__ = temp
         return result
         #return self.equals(other, True)
 

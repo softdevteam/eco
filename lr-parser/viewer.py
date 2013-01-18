@@ -73,6 +73,7 @@ class Viewer(object):
             if not whitespaces and c.symbol.name == "WS":
                 continue
             c_node = self.add_node_to_tree(c, graph, whitespaces)
+            c.seen += 1
             graph.add_edge(pydot.Edge(dotnode, c_node))
 
         return dotnode

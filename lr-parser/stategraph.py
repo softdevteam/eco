@@ -17,6 +17,7 @@ class StateGraph(object):
         self.state_sets = []
         self.edges = {}
         self.ids = {}
+        self.todo = []
 
         self.goto_time = 0
         self.add_time = 0
@@ -41,15 +42,10 @@ class StateGraph(object):
         self.state_sets.append(closure)
         self.ids[closure] = 0
         _id = 0
-        todo = []
-        todo.append(_id)
-        while _id < len(self.state_sets):
-            #print(_id)
-            if _id % 1000 == 0:
-                sys.stdout.write(".")
-            if _id % 10000 == 0:
-                sys.stdout.write("\n")
-            sys.stdout.flush()
+        self.todo.append(_id)
+        while self.todo:
+            _id = self.todo.pop()
+            print(_id)
             state_set = self.state_sets[_id]
             new_gotos = {}
             goto_start = time()
@@ -90,7 +86,6 @@ class StateGraph(object):
            #        self.add(_id, symbol, new_state_set)
            #        add_end = time()
            #        print("add time", add_end - add_start)
-            _id += 1
             #print("elements", len(state_set.elements))
             #print("closure time", self.closure_time)
             #self.closure_time = 0
@@ -140,14 +135,26 @@ class StateGraph(object):
     def add(self, from_id, symbol, state_set):
         merged = False
         for candidate in self.state_sets:
+            _id = self.ids[candidate]
             if self.weakly_compatible(state_set, candidate):
                 # merge them
-                changed = merge_lookahead(candidate, state_set)
+                merged = True
+                changed = self.merge_lookahead(candidate, state_set)
+                end = self.ids[candidate]
+                self.edges[(from_id, symbol)] = _id
                 if changed:
                     # move state to todo list
+                    self.todo.append(_id) #XXX only need to to that if this state is already done (moving not necessary if it hasn't been looked at anyway (e.g. state at the end of list)
+
         if not merged:
             # add normally and put on todo list
+            self.state_sets.append(state_set)
+            _id = len(self.state_sets)-1
+            self.edges[(from_id, symbol)] = _id
+            self.ids[state_set] = _id
+            self.todo.append(_id)
 
+    def oldadd(self, from_id, symbol, state_set):
         # LALR way
        #ss = self.find_stateset_without_lookahead(state_set)
        #if ss:
@@ -162,16 +169,17 @@ class StateGraph(object):
        #self.edges[(from_id, symbol)] = _id
 
         # normal LR(1) way
-       #add_start = time()
-       #_id = self.ids.get(state_set)
-       #if _id is None: # new state
-       #    self.addcount += 1
-       #    self.state_sets.append(state_set)
-       #    _id = len(self.state_sets)-1
-       #    self.ids[state_set] = _id
-       #self.edges[(from_id, symbol)] = _id
-       #add_end = time()
-       #self.add_time += add_end - add_start
+        add_start = time()
+        _id = self.ids.get(state_set)
+        if _id is None: # new state
+            self.addcount += 1
+            self.state_sets.append(state_set)
+            _id = len(self.state_sets)-1
+            self.ids[state_set] = _id
+            self.todo.append(_id)
+        self.edges[(from_id, symbol)] = _id
+        add_end = time()
+        self.add_time += add_end - add_start
 
     def follow(self, from_id, symbol):
         try:

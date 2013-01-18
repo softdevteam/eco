@@ -146,12 +146,16 @@ class NodeEditor(QTextEdit):
         lex = Lexer("".join(newtoken_text))
         regex_dict = {}
         i = 0
+        print("creating groups")
         for regex in self.getPL().rules.keys():
             regex_dict["Group_" + str(i)] = regex
+            print(i, regex)
             i += 1
         lex.set_regex(regex_dict)
+        print("check for valid lex")
         success = lex.lex()
         print(lex.tokens)
+        print("relexing done")
 
         # if relexing successfull, replace old tokens with new ones
         if success:
@@ -161,13 +165,14 @@ class NodeEditor(QTextEdit):
             for token in left_tokens:
                 token.parent.children.remove(token)
             for token in right_tokens:
-                token.parent.children.remove(token)
+                token.parent.children.remove(token) #XXX maybe invoke mark_changed here
             # create and insert new tokens
             lex.tokens.reverse()
             for token in lex.tokens:
                 node = self.create_new_node(token.value)
                 parent.insert_after_node(startnode, node)
             parent.children.remove(startnode)
+            parent.mark_changed() # XXX changed or not changed? if it fits this hasn't really changed. only the removed nodes have changed
         print("============== End Repair ================")
 
     def get_matching_tokens(self, startnode, regex_list, direction):
@@ -319,10 +324,10 @@ class Window(QtGui.QMainWindow):
         status = self.lrp.inc_parse()
         if status:
             self.ui.leParserStatus.setText("Accept")
+            image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node, whitespaces)
+            self.showImage(self.ui.graphicsView, image)
         else:
             self.ui.leParserStatus.setText("Error")
-        image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node, whitespaces)
-        self.showImage(self.ui.graphicsView, image)
 
     def showLookahead(self):
         la = self.lrp.get_next_symbols_string()
