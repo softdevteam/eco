@@ -165,6 +165,8 @@ class Helper(object):
         while 1:
             newelements = set()
             for state in temp:
+                if state.isfinal():
+                    continue
                 symbol = state.next_symbol()
                 if isinstance(symbol, Nonterminal):
                     f = set()
@@ -173,7 +175,6 @@ class Helper(object):
                         betaL.extend(state.remaining_symbols())
                         betaL.append(l)
                         f |= self.first(betaL)
-
                     alternatives = self.grammar[symbol].alternatives
                     for a in alternatives:
                         # create epsilon symbol if alternative is empty
@@ -194,7 +195,7 @@ class Helper(object):
                             else:
                                 la_dict[s] |= s.lookahead   # new lookahead
                         else:
-                            la_dict[s] = s.lookahead        # completely new
+                            la_dict[s] = set(s.lookahead)        # completely new
                         result.add(s)
                         newelements.add(s)
             temp = newelements
