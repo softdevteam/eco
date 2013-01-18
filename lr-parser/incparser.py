@@ -3,7 +3,12 @@ from __future__ import print_function
 import sys
 sys.path.append("../")
 
-import pickle, time
+try:
+    import cPickle as pickle
+except:
+    import pickle
+
+import time
 
 from gparser import Parser, Nonterminal, Terminal, Epsilon
 from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
@@ -26,6 +31,7 @@ class IncParser(object):
 
         filename = "".join([str(hash(grammar) ^ hash(whitespaces)), ".pcl"])
         try:
+            raise IOError
             print("Try to unpickle former stategraph")
             f = open(filename, "r")
             start = time.time()
@@ -53,6 +59,7 @@ class IncParser(object):
         self.all_changes = []
         self.undo = []
         self.last_shift_state = 0
+        self.validating = False
 
         self.previous_version = None
         print("Incemental parser done")
@@ -75,9 +82,9 @@ class IncParser(object):
         la = self.pop_lookahead(bos)
 
         while(True):
-            la.seen += 1
+            #la.seen += 1
             print("--------------------")
-            print("STACK:", self.stack)
+            #print("STACK:", self.stack)
             print("NODE:", la, "regex", la.regex, "lookup", la.lookup)
             print("CURRENT STATE", self.current_state)
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
@@ -172,11 +179,16 @@ class IncParser(object):
                         self.current_state = new_node.state
                     elif element is None:
                         print("ERROR")
-                        # undo all changes
-                        while len(self.undo) > 0:
-                            node, attribute, value = self.undo.pop(0)
-                            setattr(node, attribute, value)
-                        return False
+                        if self.validating:
+                            print("VALIDATING")
+                            self.right_breakdown()
+                            self.validating = False
+                        else:
+                            # undo all changes
+                            while len(self.undo) > 0:
+                                node, attribute, value = self.undo.pop(0)
+                                setattr(node, attribute, value)
+                            return False
             else: # Nonterminal
                 print("nonterminal")
                 if la.changed:#self.has_changed(la):
@@ -185,6 +197,35 @@ class IncParser(object):
                     la = self.left_breakdown(la)
                 else:
                     print("has not changed")
+                    # get first terminal in subtree (further opt: add this information to syntax table)
+                   #t = la.get_first_terminal()
+                   #if t:
+                   #    print(t)
+                   #    if t.lookup != "":
+                   #        lookup_symbol = Terminal(t.lookup)
+                   #    else:
+                   #        lookup_symbol = t.symbol
+                   #    element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
+                   #else:
+                   #    element = self.syntaxtable.lookup(self.current_state, la.symbol)
+                   #print(element)
+                   #follow_id = self.graph.follow(self.current_state, la.symbol)
+                   #if follow_id: # can we shift this Nonterminal in the current state?
+                   #    print("shift this shit")
+                   #    self.stack.append(la)
+                   #    self.current_state = follow_id
+                   #    #self.stack.append(la)
+                   #    #goto = self.syntaxtable.lookup(self.current_state, la.symbol)
+                   #    #self.current_state = goto.action
+                   #    la = self.pop_lookahead(la)
+                   #    self.validating = True
+                   #    continue
+                   #else:
+                   #    la = self.left_breakdown(la)
+                    #elif isinstance(element, Reduce):
+                    #    print("reduce this shit")
+                    #else:
+                    #    print("error?")
                     # perform reductions
                     #next_terminal = next(_inputiter)
                     #a = self.syntaxtable.lookup(self.current_state, next_terminal)
@@ -192,11 +233,20 @@ class IncParser(object):
                     #    print("REDUCE")
                         #perform
                     #    pass
+                    # perform all reductions
+                    t = la.next_terminal()
+                    if la.lookup != "":
+                        lookup_symbol = Terminal(t.lookup)
+                    else:
+                        lookup_symbol = t.symbol
+                    element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
+                    print("PERFORM ALL THE REDUCTIONS", element)
+
                     if self.shiftable(la):
                         print("SHIFTABLE")
                         self.shift(la)
                         self.right_breakdown()
-                        print("STACK after shift:", self.stack)
+                        #print("STACK after shift:", self.stack)
                         la = self.pop_lookahead(la)
                     else:
                         la = self.left_breakdown(la)
