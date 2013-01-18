@@ -202,6 +202,14 @@ class Node(object):
 
         return node
 
+    def get_first_terminal(self):
+        node = self
+        while isinstance(node.symbol, Nonterminal):
+            if node.children == []:
+                return node.next_terminal()
+            node = node.children[0]
+        return node
+
     def __repr__(self):
         return "Node(%s, %s, %s)" % (self.symbol, self.state, self.children)
 
