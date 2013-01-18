@@ -41,6 +41,8 @@ class StateGraph(object):
         self.state_sets.append(closure)
         self.ids[closure] = 0
         _id = 0
+        todo = []
+        todo.append(_id)
         while _id < len(self.state_sets):
             #print(_id)
             if _id % 1000 == 0:
@@ -56,6 +58,7 @@ class StateGraph(object):
                 symbol = lrelement.next_symbol()
                 if not symbol:
                     continue
+                #XXX optimisation: create all configurations before building
                 new_element = lrelement.clone()
                 new_element.d += 1
                 try:
@@ -101,22 +104,51 @@ class StateGraph(object):
         self.closure = None
         self.goto = None
 
+    def weakly_compatible(self, s1, s2):
+        core = s1.elements
+        if core != s2.elements:
+            return False
+        if len(core) == 1:
+            return True
+        core1 = list(core)
+        core2 = list(s2.elements)
+        for i in range(0, len(core)-1):
+            for j in range(i+1, len(core)):
+                if ((core1[i].lookahead & core2[j].lookahead or core1[j].lookahead & core2[i].lookahead)
+                    and not core1[i].lookahead & core1[j].lookahead
+                    and not core2[i].lookahead & core2[j].lookahead):
+                    return False
+        return True
+
     def find_stateset_without_lookahead(self, state_set):
         for ss in self.state_sets:
-            if state_set.equals(ss, False):
+            if state_set.equals(ss, True):
                 return ss
         return None
 
     def merge_lookahead(self, old, new):
-        for e1 in new:
-            for e2 in old:
-                if State.__eq__(e1, e2): # compare without lookahead
+        changed = False
+        for e1 in new.elements:
+            for e2 in old.elements:
+                if e1 == e2: # compare without lookahead
                     #print("merging", e1, "and", e2)
+                    if e1.lookahead - e2.lookahead:
+                        changed = True
                     e2.lookahead |= e1.lookahead
+        return changed
 
     def add(self, from_id, symbol, state_set):
-        #XXX lalr hack: merge states that only differ in there lookahead
+        merged = False
+        for candidate in self.state_sets:
+            if self.weakly_compatible(state_set, candidate):
+                # merge them
+                changed = merge_lookahead(candidate, state_set)
+                if changed:
+                    # move state to todo list
+        if not merged:
+            # add normally and put on todo list
 
+        # LALR way
        #ss = self.find_stateset_without_lookahead(state_set)
        #if ss:
        #    #print("found existing stateset -> merging")
@@ -129,17 +161,17 @@ class StateGraph(object):
        #    _id = len(self.state_sets)-1
        #self.edges[(from_id, symbol)] = _id
 
-        #if state_set not in self.state_sets: # slow
-        add_start = time()
-        _id = self.ids.get(state_set)
-        if _id is None: # new state
-            self.addcount += 1
-            self.state_sets.append(state_set)
-            _id = len(self.state_sets)-1
-            self.ids[state_set] = _id
-        self.edges[(from_id, symbol)] = _id
-        add_end = time()
-        self.add_time += add_end - add_start
+        # normal LR(1) way
+       #add_start = time()
+       #_id = self.ids.get(state_set)
+       #if _id is None: # new state
+       #    self.addcount += 1
+       #    self.state_sets.append(state_set)
+       #    _id = len(self.state_sets)-1
+       #    self.ids[state_set] = _id
+       #self.edges[(from_id, symbol)] = _id
+       #add_end = time()
+       #self.add_time += add_end - add_start
 
     def follow(self, from_id, symbol):
         try:
