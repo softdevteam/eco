@@ -42,17 +42,97 @@
             </widget>
            </item>
            <item>
-            <widget class="NodeEditor" name="textEdit">
+            <widget class="LanguageEditor" name="frame">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
-             <property name="font">
-              <font>
-               <family>Monospace</family>
-              </font>
+             <property name="minimumSize">
+              <size>
+               <width>100</width>
+               <height>100</height>
+              </size>
+             </property>
+             <property name="palette">
+              <palette>
+               <active>
+                <colorrole role="Base">
+                 <brush brushstyle="SolidPattern">
+                  <color alpha="255">
+                   <red>255</red>
+                   <green>255</green>
+                   <blue>255</blue>
+                  </color>
+                 </brush>
+                </colorrole>
+                <colorrole role="Window">
+                 <brush brushstyle="SolidPattern">
+                  <color alpha="255">
+                   <red>255</red>
+                   <green>255</green>
+                   <blue>255</blue>
+                  </color>
+                 </brush>
+                </colorrole>
+               </active>
+               <inactive>
+                <colorrole role="Base">
+                 <brush brushstyle="SolidPattern">
+                  <color alpha="255">
+                   <red>255</red>
+                   <green>255</green>
+                   <blue>255</blue>
+                  </color>
+                 </brush>
+                </colorrole>
+                <colorrole role="Window">
+                 <brush brushstyle="SolidPattern">
+                  <color alpha="255">
+                   <red>255</red>
+                   <green>255</green>
+                   <blue>255</blue>
+                  </color>
+                 </brush>
+                </colorrole>
+               </inactive>
+               <disabled>
+                <colorrole role="Base">
+                 <brush brushstyle="SolidPattern">
+                  <color alpha="255">
+                   <red>255</red>
+                   <green>255</green>
+                   <blue>255</blue>
+                  </color>
+                 </brush>
+                </colorrole>
+                <colorrole role="Window">
+                 <brush brushstyle="SolidPattern">
+                  <color alpha="255">
+                   <red>255</red>
+                   <green>255</green>
+                   <blue>255</blue>
+                  </color>
+                 </brush>
+                </colorrole>
+               </disabled>
+              </palette>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::WheelFocus</enum>
+             </property>
+             <property name="autoFillBackground">
+              <bool>true</bool>
+             </property>
+             <property name="frameShape">
+              <enum>QFrame::StyledPanel</enum>
+             </property>
+             <property name="frameShadow">
+              <enum>QFrame::Sunken</enum>
              </property>
             </widget>
            </item>
@@ -202,9 +282,10 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>NodeEditor</class>
-   <extends>QTextEdit</extends>
-   <header>nodeeditor</header>
+   <class>LanguageEditor</class>
+   <extends>QFrame</extends>
+   <header>qlanguageeditor</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

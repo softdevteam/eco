@@ -267,7 +267,7 @@ class Window(QtGui.QMainWindow):
         self.ui.tePriorities.document().setPlainText(priorities)
         self.connect(self.ui.btUpdate, SIGNAL("clicked()"), self.btUpdateGrammar)
 
-        self.connect(self.ui.cb_toggle_ws, SIGNAL("clicked()"), self.ui.textEdit.update_info)
+        #self.connect(self.ui.cb_toggle_ws, SIGNAL("clicked()"), self.ui.textEdit.update_info)
 
         self.btUpdateGrammar()
 
@@ -307,9 +307,10 @@ class Window(QtGui.QMainWindow):
         print("Creating Incremental Parser")
         self.lrp = IncParser(new_grammar, 1, whitespaces)
         self.lrp.init_ast()
+        self.ui.frame.set_lrparser(self.lrp)
         self.pl = PriorityLexer(new_priorities)
 
-        self.ui.textEdit.document().setPlainText("")
+        #self.ui.textEdit.document().setPlainText("")
         self.ui.graphicsView.setScene(QGraphicsScene())
 
         #img = Viewer("pydot").create_pydot_graph(self.lrp.graph)

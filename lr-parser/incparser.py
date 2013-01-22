@@ -31,7 +31,7 @@ class IncParser(object):
 
         filename = "".join([str(hash(grammar) ^ hash(whitespaces)), ".pcl"])
         try:
-            raise IOError
+            #raise IOError
             print("Try to unpickle former stategraph")
             f = open(filename, "r")
             start = time.time()

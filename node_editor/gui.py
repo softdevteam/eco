@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Fri Jan 11 15:18:29 2013
+# Created: Mon Jan 21 15:43:17 2013
 #      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -42,17 +42,40 @@ class Ui_MainWindow(object):
         self.label_3 = QtGui.QLabel(self.groupBox_2)
         self.label_3.setObjectName(_fromUtf8("label_3"))
         self.verticalLayout_3.addWidget(self.label_3)
-        self.textEdit = NodeEditor(self.groupBox_2)
+        self.frame = LanguageEditor(self.groupBox_2)
+        self.frame.setEnabled(True)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.textEdit.sizePolicy().hasHeightForWidth())
-        self.textEdit.setSizePolicy(sizePolicy)
-        font = QtGui.QFont()
-        font.setFamily(_fromUtf8("Monospace"))
-        self.textEdit.setFont(font)
-        self.textEdit.setObjectName(_fromUtf8("textEdit"))
-        self.verticalLayout_3.addWidget(self.textEdit)
+        sizePolicy.setHeightForWidth(self.frame.sizePolicy().hasHeightForWidth())
+        self.frame.setSizePolicy(sizePolicy)
+        self.frame.setMinimumSize(QtCore.QSize(100, 100))
+        palette = QtGui.QPalette()
+        brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
+        brush.setStyle(QtCore.Qt.SolidPattern)
+        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Base, brush)
+        brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
+        brush.setStyle(QtCore.Qt.SolidPattern)
+        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Window, brush)
+        brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
+        brush.setStyle(QtCore.Qt.SolidPattern)
+        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Base, brush)
+        brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
+        brush.setStyle(QtCore.Qt.SolidPattern)
+        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Window, brush)
+        brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
+        brush.setStyle(QtCore.Qt.SolidPattern)
+        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Base, brush)
+        brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
+        brush.setStyle(QtCore.Qt.SolidPattern)
+        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Window, brush)
+        self.frame.setPalette(palette)
+        self.frame.setFocusPolicy(QtCore.Qt.WheelFocus)
+        self.frame.setAutoFillBackground(True)
+        self.frame.setFrameShape(QtGui.QFrame.StyledPanel)
+        self.frame.setFrameShadow(QtGui.QFrame.Sunken)
+        self.frame.setObjectName(_fromUtf8("frame"))
+        self.verticalLayout_3.addWidget(self.frame)
         self.label = QtGui.QLabel(self.groupBox_2)
         self.label.setObjectName(_fromUtf8("label"))
         self.verticalLayout_3.addWidget(self.label)
@@ -158,4 +181,4 @@ class Ui_MainWindow(object):
         self.menuFile.setTitle(QtGui.QApplication.translate("MainWindow", "File", None, QtGui.QApplication.UnicodeUTF8))
         self.actionOpen.setText(QtGui.QApplication.translate("MainWindow", "Open...", None, QtGui.QApplication.UnicodeUTF8))
 
-from nodeeditor import NodeEditor
+from qlanguageeditor import LanguageEditor
