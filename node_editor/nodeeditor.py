@@ -4,9 +4,11 @@ import sys
 sys.path.append("../")
 sys.path.append("../lr-parser/")
 
+from PyQt4 import QtCore
 from PyQt4.QtCore import *
 from PyQt4 import QtGui
 from PyQt4.QtGui import *
+
 
 from gui import Ui_MainWindow
 
@@ -44,40 +46,92 @@ priorities = """
     "a":a
 """
 
-class NodeEditor(QTextEdit):
+class NodeEditor(QFrame):
 
-    def __init__(self, text=None):
-        QTextEdit.__init__(self, text)
+    # ========================== init stuff ========================== #
+
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+
+        self.font = QtGui.QFont('Courier', 9)
+        self.fontm = QtGui.QFontMetrics(self.font)
+        self.fontht = self.fontm.height()
+        self.fontwt = self.fontm.width(" ")
+        self.cursor = [0,0]
+
+        # make cursor blink
+        self.show_cursor = 1
+        self.ctimer = QtCore.QTimer()
+        #QtCore.QObject.connect(self.ctimer, QtCore.SIGNAL("timeout()"), self.blink)
+        self.ctimer.start(500)
+
+        self.position = 0
+
+    def set_lrparser(self, lrp):
+        self.lrp = lrp
+        self.ast = lrp.previous_version
+
+    # ========================== GUI related stuff ========================== #
+
+    def blink(self):
+        if self.show_cursor:
+            self.show_cursor = 0
+        else:
+            self.show_cursor = 1
+        self.update()
+
+    def paintEvent(self, event):
+        QtGui.QFrame.paintEvent(self, event)
+        paint = QtGui.QPainter()
+        paint.begin(self)
+        paint.setFont(self.font)
+
+        y = 1 + self.fontht
+        x = 3
+
+        node = self.ast.parent.children[0].next_terminal()
+        while node and not isinstance(node, EOS):
+            if node.text == "\n":
+                y += self.fontht
+                x = 3
+            else:
+                paint.drawText(QtCore.QPointF(x, y), node.symbol.name)
+                x += self.fontm.width(node.symbol.name)
+            node = node.next_terminal()
+
+        if self.hasFocus() and self.show_cursor:
+            #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
+            paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, 1, self.fontht)
+
+        paint.end()
+
 
     def keyPressEvent(self, e):
         print("====================== KEYPRESS (>>%s<<) ============================" % (e.text(),))
-        lrp = self.getLRP()
-        if self.document().isEmpty():
-            lrp.init_ast()
 
         selected_nodes = self.getNodesAtPosition()
         print("Selected Nodes:", selected_nodes)
 
-        QTextEdit.keyPressEvent(self, e)
-
-        cursor = self.textCursor()
-        pos = cursor.position()
-
         text = e.text()
 
-        if text != "":
+        if e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
+            self.cursor_movement(e.key())
+        elif text != "":
             if e.key() in [Qt.Key_Delete, Qt.Key_Backspace]:
+                if e.key() == Qt.Key_Backspace:
+                    if self.cursor[0] > 0:
+                        self.cursor[0] -= 1
                 if selected_nodes[1] is None:   # inside node
-                    selected_nodes[0].backspace(pos)
+                    selected_nodes[0].backspace(self.cursor[0])
                     repairnode = selected_nodes[0]
                 else: # between two nodes
                     if e.key() == Qt.Key_Delete: # delete
                         node = selected_nodes[1]
                         other = selected_nodes[0]
-                    else:
+                    else: # backspace
                         node = selected_nodes[0]
                         other = selected_nodes[1]
-                    node.backspace(pos)
+                    node.backspace(self.cursor[0])
                     if not node.deleted:
                         repairnode = node
                     else:
@@ -91,7 +145,7 @@ class NodeEditor(QTextEdit):
                 if selected_nodes[1] is None:
                     node = selected_nodes[0]
                     # split, insert new node, repair
-                    internal_position = pos - node.position - 1
+                    internal_position = self.cursor[0] - node.position - 1
                     node2 = self.create_new_node(str(text))
                     node3 = self.create_new_node(node.symbol.name[internal_position:])
                     node.symbol.name = node.symbol.name[:internal_position]
@@ -104,18 +158,40 @@ class NodeEditor(QTextEdit):
                     node = selected_nodes[0]
                     node.parent.insert_after_node(node, newnode)
                     repairnode = newnode
+                self.cursor[0] += 1
             self.repair(repairnode)
+            self.update()
 
         selected_nodes = self.getNodesAtPosition() # needed for coloring selected nodes
         self.getWindow().btReparse(selected_nodes)
 
         self.getWindow().showLookahead()
 
+    def cursor_movement(self, key):
+        if key == QtCore.Qt.Key_Up:
+            if self.cursor[1] > 0:
+                self.position -= 1
+                self.cursor[1] -= 1
+        elif key == QtCore.Qt.Key_Down:
+            if self.cursor[1] < 9: #XXX max lines
+                self.cursor[1] += 1
+        elif key == QtCore.Qt.Key_Left:
+            if self.cursor[0] > 0:
+                self.cursor[0] -= 1
+        elif key == QtCore.Qt.Key_Right:
+            if self.cursor[0] < 100: #XXX: len of line
+                self.cursor[0] += 1
+        self.update()
+
     def update_info(self):
         selected_nodes = self.getNodesAtPosition() # needed for coloring selected nodes
         self.getWindow().btReparse(selected_nodes)
 
+    # ========================== AST modification stuff ========================== #
+
     def repair(self, startnode):
+        if isinstance(startnode, BOS):
+            return
         print("========== Starting Repair procedure ==========")
         print("Startnode", startnode)
         regex_list = []
@@ -238,10 +314,7 @@ class NodeEditor(QTextEdit):
         return node
 
     def getNodesAtPosition(self):
-        pl = self.getPL()
-        cursor_pos = self.textCursor().position()
-        ast = self.getLRP().previous_version
-        nodes = ast.get_nodes_at_position(cursor_pos)
+        nodes = self.ast.get_nodes_at_position(self.cursor[0])
         return nodes
 
     def getPL(self):

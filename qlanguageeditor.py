@@ -2,6 +2,9 @@ import sys
 from PyQt4 import QtGui
 from PyQt4 import QtCore
 
+from gparser import Terminal
+from astree import EOS, TextNode
+
 class LanguageEditor(QtGui.QFrame):
 
     def __init__(self, parent=None):
@@ -20,26 +23,34 @@ class LanguageEditor(QtGui.QFrame):
         QtCore.QObject.connect(self.ctimer, QtCore.SIGNAL("timeout()"), self.blink)
         self.ctimer.start(500)
 
+        self.position = 0
+
     def set_lrparser(self, lrp):
         self.lrp = lrp
+        self.ast = lrp.previous_version
 
     def paintEvent(self, event):
         QtGui.QFrame.paintEvent(self, event)
         paint = QtGui.QPainter()
         paint.begin(self)
         paint.setFont(self.font)
+
         y = 1 + self.fontht
         x = 3
-        for token in self.lrinput.content:
-            if token.text == "\n":
+
+        node = self.ast.parent.children[0].next_terminal()
+        while node and not isinstance(node, EOS):
+            if node.text == "\n":
                 y += self.fontht
                 x = 3
             else:
-                paint.drawText(QtCore.QPointF(x, y), token.text)
-                x += self.fontm.width(token.text)
+                paint.drawText(QtCore.QPointF(x, y), node.symbol.name)
+                x += self.fontm.width(node.symbol.name)
+            node = node.next_terminal()
 
         if self.hasFocus() and self.show_cursor:
-            paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
+            #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
+            paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, 1, self.fontht)
 
         paint.end()
 
@@ -48,8 +59,11 @@ class LanguageEditor(QtGui.QFrame):
 
     def keyPressEvent(self, e):
 
+        selected_nodes = self.find_nodes_at_cursor()
+
         if e.key() == QtCore.Qt.Key_Up:
             if self.cursor[1] > 0:
+                self.position -= 1
                 self.cursor[1] -= 1
         elif e.key() == QtCore.Qt.Key_Down:
             if self.cursor[1] < 9: #XXX max lines
@@ -73,11 +87,14 @@ class LanguageEditor(QtGui.QFrame):
         elif e.text() == "":
             return
         else:
-            element, internalpos = self.find_token_at_cursor()
-            element.insert(e.text(), internalpos)
+            newnode = TextNode(Terminal(str(e.text())), 0, [])
+            selected_nodes[0].parent.insert_after_node(selected_nodes[0], newnode)
             self.cursor[0] += 1
 
         self.update()
+
+    def find_nodes_at_cursor(self):
+        return self.ast.get_nodes_at_position(self.cursor[0])
 
     def find_token_at_cursor(self):
         #XXX: to avoid to search the token at the cursor position, always keep the current selected token in memory

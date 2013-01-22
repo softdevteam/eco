@@ -42,7 +42,7 @@
             </widget>
            </item>
            <item>
-            <widget class="LanguageEditor" name="frame">
+            <widget class="NodeEditor" name="frame">
              <property name="enabled">
               <bool>true</bool>
              </property>
@@ -282,9 +282,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>LanguageEditor</class>
+   <class>NodeEditor</class>
    <extends>QFrame</extends>
-   <header>qlanguageeditor</header>
+   <header>nodeeditor</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
