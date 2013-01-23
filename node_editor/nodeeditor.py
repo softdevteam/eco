@@ -70,8 +70,6 @@ class NodeEditor(QFrame):
         self.node_map = {}
         self.max_cols = []
 
-        self.key_in_progress = 0
-
     def reset(self):
         self.max_cols = []
         self.node_map = {}
@@ -153,10 +151,6 @@ class NodeEditor(QFrame):
 
     def keyPressEvent(self, e):
         print("====================== KEYPRESS (>>%s<<) ============================" % (repr(e.text()),))
-        if self.key_in_progress == 1: # typed to fast
-            print("tryping too fast")
-            return
-        self.key_in_progress = 1
 
         # Look up node in position map (if there is no direct match, i.e. inbetween node, try to find end of node)
         node_at_pos = None
@@ -240,8 +234,6 @@ class NodeEditor(QFrame):
         self.getWindow().showLookahead()
         self.update()
 
-        self.key_in_progress = 0
-
     def cursor_movement(self, key):
         if key == QtCore.Qt.Key_Up:
             if self.cursor[1] > 0:
@@ -318,10 +310,10 @@ class NodeEditor(QFrame):
             # XXX this removes the first appearance of that token (which isn't always the one relexed)
             for token in left_tokens:
                 print("left remove", token)
-                token.parent.children.remove(token)
+                token.parent.remove_child(token)
             for token in right_tokens:
                 print("right remove", token)
-                token.parent.children.remove(token) #XXX maybe invoke mark_changed here
+                token.parent.remove_child(token) #XXX maybe invoke mark_changed here
             # create and insert new tokens
             print("parent children before", parent.children)
             lex.tokens.reverse()
@@ -482,8 +474,8 @@ class Window(QtGui.QMainWindow):
             self.ui.leParserStatus.setText("Accept")
         else:
             self.ui.leParserStatus.setText("Error")
-        image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node, whitespaces)
-        self.showImage(self.ui.graphicsView, image)
+        #image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node, whitespaces)
+        #self.showImage(self.ui.graphicsView, image)
 
     def showLookahead(self):
         la = self.lrp.get_next_symbols_string()

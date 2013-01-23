@@ -33,7 +33,7 @@ class Symbol(object):
 
 class Terminal(Symbol):
     def __repr__(self):
-        return "Terminal('%s')" % (self.name,)
+        return "Terminal('%s')" % (repr(self.name),)
 
 class Nonterminal(Symbol):
     def __repr__(self):
@@ -91,7 +91,8 @@ class Parser(object):
         if self.whitespaces:
             ws_rule = Rule()
             ws_rule.symbol = Nonterminal("WS")
-            ws_rule.add_alternative([Terminal("_")])
+            ws_rule.add_alternative([Terminal("<ws>"), Nonterminal("WS")])
+            ws_rule.add_alternative([Terminal("<return>"), Nonterminal("WS")])
             ws_rule.add_alternative([]) # or empty
             self.rules[ws_rule.symbol] = ws_rule
 

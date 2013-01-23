@@ -560,6 +560,7 @@ ConstantExpression ::=
 "\^=":ASS_XOR
 "\|=":ASS_OR
 "[a-zA-Z]+":IDENTIFIER
-"[ \\n\\t\\r]+":_
+"[ \\t]+":<ws>
+"[\\n\\r]":<return>
 """
 )
