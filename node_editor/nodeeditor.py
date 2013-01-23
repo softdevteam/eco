@@ -67,6 +67,17 @@ class NodeEditor(QFrame):
 
         self.position = 0
 
+        self.node_map = {}
+        self.max_cols = []
+
+        self.key_in_progress = 0
+
+    def reset(self):
+        self.max_cols = []
+        self.node_map = {}
+        self.cursor = [0,0]
+        self.update()
+
     def set_lrparser(self, lrp):
         self.lrp = lrp
         self.ast = lrp.previous_version
@@ -81,35 +92,87 @@ class NodeEditor(QFrame):
         self.update()
 
     def paintEvent(self, event):
+        print("============= Painting ================== ")
         QtGui.QFrame.paintEvent(self, event)
         paint = QtGui.QPainter()
         paint.begin(self)
         paint.setFont(self.font)
 
-        y = 1 + self.fontht
-        x = 3
+        y = 0
+        x = 0
 
-        node = self.ast.parent.children[0].next_terminal()
+        bos = self.ast.parent.children[0]
+        self.node_map.clear()
+        self.node_map[(x,y)] = bos
+        self.max_cols = []
+
+        node = bos.next_terminal()
         while node and not isinstance(node, EOS):
-            if node.text == "\n":
-                y += self.fontht
-                x = 3
+            if node.symbol.name in ["\n", "\r"]:
+                print("new line")
+                self.max_cols.append(x)
+                y += 1
+                x = 0
             else:
-                paint.drawText(QtCore.QPointF(x, y), node.symbol.name)
-                x += self.fontm.width(node.symbol.name)
+                paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), node.symbol.name)
+                x += len(node.symbol.name)
+            self.node_map[(x,y)] = node
+
             node = node.next_terminal()
+        self.max_cols.append(x) # last line
 
         if self.hasFocus() and self.show_cursor:
             #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
             paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, 1, self.fontht)
 
+        print(self.max_cols)
         paint.end()
 
+    def recalculate_positions(self): # without painting
+        print("============ Recalculate positions =========== ")
+        y = 0
+        x = 0
+
+        bos = self.ast.parent.children[0]
+        self.node_map.clear()
+        self.node_map[(x,y)] = bos
+        self.max_cols = []
+
+        node = bos.next_terminal()
+        while node and not isinstance(node, EOS):
+            if node.symbol.name in ["\n", "\r"]:
+                self.max_cols.append(x)
+                y += 1
+                x = 0
+            else:
+                x += len(node.symbol.name)
+            self.node_map[(x,y)] = node
+
+            node = node.next_terminal()
+        self.max_cols.append(x) # last line
 
     def keyPressEvent(self, e):
-        print("====================== KEYPRESS (>>%s<<) ============================" % (e.text(),))
+        print("====================== KEYPRESS (>>%s<<) ============================" % (repr(e.text()),))
+        if self.key_in_progress == 1: # typed to fast
+            print("tryping too fast")
+            return
+        self.key_in_progress = 1
 
-        selected_nodes = self.getNodesAtPosition()
+        # Look up node in position map (if there is no direct match, i.e. inbetween node, try to find end of node)
+        node_at_pos = None
+        x = self.cursor[0]
+        y = self.cursor[1]
+        inbetween = False
+        while not node_at_pos:
+            try:
+                node_at_pos = self.node_map[(x, y)]
+                break
+            except KeyError:
+                x += 1
+                inbetween = True
+        print(self.node_map)
+        print("node at pos:", node_at_pos)
+        selected_nodes = [node_at_pos, node_at_pos.next_terminal()]
         print("Selected Nodes:", selected_nodes)
 
         text = e.text()
@@ -142,13 +205,18 @@ class NodeEditor(QFrame):
                         else:
                             repairnode = other
             else:
-                if selected_nodes[1] is None:
+                #if selected_nodes[1] is None:
+                if inbetween:
+                    print("BETWEEN")
                     node = selected_nodes[0]
                     # split, insert new node, repair
-                    internal_position = self.cursor[0] - node.position - 1
+                    internal_position = len(node.symbol.name) - (x - self.cursor[0])
                     node2 = self.create_new_node(str(text))
                     node3 = self.create_new_node(node.symbol.name[internal_position:])
                     node.symbol.name = node.symbol.name[:internal_position]
+                    print("node1", node)
+                    print("node2", node2)
+                    print("node3", node3)
                     node.parent.insert_after_node(node, node2)
                     node.parent.insert_after_node(node2, node3)
                     repairnode = node2
@@ -158,30 +226,39 @@ class NodeEditor(QFrame):
                     node = selected_nodes[0]
                     node.parent.insert_after_node(node, newnode)
                     repairnode = newnode
-                self.cursor[0] += 1
+                if e.key() == Qt.Key_Return:
+                    self.cursor[0] = 0
+                    self.cursor[1] += 1
+                else:
+                    self.cursor[0] += 1
             self.repair(repairnode)
-            self.update()
 
+        self.recalculate_positions() # XXX ensures that positions are up to date before next keypress is called
         selected_nodes = self.getNodesAtPosition() # needed for coloring selected nodes
-        self.getWindow().btReparse(selected_nodes)
+        self.getWindow().btReparse(selected_nodes) # XXX uses old, slower method
 
         self.getWindow().showLookahead()
+        self.update()
+
+        self.key_in_progress = 0
 
     def cursor_movement(self, key):
         if key == QtCore.Qt.Key_Up:
             if self.cursor[1] > 0:
-                self.position -= 1
                 self.cursor[1] -= 1
+                if self.cursor[0] > self.max_cols[self.cursor[1]]:
+                    self.cursor[0] = self.max_cols[self.cursor[1]]
         elif key == QtCore.Qt.Key_Down:
-            if self.cursor[1] < 9: #XXX max lines
+            if self.cursor[1] < len(self.max_cols)-1:
                 self.cursor[1] += 1
+                if self.cursor[0] > self.max_cols[self.cursor[1]]:
+                    self.cursor[0] = self.max_cols[self.cursor[1]]
         elif key == QtCore.Qt.Key_Left:
             if self.cursor[0] > 0:
                 self.cursor[0] -= 1
         elif key == QtCore.Qt.Key_Right:
-            if self.cursor[0] < 100: #XXX: len of line
+            if self.cursor[0] < self.max_cols[self.cursor[1]]:
                 self.cursor[0] += 1
-        self.update()
 
     def update_info(self):
         selected_nodes = self.getNodesAtPosition() # needed for coloring selected nodes
@@ -235,19 +312,24 @@ class NodeEditor(QFrame):
 
         # if relexing successfull, replace old tokens with new ones
         if success:
+            print("success", success)
             parent = startnode.parent
             # remove old tokens
             # XXX this removes the first appearance of that token (which isn't always the one relexed)
             for token in left_tokens:
+                print("left remove", token)
                 token.parent.children.remove(token)
             for token in right_tokens:
+                print("right remove", token)
                 token.parent.children.remove(token) #XXX maybe invoke mark_changed here
             # create and insert new tokens
+            print("parent children before", parent.children)
             lex.tokens.reverse()
             for token in lex.tokens:
                 node = self.create_new_node(token.value)
                 parent.insert_after_node(startnode, node)
-            parent.children.remove(startnode)
+            parent.remove_child(startnode)
+            print("parent children after", parent.children)
             parent.mark_changed() # XXX changed or not changed? if it fits this hasn't really changed. only the removed nodes have changed
         print("============== End Repair ================")
 
@@ -383,7 +465,7 @@ class Window(QtGui.QMainWindow):
         self.ui.frame.set_lrparser(self.lrp)
         self.pl = PriorityLexer(new_priorities)
 
-        #self.ui.textEdit.document().setPlainText("")
+        self.ui.frame.reset()
         self.ui.graphicsView.setScene(QGraphicsScene())
 
         #img = Viewer("pydot").create_pydot_graph(self.lrp.graph)
@@ -398,10 +480,10 @@ class Window(QtGui.QMainWindow):
         status = self.lrp.inc_parse()
         if status:
             self.ui.leParserStatus.setText("Accept")
-            image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node, whitespaces)
-            self.showImage(self.ui.graphicsView, image)
         else:
             self.ui.leParserStatus.setText("Error")
+        image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node, whitespaces)
+        self.showImage(self.ui.graphicsView, image)
 
     def showLookahead(self):
         la = self.lrp.get_next_symbols_string()

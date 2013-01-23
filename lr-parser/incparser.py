@@ -209,6 +209,8 @@ class IncParser(object):
                    #else:
                    #    element = self.syntaxtable.lookup(self.current_state, la.symbol)
                    #print(element)
+                   # THIS IS THE RIGHT STUFF
+                   # ------
                    #follow_id = self.graph.follow(self.current_state, la.symbol)
                    #if follow_id: # can we shift this Nonterminal in the current state?
                    #    print("shift this shit")
@@ -222,6 +224,7 @@ class IncParser(object):
                    #    continue
                    #else:
                    #    la = self.left_breakdown(la)
+                   # -------
                     #elif isinstance(element, Reduce):
                     #    print("reduce this shit")
                     #else:

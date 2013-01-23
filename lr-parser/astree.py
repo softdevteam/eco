@@ -119,6 +119,12 @@ class Node(object):
         for c in self.children:
             c.parent = self
 
+    def remove_child(self, child):
+        for i in xrange(len(self.children)):
+            if self.children[i] is child:
+                self.children.pop(i)
+                return
+
     def replace_children(self, la, children):
         i = 0
         children.reverse()
