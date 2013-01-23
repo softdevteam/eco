@@ -199,7 +199,7 @@
       </widget>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
-        <number>2</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="tab">
         <attribute name="title">
@@ -213,6 +213,16 @@
           <widget class="QCheckBox" name="cb_toggle_ws">
            <property name="text">
             <string>Show whitespace nodes</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QCheckBox" name="cb_toggle_ast">
+           <property name="text">
+            <string>Show AST</string>
            </property>
            <property name="checked">
             <bool>true</bool>

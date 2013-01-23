@@ -414,7 +414,8 @@ class Window(QtGui.QMainWindow):
         self.ui.tePriorities.document().setPlainText(priorities)
         self.connect(self.ui.btUpdate, SIGNAL("clicked()"), self.btUpdateGrammar)
 
-        #self.connect(self.ui.cb_toggle_ws, SIGNAL("clicked()"), self.ui.textEdit.update_info)
+        self.connect(self.ui.cb_toggle_ws, SIGNAL("clicked()"), self.btRefresh)
+        self.connect(self.ui.cb_toggle_ast, SIGNAL("clicked()"), self.btRefresh)
 
         self.btUpdateGrammar()
 
@@ -464,7 +465,8 @@ class Window(QtGui.QMainWindow):
         #self.showImage(self.ui.gvStategraph, img)
 
     def btRefresh(self):
-        image = Viewer().get_tree_image(self.lrp.previous_version.parent, whitespaces)
+        whitespaces = self.ui.cb_toggle_ws.isChecked()
+        image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, [], whitespaces)
         self.showImage(self.ui.graphicsView, image)
 
     def btReparse(self, selected_node):
@@ -474,8 +476,9 @@ class Window(QtGui.QMainWindow):
             self.ui.leParserStatus.setText("Accept")
         else:
             self.ui.leParserStatus.setText("Error")
-        #image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node, whitespaces)
-        #self.showImage(self.ui.graphicsView, image)
+        if self.ui.cb_toggle_ast.isChecked():
+            image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node, whitespaces)
+            self.showImage(self.ui.graphicsView, image)
 
     def showLookahead(self):
         la = self.lrp.get_next_symbols_string()
