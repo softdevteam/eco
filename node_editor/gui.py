@@ -143,7 +143,7 @@ class Ui_MainWindow(object):
         self.listWidget.setObjectName(_fromUtf8("listWidget"))
         self.verticalLayout_4.addWidget(self.listWidget)
         self.cb_add_implicit_ws = QtGui.QCheckBox(self.tab_3)
-        self.cb_add_implicit_ws.setChecked(False)
+        self.cb_add_implicit_ws.setChecked(True)
         self.cb_add_implicit_ws.setObjectName(_fromUtf8("cb_add_implicit_ws"))
         self.verticalLayout_4.addWidget(self.cb_add_implicit_ws)
         self.tabWidget.addTab(self.tab_3, _fromUtf8(""))
