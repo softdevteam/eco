@@ -197,6 +197,7 @@ class Node(object):
         node = self
         while node.left_sibling() is None:
             node = node.parent
+            print(node)
 
         node = node.left_sibling()
 
@@ -302,10 +303,12 @@ class TextNode(Node):
             #    right.mark_changed()
             #    right.parent.children.remove(right)
             #print("Merge", left, right)
-            if isinstance(self.symbol, Terminal):
-                self.mark_changed()
-                self.parent.children.remove(self)
-                self.deleted = True
+            # don't delete right now since we need to find repairnodes first
+            #if isinstance(self.symbol, Terminal):
+            #    self.mark_changed()
+            #    self.parent.children.remove(self)
+            #    self.deleted = True
+            self.change_text("")
         else:
             internal_pos = pos - self.position
             l.pop(internal_pos)

@@ -178,7 +178,7 @@ class NodeEditor(QFrame):
                 if e.key() == Qt.Key_Backspace:
                     if self.cursor[0] > 0:
                         self.cursor[0] -= 1
-                if selected_nodes[1] is None:   # inside node
+                if inbetween:   # inside node
                     selected_nodes[0].backspace(self.cursor[0])
                     repairnode = selected_nodes[0]
                 else: # between two nodes
@@ -189,15 +189,17 @@ class NodeEditor(QFrame):
                         node = selected_nodes[0]
                         other = selected_nodes[1]
                     node.backspace(self.cursor[0])
-                    if not node.deleted:
-                        repairnode = node
-                    else:
+                    if node.symbol.name == "": # if node is empty, delete it and repair previous/next node
                         if isinstance(other, BOS):
                             repairnode = node.next_terminal()
                         elif isinstance(other, EOS):
                             repairnode = node.previous_terminal()
                         else:
                             repairnode = other
+                        node.parent.children.remove(node)
+
+                    else:
+                        repairnode = node
             else:
                 #if selected_nodes[1] is None:
                 if inbetween:
