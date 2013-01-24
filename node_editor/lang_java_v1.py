@@ -148,7 +148,7 @@ MethodDeclaration ::=
 MethodDeclarator ::=
 	  DeclaratorName "(" ParameterList ")"
 	| DeclaratorName "(" ")"
-	| MethodDeclarator "OP_DIM"
+	| MethodDeclarator "[" "]"
 
 ParameterList ::=
 	  Parameter
@@ -160,7 +160,7 @@ Parameter ::=
 
 DeclaratorName ::=
 	  "IDENTIFIER"
-    | DeclaratorName "OP_DIM"
+    | DeclaratorName "[" "]"
 
 Throws ::=
 	  "THROWS" ClassNameList
@@ -359,8 +359,8 @@ DimExpr ::=
 	  "[" Expression "]"
 
 Dims ::=
-	  "OP_DIM"
-	| Dims "OP_DIM"
+	  "[" "]"
+	| Dims "[" "]"
 
 PostfixExpression ::=
 	  PrimaryExpression
@@ -523,7 +523,6 @@ ConstantExpression ::=
 "jnull":JNULL
 "new":NEW
 "instanceof":INSTANCEOF
-"\^|\*":OP_DIM
 "\+\+":OP_INC
 "\-\-":OP_DEC
 ";":;
