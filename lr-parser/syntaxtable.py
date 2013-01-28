@@ -80,6 +80,7 @@ class SyntaxTable(object):
                     if self.table.has_key((i,s)):
                         print("CONFLICT", (i,s), "before:", self.table[(i,s)], "now:", action)
                     self.table[(i, s)] = action
+        print("syntaxtable done")
 
     def lookup(self, state_id, symbol):
         try:

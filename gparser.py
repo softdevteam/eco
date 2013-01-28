@@ -80,7 +80,6 @@ class Parser(object):
         while self.curtok < len(self.lexer.tokens):
             rule = self.parse_rule()
 
-            print("parsed rule", rule.symbol)
             if not self.start_symbol:
                 self.start_symbol = rule.symbol
 
@@ -114,7 +113,7 @@ class Parser(object):
                         newrule = Rule()
                         newrule.symbol = loop_symbol
                         newrule.add_alternative(s.children + [loop_symbol]) # A_loop ::= b A_loop
-                        newrule.add_alternative(remaining_tokens)           #          | c
+                        newrule.add_alternative(remaining_tokens)           #          | c (or epsilon)
                         new_rules.append(newrule)
                     if s.name == "option":
                         # Example: A ::= a [b] c

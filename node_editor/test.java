@@ -1,8 +1,8 @@
 class Empty{
     public int x = 15;
-    private String[] list;
+    private String list[];
 
-    public static void method(int *args){
+    public static void method(int args){
         nothing();
     }
 
