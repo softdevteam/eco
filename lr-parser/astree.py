@@ -311,12 +311,12 @@ class TextNode(Node):
             self.change_text("")
         else:
             internal_pos = pos - self.position
-            l.pop(internal_pos)
+            l.pop(pos)
             print(l)
             self.change_text("".join(l))
 
     def __repr__(self):
-        return "%s(%s, %s, %s, %s)" % (self.__class__.__name__, self.symbol, self.state, self.children, self.pos)
+        return "%s(%s, %s, %s, %s)" % (self.__class__.__name__, self.symbol, self.state, self.children, self.lookup)
 
 class SpecialTextNode(TextNode):
     def backspace(self, pos):
