@@ -760,8 +760,7 @@ conditional_or_expression ::=
 
 conditional_expression ::=
         conditional_or_expression
-    |    conditional_or_expression "QUESTION" expression 
-            "COLON" conditional_expression
+    |    conditional_or_expression "QUESTION" expression "COLON" conditional_expression
 
 assignment_expression ::=
         conditional_expression
@@ -949,7 +948,6 @@ expression_nn ::=    assignment_expression_nn
 "double":DOUBLE
 "\[":LBRACK
 "\]":RBRACK
-"[a-zA-Z]+":IDENTIFIER
 "\.":DOT
 ";":SEMICOLON
 "\*":MULT
@@ -1030,14 +1028,15 @@ expression_nn ::=    assignment_expression_nn
 "\>\>\>=":URSHIFTEQ
 "&=":ANDEQ
 "\^=":XOREQ
-"|=":OREQ
+"\|=":OREQ
 
 "[0-9]+":INTEGER_LITERAL
 "[0-9]+\.[0-9]+":FLOATING_POINT_LITERAL
 "[true|false]":BOOLEAN_LITERAL
-"[a-z]":CHARACTER_LITERAL
+"\'[a-z]\'":CHARACTER_LITERAL
 "\'[a-zA-z]*\'":STRING_LITERAL
 "null":NULL_LITERAL
+"[a-zA-Z]+":IDENTIFIER
 
 "const":CONST
 "goto":GOTO
