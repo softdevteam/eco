@@ -21,6 +21,8 @@ from astree import TextNode, BOS, EOS
 
 from languages import languages
 
+from token_lexer import TokenLexer
+
 grammar = """
     E ::= T
         | E "+" T
@@ -90,7 +92,6 @@ class NodeEditor(QFrame):
         self.update()
 
     def paintEvent(self, event):
-        print("============= Painting ================== ")
         QtGui.QFrame.paintEvent(self, event)
         paint = QtGui.QPainter()
         paint.begin(self)
@@ -107,7 +108,6 @@ class NodeEditor(QFrame):
         node = bos.next_terminal()
         while node and not isinstance(node, EOS):
             if node.symbol.name in ["\n", "\r"]:
-                print("new line")
                 self.max_cols.append(x)
                 y += 1
                 x = 0
@@ -123,7 +123,6 @@ class NodeEditor(QFrame):
             #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
             paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, 1, self.fontht)
 
-        print(self.max_cols)
         paint.end()
 
     def recalculate_positions(self): # without painting
@@ -164,7 +163,7 @@ class NodeEditor(QFrame):
             except KeyError:
                 x += 1
                 inbetween = True
-        print(self.node_map)
+        #print(self.node_map)
         print("node at pos:", node_at_pos)
         selected_nodes = [node_at_pos, node_at_pos.next_terminal()]
         print("Selected Nodes:", selected_nodes)
@@ -179,16 +178,18 @@ class NodeEditor(QFrame):
                     if self.cursor[0] > 0:
                         self.cursor[0] -= 1
                 if inbetween:   # inside node
-                    selected_nodes[0].backspace(self.cursor[0])
+                    internal_position = len(node.symbol.name) - (x - self.cursor[0])
+                    selected_nodes[0].backspace(internal_position)
                     repairnode = selected_nodes[0]
                 else: # between two nodes
                     if e.key() == Qt.Key_Delete: # delete
                         node = selected_nodes[1]
                         other = selected_nodes[0]
+                        node.backspace(0)
                     else: # backspace
                         node = selected_nodes[0]
                         other = selected_nodes[1]
-                    node.backspace(self.cursor[0])
+                        node.backspace(-1)
                     if node.symbol.name == "": # if node is empty, delete it and repair previous/next node
                         if isinstance(other, BOS):
                             repairnode = node.next_terminal()
@@ -288,42 +289,51 @@ class NodeEditor(QFrame):
             newtoken_text.append(token.symbol.name)
         print("    Relexing:", "".join(newtoken_text))
 
+
+        tl = self.getTL()
+        success = tl.match("".join(newtoken_text))
+        #return
+
         # relex token
-        from lexer import Lexer
-        lex = Lexer("".join(newtoken_text))
-        regex_dict = {}
-        i = 0
-        print("creating groups")
-        for regex in self.getPL().rules.keys():
-            regex_dict["Group_" + str(i)] = regex
-            print(i, regex)
-            i += 1
-        lex.set_regex(regex_dict)
-        print("check for valid lex")
-        success = lex.lex()
-        print(lex.tokens)
-        print("relexing done")
+       #from lexer import Lexer
+       #lex = Lexer("".join(newtoken_text))
+       #regex_dict = {}
+       #i = 0
+       #print("creating groups")
+       #for regex in self.getPL().rules.keys():
+       #    regex_dict["Group_" + str(i)] = regex
+       #    print(i, regex)
+       #    i += 1
+       #lex.set_regex(regex_dict)
+       #print("check for valid lex")
+       #success = lex.lex()
+       #print(lex.tokens)
+       #print("relexing done")
 
         # if relexing successfull, replace old tokens with new ones
         if success:
-            print("success", success)
+            #print("success", success)
             parent = startnode.parent
             # remove old tokens
             # XXX this removes the first appearance of that token (which isn't always the one relexed)
             for token in left_tokens:
-                print("left remove", token)
+                #print("left remove", token)
                 token.parent.remove_child(token)
             for token in right_tokens:
-                print("right remove", token)
+                #print("right remove", token)
                 token.parent.remove_child(token) #XXX maybe invoke mark_changed here
             # create and insert new tokens
-            print("parent children before", parent.children)
-            lex.tokens.reverse()
-            for token in lex.tokens:
-                node = self.create_new_node(token.value)
+            #print("parent children before", parent.children)
+            #lex.tokens.reverse()
+            success.reverse()
+            for match in success:#lex.tokens:
+                symbol = Terminal(match[0])
+                node = TextNode(symbol, -1, [], -1)
+                node.lookup = match[1]
+                #node = self.create_new_node(token)#token.value)
                 parent.insert_after_node(startnode, node)
             parent.remove_child(startnode)
-            print("parent children after", parent.children)
+            #print("parent children after", parent.children)
             parent.mark_changed() # XXX changed or not changed? if it fits this hasn't really changed. only the removed nodes have changed
         print("============== End Repair ================")
 
@@ -393,6 +403,9 @@ class NodeEditor(QFrame):
         nodes = self.ast.get_nodes_at_position(self.cursor[0])
         return nodes
 
+    def getTL(self):
+        return self.getWindow().tl
+
     def getPL(self):
         return self.getWindow().pl
 
@@ -431,7 +444,9 @@ class Window(QtGui.QMainWindow):
         filename = QFileDialog.getOpenFileName()#"Open File", "", "Files (*.*)")
         for c in open(filename, "r").read()[:-1]:
             print(c)
-            if ord(c) in range(97, 122): # a-z
+            if c == "\n":
+                key = Qt.Key_Return
+            elif ord(c) in range(97, 122): # a-z
                 key = ord(c) - 32
                 modifier = Qt.NoModifier
             elif ord(c) in range(65, 90): # A-Z
@@ -441,7 +456,7 @@ class Window(QtGui.QMainWindow):
                 key = ord(c)
                 modifier = Qt.NoModifier
             event = QKeyEvent(QEvent.KeyPress, key, modifier, c)
-            QCoreApplication.postEvent(self.ui.textEdit, event)
+            QCoreApplication.postEvent(self.ui.frame, event)
 
     def loadLanguage(self, item):
         print("Loading Language...")
@@ -459,9 +474,10 @@ class Window(QtGui.QMainWindow):
         self.lrp.init_ast()
         self.ui.frame.set_lrparser(self.lrp)
         self.pl = PriorityLexer(new_priorities)
-
+        self.tl = TokenLexer(self.pl.rules)
         self.ui.frame.reset()
         self.ui.graphicsView.setScene(QGraphicsScene())
+        print("Done.")
 
         #img = Viewer("pydot").create_pydot_graph(self.lrp.graph)
         #self.showImage(self.ui.gvStategraph, img)
