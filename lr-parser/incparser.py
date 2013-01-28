@@ -19,7 +19,7 @@ from astree import AST, TextNode, BOS, EOS
 Node = TextNode
 
 # deactivate parser output for now
-def print(*args, **kwargs):
+def noprint(*args, **kwargs):
     pass
 
 class IncParser(object):
@@ -191,6 +191,9 @@ class IncParser(object):
                             return False
             else: # Nonterminal
                 print("nonterminal")
+                #if(la.symbol.name == "WS"):
+                #    la = self.pop_lookahead(la)
+                #    continue
                 if la.changed:#self.has_changed(la):
                     la.changed = False
                     print("has changed")
