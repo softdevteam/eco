@@ -1017,7 +1017,8 @@ V ::=
 from lang_java import java
 from lang_java_v1 import javav1
 from lang_java_extract import javav1_e
+from java15 import java15
 
 languages = [java_error, java_error_simplified, super_simple, calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, smalltalk_ebnf, lisp,
              ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
-             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, pager]
+             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
