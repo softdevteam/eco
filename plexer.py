@@ -12,6 +12,16 @@ class PriorityLexer(object):
 
         self.eat_all()
 
+        self.test_rules()
+
+    def test_rules(self):
+        import re
+        for rule in self.rules:
+            try:
+                m = re.match(rule, "")
+            except re.error:
+                print("Not a regular expression:", rule)
+
     def priority(self, text):
         for k in self.rules.keys():
             m = re.match("^"+k+"$", text)
@@ -59,7 +69,6 @@ class PriorityLexer(object):
         terminal = self.eat_terminal()
         self.eat_char(":")
         name = self.eat_name()
-        print("Found rule", terminal)
         self.rules[terminal] = (self.rule_count, name)
         self.rule_count += 1
 
@@ -83,7 +92,7 @@ class PriorityLexer(object):
         if self.code[self.pos] == char:
             self.pos += 1
         else:
-            raise Exception("Couldn't find char:", char, ". Found instead:", self.code[self.pos])
+            raise Exception("Couldn't find char:", char, ". Found instead:", self.code[self.pos], "at", self.code[self.pos-10:self.pos+10])
 
     def eat_whitespace(self):
         m = re.match("\s*", self.code[self.pos:])
