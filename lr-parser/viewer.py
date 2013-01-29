@@ -3,6 +3,8 @@ import sys
 sys.path.append("../")
 import pydot
 
+from gparser import MagicTerminal
+
 class Viewer(object):
 
     def __init__(self, dot_type='google'):
@@ -74,6 +76,10 @@ class Viewer(object):
                 continue
             c_node = self.add_node_to_tree(c, graph, whitespaces)
             c.seen += 1
+            graph.add_edge(pydot.Edge(dotnode, c_node))
+
+        if isinstance(node.symbol, MagicTerminal):
+            c_node = self.add_node_to_tree(node.symbol.parser.previous_version.parent, graph, whitespaces)
             graph.add_edge(pydot.Edge(dotnode, c_node))
 
         return dotnode

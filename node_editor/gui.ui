@@ -247,7 +247,24 @@
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_4">
          <item>
+          <widget class="QLabel" name="label_6">
+           <property name="text">
+            <string>Main Grammar</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QListWidget" name="listWidget"/>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_7">
+           <property name="text">
+            <string>Sub Grammar</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QListWidget" name="listWidget_2"/>
          </item>
          <item>
           <widget class="QCheckBox" name="cb_add_implicit_ws">

@@ -35,6 +35,10 @@ class Terminal(Symbol):
     def __repr__(self):
         return "Terminal('%s')" % (repr(self.name),)
 
+class MagicTerminal(Terminal):
+    def __repr__(self):
+        return "MagicTerminal('%s')" % (repr(self.name),)
+
 class Nonterminal(Symbol):
     def __repr__(self):
         return "Nonterminal('%s')" % (self.name,)
@@ -186,6 +190,10 @@ class Parser(object):
                 symbols_level[-1].append(Nonterminal(t.value))
             elif t.name == "Terminal":
                 symbols_level[-1].append(Terminal(t.value))
+                if self.whitespaces:
+                    symbols_level[-1].append(Nonterminal("WS"))
+            elif t.name == "MagicTerminal":
+                symbols_level[-1].append(MagicTerminal(t.value))
                 if self.whitespaces:
                     symbols_level[-1].append(Nonterminal("WS"))
             elif t.name == "Alternative":

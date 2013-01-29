@@ -9,6 +9,9 @@ class AST(object):
         self.parent = parent
         self.progress = 0
 
+    def get_bos(self):
+        return self.parent.children[0]
+
     def get_nodes_at_position(self, pos, a=None, b=None):
         """
         Searches all nodes that match the current cursor position in the TextField.
@@ -250,6 +253,12 @@ class TextNode(Node):
         self.lookup = ""
         self.priority = 999999 # XXX change to maxint later or reverse priority
 
+    def get_root(self):
+        node = self
+        while node.parent is not None:
+            node = node.parent
+        return node
+
     def matches(self, text):
         if self.symbol.name == "":
             return True
@@ -277,7 +286,8 @@ class TextNode(Node):
         self.pos += i
 
     def change_text(self, text):
-        self.symbol = Terminal(text)
+        _cls = self.symbol.__class__
+        self.symbol = _cls(text)
         self.mark_changed()
 
     def insert(self, char, pos):

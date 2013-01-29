@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Thu Jan 24 15:54:19 2013
+# Created: Tue Jan 29 14:29:41 2013
 #      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -139,9 +139,18 @@ class Ui_MainWindow(object):
         self.tab_3.setObjectName(_fromUtf8("tab_3"))
         self.verticalLayout_4 = QtGui.QVBoxLayout(self.tab_3)
         self.verticalLayout_4.setObjectName(_fromUtf8("verticalLayout_4"))
+        self.label_6 = QtGui.QLabel(self.tab_3)
+        self.label_6.setObjectName(_fromUtf8("label_6"))
+        self.verticalLayout_4.addWidget(self.label_6)
         self.listWidget = QtGui.QListWidget(self.tab_3)
         self.listWidget.setObjectName(_fromUtf8("listWidget"))
         self.verticalLayout_4.addWidget(self.listWidget)
+        self.label_7 = QtGui.QLabel(self.tab_3)
+        self.label_7.setObjectName(_fromUtf8("label_7"))
+        self.verticalLayout_4.addWidget(self.label_7)
+        self.listWidget_2 = QtGui.QListWidget(self.tab_3)
+        self.listWidget_2.setObjectName(_fromUtf8("listWidget_2"))
+        self.verticalLayout_4.addWidget(self.listWidget_2)
         self.cb_add_implicit_ws = QtGui.QCheckBox(self.tab_3)
         self.cb_add_implicit_ws.setChecked(True)
         self.cb_add_implicit_ws.setObjectName(_fromUtf8("cb_add_implicit_ws"))
@@ -181,6 +190,8 @@ class Ui_MainWindow(object):
         self.cb_toggle_ast.setText(QtGui.QApplication.translate("MainWindow", "Show AST", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QtGui.QApplication.translate("MainWindow", "AST", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QtGui.QApplication.translate("MainWindow", "Stategraph", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_6.setText(QtGui.QApplication.translate("MainWindow", "Main Grammar", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_7.setText(QtGui.QApplication.translate("MainWindow", "Sub Grammar", None, QtGui.QApplication.UnicodeUTF8))
         self.cb_add_implicit_ws.setText(QtGui.QApplication.translate("MainWindow", "Add implicit whitespaces to grammar", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), QtGui.QApplication.translate("MainWindow", "Grammars", None, QtGui.QApplication.UnicodeUTF8))
         self.menuFile.setTitle(QtGui.QApplication.translate("MainWindow", "File", None, QtGui.QApplication.UnicodeUTF8))

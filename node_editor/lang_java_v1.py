@@ -1,6 +1,6 @@
 from languages import Language
 
-javav1 = Language("Java v1",
+javav1 = Language("Java 1.0",
 """
 
 CompilationUnit ::= ProgramFile

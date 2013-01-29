@@ -3,6 +3,7 @@ import re
 
 whitespace = "( |\n|\r|\t)+"
 nonterminal = "[a-zA-Z_0-9]+"  # e.g. E, T, Nonterminal
+magicterminal = "\<[a-zA-Z_0-9]+\>"  # <sql>
 terminal = "\"([0-9]+|[a-zA-Z_]+|\+|-|\*|\/|\&|{|}|\t| |\n|\r|,|;)\""  # e.g. a, b, +, -
 terminal = "\"[^\"]*\""  # everthing except ticks
 mapsto = "::="
@@ -21,7 +22,7 @@ def make_groups(expressions):
         regex.append(s)
     return r"|".join(regex)
 
-regex = make_groups({"Nonterminal":nonterminal, "Terminal":terminal, "Mapsto":mapsto,
+regex = make_groups({"Nonterminal":nonterminal, "Terminal":terminal, "MagicTerminal":magicterminal, "Mapsto":mapsto,
                     "Whitespace":whitespace, "Alternative":alternative, "Option_Start":option_start,
                     "Option_End":option_end, "Loop_Start":loop_start, "Loop_End":loop_end,
                     "Group_Start":group_start, "Group_End": group_end})

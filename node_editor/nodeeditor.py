@@ -16,7 +16,7 @@ from plexer import PriorityLexer
 from incparser import IncParser
 from viewer import Viewer
 
-from gparser import Terminal
+from gparser import Terminal, MagicTerminal
 from astree import TextNode, BOS, EOS
 
 from languages import languages
@@ -72,6 +72,12 @@ class NodeEditor(QFrame):
         self.node_map = {}
         self.max_cols = []
 
+        self.parsers = {}
+        self.lexers = {}
+        self.priorities = {}
+
+        self.write_magic = False
+
     def reset(self):
         self.max_cols = []
         self.node_map = {}
@@ -81,6 +87,13 @@ class NodeEditor(QFrame):
     def set_lrparser(self, lrp):
         self.lrp = lrp
         self.ast = lrp.previous_version
+        self.parsers[lrp.previous_version.parent] = self.lrp
+        self.lexers[lrp.previous_version.parent] = self.getTL()
+        self.priorities[lrp.previous_version.parent] = self.getPL()
+
+    def set_sublanguage(self, language):
+        print("setting sublanhuage to", language.name)
+        self.sublanguage = language
 
     # ========================== GUI related stuff ========================== #
 
@@ -105,18 +118,7 @@ class NodeEditor(QFrame):
         self.node_map[(x,y)] = bos
         self.max_cols = []
 
-        node = bos.next_terminal()
-        while node and not isinstance(node, EOS):
-            if node.symbol.name in ["\n", "\r"]:
-                self.max_cols.append(x)
-                y += 1
-                x = 0
-            else:
-                paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), node.symbol.name)
-                x += len(node.symbol.name)
-            self.node_map[(x,y)] = node
-
-            node = node.next_terminal()
+        x, y = self.paintAST(paint, bos, x, y)
         self.max_cols.append(x) # last line
 
         if self.hasFocus() and self.show_cursor:
@@ -125,8 +127,29 @@ class NodeEditor(QFrame):
 
         paint.end()
 
+    def paintAST(self, paint, bos, x, y):
+        node = bos.next_terminal()
+        while node and not isinstance(node, EOS):
+            if node.symbol.name in ["\n", "\r"]:
+                self.max_cols.append(x)
+                y += 1
+                x = 0
+            else:
+                if isinstance(node.symbol, MagicTerminal):
+                    paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), " ")
+                    x_before = x
+                    x, y = self.paintAST(paint, node.symbol.parser.previous_version.get_bos(), x, y)
+                    paint.drawRect(3 + x_before*self.fontwt, 2 + y*self.fontht, (x-x_before)*self.fontwt, self.fontht)
+                else:
+                    paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), node.symbol.name)
+                    x += len(node.symbol.name)
+                    self.node_map[(x,y)] = node
+
+            node = node.next_terminal()
+        return x,y
+
+
     def recalculate_positions(self): # without painting
-        print("============ Recalculate positions =========== ")
         y = 0
         x = 0
 
@@ -135,6 +158,10 @@ class NodeEditor(QFrame):
         self.node_map[(x,y)] = bos
         self.max_cols = []
 
+        x, y = self.recalculate_positions_rec(bos, x, y)
+        self.max_cols.append(x) # last line
+
+    def recalculate_positions_rec(self, bos, x, y):
         node = bos.next_terminal()
         while node and not isinstance(node, EOS):
             if node.symbol.name in ["\n", "\r"]:
@@ -142,15 +169,19 @@ class NodeEditor(QFrame):
                 y += 1
                 x = 0
             else:
-                x += len(node.symbol.name)
-            self.node_map[(x,y)] = node
+                if isinstance(node.symbol, MagicTerminal):
+                    bos = node.symbol.parser.previous_version.get_bos()
+                    x, y = self.recalculate_positions_rec(bos, x, y)
+                else:
+                    x += len(node.symbol.name)
+                    self.node_map[(x,y)] = node
 
             node = node.next_terminal()
-        self.max_cols.append(x) # last line
 
-    def keyPressEvent(self, e):
-        print("====================== KEYPRESS (>>%s<<) ============================" % (repr(e.text()),))
+        return x, y
 
+
+    def get_nodes_at_position(self):
         # Look up node in position map (if there is no direct match, i.e. inbetween node, try to find end of node)
         node_at_pos = None
         x = self.cursor[0]
@@ -167,12 +198,22 @@ class NodeEditor(QFrame):
         print("node at pos:", node_at_pos)
         selected_nodes = [node_at_pos, node_at_pos.next_terminal()]
         print("Selected Nodes:", selected_nodes)
+        if isinstance(selected_nodes[1].symbol, MagicTerminal) and self.write_magic:
+            magic = selected_nodes[1].symbol.parser.previous_version.get_bos()
+            selected_nodes = [magic, magic.next_terminal()]
+        return (selected_nodes, inbetween, x)
+
+    def keyPressEvent(self, e):
+        print("====================== KEYPRESS (>>%s<<) ============================" % (repr(e.text()),))
+
+        selected_nodes, inbetween, x = self.get_nodes_at_position()
 
         text = e.text()
 
         if e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             self.cursor_movement(e.key())
         elif text != "":
+            self.write_magic = False
             if e.key() in [Qt.Key_Delete, Qt.Key_Backspace]:
                 if e.key() == Qt.Key_Backspace:
                     if self.cursor[0] > 0:
@@ -202,40 +243,89 @@ class NodeEditor(QFrame):
                     else:
                         repairnode = node
             else:
-                #if selected_nodes[1] is None:
+                if e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
+                    newnode = self.add_magic()
+                    self.write_magic = True # writes next char into magic ast
+                else:
+                    newnode = self.create_node(str(text))
                 if inbetween:
                     print("BETWEEN")
                     node = selected_nodes[0]
                     # split, insert new node, repair
                     internal_position = len(node.symbol.name) - (x - self.cursor[0])
-                    node2 = self.create_new_node(str(text))
+                    node2 = newnode
                     node3 = self.create_new_node(node.symbol.name[internal_position:])
                     node.symbol.name = node.symbol.name[:internal_position]
                     print("node1", node)
                     print("node2", node2)
                     print("node3", node3)
-                    node.parent.insert_after_node(node, node2)
-                    node.parent.insert_after_node(node2, node3)
+                    self.add_node(node, node2)
+                    self.add_node(node2, node3)
+                    #node.parent.insert_after_node(node, node2)
+                    #node.parent.insert_after_node(node2, node3)
                     repairnode = node2
                 else:
                     # insert node, repair
-                    newnode = self.create_new_node(str(text))
                     node = selected_nodes[0]
-                    node.parent.insert_after_node(node, newnode)
+                    self.add_node(node, newnode)
+                    #node.parent.insert_after_node(node, newnode)
                     repairnode = newnode
-                if e.key() == Qt.Key_Return:
+                if e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
+                    pass # do nothing
+                elif e.key() == Qt.Key_Return:
                     self.cursor[0] = 0
                     self.cursor[1] += 1
                 else:
                     self.cursor[0] += 1
             self.repair(repairnode)
+            print(repairnode)
 
         self.recalculate_positions() # XXX ensures that positions are up to date before next keypress is called
-        selected_nodes = self.getNodesAtPosition() # needed for coloring selected nodes
-        self.getWindow().btReparse(selected_nodes) # XXX uses old, slower method
+        selected_nodes, _, _ = self.get_nodes_at_position()
+        self.getWindow().btReparse(selected_nodes)
 
         self.getWindow().showLookahead()
         self.update()
+
+    def add_magic(self):
+        # Create magic token
+        magictoken = self.create_node("<SQL>", magic=True)
+
+        # Create parser, priorities and lexer
+        parser = IncParser(self.sublanguage.grammar, 1, True)
+        parser.init_ast()
+        root = parser.previous_version.parent
+        pl = PriorityLexer(self.sublanguage.priorities)
+        tl = TokenLexer(pl.rules)
+        self.parsers[root] = parser
+        self.lexers[root] = tl
+        self.priorities[root] = pl
+        # Add starting token to new tree
+        #starting_node = self.create_node("")
+        #self.add_node(parser.previous_version.get_bos(), starting_node)
+        #self.node_map[(self.cursor[0], self.cursor[1])] = root.children[0]
+
+        magictoken.symbol.parser = parser
+        return magictoken
+
+    def create_node(self, text, magic=False):
+        if magic:
+            symbol = MagicTerminal(text)
+        else:
+            symbol = Terminal(text)
+        node = TextNode(symbol, -1, [], -1)
+        return node
+
+    def add_node(self, previous_node, new_node):
+        print("add node", new_node)
+        previous_node.parent.insert_after_node(previous_node, new_node)
+        root = new_node.get_root()
+        pl = self.priorities[root]
+        text = new_node.symbol.name
+        new_node.regex = pl.regex(text)
+        new_node.priority = pl.priority(text)
+        new_node.lookup = pl.name(text)
+        print("after adding", new_node)
 
     def cursor_movement(self, key):
         if key == QtCore.Qt.Key_Up:
@@ -264,11 +354,15 @@ class NodeEditor(QFrame):
     def repair(self, startnode):
         if isinstance(startnode, BOS):
             return
+        if isinstance(startnode.symbol, MagicTerminal):
+            return
         print("========== Starting Repair procedure ==========")
         print("Startnode", startnode)
+        root = startnode.get_root()
+        print("Root:", root)
         regex_list = []
         # find all regexs that include the new input string
-        for regex in self.getPL().rules.keys():
+        for regex in self.lexers[root].regexlist.keys():
             if self.in_regex(startnode.symbol.name, regex):
                 regex_list.append(regex)
         print("    Possible regex:", regex_list)
@@ -287,10 +381,10 @@ class NodeEditor(QFrame):
         newtoken_text.append(startnode.symbol.name)
         for token in right_tokens:
             newtoken_text.append(token.symbol.name)
-        print("    Relexing:", "".join(newtoken_text))
+        print("    Relexing:", repr("".join(newtoken_text)))
 
 
-        tl = self.getTL()
+        tl = self.lexers[root]
         success = tl.match("".join(newtoken_text))
         #return
 
@@ -311,8 +405,8 @@ class NodeEditor(QFrame):
        #print("relexing done")
 
         # if relexing successfull, replace old tokens with new ones
-        if success:
-            #print("success", success)
+        if success: #XXX is this false at any time?
+            print("success", success)
             parent = startnode.parent
             # remove old tokens
             # XXX this removes the first appearance of that token (which isn't always the one relexed)
@@ -391,8 +485,11 @@ class NodeEditor(QFrame):
         #    return True
         return False
 
-    def create_new_node(self, text):
-        symbol = Terminal(text)
+    def dead_create_new_node(self, text, magic=False):
+        if magic:
+            symbol = MagicTerminal(text)
+        else:
+            symbol = Terminal(text)
         node = TextNode(symbol, -1, [], -1)
         node.regex = self.getPL().regex(text)
         node.priority = self.getPL().priority(text)
@@ -436,8 +533,16 @@ class Window(QtGui.QMainWindow):
 
         for l in languages:
             self.ui.listWidget.addItem(str(l))
+            self.ui.listWidget_2.addItem(str(l))
+
+        self.ui.listWidget.item(1).setSelected(True)
+        self.ui.listWidget_2.item(5).setSelected(True)
+
+        self.loadLanguage(self.ui.listWidget.item(1))
+        self.setSubLanguage(self.ui.listWidget.item(5))
 
         self.connect(self.ui.listWidget, SIGNAL("itemClicked(QListWidgetItem *)"), self.loadLanguage)
+        self.connect(self.ui.listWidget_2, SIGNAL("itemClicked(QListWidgetItem *)"), self.setSubLanguage)
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
 
     def openfile(self):
@@ -458,6 +563,10 @@ class Window(QtGui.QMainWindow):
             event = QKeyEvent(QEvent.KeyPress, key, modifier, c)
             QCoreApplication.postEvent(self.ui.frame, event)
 
+    def setSubLanguage(self, item):
+        language = languages[self.ui.listWidget_2.row(item)]
+        self.ui.frame.set_sublanguage(language)
+
     def loadLanguage(self, item):
         print("Loading Language...")
         language = languages[self.ui.listWidget.row(item)]
@@ -472,15 +581,15 @@ class Window(QtGui.QMainWindow):
         print("Creating Incremental Parser")
         self.lrp = IncParser(new_grammar, 1, whitespaces)
         self.lrp.init_ast()
-        self.ui.frame.set_lrparser(self.lrp)
         self.pl = PriorityLexer(new_priorities)
         self.tl = TokenLexer(self.pl.rules)
+        self.ui.frame.set_lrparser(self.lrp)
         self.ui.frame.reset()
         self.ui.graphicsView.setScene(QGraphicsScene())
         print("Done.")
 
-        #img = Viewer("pydot").create_pydot_graph(self.lrp.graph)
-        #self.showImage(self.ui.gvStategraph, img)
+        img = Viewer("pydot").create_pydot_graph(self.lrp.graph)
+        self.showImage(self.ui.gvStategraph, img)
 
     def btRefresh(self):
         whitespaces = self.ui.cb_toggle_ws.isChecked()
@@ -488,8 +597,12 @@ class Window(QtGui.QMainWindow):
         self.showImage(self.ui.graphicsView, image)
 
     def btReparse(self, selected_node):
+        print("===== REPARSING EVERYTHING ========== ")
         whitespaces = self.ui.cb_toggle_ws.isChecked()
-        status = self.lrp.inc_parse()
+        for key in self.ui.frame.parsers:
+            print("    reparsing", key)
+            status = self.ui.frame.parsers[key].inc_parse()
+            print("   ", status)
         if status:
             self.ui.leParserStatus.setText("Accept")
         else:

@@ -85,6 +85,7 @@ super_simple = Language("Shifting optimisation",
     "x":x
     "y":y
     "b":b
+    " ":<ws>
 """)
 
 calc1 = Language("Basic calculator",
@@ -93,13 +94,15 @@ calc1 = Language("Basic calculator",
         | E "+" T
     T ::= P
         | T "*" P
-    P ::= "INT"
+    P ::= "INT" | <SQL>
 """,
 """
     "[0-9]+":INT
+    "subgrammar":subgrammar
     "\\+":+
     "\\*":*
-    "[ \\n\\t\\r]+":_
+    "[ \\n\\t\\r]+":<ws>
+    "<SQL>":<SQL>
 """)
 
 merge1 = Language("Grammar to test merging behaviour",
@@ -1014,11 +1017,39 @@ V ::=
 "x":x
 "y":y
 """)
+
+sql_dummy = Language("SQL",
+"""
+S ::= Statement
+Statement ::= Select | Update
+Select ::= "SELECT" select_args "FROM" identifier ";"
+select_args ::= identifier
+              | identifier "," select_args
+Update ::= "UPDATE" identifier "SET" update_args "WHERE" update_where_args
+update_args ::= identifier "=" identifier
+              | identifier "= "identifier "," update_args
+update_where_args ::= identifier "=" identifier
+identifier ::= "ID"
+""",
+"""
+"SELECT":SELECT
+"UPDATE":UPDATE
+"FROM":FROM
+"SET":SET
+"WHERE":WHERE
+",":,
+"=":=
+"[a-z]+":ID
+"[ ]":<ws>
+""")
+
 from lang_java import java
 from lang_java_v1 import javav1
 from lang_java_extract import javav1_e
 from java15 import java15
 
-languages = [java_error, java_error_simplified, super_simple, calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, smalltalk_ebnf, lisp,
-             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
-             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
+#languages = [java_error, java_error_simplified, super_simple, calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, smalltalk_ebnf, lisp,
+#             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
+#             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
+
+languages = [super_simple, calc1, lisp, javav1, java15, sql_dummy]

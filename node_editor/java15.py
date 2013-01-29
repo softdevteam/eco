@@ -1,6 +1,6 @@
 from languages import Language
 
-java15 = Language("Java v1.5","""
+java15 = Language("Java 1.5","""
 goal ::=    compilation_unit
 
 literal ::=    "INTEGER_LITERAL"
