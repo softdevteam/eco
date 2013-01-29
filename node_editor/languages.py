@@ -102,7 +102,6 @@ calc1 = Language("Basic calculator",
     "\\+":+
     "\\*":*
     "[ \\n\\t\\r]+":<ws>
-    "<SQL>":<SQL>
 """)
 
 merge1 = Language("Grammar to test merging behaviour",

@@ -289,7 +289,7 @@ class NodeEditor(QFrame):
 
     def add_magic(self):
         # Create magic token
-        magictoken = self.create_node("<SQL>", magic=True)
+        magictoken = self.create_node("<%s>" % self.sublanguage.name, magic=True)
 
         # Create parser, priorities and lexer
         parser = IncParser(self.sublanguage.grammar, 1, True)
@@ -317,15 +317,14 @@ class NodeEditor(QFrame):
         return node
 
     def add_node(self, previous_node, new_node):
-        print("add node", new_node)
         previous_node.parent.insert_after_node(previous_node, new_node)
         root = new_node.get_root()
-        pl = self.priorities[root]
-        text = new_node.symbol.name
-        new_node.regex = pl.regex(text)
-        new_node.priority = pl.priority(text)
-        new_node.lookup = pl.name(text)
-        print("after adding", new_node)
+        if not isinstance(new_node.symbol, MagicTerminal):
+            pl = self.priorities[root]
+            text = new_node.symbol.name
+            new_node.regex = pl.regex(text)
+            new_node.priority = pl.priority(text)
+            new_node.lookup = pl.name(text)
 
     def cursor_movement(self, key):
         if key == QtCore.Qt.Key_Up:
