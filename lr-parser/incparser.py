@@ -10,7 +10,7 @@ except:
 
 import time
 
-from gparser import Parser, Nonterminal, Terminal, Epsilon
+from gparser import Parser, Nonterminal, Terminal,MagicTerminal, Epsilon
 from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
 from stategraph import StateGraph
 from constants import LR0, LR1, LALR
@@ -157,9 +157,12 @@ class IncParser(object):
                         la.state = element.action
                         self.stack.append(la)
                         self.current_state = element.action
+                        if not la.lookup == "<ws>":
+                            # last_shift_state is used to predict next symbol
+                            # whitespace destroys correct behaviour
+                            self.last_shift_state = element.action
                         la = self.pop_lookahead(la)
 
-                        self.last_shift_state = element.action
                     elif isinstance(element, Reduce):
                         print("Reduce", element.action)
                         children = []
