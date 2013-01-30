@@ -101,7 +101,8 @@ calc1 = Language("Basic calculator",
     "subgrammar":subgrammar
     "\\+":+
     "\\*":*
-    "[ \\n\\t\\r]+":<ws>
+    "[ \\t]+":<ws>
+    "[\\n\\r]":<return>
 """)
 
 merge1 = Language("Grammar to test merging behaviour",

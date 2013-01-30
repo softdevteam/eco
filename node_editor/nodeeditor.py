@@ -134,6 +134,7 @@ class NodeEditor(QFrame):
                 self.max_cols.append(x)
                 y += 1
                 x = 0
+                self.node_map[(x,y)] = node
             else:
                 if isinstance(node.symbol, MagicTerminal):
                     paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), " ")
@@ -168,6 +169,7 @@ class NodeEditor(QFrame):
                 self.max_cols.append(x)
                 y += 1
                 x = 0
+                self.node_map[(x,y)] = node
             else:
                 if isinstance(node.symbol, MagicTerminal):
                     bos = node.symbol.parser.previous_version.get_bos()
@@ -182,12 +184,14 @@ class NodeEditor(QFrame):
 
 
     def get_nodes_at_position(self):
+        print("==================== Get nodes at pos ====================== ")
+        print("Position:", self.cursor)
         # Look up node in position map (if there is no direct match, i.e. inbetween node, try to find end of node)
         node_at_pos = None
         x = self.cursor[0]
         y = self.cursor[1]
         inbetween = False
-        while not node_at_pos:
+        while not node_at_pos and x <= self.max_cols[y]:
             try:
                 node_at_pos = self.node_map[(x, y)]
                 break
@@ -201,11 +205,14 @@ class NodeEditor(QFrame):
         if isinstance(selected_nodes[1].symbol, MagicTerminal) and self.write_magic:
             magic = selected_nodes[1].symbol.parser.previous_version.get_bos()
             selected_nodes = [magic, magic.next_terminal()]
+
+        print("==================== END (get_nodes_at_pos) ====================== ")
         return (selected_nodes, inbetween, x)
 
     def keyPressEvent(self, e):
         print("====================== KEYPRESS (>>%s<<) ============================" % (repr(e.text()),))
 
+        print("first get_nodes_at_pos")
         selected_nodes, inbetween, x = self.get_nodes_at_position()
 
         text = e.text()
@@ -278,9 +285,9 @@ class NodeEditor(QFrame):
                 else:
                     self.cursor[0] += 1
             self.repair(repairnode)
-            print(repairnode)
 
         self.recalculate_positions() # XXX ensures that positions are up to date before next keypress is called
+        print("second get_nodes_at_pos")
         selected_nodes, _, _ = self.get_nodes_at_position()
         self.getWindow().btReparse(selected_nodes)
 
@@ -428,6 +435,7 @@ class NodeEditor(QFrame):
             parent.remove_child(startnode)
             #print("parent children after", parent.children)
             parent.mark_changed() # XXX changed or not changed? if it fits this hasn't really changed. only the removed nodes have changed
+        print("Repaired to", startnode)
         print("============== End Repair ================")
 
     def get_matching_tokens(self, startnode, regex_list, direction):
@@ -587,8 +595,8 @@ class Window(QtGui.QMainWindow):
         self.ui.graphicsView.setScene(QGraphicsScene())
         print("Done.")
 
-        img = Viewer("pydot").create_pydot_graph(self.lrp.graph)
-        self.showImage(self.ui.gvStategraph, img)
+        #img = Viewer("pydot").create_pydot_graph(self.lrp.graph)
+        #self.showImage(self.ui.gvStategraph, img)
 
     def btRefresh(self):
         whitespaces = self.ui.cb_toggle_ws.isChecked()
