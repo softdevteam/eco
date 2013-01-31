@@ -215,6 +215,7 @@ class NodeEditor(QFrame):
                 bos = selected_nodes[1].symbol.parser.previous_version.get_bos()
                 selected_nodes = [bos, bos.next_terminal()]
 
+        print("Final selected nodes", selected_nodes)
         print("==================== END (get_nodes_at_pos) ====================== ")
         return (selected_nodes, inbetween, x)
 
@@ -239,6 +240,10 @@ class NodeEditor(QFrame):
                     repairnode = selected_nodes[0]
                 else: # between two nodes
                     if e.key() == Qt.Key_Delete: # delete
+                        if isinstance(selected_nodes[1].symbol, MagicTerminal):
+                            self.edit_rightnode = True
+                            selected_nodes, _, _ = self.get_nodes_at_position()
+                            self.edit_rightnode = False
                         node = selected_nodes[1]
                         other = selected_nodes[0]
                         node.backspace(0)
