@@ -85,6 +85,9 @@ class NodeEditor(QFrame):
         self.update()
 
     def set_lrparser(self, lrp):
+        self.parsers = {}
+        self.lexers = {}
+        self.priorities = {}
         self.lrp = lrp
         self.ast = lrp.previous_version
         self.parsers[lrp.previous_version.parent] = self.lrp
@@ -628,16 +631,16 @@ class Window(QtGui.QMainWindow):
         self.showImage(self.ui.graphicsView, image)
 
     def btReparse(self, selected_node):
-        print("===== REPARSING EVERYTHING ========== ")
         whitespaces = self.ui.cb_toggle_ws.isChecked()
+        results = []
         for key in self.ui.frame.parsers:
-            print("    reparsing", key)
             status = self.ui.frame.parsers[key].inc_parse()
-            print("   ", status)
-        if status:
-            self.ui.leParserStatus.setText("Accept")
-        else:
-            self.ui.leParserStatus.setText("Error")
+            if status:
+                results.append("Accept")
+            else:
+                results.append("Error")
+        self.ui.leParserStatus.setText(", ".join(results))
+
         if self.ui.cb_toggle_ast.isChecked():
             image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node, whitespaces)
             self.showImage(self.ui.graphicsView, image)

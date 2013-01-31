@@ -482,6 +482,8 @@ ConstantExpression ::=
 """
 ,
 """
+"import":IMPORT
+"package":PACKAGE
 "boolean":BOOLEAN
 "char":CHAR
 "byte":BYTE
