@@ -257,7 +257,15 @@ class NodeEditor(QFrame):
                             repairnode = node.previous_terminal()
                         else:
                             repairnode = other
-                        node.parent.children.remove(node)
+                        # check if magic terminal is empty
+                        root = node.get_root()
+                        print("root", root)
+                        magic = root.get_magicterminal()
+                        print("magic", magic)
+                        if magic and len(root.children) == 3:
+                            magic.parent.children.remove(magic)
+                        else:
+                            node.parent.children.remove(node)
 
                     else:
                         repairnode = node
