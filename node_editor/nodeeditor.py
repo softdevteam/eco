@@ -524,6 +524,8 @@ class NodeEditor(QFrame):
             return True
         #if c in [" ", "\n", "\t", "\r"] and regex == "[ \\n\\t\\r]+":
         #    return True
+        if re.match("^" + regex + "$", c):
+            return True
         return False
 
     def dead_create_new_node(self, text, magic=False):
