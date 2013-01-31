@@ -206,11 +206,10 @@ class NodeEditor(QFrame):
         if self.edit_rightnode:
             print("edit right", selected_nodes)
             if isinstance(selected_nodes[1], EOS):
-                #XXX find MagicTerminal from here. probablyl need to set root.magic = <objec> | None
                 root = selected_nodes[1].get_root()
-                print("root", root)
-                if root.parent and isinstance(root.parent.symbol, MagicTerminal):
-                    selected_nodes = [root.parent, root.parent.next_terminal()]
+                magic = root.get_magicterminal()
+                if magic:
+                    selected_nodes = [magic, magic.next_terminal()]
             if isinstance(selected_nodes[1].symbol, MagicTerminal):
                 bos = selected_nodes[1].symbol.parser.previous_version.get_bos()
                 selected_nodes = [bos, bos.next_terminal()]
@@ -318,6 +317,7 @@ class NodeEditor(QFrame):
         parser = IncParser(self.sublanguage.grammar, 1, True)
         parser.init_ast()
         root = parser.previous_version.parent
+        root.magic_backpointer = magictoken
         pl = PriorityLexer(self.sublanguage.priorities)
         tl = TokenLexer(pl.rules)
         self.parsers[root] = parser

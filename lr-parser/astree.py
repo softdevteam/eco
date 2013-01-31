@@ -260,6 +260,12 @@ class TextNode(Node):
         self.lookup = ""
         self.priority = 999999 # XXX change to maxint later or reverse priority
 
+    def get_magicterminal(self):
+        try:
+            return self.magic_backpointer
+        except AttributeError:
+            return None
+
     def get_root(self):
         node = self
         while node.parent is not None:
