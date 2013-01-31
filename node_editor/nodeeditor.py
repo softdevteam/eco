@@ -76,7 +76,7 @@ class NodeEditor(QFrame):
         self.lexers = {}
         self.priorities = {}
 
-        self.write_magic = False
+        self.edit_rightnode = False
 
     def reset(self):
         self.max_cols = []
@@ -202,16 +202,24 @@ class NodeEditor(QFrame):
         print("node at pos:", node_at_pos)
         selected_nodes = [node_at_pos, node_at_pos.next_terminal()]
         print("Selected Nodes:", selected_nodes)
-        if isinstance(selected_nodes[1].symbol, MagicTerminal) and self.write_magic:
-            magic = selected_nodes[1].symbol.parser.previous_version.get_bos()
-            selected_nodes = [magic, magic.next_terminal()]
+        #if isinstance(selected_nodes[1].symbol, MagicTerminal) and self.edit_rightnode:
+        if self.edit_rightnode:
+            print("edit right", selected_nodes)
+            if isinstance(selected_nodes[1], EOS):
+                #XXX find MagicTerminal from here. probablyl need to set root.magic = <objec> | None
+                root = selected_nodes[1].get_root()
+                print("root", root)
+                if root.parent and isinstance(root.parent.symbol, MagicTerminal):
+                    selected_nodes = [root.parent, root.parent.next_terminal()]
+            if isinstance(selected_nodes[1].symbol, MagicTerminal):
+                bos = selected_nodes[1].symbol.parser.previous_version.get_bos()
+                selected_nodes = [bos, bos.next_terminal()]
 
         print("==================== END (get_nodes_at_pos) ====================== ")
         return (selected_nodes, inbetween, x)
 
     def keyPressEvent(self, e):
         print("====================== KEYPRESS (>>%s<<) ============================" % (repr(e.text()),))
-
         print("first get_nodes_at_pos")
         selected_nodes, inbetween, x = self.get_nodes_at_position()
 
@@ -220,7 +228,7 @@ class NodeEditor(QFrame):
         if e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             self.cursor_movement(e.key())
         elif text != "":
-            self.write_magic = False
+            self.edit_rightnode = False
             if e.key() in [Qt.Key_Delete, Qt.Key_Backspace]:
                 if e.key() == Qt.Key_Backspace:
                     if self.cursor[0] > 0:
@@ -252,7 +260,10 @@ class NodeEditor(QFrame):
             else:
                 if e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
                     newnode = self.add_magic()
-                    self.write_magic = True # writes next char into magic ast
+                    self.edit_rightnode = True # writes next char into magic ast
+                elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier | Qt.ShiftModifier:
+                    self.edit_rightnode = True # writes next char into magic ast
+                    return
                 else:
                     newnode = self.create_node(str(text))
                 if inbetween:
