@@ -1043,6 +1043,26 @@ identifier ::= "ID"
 "[ ]":<ws>
 """)
 
+base_language = Language("Base",
+"""
+Start ::= Start Language | Language
+Language ::= Java | SQL | Calc | Shifting
+Java ::= "Java" ":" <Java 1.0> ";"
+SQL ::= "SQL" ":" <SQL> ";"
+Calc ::= "Calc" ":" <Basic calculator> ";"
+Shifting ::= "Shifting" ":" <Shifting optimisation> ";"
+""",
+"""
+"Java":Java
+"SQL":SQL
+"Calc":Calc
+"Shifting":Shifting
+":"::
+";":;
+"[ \\t]+":<ws>
+"[\\n\\r]":<return>
+""")
+
 from lang_java import java
 from lang_java_v1 import javav1
 from lang_java_extract import javav1_e
@@ -1052,4 +1072,4 @@ from java15 import java15
 #             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
 #             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
 
-languages = [super_simple, calc1, lisp, javav1, java15, sql_dummy]
+languages = [base_language, super_simple, calc1, lisp, javav1, java15, sql_dummy]
