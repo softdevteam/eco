@@ -236,6 +236,11 @@ class NodeEditor(QFrame):
                 if e.key() == Qt.Key_Backspace:
                     if self.cursor[0] > 0:
                         self.cursor[0] -= 1
+                    else:
+                        # start of line move to previous line
+                        if self.cursor[1] > 0:
+                            self.cursor[1] -= 1
+                            self.cursor[0] = self.max_cols[self.cursor[1]]
                 if inbetween:   # inside node
                     internal_position = len(selected_nodes[0].symbol.name) - (x - self.cursor[0])
                     selected_nodes[0].backspace(internal_position)
