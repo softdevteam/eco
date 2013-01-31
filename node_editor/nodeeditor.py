@@ -299,6 +299,8 @@ class NodeEditor(QFrame):
                     print("node3", node3)
                     self.add_node(node, node2)
                     self.add_node(node2, node3)
+                    self.repair(node)
+                    self.repair(node3)
                     #node.parent.insert_after_node(node, node2)
                     #node.parent.insert_after_node(node2, node3)
                     repairnode = node2
