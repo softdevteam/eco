@@ -280,7 +280,7 @@ class NodeEditor(QFrame):
             else:
                 if e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
                     newnode = self.add_magic()
-                    self.showSubgrammarMenu()
+                    #self.showSubgrammarMenu()
                     self.edit_rightnode = True # writes next char into magic ast
                 elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier | Qt.ShiftModifier:
                     self.edit_rightnode = True # writes next char into magic ast
@@ -562,8 +562,9 @@ class NodeEditor(QFrame):
         toolbar = QtGui.QToolBar()
         def selectSql():
             self.sublanguage = "SQL"
+            self.edit_rightnode = True
         sql = toolbar.addAction("SQL", selectSql)
-        # Create menyu
+        # Create meny
         menu = QtGui.QMenu( self )
         menu.addAction( sql )
         menu.addSeparator()
