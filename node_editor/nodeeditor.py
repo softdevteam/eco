@@ -280,6 +280,7 @@ class NodeEditor(QFrame):
             else:
                 if e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
                     newnode = self.add_magic()
+                    self.showSubgrammarMenu()
                     self.edit_rightnode = True # writes next char into magic ast
                 elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier | Qt.ShiftModifier:
                     self.edit_rightnode = True # writes next char into magic ast
@@ -555,6 +556,21 @@ class NodeEditor(QFrame):
     def getWindow(self):
         #XXX better way to find window
         return self.parent().parent().parent().parent().parent()
+
+    def showSubgrammarMenu(self):
+        # Create actions
+        toolbar = QtGui.QToolBar()
+        def selectSql():
+            self.sublanguage = "SQL"
+        sql = toolbar.addAction("SQL", selectSql)
+        # Create menyu
+        menu = QtGui.QMenu( self )
+        menu.addAction( sql )
+        menu.addSeparator()
+        menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + self.cursor[0]*self.fontwt, 3 + (self.cursor[1]+1)*self.fontht))
+
+    def selectSubgrammar(self, item):
+        print("SELECTED GRAMMAR", item)
 
 class Window(QtGui.QMainWindow):
     def __init__(self):
