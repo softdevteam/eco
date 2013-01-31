@@ -234,7 +234,7 @@ class NodeEditor(QFrame):
                     if self.cursor[0] > 0:
                         self.cursor[0] -= 1
                 if inbetween:   # inside node
-                    internal_position = len(node.symbol.name) - (x - self.cursor[0])
+                    internal_position = len(selected_nodes[0].symbol.name) - (x - self.cursor[0])
                     selected_nodes[0].backspace(internal_position)
                     repairnode = selected_nodes[0]
                 else: # between two nodes
@@ -276,7 +276,7 @@ class NodeEditor(QFrame):
                     # split, insert new node, repair
                     internal_position = len(node.symbol.name) - (x - self.cursor[0])
                     node2 = newnode
-                    node3 = self.create_new_node(node.symbol.name[internal_position:])
+                    node3 = self.create_node(node.symbol.name[internal_position:])
                     node.symbol.name = node.symbol.name[:internal_position]
                     print("node1", node)
                     print("node2", node2)
