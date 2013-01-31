@@ -279,8 +279,8 @@ class NodeEditor(QFrame):
                         repairnode = node
             else:
                 if e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
+                    self.showSubgrammarMenu()
                     newnode = self.add_magic()
-                    #self.showSubgrammarMenu()
                     self.edit_rightnode = True # writes next char into magic ast
                 elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier | Qt.ShiftModifier:
                     self.edit_rightnode = True # writes next char into magic ast
@@ -558,17 +558,20 @@ class NodeEditor(QFrame):
         return self.parent().parent().parent().parent().parent()
 
     def showSubgrammarMenu(self):
+        # Create menu
+        menu = QtGui.QMenu( self )
         # Create actions
         toolbar = QtGui.QToolBar()
-        def selectSql():
-            self.sublanguage = "SQL"
-            self.edit_rightnode = True
-        sql = toolbar.addAction("SQL", selectSql)
-        # Create meny
-        menu = QtGui.QMenu( self )
-        menu.addAction( sql )
-        menu.addSeparator()
+        for l in languages:
+            item = toolbar.addAction(str(l), self.createMenuFunction(l))
+            menu.addAction(item)
         menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + self.cursor[0]*self.fontwt, 3 + (self.cursor[1]+1)*self.fontht))
+
+    def createMenuFunction(self, l):
+        def action():
+            self.sublanguage = l
+            self.edit_rightnode = True
+        return action
 
     def selectSubgrammar(self, item):
         print("SELECTED GRAMMAR", item)
