@@ -181,6 +181,10 @@ class Node(object):
                 last = siblings[i]
 
     def next_terminal(self):
+        print(self)
+        if isinstance(self, EOS):
+            return None
+
         node = self
         while node.right_sibling() is None:
             node = node.parent
@@ -197,6 +201,9 @@ class Node(object):
         return node
 
     def previous_terminal(self):
+        if isinstance(self, BOS):
+            return None
+
         node = self
         while node.left_sibling() is None:
             node = node.parent

@@ -200,6 +200,7 @@ class IncParser(object):
                 if la.changed:#self.has_changed(la):
                     la.changed = False
                     print("has changed")
+                    self.undo.append((la, 'changed', True))
                     la = self.left_breakdown(la)
                 else:
                     print("has not changed")

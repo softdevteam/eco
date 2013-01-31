@@ -369,7 +369,7 @@ class NodeEditor(QFrame):
     # ========================== AST modification stuff ========================== #
 
     def repair(self, startnode):
-        if isinstance(startnode, BOS):
+        if isinstance(startnode, BOS) or isinstance(startnode, EOS):
             return
         if isinstance(startnode.symbol, MagicTerminal):
             return
