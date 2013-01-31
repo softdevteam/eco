@@ -237,7 +237,7 @@ class NodeEditor(QFrame):
                     if self.cursor[0] > 0:
                         self.cursor[0] -= 1
                     else:
-                        # start of line move to previous line
+                        # if at beginning of line: move to previous line
                         if self.cursor[1] > 0:
                             self.cursor[1] -= 1
                             self.cursor[0] = self.max_cols[self.cursor[1]]
@@ -258,7 +258,7 @@ class NodeEditor(QFrame):
                         node = selected_nodes[0]
                         other = selected_nodes[1]
                         node.backspace(-1)
-                    if node.symbol.name == "": # if node is empty, delete it and repair previous/next node
+                    if node.symbol.name == "" and not isinstance(node, BOS): # if node is empty, delete it and repair previous/next node
                         if isinstance(other, BOS):
                             repairnode = node.next_terminal()
                         elif isinstance(other, EOS):
