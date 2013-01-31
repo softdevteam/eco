@@ -598,10 +598,10 @@ class Window(QtGui.QMainWindow):
             self.ui.listWidget.addItem(str(l))
             self.ui.listWidget_2.addItem(str(l))
 
-        self.ui.listWidget.item(1).setSelected(True)
+        self.ui.listWidget.item(0).setSelected(True)
         self.ui.listWidget_2.item(5).setSelected(True)
 
-        self.loadLanguage(self.ui.listWidget.item(1))
+        self.loadLanguage(self.ui.listWidget.item(0))
         self.setSubLanguage(self.ui.listWidget.item(5))
 
         self.connect(self.ui.listWidget, SIGNAL("itemClicked(QListWidgetItem *)"), self.loadLanguage)
