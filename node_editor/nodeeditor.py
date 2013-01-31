@@ -272,6 +272,9 @@ class NodeEditor(QFrame):
                         print("magic", magic)
                         if magic and len(root.children) == 3:
                             magic.parent.children.remove(magic)
+                            del self.parsers[root]
+                            del self.lexers[root]
+                            del self.priorities[root]
                         else:
                             node.parent.children.remove(node)
 
