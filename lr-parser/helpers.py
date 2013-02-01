@@ -170,7 +170,7 @@ class Helper(object):
                 symbol = state.next_symbol()
                 if isinstance(symbol, Nonterminal):
                     f = set()
-                    for l in state.lookahead:
+                    for l in la_dict[state]:#state.lookahead:
                         betaL = []
                         betaL.extend(state.remaining_symbols())
                         betaL.append(l)
