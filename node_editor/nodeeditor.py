@@ -595,16 +595,17 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.cb_toggle_ws, SIGNAL("clicked()"), self.btRefresh)
         self.connect(self.ui.cb_toggle_ast, SIGNAL("clicked()"), self.btRefresh)
 
-        self.btUpdateGrammar()
+        self.connect(self.ui.btShowSingleState, SIGNAL("clicked()"), self.showSingleState)
+        self.connect(self.ui.btShowWholeGraph, SIGNAL("clicked()"), self.showWholeGraph)
 
         for l in languages:
             self.ui.listWidget.addItem(str(l))
             self.ui.listWidget_2.addItem(str(l))
 
-        self.ui.listWidget.item(0).setSelected(True)
+        self.ui.listWidget.item(7).setSelected(True)
         self.ui.listWidget_2.item(5).setSelected(True)
 
-        self.loadLanguage(self.ui.listWidget.item(0))
+        self.loadLanguage(self.ui.listWidget.item(7))
         self.setSubLanguage(self.ui.listWidget.item(5))
 
         self.connect(self.ui.listWidget, SIGNAL("itemClicked(QListWidgetItem *)"), self.loadLanguage)
@@ -654,8 +655,13 @@ class Window(QtGui.QMainWindow):
         self.ui.graphicsView.setScene(QGraphicsScene())
         print("Done.")
 
-        #img = Viewer("pydot").create_pydot_graph(self.lrp.graph)
-        #self.showImage(self.ui.gvStategraph, img)
+    def showWholeGraph(self):
+        img = Viewer("pydot").create_pydot_graph(self.lrp.graph)
+        self.showImage(self.ui.gvStategraph, img)
+
+    def showSingleState(self):
+        img = Viewer("pydot").show_single_state(self.lrp.graph, int(self.ui.leSingleState.text()))
+        self.showImage(self.ui.gvStategraph, img)
 
     def btRefresh(self):
         whitespaces = self.ui.cb_toggle_ws.isChecked()

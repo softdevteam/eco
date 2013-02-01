@@ -8,6 +8,36 @@ class Language(object):
     def __str__(self):
         return self.name
 
+java_error2 = Language("Java Error (no arithmetic)",
+"""
+
+Start ::= AssignmentExpression
+
+UnaryExpression ::=
+	  "1"
+
+CastExpression ::=
+	  UnaryExpression
+
+MultiplicativeExpression ::=
+	  CastExpression
+	| MultiplicativeExpression "c" CastExpression
+	| MultiplicativeExpression "a" CastExpression
+
+
+AssignmentExpression ::=
+	  MultiplicativeExpression
+	| UnaryExpression "OP" AssignmentExpression
+
+""",
+"""
+"1":1
+"2":2
+"\+":+
+"\-":-
+"\%":%
+""")
+
 java_error = Language("Java Error",
 """
 S ::= AssignmentExpression
@@ -1072,4 +1102,4 @@ from java15 import java15
 #             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
 #             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
 
-languages = [base_language, super_simple, calc1, lisp, javav1, java15, sql_dummy]
+languages = [base_language, super_simple, calc1, lisp, javav1, java15, sql_dummy, java_error2]

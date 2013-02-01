@@ -118,6 +118,19 @@ class Viewer(object):
         pydotgraph.write_png('graphtemp.png')
         return 'graphtemp.png'
 
+    def show_single_state(self, graph, _id):
+        pydotgraph = pydot.Dot(graph_type='digraph')
+
+        stateset = graph.state_sets[_id]
+        stateset_info = []
+        for state in stateset.elements:
+            stateset_info.append(str(state))
+        dotnode = pydot.Node(_id, shape='rect', label="%s\n%s" % (_id, "\n".join(stateset_info)))
+        pydotgraph.add_node(dotnode)
+
+        pydotgraph.write_png('graphsingle.png')
+        return 'graphsingle.png'
+
     def create_graph_string(self, graph):
         s = []
         i = 0

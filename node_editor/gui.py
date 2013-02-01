@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Tue Jan 29 14:29:41 2013
+# Created: Fri Feb  1 13:37:44 2013
 #      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -17,7 +17,7 @@ except AttributeError:
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName(_fromUtf8("MainWindow"))
-        MainWindow.resize(878, 733)
+        MainWindow.resize(988, 722)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -25,8 +25,8 @@ class Ui_MainWindow(object):
         MainWindow.setSizePolicy(sizePolicy)
         self.centralwidget = QtGui.QWidget(MainWindow)
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))
-        self.horizontalLayout_3 = QtGui.QHBoxLayout(self.centralwidget)
-        self.horizontalLayout_3.setObjectName(_fromUtf8("horizontalLayout_3"))
+        self.horizontalLayout = QtGui.QHBoxLayout(self.centralwidget)
+        self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
         self.splitter = QtGui.QSplitter(self.centralwidget)
         self.splitter.setOrientation(QtCore.Qt.Horizontal)
         self.splitter.setObjectName(_fromUtf8("splitter"))
@@ -129,11 +129,28 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab, _fromUtf8(""))
         self.tab_2 = QtGui.QWidget()
         self.tab_2.setObjectName(_fromUtf8("tab_2"))
-        self.horizontalLayout_2 = QtGui.QHBoxLayout(self.tab_2)
-        self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
+        self.verticalLayout_6 = QtGui.QVBoxLayout(self.tab_2)
+        self.verticalLayout_6.setObjectName(_fromUtf8("verticalLayout_6"))
         self.gvStategraph = QtGui.QGraphicsView(self.tab_2)
         self.gvStategraph.setObjectName(_fromUtf8("gvStategraph"))
-        self.horizontalLayout_2.addWidget(self.gvStategraph)
+        self.verticalLayout_6.addWidget(self.gvStategraph)
+        self.horizontalLayout_2 = QtGui.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
+        self.btShowWholeGraph = QtGui.QPushButton(self.tab_2)
+        self.btShowWholeGraph.setObjectName(_fromUtf8("btShowWholeGraph"))
+        self.horizontalLayout_2.addWidget(self.btShowWholeGraph)
+        self.leSingleState = QtGui.QLineEdit(self.tab_2)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.leSingleState.sizePolicy().hasHeightForWidth())
+        self.leSingleState.setSizePolicy(sizePolicy)
+        self.leSingleState.setObjectName(_fromUtf8("leSingleState"))
+        self.horizontalLayout_2.addWidget(self.leSingleState)
+        self.btShowSingleState = QtGui.QPushButton(self.tab_2)
+        self.btShowSingleState.setObjectName(_fromUtf8("btShowSingleState"))
+        self.horizontalLayout_2.addWidget(self.btShowSingleState)
+        self.verticalLayout_6.addLayout(self.horizontalLayout_2)
         self.tabWidget.addTab(self.tab_2, _fromUtf8(""))
         self.tab_3 = QtGui.QWidget()
         self.tab_3.setObjectName(_fromUtf8("tab_3"))
@@ -156,10 +173,10 @@ class Ui_MainWindow(object):
         self.cb_add_implicit_ws.setObjectName(_fromUtf8("cb_add_implicit_ws"))
         self.verticalLayout_4.addWidget(self.cb_add_implicit_ws)
         self.tabWidget.addTab(self.tab_3, _fromUtf8(""))
-        self.horizontalLayout_3.addWidget(self.splitter)
+        self.horizontalLayout.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 878, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 988, 22))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
@@ -173,7 +190,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuFile.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(2)
+        self.tabWidget.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -189,6 +206,8 @@ class Ui_MainWindow(object):
         self.cb_toggle_ws.setText(QtGui.QApplication.translate("MainWindow", "Show whitespace nodes", None, QtGui.QApplication.UnicodeUTF8))
         self.cb_toggle_ast.setText(QtGui.QApplication.translate("MainWindow", "Show AST", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QtGui.QApplication.translate("MainWindow", "AST", None, QtGui.QApplication.UnicodeUTF8))
+        self.btShowWholeGraph.setText(QtGui.QApplication.translate("MainWindow", "Show whole graph", None, QtGui.QApplication.UnicodeUTF8))
+        self.btShowSingleState.setText(QtGui.QApplication.translate("MainWindow", "Show single state", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QtGui.QApplication.translate("MainWindow", "Stategraph", None, QtGui.QApplication.UnicodeUTF8))
         self.label_6.setText(QtGui.QApplication.translate("MainWindow", "Main Grammar", None, QtGui.QApplication.UnicodeUTF8))
         self.label_7.setText(QtGui.QApplication.translate("MainWindow", "Sub Grammar", None, QtGui.QApplication.UnicodeUTF8))
