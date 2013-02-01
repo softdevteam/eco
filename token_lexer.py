@@ -7,6 +7,7 @@ class TokenLexer(object):
     def match(self, token):
         matches = []
         remaining = token
+        any_match_found = False
         while remaining != "":
             longest_match = ("", "", 999999)
             for regex in self.regexlist:
@@ -20,9 +21,13 @@ class TokenLexer(object):
                             regex_name = self.regexlist[regex][1]
                             longest_match = (result, regex_name, new_priority)
             if longest_match[0] != "":
+                any_match_found = True
                 remaining = remaining[len(longest_match[0]):]
                 matches.append(longest_match)
             else:
                 matches.append((remaining, ""))
                 break
-        return matches
+        if any_match_found:
+            return matches
+        else:
+            return None
