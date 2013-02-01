@@ -602,11 +602,11 @@ class Window(QtGui.QMainWindow):
             self.ui.listWidget.addItem(str(l))
             self.ui.listWidget_2.addItem(str(l))
 
-        self.ui.listWidget.item(7).setSelected(True)
-        self.ui.listWidget_2.item(5).setSelected(True)
+        self.ui.listWidget.item(0).setSelected(True)
+        self.ui.listWidget_2.item(6).setSelected(True)
 
-        self.loadLanguage(self.ui.listWidget.item(7))
-        self.setSubLanguage(self.ui.listWidget.item(5))
+        self.loadLanguage(self.ui.listWidget.item(0))
+        self.setSubLanguage(self.ui.listWidget.item(6))
 
         self.connect(self.ui.listWidget, SIGNAL("itemClicked(QListWidgetItem *)"), self.loadLanguage)
         self.connect(self.ui.listWidget_2, SIGNAL("itemClicked(QListWidgetItem *)"), self.setSubLanguage)
