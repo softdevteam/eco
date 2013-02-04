@@ -186,7 +186,7 @@ class Parser(object):
             if t.name == "Nonterminal":
                 symbols_level[-1].append(Nonterminal(t.value))
             elif t.name == "Terminal":
-                symbols_level[-1].append(Terminal(t.value))
+                symbols_level[-1].append(Terminal(t.value.strip("\"")))
                 if self.whitespaces:
                     symbols_level[-1].append(Nonterminal("WS"))
             elif t.name == "MagicTerminal":
