@@ -17,10 +17,7 @@ class Rule(object):
 
 class Symbol(object):
     def __init__(self, name=""):
-        try:
-            self.name = name.strip("\"")
-        except AttributeError:
-            raise Exception("Symbol name is not a string:", name)
+        self.name = name
 
     def __eq__(self, other):
         if other.__class__ != self.__class__:

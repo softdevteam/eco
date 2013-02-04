@@ -10,7 +10,7 @@ class PriorityLexer(object):
         self.rule_count = 0
         self.rules = {}
 
-        self.eat_all()
+        self.eat_all_regex()
 
         self.test_rules()
 
@@ -71,6 +71,18 @@ class PriorityLexer(object):
         name = self.eat_name()
         self.rules[terminal] = (self.rule_count, name)
         self.rule_count += 1
+
+    def eat_all_regex(self):
+        for x in self.code.split("\n"):
+            self.eat_rule_regex(x)
+
+    def eat_rule_regex(self, x):
+        m = re.match("\"(.*)\":(.*)", x)
+        if m:
+            regex = m.group(1)
+            name = m.group(2)
+            self.rules[regex] = (self.rule_count, name)
+            self.rule_count += 1
 
     def eat_terminal(self):
         self.eat_char("\"")
