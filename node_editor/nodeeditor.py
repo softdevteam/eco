@@ -402,9 +402,8 @@ class NodeEditor(QFrame):
         if isinstance(startnode.symbol, MagicTerminal):
             return
         print("========== Starting Repair procedure ==========")
-        print("Startnode", startnode)
+        print("Startnode", startnode.symbol)
         root = startnode.get_root()
-        print("Root:", root)
         regex_list = []
         # find all regexs that include the new input string
         for regex in self.lexers[root].regexlist.keys():
@@ -509,7 +508,7 @@ class NodeEditor(QFrame):
         #XXX write regex parser that returns all possible tokens
         import string, re
         if c in regex:
-            if c not in ["+", "*", "."]:
+            if c not in ["+", "*", ".", "\\"]:
                 return True
 
             if c == "+" and regex.find("\+") != -1:
@@ -517,6 +516,8 @@ class NodeEditor(QFrame):
             if c == "*" and regex.find("\*") != -1:
                 return True
             if c == "." and regex.find("\.") != -1:
+                return True
+            if c == "\\" and regex == "\"([a-zA-Z0-9 ]|\\\\\")*\"":
                 return True
             return False
         if c in string.lowercase and re.findall("\[.*a-z.*\]", regex):
