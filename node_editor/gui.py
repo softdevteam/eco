@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Fri Feb  1 16:21:35 2013
+# Created: Mon Feb  4 14:15:45 2013
 #      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -123,7 +123,8 @@ class Ui_MainWindow(object):
         self.cb_toggle_ws.setObjectName(_fromUtf8("cb_toggle_ws"))
         self.gridLayout_2.addWidget(self.cb_toggle_ws, 1, 0, 1, 1)
         self.cb_toggle_ast = QtGui.QCheckBox(self.tab)
-        self.cb_toggle_ast.setChecked(True)
+        self.cb_toggle_ast.setCheckable(False)
+        self.cb_toggle_ast.setChecked(False)
         self.cb_toggle_ast.setObjectName(_fromUtf8("cb_toggle_ast"))
         self.gridLayout_2.addWidget(self.cb_toggle_ast, 2, 0, 1, 1)
         self.tabWidget.addTab(self.tab, _fromUtf8(""))
