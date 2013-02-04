@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Mon Feb  4 14:15:45 2013
+# Created: Mon Feb  4 14:45:10 2013
 #      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -70,6 +70,7 @@ class Ui_MainWindow(object):
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Window, brush)
         self.frame.setPalette(palette)
+        self.frame.setCursor(QtGui.QCursor(QtCore.Qt.IBeamCursor))
         self.frame.setFocusPolicy(QtCore.Qt.WheelFocus)
         self.frame.setAutoFillBackground(True)
         self.frame.setFrameShape(QtGui.QFrame.StyledPanel)
@@ -123,7 +124,7 @@ class Ui_MainWindow(object):
         self.cb_toggle_ws.setObjectName(_fromUtf8("cb_toggle_ws"))
         self.gridLayout_2.addWidget(self.cb_toggle_ws, 1, 0, 1, 1)
         self.cb_toggle_ast = QtGui.QCheckBox(self.tab)
-        self.cb_toggle_ast.setCheckable(False)
+        self.cb_toggle_ast.setCheckable(True)
         self.cb_toggle_ast.setChecked(False)
         self.cb_toggle_ast.setObjectName(_fromUtf8("cb_toggle_ast"))
         self.gridLayout_2.addWidget(self.cb_toggle_ast, 2, 0, 1, 1)
@@ -191,7 +192,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuFile.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(2)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):

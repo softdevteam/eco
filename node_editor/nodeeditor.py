@@ -221,6 +221,27 @@ class NodeEditor(QFrame):
         print("==================== END (get_nodes_at_pos) ====================== ")
         return (selected_nodes, inbetween, x)
 
+    def mousePressEvent(self, e):
+        if e.button() == Qt.LeftButton:
+            print(e.x(), e.y())
+            cursor_x = e.x() / self.fontwt
+            cursor_y = e.y() / self.fontht
+            print(cursor_x, cursor_y)
+            if cursor_y < len(self.max_cols):
+                self.cursor[1] = cursor_y
+            else:
+                self.cursor[1] = len(self.max_cols) - 1
+            if cursor_x <= self.max_cols[self.cursor[1]]:
+                self.cursor[0] = cursor_x
+            else:
+                self.cursor[0] = self.max_cols[self.cursor[1]]
+
+        selected_nodes, _, _ = self.get_nodes_at_position()
+        self.getWindow().btReparse(selected_nodes)
+
+        self.getWindow().showLookahead()
+        self.update()
+
     def keyPressEvent(self, e):
         print("====================== KEYPRESS (>>%s<<) ============================" % (repr(e.text()),))
         print("first get_nodes_at_pos")

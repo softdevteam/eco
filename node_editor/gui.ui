@@ -122,6 +122,9 @@
                </disabled>
               </palette>
              </property>
+             <property name="cursor">
+              <cursorShape>IBeamCursor</cursorShape>
+             </property>
              <property name="focusPolicy">
               <enum>Qt::WheelFocus</enum>
              </property>
@@ -199,7 +202,7 @@
       </widget>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
-        <number>2</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="tab">
         <attribute name="title">
@@ -225,7 +228,7 @@
             <string>Show AST</string>
            </property>
            <property name="checkable">
-            <bool>false</bool>
+            <bool>true</bool>
            </property>
            <property name="checked">
             <bool>false</bool>
