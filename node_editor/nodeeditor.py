@@ -223,10 +223,8 @@ class NodeEditor(QFrame):
 
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
-            print(e.x(), e.y())
             cursor_x = e.x() / self.fontwt
             cursor_y = e.y() / self.fontht
-            print(cursor_x, cursor_y)
             if cursor_y < len(self.max_cols):
                 self.cursor[1] = cursor_y
             else:
