@@ -218,19 +218,19 @@ class IncParser(object):
                    #print(element)
                    # THIS IS THE RIGHT STUFF
                    # ------
-                   #follow_id = self.graph.follow(self.current_state, la.symbol)
-                   #if follow_id: # can we shift this Nonterminal in the current state?
-                   #    print("shift this shit")
-                   #    self.stack.append(la)
-                   #    self.current_state = follow_id
-                   #    #self.stack.append(la)
-                   #    #goto = self.syntaxtable.lookup(self.current_state, la.symbol)
-                   #    #self.current_state = goto.action
-                   #    la = self.pop_lookahead(la)
-                   #    self.validating = True
-                   #    continue
-                   #else:
-                   #    la = self.left_breakdown(la)
+                    follow_id = self.graph.follow(self.current_state, la.symbol)
+                    if follow_id: # can we shift this Nonterminal in the current state?
+                        print("shift this shit")
+                        self.stack.append(la)
+                        self.current_state = follow_id
+                        #self.stack.append(la)
+                        #goto = self.syntaxtable.lookup(self.current_state, la.symbol)
+                        #self.current_state = goto.action
+                        la = self.pop_lookahead(la)
+                        self.validating = True
+                        continue
+                    else:
+                        la = self.left_breakdown(la)
                    # -------
                     #elif isinstance(element, Reduce):
                     #    print("reduce this shit")
@@ -244,22 +244,23 @@ class IncParser(object):
                         #perform
                     #    pass
                     # perform all reductions
-                    t = la.next_terminal()
-                    if la.lookup != "":
-                        lookup_symbol = Terminal(t.lookup)
-                    else:
-                        lookup_symbol = t.symbol
-                    element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
-                    print("PERFORM ALL THE REDUCTIONS", element)
+                    # PARSER WITHOUT TREE REUSE OPTIMISATION
+                   #t = la.next_terminal()
+                   #if la.lookup != "":
+                   #    lookup_symbol = Terminal(t.lookup)
+                   #else:
+                   #    lookup_symbol = t.symbol
+                   #element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
+                   #print("PERFORM ALL THE REDUCTIONS", element)
 
-                    if self.shiftable(la):
-                        print("SHIFTABLE")
-                        self.shift(la)
-                        self.right_breakdown()
-                        #print("STACK after shift:", self.stack)
-                        la = self.pop_lookahead(la)
-                    else:
-                        la = self.left_breakdown(la)
+                   #if self.shiftable(la):
+                   #    print("SHIFTABLE")
+                   #    self.shift(la)
+                   #    self.right_breakdown()
+                   #    #print("STACK after shift:", self.stack)
+                   #    la = self.pop_lookahead(la)
+                   #else:
+                   #    la = self.left_breakdown(la)
             print("---------------")
         print("============ INCREMENTAL PARSE END ================= ")
 
