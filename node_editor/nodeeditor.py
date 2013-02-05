@@ -248,6 +248,11 @@ class NodeEditor(QFrame):
 
         if e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             self.cursor_movement(e.key())
+        elif e.key() in [Qt.Key_End, Qt.Key_Home]:
+            if e.key() == Qt.Key_Home:
+                self.cursor[0] = 0
+            else:
+                self.cursor[0] = self.max_cols[self.cursor[1]]
         elif text != "":
             self.edit_rightnode = False
             if e.key() in [Qt.Key_Delete, Qt.Key_Backspace]:
