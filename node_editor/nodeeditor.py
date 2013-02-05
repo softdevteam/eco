@@ -288,14 +288,15 @@ class NodeEditor(QFrame):
                         print("root", root)
                         magic = root.get_magicterminal()
                         print("magic", magic)
-                        #if magic and len(root.children) == 3:
-                        #    pass
-                        #    magic.parent.children.remove(magic)
-                        #    del self.parsers[root]
-                        #    del self.lexers[root]
-                        #    del self.priorities[root]
-                        #else:
-                        node.parent.children.remove(node)
+                        next_node = node.next_terminal()
+                        previous_node = node.previous_terminal()
+                        if magic and isinstance(next_node, EOS) and isinstance(previous_node, BOS):
+                            magic.parent.children.remove(magic)
+                            del self.parsers[root]
+                            del self.lexers[root]
+                            del self.priorities[root]
+                        else:
+                            node.parent.children.remove(node)
 
                     else:
                         repairnode = node
