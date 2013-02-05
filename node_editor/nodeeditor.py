@@ -71,6 +71,7 @@ class NodeEditor(QFrame):
 
         self.node_map = {}
         self.max_cols = []
+        self.indentations = {}
 
         self.parsers = {}
         self.lexers = {}
@@ -79,6 +80,7 @@ class NodeEditor(QFrame):
         self.edit_rightnode = False
 
     def reset(self):
+        self.indentations = {}
         self.max_cols = []
         self.node_map = {}
         self.cursor = [0,0]
@@ -138,6 +140,8 @@ class NodeEditor(QFrame):
                 x = 0
                 self.node_map[(x,y)] = node
             else:
+                if node.lookup == "<ws>" and x == 0:
+                    self.indentations[y] = len(node.symbol.name)
                 if isinstance(node.symbol, MagicTerminal):
                     paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), " ")
                     x_before = x
@@ -184,6 +188,12 @@ class NodeEditor(QFrame):
 
         return x, y
 
+
+    def get_indentation(self, y):
+        try:
+            return self.indentations[y]
+        except KeyError:
+            return 0
 
     def get_nodes_at_position(self):
         print("==================== Get nodes at pos ====================== ")
@@ -314,6 +324,9 @@ class NodeEditor(QFrame):
                     self.edit_rightnode = True # writes next char into magic ast
                     return
                 else:
+                    if e.key() == Qt.Key_Return:
+                        indentation = self.get_indentation(self.cursor[1])
+                        text += " " * indentation
                     newnode = self.create_node(str(text))
                 if inbetween:
                     print("BETWEEN")
@@ -342,7 +355,7 @@ class NodeEditor(QFrame):
                 if e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
                     pass # do nothing
                 elif e.key() == Qt.Key_Return:
-                    self.cursor[0] = 0
+                    self.cursor[0] = indentation
                     self.cursor[1] += 1
                 else:
                     self.cursor[0] += 1
@@ -496,6 +509,7 @@ class NodeEditor(QFrame):
                 node.lookup = match[1]
                 #node = self.create_new_node(token)#token.value)
                 parent.insert_after_node(startnode, node)
+                print("adding", node)
             parent.remove_child(startnode)
             #print("parent children after", parent.children)
             parent.mark_changed() # XXX changed or not changed? if it fits this hasn't really changed. only the removed nodes have changed
