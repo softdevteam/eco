@@ -1032,7 +1032,7 @@ expression_nn ::=    assignment_expression_nn
 
 "[0-9]+":INTEGER_LITERAL
 "[0-9]+\.[0-9]+":FLOATING_POINT_LITERAL
-"[true|false]":BOOLEAN_LITERAL
+"(true|false)":BOOLEAN_LITERAL
 "\'[a-z]\'":CHARACTER_LITERAL
 "\"([a-zA-Z0-9 ]|\\\\\")*\"":STRING_LITERAL
 "null":NULL_LITERAL
