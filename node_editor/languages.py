@@ -124,15 +124,14 @@ calc1 = Language("Basic calculator",
         | E "+" T
     T ::= P
         | T "*" P
-    P ::= "INT" | <SQL>
+    P ::= "INT"
 """,
 """
-    "[0-9]+":INT
-    "subgrammar":subgrammar
-    "\\+":+
-    "\\*":*
-    "[ \\t]+":<ws>
-    "[\\n\\r]":<return>
+"[0-9]+":INT
+"\+":+
+"\*":*
+"[ \\t]+":<ws>
+"[\\n\\r]":<return>
 """)
 
 merge1 = Language("Grammar to test merging behaviour",
