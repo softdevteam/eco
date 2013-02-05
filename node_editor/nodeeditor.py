@@ -95,7 +95,6 @@ class NodeEditor(QFrame):
         self.priorities[lrp.previous_version.parent] = self.getPL()
 
     def set_sublanguage(self, language):
-        print("setting sublanhuage to", language.name)
         self.sublanguage = language
 
     # ========================== GUI related stuff ========================== #
@@ -579,7 +578,7 @@ class NodeEditor(QFrame):
 
     def getWindow(self):
         #XXX better way to find window
-        return self.parent().parent().parent().parent().parent()
+        return self.parent().parent().parent().parent()
 
     def showSubgrammarMenu(self):
         # Create menu
@@ -621,16 +620,12 @@ class Window(QtGui.QMainWindow):
 
         for l in languages:
             self.ui.listWidget.addItem(str(l))
-            self.ui.listWidget_2.addItem(str(l))
 
         self.ui.listWidget.item(0).setSelected(True)
-        self.ui.listWidget_2.item(6).setSelected(True)
 
         self.loadLanguage(self.ui.listWidget.item(0))
-        self.setSubLanguage(self.ui.listWidget.item(6))
 
         self.connect(self.ui.listWidget, SIGNAL("itemClicked(QListWidgetItem *)"), self.loadLanguage)
-        self.connect(self.ui.listWidget_2, SIGNAL("itemClicked(QListWidgetItem *)"), self.setSubLanguage)
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
 
     def openfile(self):
@@ -650,10 +645,6 @@ class Window(QtGui.QMainWindow):
                 modifier = Qt.NoModifier
             event = QKeyEvent(QEvent.KeyPress, key, modifier, c)
             QCoreApplication.postEvent(self.ui.frame, event)
-
-    def setSubLanguage(self, item):
-        language = languages[self.ui.listWidget_2.row(item)]
-        self.ui.frame.set_sublanguage(language)
 
     def loadLanguage(self, item):
         print("Loading Language...")

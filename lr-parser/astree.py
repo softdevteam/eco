@@ -181,7 +181,6 @@ class Node(object):
                 last = siblings[i]
 
     def next_terminal(self):
-        print(self)
         if isinstance(self, EOS):
             return None
 
