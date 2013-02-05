@@ -236,7 +236,9 @@ class NodeEditor(QFrame):
         selected_nodes, _, _ = self.get_nodes_at_position()
         self.getWindow().btReparse(selected_nodes)
 
-        self.getWindow().showLookahead()
+        root = selected_nodes[0].get_root()
+        lrp = self.parsers[root]
+        self.getWindow().showLookahead(lrp)
         self.update()
 
     def keyPressEvent(self, e):
@@ -290,9 +292,7 @@ class NodeEditor(QFrame):
                             repairnode = other
                         # check if magic terminal is empty
                         root = node.get_root()
-                        print("root", root)
                         magic = root.get_magicterminal()
-                        print("magic", magic)
                         next_node = node.next_terminal()
                         previous_node = node.previous_terminal()
                         if magic and isinstance(next_node, EOS) and isinstance(previous_node, BOS):
@@ -353,7 +353,9 @@ class NodeEditor(QFrame):
         selected_nodes, _, _ = self.get_nodes_at_position()
         self.getWindow().btReparse(selected_nodes)
 
-        self.getWindow().showLookahead()
+        root = selected_nodes[0].get_root()
+        lrp = self.parsers[root]
+        self.getWindow().showLookahead(lrp)
         self.update()
 
     def add_magic(self):
@@ -701,8 +703,8 @@ class Window(QtGui.QMainWindow):
             image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node, whitespaces)
             self.showImage(self.ui.graphicsView, image)
 
-    def showLookahead(self):
-        la = self.lrp.get_next_symbols_string()
+    def showLookahead(self, lrp=None):
+        la = lrp.get_next_symbols_string()
         self.ui.lineEdit.setText(la)
 
     def showImage(self, graphicsview, imagefile):
