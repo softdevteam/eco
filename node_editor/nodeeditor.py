@@ -68,6 +68,8 @@ class NodeEditor(QFrame):
         self.ctimer.start(500)
 
         self.position = 0
+        self.selection_start = Cursor(0,0)
+        self.selection_end = Cursor(0,0)
 
         self.node_map = {}
         self.max_cols = []
@@ -83,7 +85,7 @@ class NodeEditor(QFrame):
         self.indentations = {}
         self.max_cols = []
         self.node_map = {}
-        self.cursor = [0,0]
+        self.cursor = Cursor(0,0)
         self.update()
 
     def set_lrparser(self, lrp):
@@ -122,12 +124,13 @@ class NodeEditor(QFrame):
         self.node_map[(x,y)] = bos
         self.max_cols = []
 
+        self.paintSelection(paint)
         x, y = self.paintAST(paint, bos, x, y)
         self.max_cols.append(x) # last line
 
         if self.hasFocus() and self.show_cursor:
             #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
-            paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, 1, self.fontht)
+            paint.drawRect(3 + self.cursor.x * self.fontwt, 2 + self.cursor.y * self.fontht, 1, self.fontht)
 
         paint.end()
 
@@ -155,6 +158,9 @@ class NodeEditor(QFrame):
             node = node.next_terminal()
         return x,y
 
+    def paintSelection(self, paint):
+        x_dist = self.selection_end.x - self.selection_start.x
+        paint.fillRect(3 + self.selection_start.x * self.fontwt, 2+self.selection_start.y * self.fontht, x_dist * self.fontwt, self.fontht, QColor(0,0,255,100))
 
     def recalculate_positions(self): # without painting
         y = 0
@@ -200,8 +206,8 @@ class NodeEditor(QFrame):
         print("Position:", self.cursor)
         # Look up node in position map (if there is no direct match, i.e. inbetween node, try to find end of node)
         node_at_pos = None
-        x = self.cursor[0]
-        y = self.cursor[1]
+        x = self.cursor.x
+        y = self.cursor.y
         inbetween = False
         while not node_at_pos and x <= self.max_cols[y]:
             try:
@@ -230,18 +236,63 @@ class NodeEditor(QFrame):
         print("==================== END (get_nodes_at_pos) ====================== ")
         return (selected_nodes, inbetween, x)
 
+    def get_nodes_from_selection(self):
+        cur_start = min(self.selection_start, self.selection_end)
+        cur_end = max(self.selection_start, self.selection_end)
+        print(cur_start, cur_end)
+        start = None
+        include_start = False
+        x = cur_start.x
+        y = cur_start.y
+        while not start and x <= self.max_cols[y]:
+            try:
+                start = self.node_map[(x, y)]
+                break
+            except KeyError:
+                include_start = True
+                x += 1
+
+        diff_start = x - cur_start.x
+
+        end = None
+        x = cur_end.x
+        y = cur_end.y
+        while not end and x <= self.max_cols[y]:
+            try:
+                end = self.node_map[(x, y)]
+                break
+            except KeyError:
+                x += 1
+
+        diff_end = cur_end.x - x
+
+        nodes = []
+        node = start
+        if include_start:
+            nodes.append(start)
+        while node is not end:
+            node = node.next_terminal()
+            nodes.append(node)
+
+        print(nodes)
+        return (nodes, diff_start, diff_end)
+
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
             cursor_x = e.x() / self.fontwt
             cursor_y = e.y() / self.fontht
+
+            self.selection_start = Cursor(cursor_x, cursor_y)
+            self.selection_end = Cursor(cursor_x, cursor_y)
+
             if cursor_y < len(self.max_cols):
-                self.cursor[1] = cursor_y
+                self.cursor.y = cursor_y
             else:
-                self.cursor[1] = len(self.max_cols) - 1
-            if cursor_x <= self.max_cols[self.cursor[1]]:
-                self.cursor[0] = cursor_x
+                self.cursor.y = len(self.max_cols) - 1
+            if cursor_x <= self.max_cols[self.cursor.y]:
+                self.cursor.x = cursor_x
             else:
-                self.cursor[0] = self.max_cols[self.cursor[1]]
+                self.cursor.x = self.max_cols[self.cursor.y]
 
         selected_nodes, _, _ = self.get_nodes_at_position()
         self.getWindow().btReparse(selected_nodes)
@@ -249,6 +300,15 @@ class NodeEditor(QFrame):
         root = selected_nodes[0].get_root()
         lrp = self.parsers[root]
         self.getWindow().showLookahead(lrp)
+        self.update()
+
+    def mouseMoveEvent(self, e):
+        # apparaently this is only called when a mouse button is clicked while
+        # the mouse is moving
+        cursor_x = e.x() / self.fontwt
+        cursor_y = e.y() / self.fontht
+        self.selection_end = Cursor(cursor_x, cursor_y)
+        self.get_nodes_from_selection()
         self.update()
 
     def keyPressEvent(self, e):
@@ -262,22 +322,22 @@ class NodeEditor(QFrame):
             self.cursor_movement(e.key())
         elif e.key() in [Qt.Key_End, Qt.Key_Home]:
             if e.key() == Qt.Key_Home:
-                self.cursor[0] = 0
+                self.cursor.x = 0
             else:
-                self.cursor[0] = self.max_cols[self.cursor[1]]
+                self.cursor.x = self.max_cols[self.cursor.y]
         elif text != "":
             self.edit_rightnode = False
             if e.key() in [Qt.Key_Delete, Qt.Key_Backspace]:
                 if e.key() == Qt.Key_Backspace:
-                    if self.cursor[0] > 0:
-                        self.cursor[0] -= 1
+                    if self.cursor.x > 0:
+                        self.cursor.x -= 1
                     else:
                         # if at beginning of line: move to previous line
-                        if self.cursor[1] > 0:
-                            self.cursor[1] -= 1
-                            self.cursor[0] = self.max_cols[self.cursor[1]]
+                        if self.cursor.y > 0:
+                            self.cursor.y -= 1
+                            self.cursor.x = self.max_cols[self.cursor.y]
                 if inbetween:   # inside node
-                    internal_position = len(selected_nodes[0].symbol.name) - (x - self.cursor[0])
+                    internal_position = len(selected_nodes[0].symbol.name) - (x - self.cursor.x)
                     selected_nodes[0].backspace(internal_position)
                     repairnode = selected_nodes[0]
                 else: # between two nodes
@@ -325,14 +385,14 @@ class NodeEditor(QFrame):
                     return
                 else:
                     if e.key() == Qt.Key_Return:
-                        indentation = self.get_indentation(self.cursor[1])
+                        indentation = self.get_indentation(self.cursor.y)
                         text += " " * indentation
                     newnode = self.create_node(str(text))
                 if inbetween:
                     print("BETWEEN")
                     node = selected_nodes[0]
                     # split, insert new node, repair
-                    internal_position = len(node.symbol.name) - (x - self.cursor[0])
+                    internal_position = len(node.symbol.name) - (x - self.cursor.x)
                     node2 = newnode
                     node3 = self.create_node(node.symbol.name[internal_position:])
                     node.symbol.name = node.symbol.name[:internal_position]
@@ -355,10 +415,10 @@ class NodeEditor(QFrame):
                 if e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
                     pass # do nothing
                 elif e.key() == Qt.Key_Return:
-                    self.cursor[0] = indentation
-                    self.cursor[1] += 1
+                    self.cursor.x = indentation
+                    self.cursor.y += 1
                 else:
-                    self.cursor[0] += 1
+                    self.cursor.x += 1
             self.repair(repairnode)
 
         self.recalculate_positions() # XXX ensures that positions are up to date before next keypress is called
@@ -413,25 +473,21 @@ class NodeEditor(QFrame):
 
     def cursor_movement(self, key):
         if key == QtCore.Qt.Key_Up:
-            if self.cursor[1] > 0:
-                self.cursor[1] -= 1
-                if self.cursor[0] > self.max_cols[self.cursor[1]]:
-                    self.cursor[0] = self.max_cols[self.cursor[1]]
+            if self.cursor.y > 0:
+                self.cursor.y -= 1
+                if self.cursor.x > self.max_cols[self.cursor.y]:
+                    self.cursor.x = self.max_cols[self.cursor.y]
         elif key == QtCore.Qt.Key_Down:
-            if self.cursor[1] < len(self.max_cols)-1:
-                self.cursor[1] += 1
-                if self.cursor[0] > self.max_cols[self.cursor[1]]:
-                    self.cursor[0] = self.max_cols[self.cursor[1]]
+            if self.cursor.y < len(self.max_cols)-1:
+                self.cursor.y += 1
+                if self.cursor.x > self.max_cols[self.cursor.y]:
+                    self.cursor.x = self.max_cols[self.cursor.y]
         elif key == QtCore.Qt.Key_Left:
-            if self.cursor[0] > 0:
-                self.cursor[0] -= 1
+            if self.cursor.x > 0:
+                self.cursor.x -= 1
         elif key == QtCore.Qt.Key_Right:
-            if self.cursor[0] < self.max_cols[self.cursor[1]]:
-                self.cursor[0] += 1
-
-    def update_info(self):
-        selected_nodes = self.getNodesAtPosition() # needed for coloring selected nodes
-        self.getWindow().btReparse(selected_nodes)
+            if self.cursor.x < self.max_cols[self.cursor.y]:
+                self.cursor.x += 1
 
     # ========================== AST modification stuff ========================== #
 
@@ -585,10 +641,6 @@ class NodeEditor(QFrame):
         node.lookup = self.getPL().name(text)
         return node
 
-    def getNodesAtPosition(self):
-        nodes = self.ast.get_nodes_at_position(self.cursor[0])
-        return nodes
-
     def getTL(self):
         return self.getWindow().tl
 
@@ -620,6 +672,35 @@ class NodeEditor(QFrame):
 
     def selectSubgrammar(self, item):
         print("SELECTED GRAMMAR", item)
+
+class Cursor(object):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __lt__(self, other):
+        if isinstance(other, Cursor):
+            if self.y < other.y:
+                return True
+            elif self.y == other.y and self.x < other.x:
+                return True
+        return False
+
+    def __gt__(self, other):
+        if isinstance(other, Cursor):
+            if self.y > other.y:
+                return True
+            elif self.y == other.y and self.x > other.x:
+                return True
+        return False
+
+    def __eq__(self, other):
+        if isinstance(other, Cursor):
+            return self.x == other.x and self.y == other.y
+        return False
+
+    def __repr__(self):
+        return "Cursor(%s, %s)" % (self.x, self.y)
 
 class Window(QtGui.QMainWindow):
     def __init__(self):
