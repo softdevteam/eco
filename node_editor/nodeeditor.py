@@ -293,35 +293,37 @@ class NodeEditor(QFrame):
 
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
-            cursor_x = e.x() / self.fontwt
-            cursor_y = e.y() / self.fontht
+            self.cursor = self.coordinate_to_cursor(e.x(), e.y())
+            self.selection_start = self.cursor
+            self.selection_end = self.selection_start
 
-            self.selection_start = Cursor(cursor_x, cursor_y)
-            self.selection_end = Cursor(cursor_x, cursor_y)
+            selected_nodes, _, _ = self.get_nodes_at_position()
+            self.getWindow().btReparse(selected_nodes)
 
-            if cursor_y < len(self.max_cols):
-                self.cursor.y = cursor_y
-            else:
-                self.cursor.y = len(self.max_cols) - 1
-            if cursor_x <= self.max_cols[self.cursor.y]:
-                self.cursor.x = cursor_x
-            else:
-                self.cursor.x = self.max_cols[self.cursor.y]
+            root = selected_nodes[0].get_root()
+            lrp = self.parsers[root]
+            self.getWindow().showLookahead(lrp)
+            self.update()
 
-        selected_nodes, _, _ = self.get_nodes_at_position()
-        self.getWindow().btReparse(selected_nodes)
+    def coordinate_to_cursor(self, x, y):
+        cursor_x = x / self.fontwt
+        cursor_y = y / self.fontht
 
-        root = selected_nodes[0].get_root()
-        lrp = self.parsers[root]
-        self.getWindow().showLookahead(lrp)
-        self.update()
+        result = Cursor(0,0)
+        if cursor_y < len(self.max_cols):
+            result.y = cursor_y
+        else:
+            result.y = len(self.max_cols) - 1
+        if cursor_x <= self.max_cols[result.y]:
+            result.x = cursor_x
+        else:
+            result.x = self.max_cols[result.y]
+        return result
 
     def mouseMoveEvent(self, e):
         # apparaently this is only called when a mouse button is clicked while
         # the mouse is moving
-        cursor_x = e.x() / self.fontwt
-        cursor_y = e.y() / self.fontht
-        self.selection_end = Cursor(cursor_x, cursor_y)
+        self.selection_end = self.coordinate_to_cursor(e.x(), e.y())
         self.get_nodes_from_selection()
         self.update()
 
