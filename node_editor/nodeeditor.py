@@ -124,7 +124,6 @@ class NodeEditor(QFrame):
         self.node_map[(x,y)] = bos
         self.max_cols = []
 
-        self.paintSelection(paint)
         x, y = self.paintAST(paint, bos, x, y)
         self.max_cols.append(x) # last line
 
@@ -132,6 +131,7 @@ class NodeEditor(QFrame):
             #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
             paint.drawRect(3 + self.cursor.x * self.fontwt, 2 + self.cursor.y * self.fontht, 1, self.fontht)
 
+        self.paintSelection(paint)
         paint.end()
 
     def paintAST(self, paint, bos, x, y):
@@ -159,8 +159,24 @@ class NodeEditor(QFrame):
         return x,y
 
     def paintSelection(self, paint):
-        x_dist = self.selection_end.x - self.selection_start.x
-        paint.fillRect(3 + self.selection_start.x * self.fontwt, 2+self.selection_start.y * self.fontht, x_dist * self.fontwt, self.fontht, QColor(0,0,255,100))
+        start = min(self.selection_start, self.selection_end)
+        end = max(self.selection_start, self.selection_end)
+        if start.y == end.y:
+            width = end.x - start.x
+            paint.fillRect(3 + start.x * self.fontwt, 2+start.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
+        else:
+            # paint start to line end
+            width = self.max_cols[start.y] - start.x
+            paint.fillRect(3 + start.x * self.fontwt, 2+start.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
+
+            # paint lines in betwwen
+            for y in range(start.y+1, end.y):
+                width = self.max_cols[y]
+                paint.fillRect(3 + 0 * self.fontwt, 2+y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
+
+            # paint line start to end
+            width = end.x
+            paint.fillRect(3 + 0 * self.fontwt, 2+end.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
 
     def recalculate_positions(self): # without painting
         y = 0
@@ -239,7 +255,6 @@ class NodeEditor(QFrame):
     def get_nodes_from_selection(self):
         cur_start = min(self.selection_start, self.selection_end)
         cur_end = max(self.selection_start, self.selection_end)
-        print(cur_start, cur_end)
         start = None
         include_start = False
         x = cur_start.x
@@ -274,7 +289,6 @@ class NodeEditor(QFrame):
             node = node.next_terminal()
             nodes.append(node)
 
-        print(nodes)
         return (nodes, diff_start, diff_end)
 
     def mousePressEvent(self, e):
