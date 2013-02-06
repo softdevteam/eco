@@ -328,6 +328,9 @@ class NodeEditor(QFrame):
         elif text != "":
             self.edit_rightnode = False
             if e.key() in [Qt.Key_Delete, Qt.Key_Backspace]:
+                if self.hasSelection():
+                    self.deleteSelection()
+                    return
                 if e.key() == Qt.Key_Backspace:
                     if self.cursor.x > 0:
                         self.cursor.x -= 1
@@ -490,6 +493,38 @@ class NodeEditor(QFrame):
                 self.cursor.x += 1
 
     # ========================== AST modification stuff ========================== #
+
+    def char_difference(self, cursor1, cursor2):
+        if cursor1.y == cursor2.y:
+            return abs(cursor1.x - cursor2.x)
+
+        start = min(cursor1, cursor2)
+        end = max(cursor1, cursor2)
+
+        chars = 0
+        chars += self.max_cols[start.y] - start.x
+        chars += 1 # return
+        chars += end.x
+
+        for y in range(start.y+1, end.y):
+            chars += self.max_cols[y]
+            chars += 1 # return
+
+        return chars
+
+    def hasSelection(self):
+        return self.selection_start != self.selection_end
+
+    def deleteSelection(self):
+        #XXX simple version: later we might want to modify the nodes directly
+        #nodes, diff_start, diff_end = self.get_nodes_from_selection()
+        chars = self.char_difference(self.selection_start, self.selection_end)
+        self.cursor = min(self.selection_start, self.selection_end)
+        self.selection_start = Cursor(0,0)
+        self.selection_end = Cursor(0,0)
+        for i in range(chars):
+            event = QKeyEvent(QEvent.KeyPress, Qt.Key_Delete, Qt.NoModifier, "delete")
+            QCoreApplication.postEvent(self, event)
 
     def repair(self, startnode):
         if isinstance(startnode, BOS) or isinstance(startnode, EOS):
@@ -699,8 +734,12 @@ class Cursor(object):
             return self.x == other.x and self.y == other.y
         return False
 
+    def __ne__(self, other):
+        return not self == other
+
     def __repr__(self):
         return "Cursor(%s, %s)" % (self.x, self.y)
+
 
 class Window(QtGui.QMainWindow):
     def __init__(self):
