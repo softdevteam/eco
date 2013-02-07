@@ -595,9 +595,11 @@ class NodeEditor(QFrame):
         self.insertText(text)
 
     def insertText(self, text):
+        self.indentation = False
         for c in str(text):
-            if c == "\n":
+            if c == "\n" or c == "\r":
                 key = Qt.Key_Return
+                modifier = Qt.NoModifier
             elif ord(c) in range(97, 122): # a-z
                 key = ord(c) - 32
                 modifier = Qt.NoModifier
@@ -608,7 +610,9 @@ class NodeEditor(QFrame):
                 key = ord(c)
                 modifier = Qt.NoModifier
             event = QKeyEvent(QEvent.KeyPress, key, modifier, c)
-            QCoreApplication.postEvent(self, event)
+            #QCoreApplication.postEvent(self, event)
+            self.keyPressEvent(event)
+        self.indentation = True
 
     def repair(self, startnode):
         if startnode is None:
