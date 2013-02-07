@@ -384,12 +384,30 @@
     </property>
     <addaction name="actionOpen"/>
    </widget>
+   <widget class="QMenu" name="menuOptions">
+    <property name="title">
+     <string>Options</string>
+    </property>
+    <addaction name="actionRandomDel"/>
+    <addaction name="actionUndoRandomDel"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuOptions"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen">
    <property name="text">
     <string>Open...</string>
+   </property>
+  </action>
+  <action name="actionRandomDel">
+   <property name="text">
+    <string>Delete random chars</string>
+   </property>
+  </action>
+  <action name="actionUndoRandomDel">
+   <property name="text">
+    <string>Undo random deletion</string>
    </property>
   </action>
  </widget>

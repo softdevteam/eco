@@ -80,6 +80,9 @@ class NodeEditor(QFrame):
         self.priorities = {}
 
         self.edit_rightnode = False
+        self.indentation = True
+
+        self.last_delchar = ""
 
     def reset(self):
         self.indentations = {}
@@ -378,7 +381,7 @@ class NodeEditor(QFrame):
                             self.cursor.x = self.max_cols[self.cursor.y]
                 if inbetween:   # inside node
                     internal_position = len(selected_nodes[0].symbol.name) - (x - self.cursor.x)
-                    selected_nodes[0].backspace(internal_position)
+                    self.last_delchar = selected_nodes[0].backspace(internal_position)
                     repairnode = selected_nodes[0]
                 else: # between two nodes
                     if e.key() == Qt.Key_Delete: # delete
@@ -388,11 +391,11 @@ class NodeEditor(QFrame):
                             self.edit_rightnode = False
                         node = selected_nodes[1]
                         other = selected_nodes[0]
-                        node.backspace(0)
+                        self.last_delchar = node.backspace(0)
                     else: # backspace
                         node = selected_nodes[0]
                         other = selected_nodes[1]
-                        node.backspace(-1)
+                        self.last_delchar = node.backspace(-1)
                     if node.symbol.name == "" and not isinstance(node, BOS): # if node is empty, delete it and repair previous/next node
                         if isinstance(other, BOS):
                             repairnode = node.next_terminal()
@@ -427,8 +430,11 @@ class NodeEditor(QFrame):
                     return
                 else:
                     if e.key() == Qt.Key_Return:
-                        indentation = self.get_indentation(self.cursor.y)
-                        text += " " * indentation
+                        if self.indentation:
+                            indentation = self.get_indentation(self.cursor.y)
+                            text += " " * indentation
+                        else:
+                            indentation = 0
                     newnode = self.create_node(str(text))
                 if inbetween:
                     print("BETWEEN")
@@ -443,11 +449,14 @@ class NodeEditor(QFrame):
                     print("node3", node3)
                     self.add_node(node, node2)
                     self.add_node(node2, node3)
-                    self.repair(node)
-                    self.repair(node3)
+                    self.repair(node2)
+                    if not node3.deleted:
+                        self.repair(node3)
+                    if not node2.deleted:
+                        self.repair(node2)
                     #node.parent.insert_after_node(node, node2)
                     #node.parent.insert_after_node(node2, node3)
-                    repairnode = node2
+                    repairnode = None
                 else:
                     # insert node, repair
                     node = selected_nodes[0]
@@ -602,6 +611,8 @@ class NodeEditor(QFrame):
             QCoreApplication.postEvent(self, event)
 
     def repair(self, startnode):
+        if startnode is None:
+            return
         if isinstance(startnode, BOS) or isinstance(startnode, EOS):
             return
         if isinstance(startnode.symbol, MagicTerminal):
@@ -783,6 +794,46 @@ class NodeEditor(QFrame):
     def selectSubgrammar(self, item):
         print("SELECTED GRAMMAR", item)
 
+    def randomDeletion(self):
+        import random
+        from time import sleep
+        deleted = []
+        for i in range(30):
+            # choose random line
+            y = random.randint(0, len(self.max_cols)-1)
+            if self.max_cols[y] > 0:
+                x = random.randint(0, self.max_cols[y])
+                self.cursor = Cursor(x,y)
+
+                event = QKeyEvent(QEvent.KeyPress, Qt.Key_Delete, Qt.NoModifier, "delete")
+                #QCoreApplication.postEvent(self, event)
+                self.keyPressEvent(event)
+
+                if self.last_delchar: # might be none if delete at end of file
+                    deleted.append((self.cursor.copy(), self.last_delchar))
+        self.deleted_chars = deleted
+
+    def undoDeletion(self):
+        self.indentation = False
+        for cursor, c in reversed(self.deleted_chars):
+            self.cursor = cursor
+            if c == "\n":
+                key = Qt.Key_Return
+                modifier = Qt.NoModifier
+            elif ord(c) in range(97, 122): # a-z
+                key = ord(c) - 32
+                modifier = Qt.NoModifier
+            elif ord(c) in range(65, 90): # A-Z
+                key = ord(c)
+                modifier = Qt.ShiftModifier
+            else:   # !, {, }, ...
+                key = ord(c)
+                modifier = Qt.NoModifier
+            event = QKeyEvent(QEvent.KeyPress, key, modifier, c)
+            self.keyPressEvent(event)
+        self.indentation = True
+
+
 class Cursor(object):
     def __init__(self, x, y):
         self.x = x
@@ -847,6 +898,8 @@ class Window(QtGui.QMainWindow):
 
         self.connect(self.ui.listWidget, SIGNAL("itemClicked(QListWidgetItem *)"), self.loadLanguage)
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
+        self.connect(self.ui.actionRandomDel, SIGNAL("triggered()"), self.ui.frame.randomDeletion)
+        self.connect(self.ui.actionUndoRandomDel, SIGNAL("triggered()"), self.ui.frame.undoDeletion)
 
     def openfile(self):
         filename = QFileDialog.getOpenFileName()#"Open File", "", "Files (*.*)")

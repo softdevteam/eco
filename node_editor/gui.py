@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Tue Feb  5 10:41:26 2013
+# Created: Thu Feb  7 15:45:22 2013
 #      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -216,14 +216,23 @@ class Ui_MainWindow(object):
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
+        self.menuOptions = QtGui.QMenu(self.menubar)
+        self.menuOptions.setObjectName(_fromUtf8("menuOptions"))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName(_fromUtf8("statusbar"))
         MainWindow.setStatusBar(self.statusbar)
         self.actionOpen = QtGui.QAction(MainWindow)
         self.actionOpen.setObjectName(_fromUtf8("actionOpen"))
+        self.actionRandomDel = QtGui.QAction(MainWindow)
+        self.actionRandomDel.setObjectName(_fromUtf8("actionRandomDel"))
+        self.actionUndoRandomDel = QtGui.QAction(MainWindow)
+        self.actionUndoRandomDel.setObjectName(_fromUtf8("actionUndoRandomDel"))
         self.menuFile.addAction(self.actionOpen)
+        self.menuOptions.addAction(self.actionRandomDel)
+        self.menuOptions.addAction(self.actionUndoRandomDel)
         self.menubar.addAction(self.menuFile.menuAction())
+        self.menubar.addAction(self.menuOptions.menuAction())
 
         self.retranslateUi(MainWindow)
         self.tabWidget.setCurrentIndex(2)
@@ -250,6 +259,9 @@ class Ui_MainWindow(object):
         self.btUpdate.setText(QtGui.QApplication.translate("MainWindow", "Update", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), QtGui.QApplication.translate("MainWindow", "Grammars", None, QtGui.QApplication.UnicodeUTF8))
         self.menuFile.setTitle(QtGui.QApplication.translate("MainWindow", "File", None, QtGui.QApplication.UnicodeUTF8))
+        self.menuOptions.setTitle(QtGui.QApplication.translate("MainWindow", "Options", None, QtGui.QApplication.UnicodeUTF8))
         self.actionOpen.setText(QtGui.QApplication.translate("MainWindow", "Open...", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionRandomDel.setText(QtGui.QApplication.translate("MainWindow", "Delete random chars", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionUndoRandomDel.setText(QtGui.QApplication.translate("MainWindow", "Undo random deletion", None, QtGui.QApplication.UnicodeUTF8))
 
 from nodeeditor import NodeEditor

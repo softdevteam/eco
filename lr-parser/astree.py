@@ -125,7 +125,8 @@ class Node(object):
     def remove_child(self, child):
         for i in xrange(len(self.children)):
             if self.children[i] is child:
-                self.children.pop(i)
+                removed_child = self.children.pop(i)
+                removed_child.deleted = True
                 return
 
     def replace_children(self, la, children):
@@ -331,11 +332,12 @@ class TextNode(Node):
             #    self.parent.children.remove(self)
             #    self.deleted = True
             self.change_text("")
+            return l[0]
         else:
             internal_pos = pos - self.position
-            l.pop(pos)
-            print(l)
+            delchar = l.pop(pos)
             self.change_text("".join(l))
+            return delchar
 
     def __repr__(self):
         return "%s(%s, %s, %s, %s)" % (self.__class__.__name__, self.symbol, self.state, self.children, self.lookup)
