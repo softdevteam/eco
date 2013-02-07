@@ -287,6 +287,17 @@ class NodeEditor(QFrame):
             nodes.append(start)
         while node is not end:
             node = node.next_terminal()
+            print(node)
+            # extend search into magic tree
+            if isinstance(node.symbol, MagicTerminal):
+                node = node.symbol.parser.previous_version.get_bos()
+                continue
+            # extend search outside magic tree
+            if isinstance(node, EOS):
+                root = node.get_root()
+                magic = root.get_magicterminal()
+                if magic:
+                    node = magic.next_terminal()
             nodes.append(node)
 
         return (nodes, diff_start, diff_end)
@@ -754,7 +765,7 @@ class NodeEditor(QFrame):
         for l in languages:
             item = toolbar.addAction(str(l), self.createMenuFunction(l))
             menu.addAction(item)
-        menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + self.cursor[0]*self.fontwt, 3 + (self.cursor[1]+1)*self.fontht))
+        menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + self.cursor.x*self.fontwt, 3 + (self.cursor.y+1)*self.fontht))
 
     def createMenuFunction(self, l):
         def action():
