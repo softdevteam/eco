@@ -308,8 +308,8 @@ class NodeEditor(QFrame):
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
             self.cursor = self.coordinate_to_cursor(e.x(), e.y())
-            self.selection_start = self.cursor
-            self.selection_end = self.selection_start
+            self.selection_start = self.cursor.copy()
+            self.selection_end = self.cursor.copy()
 
             selected_nodes, _, _ = self.get_nodes_at_position()
             self.getWindow().btReparse(selected_nodes)
@@ -338,6 +338,7 @@ class NodeEditor(QFrame):
         # apparaently this is only called when a mouse button is clicked while
         # the mouse is moving
         self.selection_end = self.coordinate_to_cursor(e.x(), e.y())
+        print(self.selection_start, self.selection_end)
         self.get_nodes_from_selection()
         self.update()
 
@@ -415,6 +416,8 @@ class NodeEditor(QFrame):
                     else:
                         repairnode = node
             else:
+                if self.hasSelection():
+                    self.deleteSelection()
                 if e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
                     self.showSubgrammarMenu()
                     newnode = self.add_magic()
@@ -783,6 +786,9 @@ class Cursor(object):
     def __init__(self, x, y):
         self.x = x
         self.y = y
+
+    def copy(self):
+        return Cursor(self.x, self.y)
 
     def __lt__(self, other):
         if isinstance(other, Cursor):
