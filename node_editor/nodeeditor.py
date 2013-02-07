@@ -267,7 +267,7 @@ class NodeEditor(QFrame):
                 include_start = True
                 x += 1
 
-        diff_start = x - cur_start.x
+        diff_start = len(start.symbol.name) - (x - cur_start.x)
 
         end = None
         x = cur_end.x
@@ -279,7 +279,7 @@ class NodeEditor(QFrame):
             except KeyError:
                 x += 1
 
-        diff_end = cur_end.x - x
+        diff_end = len(end.symbol.name) - (x - cur_end.x)
 
         nodes = []
         node = start
@@ -343,7 +343,13 @@ class NodeEditor(QFrame):
                 self.cursor.x = self.max_cols[self.cursor.y]
         elif text != "":
             self.edit_rightnode = False
-            if e.key() in [Qt.Key_Delete, Qt.Key_Backspace]:
+            if e.key() == Qt.Key_C and e.modifiers() == Qt.ControlModifier:
+                self.copySelection()
+                return
+            elif e.key() == Qt.Key_V and e.modifiers() == Qt.ControlModifier:
+                self.pasteSelection()
+                return
+            elif e.key() in [Qt.Key_Delete, Qt.Key_Backspace]:
                 if self.hasSelection():
                     self.deleteSelection()
                     return
@@ -532,6 +538,7 @@ class NodeEditor(QFrame):
         return self.selection_start != self.selection_end
 
     def deleteSelection(self):
+        self.copySelection()
         #XXX simple version: later we might want to modify the nodes directly
         #nodes, diff_start, diff_end = self.get_nodes_from_selection()
         chars = self.char_difference(self.selection_start, self.selection_end)
@@ -539,7 +546,41 @@ class NodeEditor(QFrame):
         self.selection_start = Cursor(0,0)
         self.selection_end = Cursor(0,0)
         for i in range(chars):
+            #XXX this draws the AST (if selected) in every iteration
             event = QKeyEvent(QEvent.KeyPress, Qt.Key_Delete, Qt.NoModifier, "delete")
+            QCoreApplication.postEvent(self, event)
+
+    def copySelection(self):
+        nodes, diff_start, diff_end = self.get_nodes_from_selection()
+        print(nodes, diff_start, diff_end)
+        text = []
+        start = nodes.pop(0)
+        end = nodes.pop(-1)
+
+        text.append(start.symbol.name[diff_start:])
+        for node in nodes:
+            text.append(node.symbol.name)
+        text.append(end.symbol.name[:diff_end])
+        QApplication.clipboard().setText("".join(text))
+
+    def pasteSelection(self):
+        text = QApplication.clipboard().text()
+        self.insertText(text)
+
+    def insertText(self, text):
+        for c in str(text):
+            if c == "\n":
+                key = Qt.Key_Return
+            elif ord(c) in range(97, 122): # a-z
+                key = ord(c) - 32
+                modifier = Qt.NoModifier
+            elif ord(c) in range(65, 90): # A-Z
+                key = ord(c)
+                modifier = Qt.ShiftModifier
+            else:   # !, {, }, ...
+                key = ord(c)
+                modifier = Qt.NoModifier
+            event = QKeyEvent(QEvent.KeyPress, key, modifier, c)
             QCoreApplication.postEvent(self, event)
 
     def repair(self, startnode):
@@ -788,21 +829,8 @@ class Window(QtGui.QMainWindow):
 
     def openfile(self):
         filename = QFileDialog.getOpenFileName()#"Open File", "", "Files (*.*)")
-        for c in open(filename, "r").read()[:-1]:
-            print(c)
-            if c == "\n":
-                key = Qt.Key_Return
-            elif ord(c) in range(97, 122): # a-z
-                key = ord(c) - 32
-                modifier = Qt.NoModifier
-            elif ord(c) in range(65, 90): # A-Z
-                key = ord(c)
-                modifier = Qt.ShiftModifier
-            else:   # !, {, }, ...
-                key = ord(c)
-                modifier = Qt.NoModifier
-            event = QKeyEvent(QEvent.KeyPress, key, modifier, c)
-            QCoreApplication.postEvent(self.ui.frame, event)
+        text = open(filename, "r").read()[:-1]
+        self.ui.frame.insertText(text)
 
     def loadLanguage(self, item):
         print("Loading Language...")
