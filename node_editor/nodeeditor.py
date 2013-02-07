@@ -555,7 +555,6 @@ class NodeEditor(QFrame):
         return self.selection_start != self.selection_end
 
     def deleteSelection(self):
-        self.copySelection()
         #XXX simple version: later we might want to modify the nodes directly
         #nodes, diff_start, diff_end = self.get_nodes_from_selection()
         chars = self.char_difference(self.selection_start, self.selection_end)
@@ -569,7 +568,9 @@ class NodeEditor(QFrame):
 
     def copySelection(self):
         nodes, diff_start, diff_end = self.get_nodes_from_selection()
-        print(nodes, diff_start, diff_end)
+        if len(nodes) == 1:
+            QApplication.clipboard().setText(nodes[0].symbol.name[diff_start:])
+            return
         text = []
         start = nodes.pop(0)
         end = nodes.pop(-1)
