@@ -327,11 +327,16 @@ class NodeEditor(QFrame):
         cursor_y = y / self.fontht
 
         result = Cursor(0,0)
-        if cursor_y < len(self.max_cols):
+        if cursor_y < 0:
+            result.y = 0
+        elif cursor_y < len(self.max_cols):
             result.y = cursor_y
         else:
             result.y = len(self.max_cols) - 1
-        if cursor_x <= self.max_cols[result.y]:
+
+        if cursor_x < 0:
+            result.x = 0
+        elif cursor_x <= self.max_cols[result.y]:
             result.x = cursor_x
         else:
             result.x = self.max_cols[result.y]
