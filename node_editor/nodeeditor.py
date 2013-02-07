@@ -267,7 +267,10 @@ class NodeEditor(QFrame):
                 include_start = True
                 x += 1
 
-        diff_start = len(start.symbol.name) - (x - cur_start.x)
+        if include_start:
+            diff_start = len(start.symbol.name) - (x - cur_start.x)
+        else:
+            diff_start = 0
 
         end = None
         x = cur_end.x
