@@ -152,7 +152,9 @@ class NodeEditor(QFrame):
                     paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), " ")
                     x_before = x
                     x, y = self.paintAST(paint, node.symbol.parser.previous_version.get_bos(), x, y)
+                    paint.setPen(QColor(255,0,0,255))
                     paint.drawRect(3 + x_before*self.fontwt, 2 + y*self.fontht, (x-x_before)*self.fontwt, self.fontht)
+                    paint.setPen(QColor(0,0,0,255))
                 else:
                     paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), node.symbol.name)
                     x += len(node.symbol.name)
