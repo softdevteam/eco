@@ -9,6 +9,7 @@ literal ::=    "INTEGER_LITERAL"
     |    "CHARACTER_LITERAL"
     |    "STRING_LITERAL"
     |    "NULL_LITERAL"
+    |    <SQL>
 
 
 type    ::=    primitive_type
