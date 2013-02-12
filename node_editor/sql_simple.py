@@ -2,6 +2,9 @@ from languages import Language
 
 sql= Language("SQL",
 """
+sql ::= y_sql
+      | sql ";" y_sql
+
 y_sql ::=
         y_alter
     |   y_create
@@ -13,14 +16,14 @@ y_sql ::=
 
 
 y_alter ::=
-        "ALTER" "TTABLE" y_table "ADD" "COLUMN" y_columndef
-    |   "ALTER" "TTABLE" y_table "ADD" y_columndef
+        "ALTER" "TABLE" y_table "ADD" "COLUMN" y_columndef
+    |   "ALTER" "TABLE" y_table "ADD" y_columndef
 
 y_create ::=
-        "CREATE" "TTABLE" y_table "(" y_columndefs ")"
+        "CREATE" "TABLE" y_table "(" y_columndefs ")"
 
 y_drop ::=
-        "DROP" "TTABLE" y_table
+        "DROP" "TABLE" y_table
 
 y_select ::=
         "SELECT" y_columns "FROM" y_table
@@ -217,7 +220,7 @@ y_order ::=
 "LANGUAGE":LANGUAGE
 "LIKE":LIKE
 "NOT":NOT
-"NULL":NULL
+"NULL":NULL_VALUE
 "NUMERIC":NUMERIC
 "OF":OF
 "ON":ON
@@ -247,17 +250,21 @@ y_order ::=
 "USER":USER
 "VALUES":VALUES
 "VIEW":VIEW
+"VARCHAR":VARCHAR
 "WHENEVER":WHENEVER
 "WHERE":WHERE
 "WITH":WITH
 "WORK":WORK
 "\*":*
-"[ \t]":<ws>
-"[\n\r]":<ws>
-"[A-Za-z][A-Za-z_]*":NAME
+"[ \\t]":<ws>
+"[\\n\\r]":<return>
+"[A-Za-z][A-Za-z_0-9]*":NAME
 "[0-9]+":INTNUM
-"=|<>|<=|>=|<|>":COMPARISON
+"<>|<=|>=|<|>":COMPARISON_OPERATOR
+"=":EQUAL
 "\"([a-zA-Z0-9 ]|\\\\\")*\"":STRING
 ":[A-Za-z][A-Za-z0-9_]*":PARAMETER
-
+";":;
+"\(":(
+"\)":)
 """)
