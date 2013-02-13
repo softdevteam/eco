@@ -136,7 +136,7 @@ class NodeEditor(QFrame):
 
         if self.hasFocus() and self.show_cursor:
             #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
-            paint.drawRect(3 + self.cursor.x * self.fontwt, 2 + self.cursor.y * self.fontht, 1, self.fontht)
+            paint.drawRect(3 + self.cursor.x * self.fontwt, 5 + self.cursor.y * self.fontht, 0, self.fontht - 3)
 
         self.paintSelection(paint)
         paint.end()
