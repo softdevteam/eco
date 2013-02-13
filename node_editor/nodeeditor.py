@@ -78,6 +78,7 @@ class NodeEditor(QFrame):
         self.parsers = {}
         self.lexers = {}
         self.priorities = {}
+        self.parser_langs = {}
 
         self.edit_rightnode = False
         self.indentation = True
@@ -93,7 +94,7 @@ class NodeEditor(QFrame):
         self.cursor = Cursor(0,0)
         self.update()
 
-    def set_lrparser(self, lrp):
+    def set_lrparser(self, lrp, lang_name):
         self.parsers = {}
         self.lexers = {}
         self.priorities = {}
@@ -102,6 +103,7 @@ class NodeEditor(QFrame):
         self.parsers[lrp.previous_version.parent] = self.lrp
         self.lexers[lrp.previous_version.parent] = self.getTL()
         self.priorities[lrp.previous_version.parent] = self.getPL()
+        self.parser_langs[lrp.previous_version.parent] = lang_name
 
     def set_sublanguage(self, language):
         self.sublanguage = language
@@ -541,6 +543,7 @@ class NodeEditor(QFrame):
         self.parsers[root] = parser
         self.lexers[root] = tl
         self.priorities[root] = pl
+        self.parser_langs[root] = self.sublanguage.name
         # Add starting token to new tree
         #starting_node = self.create_node("")
         #self.add_node(parser.previous_version.get_bos(), starting_node)
@@ -960,6 +963,7 @@ class Window(QtGui.QMainWindow):
         language = languages[self.ui.listWidget.row(item)]
         self.ui.teGrammar.document().setPlainText(language.grammar)
         self.ui.tePriorities.document().setPlainText(language.priorities)
+        self.main_language = language.name
         self.btUpdateGrammar()
 
     def btUpdateGrammar(self):
@@ -971,7 +975,7 @@ class Window(QtGui.QMainWindow):
         self.lrp.init_ast()
         self.pl = PriorityLexer(new_priorities)
         self.tl = TokenLexer(self.pl.rules)
-        self.ui.frame.set_lrparser(self.lrp)
+        self.ui.frame.set_lrparser(self.lrp, self.main_language)
         self.ui.frame.reset()
         self.ui.graphicsView.setScene(QGraphicsScene())
         print("Done.")
@@ -993,11 +997,12 @@ class Window(QtGui.QMainWindow):
         whitespaces = self.ui.cb_toggle_ws.isChecked()
         results = []
         for key in self.ui.frame.parsers:
+            lang = self.ui.frame.parser_langs[key]
             status = self.ui.frame.parsers[key].inc_parse()
             if status:
-                results.append("Accept")
+                results.append(lang + ": Accept")
             else:
-                results.append("Error")
+                results.append(lang + ": Error")
         self.ui.leParserStatus.setText(", ".join(results))
 
         if self.ui.cb_toggle_ast.isChecked():
