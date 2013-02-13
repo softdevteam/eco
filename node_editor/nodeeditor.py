@@ -160,7 +160,10 @@ class NodeEditor(QFrame):
                     x, y = self.paintAST(paint, node.symbol.parser.previous_version.get_bos(), x, y)
                     lbox_end = Cursor(x,y)
                     self.lbox_nesting -= 1
-                    self.paintLanguageBox(paint, lbox_start, lbox_end)
+                    if lbox_start < self.cursor < lbox_end or (self.cursor == lbox_end and not self.edit_rightnode):
+                        self.paintLanguageBox(paint, lbox_start, lbox_end)
+                    if lbox_start < self.cursor < lbox_end or (self.cursor == lbox_start and self.edit_rightnode):
+                        self.paintLanguageBox(paint, lbox_start, lbox_end)
                     #paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), ">")
                     #x += 1
                     #self.node_map[(x,y)] = node
@@ -175,7 +178,7 @@ class NodeEditor(QFrame):
     def paintLanguageBox(self, paint, start, end):
         paint.setPen(self.nesting_colors[self.lbox_nesting])
         if start.y == end.y:
-            width = end.x - start.x
+            width = end.x - start. x
             paint.drawRect(3 + start.x * self.fontwt, 3 + self.lbox_nesting + start.y * self.fontht, width * self.fontwt, self.fontht - 2*(self.lbox_nesting))
         else:
             # paint start to line end
@@ -395,6 +398,7 @@ class NodeEditor(QFrame):
 
         text = e.text()
 
+        self.edit_rightnode = False
         if e.key() == Qt.Key_Tab:
             text = "    "
         if e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
@@ -405,7 +409,6 @@ class NodeEditor(QFrame):
             else:
                 self.cursor.x = self.max_cols[self.cursor.y]
         elif text != "":
-            self.edit_rightnode = False
             if e.key() == Qt.Key_C and e.modifiers() == Qt.ControlModifier:
                 self.copySelection()
                 return
@@ -472,6 +475,7 @@ class NodeEditor(QFrame):
                     self.edit_rightnode = True # writes next char into magic ast
                 elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier | Qt.ShiftModifier:
                     self.edit_rightnode = True # writes next char into magic ast
+                    self.update()
                     return
                 else:
                     if e.key() == Qt.Key_Return:
@@ -893,6 +897,12 @@ class Cursor(object):
 
     def copy(self):
         return Cursor(self.x, self.y)
+
+    def __le__(self, other):
+        return self < other or self == other
+
+    def __ge__(self, other):
+        return self > other or self == other
 
     def __lt__(self, other):
         if isinstance(other, Cursor):
