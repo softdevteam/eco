@@ -150,11 +150,12 @@ class NodeEditor(QFrame):
                     self.indentations[y] = len(node.symbol.name)
                 if isinstance(node.symbol, MagicTerminal):
                     paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), " ")
-                    x_before = x
+                    lbox_start = Cursor(x,y)
+                    #x_before = x
                     x, y = self.paintAST(paint, node.symbol.parser.previous_version.get_bos(), x, y)
-                    paint.setPen(QColor(255,0,0,255))
-                    paint.drawRect(3 + x_before*self.fontwt, 2 + y*self.fontht, (x-x_before)*self.fontwt, self.fontht)
-                    paint.setPen(QColor(0,0,0,255))
+                    lbox_end = Cursor(x,y)
+                    self.paintLanguageBox(paint, lbox_start, lbox_end)
+                    #paint.drawRect(3 + x_before*self.fontwt, 2 + y*self.fontht, (x-x_before)*self.fontwt, self.fontht)
                 else:
                     paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), node.symbol.name)
                     x += len(node.symbol.name)
@@ -162,6 +163,26 @@ class NodeEditor(QFrame):
 
             node = node.next_terminal()
         return x,y
+
+    def paintLanguageBox(self, paint, start, end):
+        paint.setPen(QColor(255,0,0,255))
+        if start.y == end.y:
+            width = end.x - start.x
+            paint.drawRect(3 + start.x * self.fontwt, 2+start.y * self.fontht, width * self.fontwt, self.fontht)
+        else:
+            # paint start to line end
+            width = self.max_cols[start.y] - start.x
+            paint.drawRect(3 + start.x * self.fontwt, 2+start.y * self.fontht, width * self.fontwt, self.fontht)
+
+            # paint lines in between
+            for y in range(start.y+1, end.y):
+                width = self.max_cols[y]
+                paint.drawRect(3 + 0 * self.fontwt, 2+y * self.fontht, width * self.fontwt, self.fontht)
+
+            # paint line start to end
+            width = end.x
+            paint.drawRect(3 + 0 * self.fontwt, 2+end.y * self.fontht, width * self.fontwt, self.fontht)
+        paint.setPen(QColor(0,0,0,255))
 
     def paintSelection(self, paint):
         start = min(self.selection_start, self.selection_end)
@@ -174,7 +195,7 @@ class NodeEditor(QFrame):
             width = self.max_cols[start.y] - start.x
             paint.fillRect(3 + start.x * self.fontwt, 2+start.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
 
-            # paint lines in betwwen
+            # paint lines in between
             for y in range(start.y+1, end.y):
                 width = self.max_cols[y]
                 paint.fillRect(3 + 0 * self.fontwt, 2+y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
@@ -352,6 +373,10 @@ class NodeEditor(QFrame):
         self.get_nodes_from_selection()
         self.update()
 
+    def focusNextPrevChild(self, b):
+        # don't switch to next widget on TAB
+        pass
+
     def keyPressEvent(self, e):
         print("====================== KEYPRESS (>>%s<<) ============================" % (repr(e.text()),))
         print("first get_nodes_at_pos")
@@ -359,6 +384,8 @@ class NodeEditor(QFrame):
 
         text = e.text()
 
+        if e.key() == Qt.Key_Tab:
+            text = "    "
         if e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             self.cursor_movement(e.key())
         elif e.key() in [Qt.Key_End, Qt.Key_Home]:
@@ -475,6 +502,8 @@ class NodeEditor(QFrame):
                 elif e.key() == Qt.Key_Return:
                     self.cursor.x = indentation
                     self.cursor.y += 1
+                elif e.key() == Qt.Key_Tab:
+                    self.cursor.x += 4
                 else:
                     self.cursor.x += 1
             self.repair(repairnode)
