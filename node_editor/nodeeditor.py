@@ -57,7 +57,7 @@ class NodeEditor(QFrame):
 
         self.font = QtGui.QFont('Courier', 9)
         self.fontm = QtGui.QFontMetrics(self.font)
-        self.fontht = self.fontm.height()
+        self.fontht = self.fontm.height() + 3
         self.fontwt = self.fontm.width(" ")
         self.cursor = [0,0]
 
@@ -83,6 +83,8 @@ class NodeEditor(QFrame):
         self.indentation = True
 
         self.last_delchar = ""
+        self.lbox_nesting = 0
+        self.nesting_colors = {0: QColor(255,0,0), 1: QColor(0,200,0), 2:QColor(0,0,255)}
 
     def reset(self):
         self.indentations = {}
@@ -149,13 +151,17 @@ class NodeEditor(QFrame):
                 if node.lookup == "<ws>" and x == 0:
                     self.indentations[y] = len(node.symbol.name)
                 if isinstance(node.symbol, MagicTerminal):
-                    paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), " ")
+                    #paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), "<")
+                    #x += 1
                     lbox_start = Cursor(x,y)
-                    #x_before = x
+                    self.lbox_nesting += 1
                     x, y = self.paintAST(paint, node.symbol.parser.previous_version.get_bos(), x, y)
                     lbox_end = Cursor(x,y)
+                    self.lbox_nesting -= 1
                     self.paintLanguageBox(paint, lbox_start, lbox_end)
-                    #paint.drawRect(3 + x_before*self.fontwt, 2 + y*self.fontht, (x-x_before)*self.fontwt, self.fontht)
+                    #paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), ">")
+                    #x += 1
+                    #self.node_map[(x,y)] = node
                 else:
                     paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), node.symbol.name)
                     x += len(node.symbol.name)
@@ -165,23 +171,23 @@ class NodeEditor(QFrame):
         return x,y
 
     def paintLanguageBox(self, paint, start, end):
-        paint.setPen(QColor(255,0,0,255))
+        paint.setPen(self.nesting_colors[self.lbox_nesting])
         if start.y == end.y:
             width = end.x - start.x
-            paint.drawRect(3 + start.x * self.fontwt, 2+start.y * self.fontht, width * self.fontwt, self.fontht)
+            paint.drawRect(3 + start.x * self.fontwt, 3 + self.lbox_nesting + start.y * self.fontht, width * self.fontwt, self.fontht - 2*(self.lbox_nesting))
         else:
             # paint start to line end
             width = self.max_cols[start.y] - start.x
-            paint.drawRect(3 + start.x * self.fontwt, 2+start.y * self.fontht, width * self.fontwt, self.fontht)
+            paint.drawRect(3 + start.x * self.fontwt, 3 + self.lbox_nesting + start.y * self.fontht, width * self.fontwt, self.fontht - 2*(self.lbox_nesting))
 
             # paint lines in between
             for y in range(start.y+1, end.y):
                 width = self.max_cols[y]
-                paint.drawRect(3 + 0 * self.fontwt, 2+y * self.fontht, width * self.fontwt, self.fontht)
+                paint.drawRect(3 + 0 * self.fontwt,   3 + self.lbox_nesting + y       * self.fontht, width * self.fontwt, self.fontht - 2*(self.lbox_nesting))
 
             # paint line start to end
             width = end.x
-            paint.drawRect(3 + 0 * self.fontwt, 2+end.y * self.fontht, width * self.fontwt, self.fontht)
+            paint.drawRect(3 + 0 * self.fontwt,       3 + self.lbox_nesting + end.y   * self.fontht, width * self.fontwt, self.fontht - 2*(self.lbox_nesting))
         paint.setPen(QColor(0,0,0,255))
 
     def paintSelection(self, paint):
@@ -226,8 +232,11 @@ class NodeEditor(QFrame):
                 self.node_map[(x,y)] = node
             else:
                 if isinstance(node.symbol, MagicTerminal):
+                    #x+=1
                     bos = node.symbol.parser.previous_version.get_bos()
                     x, y = self.recalculate_positions_rec(bos, x, y)
+                    #x+=1
+                    #self.node_map[(x,y)] = node
                 else:
                     x += len(node.symbol.name)
                     self.node_map[(x,y)] = node
