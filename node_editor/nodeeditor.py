@@ -392,7 +392,7 @@ class NodeEditor(QFrame):
 
     def focusNextPrevChild(self, b):
         # don't switch to next widget on TAB
-        pass
+        return False
 
     def keyPressEvent(self, e):
         print("====================== KEYPRESS (>>%s<<) ============================" % (repr(e.text()),))
