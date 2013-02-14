@@ -475,8 +475,9 @@ class NodeEditor(QFrame):
                     self.deleteSelection()
                 if e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
                     self.showSubgrammarMenu()
-                    newnode = self.add_magic()
-                    self.edit_rightnode = True # writes next char into magic ast
+                    if self.sublanguage:
+                        newnode = self.add_magic()
+                        self.edit_rightnode = True # writes next char into magic ast
                 elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier | Qt.ShiftModifier:
                     self.edit_rightnode = True # writes next char into magic ast
                     self.update()
@@ -836,6 +837,7 @@ class NodeEditor(QFrame):
         return self.parent().parent().parent().parent()
 
     def showSubgrammarMenu(self):
+        self.sublanguage = None
         # Create menu
         menu = QtGui.QMenu( self )
         # Create actions
