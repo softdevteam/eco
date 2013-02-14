@@ -1036,7 +1036,7 @@ expression_nn ::=    assignment_expression_nn
 "\'[a-z]\'":CHARACTER_LITERAL
 "\"([a-zA-Z0-9 ]|\\\\\")*\"":STRING_LITERAL
 "null":NULL_LITERAL
-"[a-zA-Z]+":IDENTIFIER
+"[a-zA-Z][a-zA-Z0-9_]*":IDENTIFIER
 
 "const":CONST
 "goto":GOTO
