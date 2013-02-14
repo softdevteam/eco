@@ -295,6 +295,7 @@ class NodeEditor(QFrame):
         return (selected_nodes, inbetween, x)
 
     def get_nodes_from_selection(self):
+        print("get nodes from selection")
         cur_start = min(self.selection_start, self.selection_end)
         cur_end = max(self.selection_start, self.selection_end)
         start = None
@@ -400,10 +401,10 @@ class NodeEditor(QFrame):
 
         text = e.text()
 
-        self.edit_rightnode = False
         if e.key() == Qt.Key_Tab:
             text = "    "
         if e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
+            self.edit_rightnode = False
             self.cursor_movement(e.key())
         elif e.key() in [Qt.Key_End, Qt.Key_Home]:
             if e.key() == Qt.Key_Home:
@@ -411,6 +412,7 @@ class NodeEditor(QFrame):
             else:
                 self.cursor.x = self.max_cols[self.cursor.y]
         elif text != "":
+            self.edit_rightnode = False
             if e.key() == Qt.Key_C and e.modifiers() == Qt.ControlModifier:
                 self.copySelection()
                 return
@@ -435,7 +437,7 @@ class NodeEditor(QFrame):
                     repairnode = selected_nodes[0]
                 else: # between two nodes
                     if e.key() == Qt.Key_Delete: # delete
-                        if isinstance(selected_nodes[1].symbol, MagicTerminal):
+                        if isinstance(selected_nodes[1].symbol, MagicTerminal) or isinstance(selected_nodes[1], EOS):
                             self.edit_rightnode = True
                             selected_nodes, _, _ = self.get_nodes_at_position()
                             self.edit_rightnode = False
