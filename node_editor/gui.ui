@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>975</width>
-    <height>689</height>
+    <width>979</width>
+    <height>737</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -38,11 +38,22 @@
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
-         <widget class="QLabel" name="label_3">
-          <property name="text">
-           <string>Program input:</string>
-          </property>
-         </widget>
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <item>
+           <widget class="QLabel" name="label_3">
+            <property name="text">
+             <string>Program input:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbShowLangBoxes">
+            <property name="text">
+             <string>Show language boxes</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
          <widget class="NodeEditor" name="frame">
@@ -136,6 +147,9 @@
           </property>
           <property name="focusPolicy">
            <enum>Qt::WheelFocus</enum>
+          </property>
+          <property name="acceptDrops">
+           <bool>false</bool>
           </property>
           <property name="autoFillBackground">
            <bool>true</bool>
@@ -374,7 +388,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>975</width>
+     <width>979</width>
      <height>22</height>
     </rect>
    </property>

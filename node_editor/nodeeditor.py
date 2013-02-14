@@ -160,9 +160,11 @@ class NodeEditor(QFrame):
                     x, y = self.paintAST(paint, node.symbol.parser.previous_version.get_bos(), x, y)
                     lbox_end = Cursor(x,y)
                     self.lbox_nesting -= 1
-                    if lbox_start < self.cursor < lbox_end or (self.cursor == lbox_end and not self.edit_rightnode):
+                    if self.getWindow().ui.cbShowLangBoxes.isChecked():
                         self.paintLanguageBox(paint, lbox_start, lbox_end)
-                    if lbox_start < self.cursor < lbox_end or (self.cursor == lbox_start and self.edit_rightnode):
+                    elif lbox_start < self.cursor < lbox_end or (self.cursor == lbox_end and not self.edit_rightnode):
+                        self.paintLanguageBox(paint, lbox_start, lbox_end)
+                    elif lbox_start < self.cursor < lbox_end or (self.cursor == lbox_start and self.edit_rightnode):
                         self.paintLanguageBox(paint, lbox_start, lbox_end)
                     #paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), ">")
                     #x += 1
@@ -176,7 +178,7 @@ class NodeEditor(QFrame):
         return x,y
 
     def paintLanguageBox(self, paint, start, end):
-        paint.setPen(self.nesting_colors[self.lbox_nesting])
+        paint.setPen(self.nesting_colors[self.lbox_nesting % 3])
         if start.y == end.y:
             width = end.x - start. x
             paint.drawRect(3 + start.x * self.fontwt, 3 + self.lbox_nesting + start.y * self.fontht, width * self.fontwt, self.fontht - 2*(self.lbox_nesting))
@@ -947,6 +949,7 @@ class Window(QtGui.QMainWindow):
 
         self.connect(self.ui.cb_toggle_ws, SIGNAL("clicked()"), self.btRefresh)
         self.connect(self.ui.cb_toggle_ast, SIGNAL("clicked()"), self.btRefresh)
+        self.connect(self.ui.cbShowLangBoxes, SIGNAL("clicked()"), self.ui.frame.update)
 
         self.connect(self.ui.btShowSingleState, SIGNAL("clicked()"), self.showSingleState)
         self.connect(self.ui.btShowWholeGraph, SIGNAL("clicked()"), self.showWholeGraph)

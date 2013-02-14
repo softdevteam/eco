@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Thu Feb  7 15:45:22 2013
+# Created: Thu Feb 14 11:23:46 2013
 #      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -17,7 +17,7 @@ except AttributeError:
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName(_fromUtf8("MainWindow"))
-        MainWindow.resize(975, 689)
+        MainWindow.resize(979, 737)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -39,9 +39,15 @@ class Ui_MainWindow(object):
         self.groupBox_2.setObjectName(_fromUtf8("groupBox_2"))
         self.verticalLayout_3 = QtGui.QVBoxLayout(self.groupBox_2)
         self.verticalLayout_3.setObjectName(_fromUtf8("verticalLayout_3"))
+        self.horizontalLayout = QtGui.QHBoxLayout()
+        self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
         self.label_3 = QtGui.QLabel(self.groupBox_2)
         self.label_3.setObjectName(_fromUtf8("label_3"))
-        self.verticalLayout_3.addWidget(self.label_3)
+        self.horizontalLayout.addWidget(self.label_3)
+        self.cbShowLangBoxes = QtGui.QCheckBox(self.groupBox_2)
+        self.cbShowLangBoxes.setObjectName(_fromUtf8("cbShowLangBoxes"))
+        self.horizontalLayout.addWidget(self.cbShowLangBoxes)
+        self.verticalLayout_3.addLayout(self.horizontalLayout)
         self.frame = NodeEditor(self.groupBox_2)
         self.frame.setEnabled(True)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
@@ -73,6 +79,7 @@ class Ui_MainWindow(object):
         self.frame.setPalette(palette)
         self.frame.setCursor(QtGui.QCursor(QtCore.Qt.IBeamCursor))
         self.frame.setFocusPolicy(QtCore.Qt.WheelFocus)
+        self.frame.setAcceptDrops(False)
         self.frame.setAutoFillBackground(True)
         self.frame.setFrameShape(QtGui.QFrame.StyledPanel)
         self.frame.setFrameShadow(QtGui.QFrame.Sunken)
@@ -212,7 +219,7 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.splitter, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 975, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 22))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
@@ -242,6 +249,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
         self.groupBox_2.setTitle(QtGui.QApplication.translate("MainWindow", "Input", None, QtGui.QApplication.UnicodeUTF8))
         self.label_3.setText(QtGui.QApplication.translate("MainWindow", "Program input:", None, QtGui.QApplication.UnicodeUTF8))
+        self.cbShowLangBoxes.setText(QtGui.QApplication.translate("MainWindow", "Show language boxes", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("MainWindow", "Next possible input:", None, QtGui.QApplication.UnicodeUTF8))
         self.label_2.setText(QtGui.QApplication.translate("MainWindow", "Parsing status:", None, QtGui.QApplication.UnicodeUTF8))
         self.groupBox_3.setTitle(QtGui.QApplication.translate("MainWindow", "Grammar stuff", None, QtGui.QApplication.UnicodeUTF8))
