@@ -966,6 +966,8 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionRandomDel, SIGNAL("triggered()"), self.ui.frame.randomDeletion)
         self.connect(self.ui.actionUndoRandomDel, SIGNAL("triggered()"), self.ui.frame.undoDeletion)
 
+        self.ui.frame.setFocus(True)
+
     def openfile(self):
         filename = QFileDialog.getOpenFileName()#"Open File", "", "Files (*.*)")
         text = open(filename, "r").read()[:-1]
