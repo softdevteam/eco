@@ -794,6 +794,9 @@ class NodeEditor(QFrame):
     def in_regex(self, c, regex):
         #XXX write regex parser that returns all possible tokens
         import string, re
+        # support java comments
+        if c != "\r" and regex == "//[^\\r]*":
+            return True
         if c in regex:
             if c not in ["+", "*", ".", "\\"]:
                 return True

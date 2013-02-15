@@ -938,6 +938,7 @@ expression_nn ::=    assignment_expression_nn
 """
 ,
 """
+"//[^\\r]*":<ws>
 "boolean":BOOLEAN
 "byte":BYTE
 "short":SHORT
