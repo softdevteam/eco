@@ -416,6 +416,8 @@ class NodeEditor(QFrame):
         if e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             self.edit_rightnode = False
             self.cursor_movement(e.key())
+            self.update()
+            return
         elif e.key() in [Qt.Key_End, Qt.Key_Home]:
             if e.key() == Qt.Key_Home:
                 self.cursor.x = 0
@@ -685,6 +687,22 @@ class NodeEditor(QFrame):
             #QCoreApplication.postEvent(self, event)
             self.keyPressEvent(event)
         self.indentation = True
+
+    def insertTextNoSim(self, text):
+        parser = list(self.parsers.values())[0]
+        lexer = list(self.lexers.values())[0]
+        # lex text into tokens
+        success = lexer.match(text)
+        # insert tokens into tree
+        parent = parser.previous_version.parent
+        bos = parser.previous_version.get_bos()
+        success.reverse()
+        for match in success:#lex.tokens:
+            symbol = Terminal(match[0])
+            node = TextNode(symbol, -1, [], -1)
+            node.lookup = match[1]
+            parent.insert_after_node(bos, node)
+            print("adding", node)
 
     def repair(self, startnode):
         if startnode is None:
@@ -1000,8 +1018,13 @@ class Window(QtGui.QMainWindow):
 
     def openfile(self):
         filename = QFileDialog.getOpenFileName()#"Open File", "", "Files (*.*)")
-        text = open(filename, "r").read()[:-1]
-        self.ui.frame.insertText(text)
+        text = open(filename, "r").read()
+        if text[:-1] in ["\n", "\r"]:
+            text = text[:-1]
+        # key simulated opening
+        #self.ui.frame.insertText(text)
+        self.ui.frame.insertTextNoSim(text)
+        self.btReparse(None)
 
     def loadLanguage(self, item):
         print("Loading Language...")
