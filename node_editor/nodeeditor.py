@@ -806,7 +806,7 @@ class NodeEditor(QFrame):
         if c not in ["\r","\n", "r", "n"] and regex == "\"[^\"]*\"":
             return True
         # fix to avoid relexing whole program on typing 'r' or 'n'
-        if c in ["r", "n"] and regex == "[\\n\\r]":
+        if c in "[\\n\\r]" and regex == "[\\n\\r]":
             return False
         if c in regex:
             if c not in ["+", "*", ".", "\\"]:
