@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Thu Feb 14 11:23:46 2013
+# Created: Fri Feb 15 11:28:45 2013
 #      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -48,9 +48,20 @@ class Ui_MainWindow(object):
         self.cbShowLangBoxes.setObjectName(_fromUtf8("cbShowLangBoxes"))
         self.horizontalLayout.addWidget(self.cbShowLangBoxes)
         self.verticalLayout_3.addLayout(self.horizontalLayout)
-        self.frame = NodeEditor(self.groupBox_2)
+        self.scrollArea = QtGui.QScrollArea(self.groupBox_2)
+        self.scrollArea.setFrameShape(QtGui.QFrame.StyledPanel)
+        self.scrollArea.setWidgetResizable(True)
+        self.scrollArea.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.scrollArea.setObjectName(_fromUtf8("scrollArea"))
+        self.scrollAreaWidgetContents = QtGui.QWidget()
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 516, 507))
+        self.scrollAreaWidgetContents.setObjectName(_fromUtf8("scrollAreaWidgetContents"))
+        self.verticalLayout_5 = QtGui.QVBoxLayout(self.scrollAreaWidgetContents)
+        self.verticalLayout_5.setMargin(0)
+        self.verticalLayout_5.setObjectName(_fromUtf8("verticalLayout_5"))
+        self.frame = NodeEditor(self.scrollAreaWidgetContents)
         self.frame.setEnabled(True)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.frame.sizePolicy().hasHeightForWidth())
@@ -81,10 +92,12 @@ class Ui_MainWindow(object):
         self.frame.setFocusPolicy(QtCore.Qt.WheelFocus)
         self.frame.setAcceptDrops(False)
         self.frame.setAutoFillBackground(True)
-        self.frame.setFrameShape(QtGui.QFrame.StyledPanel)
+        self.frame.setFrameShape(QtGui.QFrame.NoFrame)
         self.frame.setFrameShadow(QtGui.QFrame.Sunken)
         self.frame.setObjectName(_fromUtf8("frame"))
-        self.verticalLayout_3.addWidget(self.frame)
+        self.verticalLayout_5.addWidget(self.frame)
+        self.scrollArea.setWidget(self.scrollAreaWidgetContents)
+        self.verticalLayout_3.addWidget(self.scrollArea)
         self.label = QtGui.QLabel(self.groupBox_2)
         self.label.setObjectName(_fromUtf8("label"))
         self.verticalLayout_3.addWidget(self.label)

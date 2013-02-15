@@ -141,6 +141,15 @@ class NodeEditor(QFrame):
         self.paintSelection(paint)
         paint.end()
 
+        width = (max(self.max_cols)+1) * self.fontwt
+        height = len(self.max_cols) * self.fontht + 3
+        geom = self.geometry()
+        geom.setWidth(width)
+        geom.setHeight(height)
+        self.setMinimumSize(QSize(width, height))
+        if self.hasFocus():
+            self.getWindow().ui.scrollArea.ensureVisible (self.cursor.x * self.fontwt, self.cursor.y * self.fontht, self.fontwt, self.fontht+3 )
+
     def paintAST(self, paint, bos, x, y):
         node = bos.next_terminal()
         while node and not isinstance(node, EOS):
@@ -833,8 +842,7 @@ class NodeEditor(QFrame):
         return self.getWindow().lrp
 
     def getWindow(self):
-        #XXX better way to find window
-        return self.parent().parent().parent().parent()
+        return self.window()
 
     def showSubgrammarMenu(self):
         self.sublanguage = None
