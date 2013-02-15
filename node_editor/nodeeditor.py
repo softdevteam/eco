@@ -797,6 +797,8 @@ class NodeEditor(QFrame):
         # support java comments
         if c != "\r" and regex == "//[^\\r]*":
             return True
+        if c != "\r" and regex == "\"[^\"]*\"":
+            return True
         if c in regex:
             if c not in ["+", "*", ".", "\\"]:
                 return True
