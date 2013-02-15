@@ -428,6 +428,11 @@ class NodeEditor(QFrame):
             elif e.key() == Qt.Key_V and e.modifiers() == Qt.ControlModifier:
                 self.pasteSelection()
                 return
+            elif e.key() == Qt.Key_X and e.modifiers() == Qt.ControlModifier:
+                if self.hasSelection():
+                    self.copySelection()
+                    self.deleteSelection()
+                return
             elif e.key() in [Qt.Key_Delete, Qt.Key_Backspace]:
                 if self.hasSelection():
                     self.deleteSelection()
