@@ -800,10 +800,14 @@ class NodeEditor(QFrame):
         #XXX write regex parser that returns all possible tokens
         import string, re
         # support java comments
-        if c != "\r" and regex == "//[^\\r]*":
+        if c not in ["\r", "\n", "r", "n"] and regex == "//[^\\r\\n]*":
             return True
-        if c != "\r" and regex == "\"[^\"]*\"":
+        # support strings
+        if c not in ["\r","\n", "r", "n"] and regex == "\"[^\"]*\"":
             return True
+        # fix to avoid relexing whole program on typing 'r' or 'n'
+        if c in ["r", "n"] and regex == "[\\n\\r]":
+            return False
         if c in regex:
             if c not in ["+", "*", ".", "\\"]:
                 return True

@@ -938,7 +938,7 @@ expression_nn ::=    assignment_expression_nn
 """
 ,
 """
-"//[^\\r]*":<ws>
+"//[^\\r\\n]*":<ws>
 "\"[^\"]*\"":STRING_LITERAL
 "boolean":BOOLEAN
 "byte":BYTE

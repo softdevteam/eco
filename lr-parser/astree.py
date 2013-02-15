@@ -207,7 +207,6 @@ class Node(object):
         node = self
         while node.left_sibling() is None:
             node = node.parent
-            print(node)
 
         node = node.left_sibling()
 
