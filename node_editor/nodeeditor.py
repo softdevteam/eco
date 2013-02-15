@@ -127,6 +127,7 @@ class NodeEditor(QFrame):
         x = 0
 
         bos = self.ast.parent.children[0]
+        self.indentations = {}
         self.node_map.clear()
         self.node_map[(x,y)] = bos
         self.max_cols = []
