@@ -421,7 +421,6 @@ class NodeEditor(QFrame):
             else:
                 self.cursor.x = self.max_cols[self.cursor.y]
         elif text != "":
-            self.edit_rightnode = False
             if e.key() == Qt.Key_C and e.modifiers() == Qt.ControlModifier:
                 self.copySelection()
                 return
@@ -433,7 +432,8 @@ class NodeEditor(QFrame):
                     self.copySelection()
                     self.deleteSelection()
                 return
-            elif e.key() in [Qt.Key_Delete, Qt.Key_Backspace]:
+            self.edit_rightnode = False
+            if e.key() in [Qt.Key_Delete, Qt.Key_Backspace]:
                 if self.hasSelection():
                     self.deleteSelection()
                     return
