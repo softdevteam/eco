@@ -1072,11 +1072,12 @@ class Window(QtGui.QMainWindow):
         for key in self.ui.frame.parsers:
             lang = self.ui.frame.parser_langs[key]
             status = self.ui.frame.parsers[key].inc_parse()
+            qlabel = QLabel(lang)
             if status:
-                results.append(lang + ": Accept")
+                results.append("<span style='background-color: #00ff00'>" + lang + "</span>")
             else:
-                results.append(lang + ": Error")
-        self.ui.leParserStatus.setText(", ".join(results))
+                results.append("<span style='background-color: #ff0000; color: #ffffff;'>" + lang + "</span>")
+        self.ui.te_pstatus.setHtml(" | ".join(results))
         self.showAst(selected_node)
 
     def showAst(self, selected_node):

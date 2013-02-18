@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Mon Feb 18 12:47:52 2013
+# Created: Mon Feb 18 15:38:52 2013
 #      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -107,9 +107,12 @@ class Ui_MainWindow(object):
         self.label_2 = QtGui.QLabel(self.groupBox_2)
         self.label_2.setObjectName(_fromUtf8("label_2"))
         self.verticalLayout_3.addWidget(self.label_2)
-        self.leParserStatus = QtGui.QLineEdit(self.groupBox_2)
-        self.leParserStatus.setObjectName(_fromUtf8("leParserStatus"))
-        self.verticalLayout_3.addWidget(self.leParserStatus)
+        self.te_pstatus = QtGui.QTextEdit(self.groupBox_2)
+        self.te_pstatus.setMaximumSize(QtCore.QSize(16777215, 24))
+        self.te_pstatus.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.te_pstatus.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.te_pstatus.setObjectName(_fromUtf8("te_pstatus"))
+        self.verticalLayout_3.addWidget(self.te_pstatus)
         self.groupBox_3 = QtGui.QGroupBox(self.splitter)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
