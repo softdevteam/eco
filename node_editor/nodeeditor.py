@@ -1099,7 +1099,7 @@ class Window(QtGui.QMainWindow):
             self.fitInView(graphicsview)
 
     def fitInView(self, graphicsview):
-        graphicsview.fitInView(graphicsview.sceneRect())
+        graphicsview.fitInView(graphicsview.sceneRect(), Qt.KeepAspectRatio)
 
 def main():
     app = QtGui.QApplication(sys.argv)
