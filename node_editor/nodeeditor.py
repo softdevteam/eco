@@ -417,6 +417,8 @@ class NodeEditor(QFrame):
             self.edit_rightnode = False
             self.cursor_movement(e.key())
             self.update()
+            selected_nodes, _, _ = self.get_nodes_at_position()
+            self.getWindow().showAst(selected_nodes)
             return
         elif e.key() in [Qt.Key_End, Qt.Key_Home]:
             if e.key() == Qt.Key_Home:
@@ -1000,6 +1002,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.cb_toggle_ws, SIGNAL("clicked()"), self.btRefresh)
         self.connect(self.ui.cb_toggle_ast, SIGNAL("clicked()"), self.btRefresh)
         self.connect(self.ui.cbShowLangBoxes, SIGNAL("clicked()"), self.ui.frame.update)
+        self.connect(self.ui.cb_fit_ast, SIGNAL("clicked()"), self.btRefresh)
 
         self.connect(self.ui.btShowSingleState, SIGNAL("clicked()"), self.showSingleState)
         self.connect(self.ui.btShowWholeGraph, SIGNAL("clicked()"), self.showWholeGraph)
@@ -1074,7 +1077,10 @@ class Window(QtGui.QMainWindow):
             else:
                 results.append(lang + ": Error")
         self.ui.leParserStatus.setText(", ".join(results))
+        self.showAst(selected_node)
 
+    def showAst(self, selected_node):
+        whitespaces = self.ui.cb_toggle_ws.isChecked()
         if self.ui.cb_toggle_ast.isChecked():
             image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node, whitespaces)
             self.showImage(self.ui.graphicsView, image)
@@ -1088,6 +1094,12 @@ class Window(QtGui.QMainWindow):
         item = QGraphicsPixmapItem(QPixmap(imagefile))
         scene.addItem(item);
         graphicsview.setScene(scene)
+        graphicsview.resetMatrix()
+        if self.ui.cb_fit_ast.isChecked():
+            self.fitInView(graphicsview)
+
+    def fitInView(self, graphicsview):
+        graphicsview.fitInView(graphicsview.sceneRect())
 
 def main():
     app = QtGui.QApplication(sys.argv)

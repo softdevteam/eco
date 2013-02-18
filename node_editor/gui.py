@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Fri Feb 15 11:28:45 2013
+# Created: Mon Feb 18 12:47:52 2013
 #      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -142,6 +142,9 @@ class Ui_MainWindow(object):
         self.cb_toggle_ast.setChecked(False)
         self.cb_toggle_ast.setObjectName(_fromUtf8("cb_toggle_ast"))
         self.gridLayout_2.addWidget(self.cb_toggle_ast, 2, 0, 1, 1)
+        self.cb_fit_ast = QtGui.QCheckBox(self.tab)
+        self.cb_fit_ast.setObjectName(_fromUtf8("cb_fit_ast"))
+        self.gridLayout_2.addWidget(self.cb_fit_ast, 3, 0, 1, 1)
         self.tabWidget.addTab(self.tab, _fromUtf8(""))
         self.tab_2 = QtGui.QWidget()
         self.tab_2.setObjectName(_fromUtf8("tab_2"))
@@ -268,6 +271,7 @@ class Ui_MainWindow(object):
         self.groupBox_3.setTitle(QtGui.QApplication.translate("MainWindow", "Grammar stuff", None, QtGui.QApplication.UnicodeUTF8))
         self.cb_toggle_ws.setText(QtGui.QApplication.translate("MainWindow", "Show whitespace nodes", None, QtGui.QApplication.UnicodeUTF8))
         self.cb_toggle_ast.setText(QtGui.QApplication.translate("MainWindow", "Show AST", None, QtGui.QApplication.UnicodeUTF8))
+        self.cb_fit_ast.setText(QtGui.QApplication.translate("MainWindow", "fit AST in view", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QtGui.QApplication.translate("MainWindow", "AST", None, QtGui.QApplication.UnicodeUTF8))
         self.btShowWholeGraph.setText(QtGui.QApplication.translate("MainWindow", "Show whole graph", None, QtGui.QApplication.UnicodeUTF8))
         self.btShowSingleState.setText(QtGui.QApplication.translate("MainWindow", "Show single state", None, QtGui.QApplication.UnicodeUTF8))
