@@ -800,6 +800,8 @@ class NodeEditor(QFrame):
                 break
             if token.symbol.name == "":
                 break
+            if isinstance(token.symbol, MagicTerminal):
+                break
             if isinstance(token, BOS) or isinstance(token, EOS):
                 break
             for c in token.symbol.name:
