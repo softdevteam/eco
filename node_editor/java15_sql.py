@@ -939,6 +939,9 @@ expression_nn ::=    assignment_expression_nn
 """
 ,
 """
+"//[^\\r\\n]*":<ws>
+"\"[^\"]*\"":STRING_LITERAL
+"\'[^\']*\'":CHARACTER_LITERAL
 "boolean":BOOLEAN
 "byte":BYTE
 "short":SHORT
@@ -1034,10 +1037,8 @@ expression_nn ::=    assignment_expression_nn
 "[0-9]+":INTEGER_LITERAL
 "[0-9]+\.[0-9]+":FLOATING_POINT_LITERAL
 "(true|false)":BOOLEAN_LITERAL
-"\'[a-z]\'":CHARACTER_LITERAL
-"\"([a-zA-Z0-9 ]|\\\\\")*\"":STRING_LITERAL
 "null":NULL_LITERAL
-"[a-zA-Z]+":IDENTIFIER
+"[a-zA-Z][a-zA-Z0-9_]*":IDENTIFIER
 
 "const":CONST
 "goto":GOTO
