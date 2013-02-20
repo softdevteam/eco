@@ -74,6 +74,7 @@ class IncParser(object):
 
     def inc_parse(self):
         print("============ NEW INCREMENTAL PARSE ================= ")
+        self.error_node = None
         self.stack = []
         self.undo = []
         self.current_state = 0
@@ -191,6 +192,7 @@ class IncParser(object):
                             while len(self.undo) > 0:
                                 node, attribute, value = self.undo.pop(0)
                                 setattr(node, attribute, value)
+                            self.error_node = la
                             return False
             else: # Nonterminal
                 print("nonterminal")

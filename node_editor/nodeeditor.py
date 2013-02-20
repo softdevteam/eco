@@ -153,6 +153,7 @@ class NodeEditor(QFrame):
 
     def paintAST(self, paint, bos, x, y):
         node = bos.next_terminal()
+        parser = self.parsers[bos.parent]
         while node and not isinstance(node, EOS):
             if node.symbol.name in ["\n", "\r"]:
                 self.max_cols.append(x)
@@ -181,6 +182,17 @@ class NodeEditor(QFrame):
                     #self.node_map[(x,y)] = node
                 else:
                     paint.drawText(QtCore.QPointF(3 + x*self.fontwt, self.fontht + y*self.fontht), node.symbol.name)
+                    if node is parser.error_node:
+                        paint.setPen(QColor(255,0,0))
+                        x1 = 3 + x*self.fontwt
+                        x2 = x1 + len(node.symbol.name)*self.fontwt
+                        y12 = self.fontht + y * self.fontht + 1
+                        i = 0
+                        while x1 < x2:
+                            paint.drawLine(x1, y12 + (i%2), x1+2, y12 + (i%2))
+                            x1 += 2
+                            i += 1
+                        paint.setPen(QColor(0,0,0))
                     x += len(node.symbol.name)
                     self.node_map[(x,y)] = node
 
