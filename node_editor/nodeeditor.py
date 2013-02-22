@@ -317,7 +317,6 @@ class NodeEditor(QFrame):
         return (selected_nodes, inbetween, x)
 
     def get_nodes_from_selection(self):
-        print("get nodes from selection")
         cur_start = min(self.selection_start, self.selection_end)
         cur_end = max(self.selection_start, self.selection_end)
         start = None
@@ -355,7 +354,6 @@ class NodeEditor(QFrame):
             nodes.append(start)
         while node is not end:
             node = node.next_terminal()
-            print(node)
             # extend search into magic tree
             if isinstance(node.symbol, MagicTerminal):
                 node = node.symbol.parser.previous_version.get_bos()
@@ -408,7 +406,6 @@ class NodeEditor(QFrame):
         # apparaently this is only called when a mouse button is clicked while
         # the mouse is moving
         self.selection_end = self.coordinate_to_cursor(e.x(), e.y())
-        print(self.selection_start, self.selection_end)
         self.get_nodes_from_selection()
         self.update()
 
@@ -1018,6 +1015,7 @@ class Window(QtGui.QMainWindow):
 
         self.connect(self.ui.btShowSingleState, SIGNAL("clicked()"), self.showSingleState)
         self.connect(self.ui.btShowWholeGraph, SIGNAL("clicked()"), self.showWholeGraph)
+        self.connect(self.ui.bt_show_sel_ast, SIGNAL("clicked()"), self.showAstSelection)
 
         for l in languages:
             self.ui.listWidget.addItem(str(l))
@@ -1030,6 +1028,8 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
         self.connect(self.ui.actionRandomDel, SIGNAL("triggered()"), self.ui.frame.randomDeletion)
         self.connect(self.ui.actionUndoRandomDel, SIGNAL("triggered()"), self.ui.frame.undoDeletion)
+
+        self.ui.graphicsView.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform | QPainter.TextAntialiasing)
 
         self.ui.frame.setFocus(True)
 
@@ -1097,6 +1097,25 @@ class Window(QtGui.QMainWindow):
         if self.ui.cb_toggle_ast.isChecked():
             image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node, whitespaces)
             self.showImage(self.ui.graphicsView, image)
+
+    def showAstSelection(self):
+        whitespaces = self.ui.cb_toggle_ws.isChecked()
+        nodes, _, _ = self.ui.frame.get_nodes_from_selection()
+        if len(nodes) == 0:
+            return
+        start = nodes[0]
+        end = nodes[-1]
+        ast = self.lrp.previous_version
+        parent = ast.find_common_parent(start, end)
+        for node in nodes:
+            p = node.get_parent()
+            if p and p is not parent:
+                nodes.append(p)
+        nodes.append(parent)
+        if parent:
+            image = Viewer('pydot').get_tree_image(parent, [start, end], whitespaces, nodes)
+            self.showImage(self.ui.graphicsView, image)
+
 
     def showLookahead(self, lrp=None):
         la = lrp.get_next_symbols_string()

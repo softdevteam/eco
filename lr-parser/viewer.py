@@ -46,7 +46,7 @@ class Viewer(object):
         temp = urllib.request.urlretrieve(url)
         self.show(temp[0])
 
-    def get_tree_image(self, tree, selected_node, whitespaces=True):
+    def get_tree_image(self, tree, selected_node, whitespaces=True, restrict_nodes=None):
         if self.dot_type == 'google':
             import urllib.request
             s = self.create_ast_string(tree)
@@ -55,7 +55,7 @@ class Viewer(object):
             return temp[0]
         elif self.dot_type == 'pydot':
             graph = pydot.Dot(graph_type='graph')
-            self.add_node_to_tree(tree, graph, whitespaces)
+            self.add_node_to_tree(tree, graph, whitespaces, restrict_nodes)
 
             # mark currently selected node as red
             for node in selected_node:
@@ -66,7 +66,10 @@ class Viewer(object):
             graph.write_png('temp.png')
             return 'temp.png'
 
-    def add_node_to_tree(self, node, graph, whitespaces):
+    def add_node_to_tree(self, node, graph, whitespaces, restrict_nodes):
+
+        if restrict_nodes and node not in restrict_nodes:
+            return None
 
         dotnode = pydot.Node(id(node), label="%s (%s)" % (node.symbol.name, node.seen))
         graph.add_node(dotnode)
@@ -74,12 +77,13 @@ class Viewer(object):
         for c in node.children:
             if not whitespaces and c.symbol.name == "WS":
                 continue
-            c_node = self.add_node_to_tree(c, graph, whitespaces)
-            c.seen += 1
-            graph.add_edge(pydot.Edge(dotnode, c_node))
+            c_node = self.add_node_to_tree(c, graph, whitespaces, restrict_nodes)
+            if c_node is not None:
+                c.seen += 1
+                graph.add_edge(pydot.Edge(dotnode, c_node))
 
         if isinstance(node.symbol, MagicTerminal):
-            c_node = self.add_node_to_tree(node.symbol.parser.previous_version.parent, graph, whitespaces)
+            c_node = self.add_node_to_tree(node.symbol.parser.previous_version.parent, graph, whitespaces, restrict_nodes)
             graph.add_edge(pydot.Edge(dotnode, c_node))
 
         return dotnode

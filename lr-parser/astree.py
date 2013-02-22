@@ -87,6 +87,25 @@ class AST(object):
             if e.pos + len(e.symbol.name) >= pos:
                 return e
 
+    def find_common_parent(self, start, end):
+        start_parents = []
+        start = start.parent
+        while start is not None:
+            start_parents.append(start)
+            start = start.get_parent()
+
+        end_parents = []
+        end = end.parent
+        while end is not None:
+            end_parents.append(end)
+            end = end.get_parent()
+
+        for p1 in start_parents:
+            for p2 in end_parents:
+                if p1 is p2:
+                    return p1
+        return None
+
     def adjust_nodes_after_node(self, node, change):
         stack = []
         stack.append(self.parent.children[1]) # skip bos
@@ -270,6 +289,11 @@ class TextNode(Node):
         while node.parent is not None:
             node = node.parent
         return node
+
+    def get_parent(self):
+        if self.parent:
+            return self.parent
+        return self.get_magicterminal()
 
     def matches(self, text):
         if self.symbol.name == "":
