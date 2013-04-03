@@ -29,7 +29,7 @@ class IncParser(object):
         parser = Parser(grammar, whitespaces)
         parser.parse()
 
-        filename = "".join([str(hash(grammar) ^ hash(whitespaces)), ".pcl"])
+        filename = "".join(["pickle/", str(hash(grammar) ^ hash(whitespaces)), ".pcl"])
         try:
             #raise IOError
             print("Try to unpickle former stategraph")
