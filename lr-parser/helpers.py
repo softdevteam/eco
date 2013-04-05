@@ -2,7 +2,7 @@ from __future__ import print_function
 import sys
 sys.path.append("../")
 
-from state import State, StateSet, LR1Element
+from state import State, StateSet, LR0Element
 from production import Production
 from gparser import Terminal, Nonterminal, Epsilon
 from syntaxtable import FinishSymbol
@@ -156,7 +156,7 @@ class Helper(object):
         working_set = set()
         # Step 1
         for element in state_set.elements:
-            la_dict[element] = element.lookahead
+            la_dict[element] = state_set.get_lookahead(element)
             result.add(element)
             working_set.add(element)
         # Step 2
@@ -181,7 +181,7 @@ class Helper(object):
                         if a == []:
                             a = [Epsilon()]
                         p = Production(symbol, a)
-                        s = LR1Element(p, 0, f)
+                        s = LR0Element(p, 0)
                         if a == [epsilon]:
                             s.d = 1
                         # NEW ELEMENT:
@@ -190,12 +190,12 @@ class Helper(object):
                         # -> add to new working set
                         # 3. already known: ignore
                         if s in result:
-                            if s.lookahead.issubset(la_dict[s]):   # lookahead in combination with state already known
+                            if f.issubset(la_dict[s]):   # lookahead in combination with state already known
                                 continue
                             else:
-                                la_dict[s] |= s.lookahead   # new lookahead
+                                la_dict[s] |= f   # new lookahead
                         else:
-                            la_dict[s] = set(s.lookahead)        # completely new
+                            la_dict[s] = set(f)        # completely new
                         result.add(s)
                         newelements.add(s)
             temp = newelements
@@ -203,12 +203,10 @@ class Helper(object):
                 break
             i += 1
         # add lookaheads
+        final_result = StateSet()
         for element in result:
-            element.lookahead = la_dict[element]
-        # merge states that only differ in their lookahead
-        result = StateSet(result)
-        #result.merge()
-        return result
+            final_result.add(element, la_dict[element])
+        return final_result
 
     def goto_1(self, state_set, symbol):
         try:
@@ -394,6 +392,7 @@ def goto_0(grammar, state_set, symbol):
     return closure_0(grammar, result)
 
 def closure_1(grammar, state_set):
+    assert False
     result = StateSet()
     # Step 1
     for state in state_set.elements:

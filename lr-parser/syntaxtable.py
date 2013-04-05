@@ -62,7 +62,7 @@ class SyntaxTable(object):
                         self.table[(i, FinishSymbol())] = Accept()
                     else:
                         if self.lr_type in [LR1, LALR]:
-                            lookahead = state.lookahead
+                            lookahead = state_set.lookaheads[state]
                         else:
                             lookahead = symbols
                         for s in lookahead:

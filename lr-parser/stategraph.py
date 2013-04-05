@@ -18,11 +18,16 @@ class StateGraph(object):
         self.edges = {}
         self.ids = {}
         self.todo = []
+        self.done = set()
+        self.maybe_compatible = {}
 
         self.goto_time = 0
         self.add_time = 0
         self.closure_time = 0
         self.addcount = 0
+        self.weakly = 0
+        self.weakly_count = 0
+        self.mergetime = 0
 
         helper = Helper(grammar)
         if lr_type == LR0:
@@ -32,87 +37,108 @@ class StateGraph(object):
         elif lr_type == LR1 or lr_type == LALR:
             self.closure = helper.closure_1
             self.goto = helper.goto_1
-            self.start_set = StateSet([LR1Element(Production(None, [self.start_symbol]), 0, set([FinishSymbol()]))])
+            self.start_set = StateSet()
+            self.start_set.add(LR0Element(Production(None, [self.start_symbol]), 0), set([FinishSymbol()]))
 
     def build(self):
         State._hashtime = 0
         start = time()
         start_set = self.start_set
-        closure = self.closure(start_set)
+        closure = start_set
+        #closure = self.closure(start_set)
         self.state_sets.append(closure)
         self.ids[closure] = 0
         _id = 0
         self.todo.append(_id)
         while self.todo:
+            self.addcount += 1
             _id = self.todo.pop()
-            print(_id)
-            state_set = self.state_sets[_id]
+            self.done.add(_id)
+            #print("id:", _id)
+            state_set = self.closure(self.state_sets[_id])
+            #state_set = self.state_sets[_id]
             new_gotos = {}
             goto_start = time()
             # create new sets first, then calculate closure
             for lrelement in state_set.elements:
                 symbol = lrelement.next_symbol()
-                if not symbol:
+                if not symbol: #XXX what does that mean? (maybe dot reached end)
                     continue
                 #XXX optimisation: create all configurations before building
                 new_element = lrelement.clone()
                 new_element.d += 1
-                try:
-                    # basically goto
-                    new_gotos[symbol].add(new_element)
-                except KeyError:
-                    new_gotos[symbol] = set([new_element])
+                new_element_la = state_set.get_lookahead(lrelement)
+                stateset = new_gotos.setdefault(symbol, StateSet())
+                stateset.add(new_element, new_element_la)
+
             # now calculate closure and add result to state_sets
             goto_end = time()
             self.goto_time += goto_end - goto_start
+
             for ss in new_gotos:
                 closure_start = time()
-                new_state_set = self.closure(StateSet(new_gotos[ss]))
+                new_state_set = new_gotos[ss]
+                #new_state_set = self.closure(new_gotos[ss])
                 closure_end = time()
-                #print("before", len(new_state_set.elements))
-                #new_state_set.merge()
-                #print("after", len(new_state_set.elements))
                 self.closure_time += closure_end - closure_start
+                add_start = time()
                 self.add(_id, ss, new_state_set)
+                add_end = time()
+                self.add_time += add_end - add_start
 
-
-           #for symbol in state_set.get_next_symbols(): #XXX investigate speed
-           #    goto_start = time()
-           #    new_state_set = self.goto(state_set, symbol)
-           #    goto_end = time()
-           #    print("goto time", goto_end - goto_start)
-           #    if not new_state_set.is_empty():
-           #        add_start = time()
-           #        self.add(_id, symbol, new_state_set)
-           #        add_end = time()
-           #        print("add time", add_end - add_start)
-            #print("elements", len(state_set.elements))
-            #print("closure time", self.closure_time)
-            #self.closure_time = 0
         end = time()
         print("add time", self.add_time)
         print("closure time", self.closure_time)
         print("goto time", self.goto_time)
         print("hashtime", StateSet._hashtime)
         print("addcount", self.addcount)
+        print("states", len(self.state_sets))
+        print("weakly", self.weakly)
+        print("weakly count", self.weakly_count)
+        print("mergetime", self.mergetime)
+        #print("maybe", self.maybe_compatible)
+        #for key in self.maybe_compatible:
+        #    print(key, len(self.maybe_compatible[key]))
+
+
+        # apply closure
+        print("Apply closure to states")
+        clstart = time()
+        new_state_sets = []
+        new_ids = {}
+        for state in self.state_sets:
+            _id = self.ids[state]
+            new_state = self.closure(state)
+            new_state_sets.append(new_state)
+            new_ids[new_state] = new_state
+        self.state_sets = new_state_sets
+        self.ids = new_ids
+        print(time() - clstart)
+
+
         print("Finished building Stategraph in ", end-start)
         self.closure = None
         self.goto = None
 
     def weakly_compatible(self, s1, s2):
+        self.weakly_count += 1
         core = s1.elements
         if core != s2.elements:
             return False
         if len(core) == 1:
             return True
-        core1 = list(core)
-        core2 = list(s2.elements)
+        self.weakly -= time()
+        core = list(core)
         for i in range(0, len(core)-1):
+            I = core[i]
             for j in range(i+1, len(core)):
-                if ((core1[i].lookahead & core2[j].lookahead or core1[j].lookahead & core2[i].lookahead)
-                    and not core1[i].lookahead & core1[j].lookahead
-                    and not core2[i].lookahead & core2[j].lookahead):
+                J = core[j]
+                if ((s1.lookaheads[I] & s2.lookaheads[J] or s1.lookaheads[J] & s2.lookaheads[I])
+                    and not s1.lookaheads[I] & s1.lookaheads[J]
+                    and not s2.lookaheads[I] & s2.lookaheads[J]):
+                    self.weakly += time()
                     return False
+        self.weakly += time()
         return True
 
     def find_stateset_without_lookahead(self, state_set):
@@ -122,19 +148,30 @@ class StateGraph(object):
         return None
 
     def merge_lookahead(self, old, new):
+        self.mergetime -= time()
         changed = False
-        for e1 in new.elements:
-            for e2 in old.elements:
-                if e1 == e2: # compare without lookahead
-                    #print("merging", e1, "and", e2)
-                    if e1.lookahead - e2.lookahead:
-                        changed = True
-                    e2.lookahead |= e1.lookahead
+       #for e1 in new.elements:
+       #    for e2 in old.elements:
+       #        if e1 == e2: # compare without lookahead
+       #            #print("merging", e1, "and", e2)
+       #            if e1.lookahead - e2.lookahead:
+       #                changed = True
+       #            e2.lookahead |= e1.lookahead
+        for element in new.elements:
+            la1 = new.get_lookahead(element)
+            la2 = old.get_lookahead(element)
+            if la1 - la2:
+                changed = True
+                new_la = la2 | la1
+                old.lookaheads[element] = new_la
+
+        self.mergetime += time()
         return changed
 
     def add(self, from_id, symbol, state_set):
         merged = False
-        for candidate in self.state_sets:
+        #for candidate in self.state_sets: # only check states that can be reached by symbol
+        for candidate in self.maybe_compatible.setdefault(symbol,set()):
             _id = self.ids[candidate]
             if self.weakly_compatible(state_set, candidate):
                 # merge them
@@ -142,9 +179,10 @@ class StateGraph(object):
                 changed = self.merge_lookahead(candidate, state_set)
                 end = self.ids[candidate]
                 self.edges[(from_id, symbol)] = _id
-                if changed:
+                if changed and _id in self.done:
                     # move state to todo list
                     self.todo.append(_id) #XXX only need to to that if this state is already done (moving not necessary if it hasn't been looked at anyway (e.g. state at the end of list)
+                    self.done.remove(_id)
 
         if not merged:
             # add normally and put on todo list
@@ -153,6 +191,10 @@ class StateGraph(object):
             self.edges[(from_id, symbol)] = _id
             self.ids[state_set] = _id
             self.todo.append(_id)
+
+            # add to maybe compatible
+            mc = self.maybe_compatible.setdefault(symbol, set())
+            mc.add(state_set)
 
     def oldadd(self, from_id, symbol, state_set):
         # LALR way

@@ -31,7 +31,7 @@ class IncParser(object):
 
         filename = "".join(["pickle/", str(hash(grammar) ^ hash(whitespaces)), ".pcl"])
         try:
-            #raise IOError
+            raise IOError
             print("Try to unpickle former stategraph")
             f = open(filename, "r")
             start = time.time()
@@ -352,7 +352,7 @@ class IncParser(object):
         lookahead = set()
         for state in stateset.elements:
             if state.isfinal():
-                lookahead = lookahead | state.lookahead
+                lookahead = lookahead | stateset.lookaheads[state]
             else:
                 s = state.next_symbol()
                 if isinstance(s, Terminal):

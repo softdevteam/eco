@@ -8,13 +8,18 @@ class StateSet(object):
             self.elements = elements
         else:
             self.elements = set()
+        self.lookaheads = {}
 
     def __len__(self):
         return len(self.elements)
 
-    def add(self, element):
+    def add(self, element, lookahead = None):
         if element not in self.elements:
             self.elements.add(element)
+            self.lookaheads[element] = lookahead
+
+    def get_lookahead(self, element):
+        return self.lookaheads[element]
 
     def merge(self):
         # merge states that only differ in their lookahead
@@ -176,7 +181,7 @@ class LR0Element(State):
 
 class LR1Element(State):
 
-    def __init__(self, production, pos, lookahead):
+    def __init__(self, production, pos, lookahead=None):
         State.__init__(self, production, pos, None, None)
         self.lookahead = lookahead
 
