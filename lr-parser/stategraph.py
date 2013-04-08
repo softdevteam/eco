@@ -24,12 +24,14 @@ class StateGraph(object):
         self.goto_time = 0
         self.add_time = 0
         self.closure_time = 0
+        self.closure_count = 0
         self.addcount = 0
         self.weakly = 0
         self.weakly_count = 0
         self.mergetime = 0
 
         helper = Helper(grammar)
+        self.helper = helper
         if lr_type == LR0:
             self.closure = helper.closure_0
             self.goto = helper.goto_0
@@ -55,14 +57,18 @@ class StateGraph(object):
             _id = self.todo.pop()
             self.done.add(_id)
             #print("id:", _id)
+            closure_start = time()
             state_set = self.closure(self.state_sets[_id])
+            self.closure_count += 1
+            closure_end = time()
+            self.closure_time += closure_end - closure_start
             #state_set = self.state_sets[_id]
             new_gotos = {}
             goto_start = time()
             # create new sets first, then calculate closure
             for lrelement in state_set.elements:
                 symbol = lrelement.next_symbol()
-                if not symbol: #XXX what does that mean? (maybe dot reached end)
+                if not symbol: # state is final
                     continue
                 #XXX optimisation: create all configurations before building
                 new_element = lrelement.clone()
@@ -76,11 +82,8 @@ class StateGraph(object):
             self.goto_time += goto_end - goto_start
 
             for ss in new_gotos:
-                closure_start = time()
                 new_state_set = new_gotos[ss]
                 #new_state_set = self.closure(new_gotos[ss])
-                closure_end = time()
-                self.closure_time += closure_end - closure_start
                 add_start = time()
                 self.add(_id, ss, new_state_set)
                 add_end = time()
@@ -89,6 +92,7 @@ class StateGraph(object):
         end = time()
         print("add time", self.add_time)
         print("closure time", self.closure_time)
+        print("closure time helper", self.helper.closure_time)
         print("goto time", self.goto_time)
         print("hashtime", StateSet._hashtime)
         print("addcount", self.addcount)
@@ -112,9 +116,10 @@ class StateGraph(object):
             new_state_sets.append(new_state)
             new_ids[new_state] = new_state
         self.state_sets = new_state_sets
+        print("after closure", len(new_state_sets))
+        print("edges", len(set(self.edges.values())))
         self.ids = new_ids
         print(time() - clstart)
-
 
         print("Finished building Stategraph in ", end-start)
         self.closure = None
@@ -171,13 +176,12 @@ class StateGraph(object):
     def add(self, from_id, symbol, state_set):
         merged = False
         #for candidate in self.state_sets: # only check states that can be reached by symbol
-        for candidate in self.maybe_compatible.setdefault(symbol,set()):
-            _id = self.ids[candidate]
+        for _id in self.maybe_compatible.setdefault(symbol,set()):
+            candidate = self.state_sets[_id]
             if self.weakly_compatible(state_set, candidate):
                 # merge them
                 merged = True
                 changed = self.merge_lookahead(candidate, state_set)
-                end = self.ids[candidate]
                 self.edges[(from_id, symbol)] = _id
                 if changed and _id in self.done:
                     # move state to todo list
@@ -194,7 +198,7 @@ class StateGraph(object):
 
             # add to maybe compatible
             mc = self.maybe_compatible.setdefault(symbol, set())
-            mc.add(state_set)
+            mc.add(_id)
 
     def oldadd(self, from_id, symbol, state_set):
         # LALR way
