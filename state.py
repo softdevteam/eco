@@ -92,6 +92,10 @@ class StateSet(object):
     def __str__(self):
         return str(self.elements)
 
+    def pprint(self):
+        for e in self.elements:
+            print(str(e), self.lookaheads[e])
+
     def __hash__(self):
         start = time()
         _hash = 0
