@@ -18,18 +18,20 @@ class Helper(object):
 
     def __init__(self, grammar):
         self.grammar = grammar
+        self.closure_time = 0
         self.first_dict = {}
         self.follow_dict = {}
         self.calculate_first()
         self.calculate_follow()
         self.goto_count = {}
 
+
     def first(self, symbol):
         if isinstance(symbol, list):
             return self.first_list(symbol)
         if isinstance(symbol, Terminal) or isinstance(symbol, FinishSymbol):
             return set([symbol])
-        if self.first_dict.__contains__(symbol):
+        if symbol in self.first_dict: #self.first_dict.__contains__(symbol):
             return self.first_dict[symbol]
         else:
             return set()
@@ -44,11 +46,11 @@ class Helper(object):
         first_set = set()
         for element in l:
             first = self.first(element)
-            first_set |= first.difference(set([epsilon]))
+            first_set |= first
             if not epsilon in first:
                 break
-            if element == l[-1]:
-                first_set.add(epsilon)
+            if element != l[-1]:
+                first_set.remove(epsilon)
         return first_set
 
     def calculate_first(self):
