@@ -31,7 +31,6 @@ class IncParser(object):
 
         filename = "".join(["pickle/", str(hash(grammar) ^ hash(whitespaces)), ".pcl"])
         try:
-            raise IOError
             print("Try to unpickle former stategraph")
             f = open(filename, "r")
             start = time.time()
@@ -81,6 +80,8 @@ class IncParser(object):
         self.stack.append(Node(FinishSymbol(), 0, []))
         bos = self.previous_version.parent.children[0]
         la = self.pop_lookahead(bos)
+
+        USE_OPT = True
 
         while(True):
             #la.seen += 1
@@ -155,6 +156,7 @@ class IncParser(object):
                         return True
                     elif isinstance(element, Shift):
                         print("Shift")
+                        self.undo.append((la, "state", la.state))
                         la.state = element.action
                         self.stack.append(la)
                         self.current_state = element.action
@@ -169,16 +171,20 @@ class IncParser(object):
                         children = []
                         for i in range(element.amount()):
                             children.insert(0, self.stack.pop())
-                        self.current_state = self.stack[-1].state
-                        print("Stack[-1]", self.stack[-1])
+                        self.current_state = self.stack[-1].state #XXX
+                        print("Stack[-1]", self.stack[-1], id(self.stack[-1]))
 
                         goto = self.syntaxtable.lookup(self.current_state, element.action.left)
+                        print("goto", self.current_state, element.action.left)
+                        assert goto != None
+                        print("result", goto)
 
                         # save childrens parents state
                         for c in children:
                             self.undo.append((c, 'parent', c.parent))
 
                         new_node = Node(element.action.left, goto.action, children)
+                        #print("created new node", new_node, id(new_node))
                         self.stack.append(new_node)
                         self.current_state = new_node.state
                     elif element is None:
@@ -190,7 +196,8 @@ class IncParser(object):
                         else:
                             # undo all changes
                             while len(self.undo) > 0:
-                                node, attribute, value = self.undo.pop(0)
+                                node, attribute, value = self.undo.pop(-1)
+                                print("undo", node, attribute, value, "\n")
                                 setattr(node, attribute, value)
                             self.error_node = la
                             return False
@@ -220,19 +227,22 @@ class IncParser(object):
                    #print(element)
                    # THIS IS THE RIGHT STUFF
                    # ------
-                   #follow_id = self.graph.follow(self.current_state, la.symbol)
-                   #if follow_id: # can we shift this Nonterminal in the current state?
-                   #    print("shift this shit")
-                   #    self.stack.append(la)
-                   #    self.current_state = follow_id
-                   #    #self.stack.append(la)
-                   #    #goto = self.syntaxtable.lookup(self.current_state, la.symbol)
-                   #    #self.current_state = goto.action
-                   #    la = self.pop_lookahead(la)
-                   #    self.validating = True
-                   #    continue
-                   #else:
-                   #    la = self.left_breakdown(la)
+                    if USE_OPT:
+                        follow_id = self.graph.follow(self.current_state, la.symbol)
+                        if follow_id: # can we shift this Nonterminal in the current state?
+                            print("Speculative shift")
+                            self.stack.append(la)
+                            la.state = follow_id #XXX this fixed goto error (i should think about storing the states on the stack instead of inside the elements)
+                            self.current_state = follow_id
+                            #self.stack.append(la)
+                            #goto = self.syntaxtable.lookup(self.current_state, la.symbol)
+                            #self.current_state = goto.action
+                            la = self.pop_lookahead(la)
+                            self.validating = True
+                            continue
+                        else:
+                            la = self.left_breakdown(la)
+                    else:
                    # -------
                     #elif isinstance(element, Reduce):
                     #    print("reduce this shit")
@@ -247,22 +257,22 @@ class IncParser(object):
                     #    pass
                     # perform all reductions
                     # PARSER WITHOUT OPTIMISATION
-                    t = la.next_terminal()
-                    if la.lookup != "":
-                        lookup_symbol = Terminal(t.lookup)
-                    else:
-                        lookup_symbol = t.symbol
-                    element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
-                    print("PERFORM ALL THE REDUCTIONS", element)
+                        t = la.next_terminal()
+                        if la.lookup != "":
+                            lookup_symbol = Terminal(t.lookup)
+                        else:
+                            lookup_symbol = t.symbol
+                        element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
+                        print("PERFORM ALL THE REDUCTIONS", element)
 
-                    if self.shiftable(la):
-                        print("SHIFTABLE")
-                        self.shift(la)
-                        self.right_breakdown()
-                        #print("STACK after shift:", self.stack)
-                        la = self.pop_lookahead(la)
-                    else:
-                        la = self.left_breakdown(la)
+                        if self.shiftable(la):
+                            print("SHIFTABLE")
+                            self.shift(la)
+                            self.right_breakdown()
+                            #print("STACK after shift:", self.stack)
+                            la = self.pop_lookahead(la)
+                        else:
+                            la = self.left_breakdown(la)
             print("---------------")
         print("============ INCREMENTAL PARSE END ================= ")
 
@@ -285,7 +295,7 @@ class IncParser(object):
         self.current_state = la.state
 
     def pop_lookahead(self, la):
-        print("pop_lookahead", la)
+        print("pop_lookahead", la, id(la))
         while(la.right_sibling() is None):
             la = la.parent
         return la.right_sibling()
@@ -329,17 +339,17 @@ class IncParser(object):
         l.append(FinishSymbol())
         return l
 
-    def reduce_ast(self, element, state):
-        l = []
-        # action = Production
-        for e in element.action.right:
-            if e == Epsilon():
-                l.append(Node(Epsilon(), 0, []))
-            else:
-                l.append(self.ast_stack.pop())
-        l.reverse()
-        n = Node(element.action.left, state, l)
-        self.ast_stack.append(n)
+   #def reduce_ast(self, element, state):
+   #    l = []
+   #    # action = Production
+   #    for e in element.action.right:
+   #        if e == Epsilon():
+   #            l.append(Node(Epsilon(), 0, []))
+   #        else:
+   #            l.append(self.ast_stack.pop())
+   #    l.reverse()
+   #    n = Node(element.action.left, state, l)
+   #    self.ast_stack.append(n)
 
     def get_ast(self):
         bos = Node(Terminal("bos"), 0, [])
