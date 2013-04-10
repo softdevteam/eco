@@ -3,6 +3,9 @@ import re
 class TokenLexer(object):
     def __init__(self, regexlist):
         self.regexlist = regexlist
+        self.compiled_regexes = {}
+        for regex in self.regexlist:
+            self.compiled_regexes[regex] = re.compile(regex)
 
     def match(self, token):
         matches = []
@@ -11,7 +14,7 @@ class TokenLexer(object):
         while remaining != "":
             longest_match = ("", "", 999999)
             for regex in self.regexlist:
-                m = re.match(regex, remaining)
+                m = self.compiled_regexes[regex].match(remaining)
                 if m:
                     result = m.group(0)
                     if len(result) > len(longest_match[0]):
