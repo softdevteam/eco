@@ -23,6 +23,8 @@ from languages import languages
 
 from token_lexer import TokenLexer
 
+from time import time
+
 grammar = """
     E ::= T
         | E "+" T
@@ -490,12 +492,12 @@ class NodeEditor(QFrame):
                         next_node = node.next_terminal()
                         previous_node = node.previous_terminal()
                         if magic and isinstance(next_node, EOS) and isinstance(previous_node, BOS):
-                            magic.parent.children.remove(magic)
+                            magic.parent.remove_child(magic)
                             del self.parsers[root]
                             del self.lexers[root]
                             del self.priorities[root]
                         else:
-                            node.parent.children.remove(node)
+                            node.parent.remove_child(node)
 
                     else:
                         repairnode = node
@@ -714,7 +716,6 @@ class NodeEditor(QFrame):
             node = TextNode(symbol, -1, [], -1)
             node.lookup = match[1]
             parent.insert_after_node(bos, node)
-            print("adding", node)
 
     def repair(self, startnode):
         if startnode is None:
