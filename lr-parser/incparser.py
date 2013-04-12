@@ -19,7 +19,7 @@ from astree import AST, TextNode, BOS, EOS
 Node = TextNode
 
 # deactivate parser output for now
-def print(*args, **kwargs):
+def noprint(*args, **kwargs):
     pass
 
 class IncParser(object):
@@ -80,82 +80,30 @@ class IncParser(object):
         self.stack.append(Node(FinishSymbol(), 0, []))
         bos = self.previous_version.parent.children[0]
         la = self.pop_lookahead(bos)
+        self.loopcount = 0
 
         USE_OPT = True
 
         while(True):
-            #la.seen += 1
-            print("--------------------")
-            #print("STACK:", self.stack)
-            print("NODE:", la, "regex", la.regex, "lookup", la.lookup)
-            print("CURRENT STATE", self.current_state)
+            self.loopcount += 1
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
                 if la.changed:#self.has_changed(la):
                     assert False # with prelexing you should never end up here!
-                    # scannerless
-                    print("-------------SCANNERLESS-----------------")
-                    options = self.get_next_possible_symbols(self.current_state)
-                    print("options", options)
-                    print("la", la)
-                    #XXX find longest match !!!
-                    longest_match = ""
-                    for o in options:
-                        if la.symbol.name == o.name:
-                            la.changed = False
-                            longest_match = ""
-                            print("exact match")
-                            break
-                        elif la.symbol.name.startswith(o.name):
-                            if o.name > longest_match:
-                                longest_match = o.name
-
-                    if longest_match == "": # no match found
-                        la.changed = False # continue without changing node
-                    else:
-                        print("found", longest_match)
-                        newnode = Node(Terminal(longest_match), -1, [], la.pos)
-                        la.parent.insert_before_node(la, newnode)
-                        la.pos = la.pos + len(longest_match)
-                        la.symbol.name = la.symbol.name[len(longest_match):]
-                        la = newnode
-                        #la.changed = False
-                    # if none found: lexing error -> undo
-                    print("--------------- END ----------------------")
-                    # scannerless end
-                    #print("relex")
-                    #text = la.symbol.name
-                    #oldpos = la.pos
-                    #tokens = text.split(" ")
-                    #children = []
-                    #for t in tokens:
-                    #    children.append(Node(Terminal(t), -1, [], oldpos))
-                    #    oldpos += len(t)
-                    #    oldpos += 1 # add whitespace
-                    #pos = la.parent.replace_children(la, children)
-                    ##self.all_changes.remove(la)
-                    #la.changed = False
-                    #la = la.parent.children[pos]
                 else:
-                    # ignore spaces
-                    #if la.lookup == "WS":
-                    #    self.stack.append(la)
-                    #    la = self.pop_lookahead(la)
-                    #    continue
                     if la.lookup != "":
                         lookup_symbol = Terminal(la.lookup)
                     else:
                         lookup_symbol = la.symbol
-                    print("LOOKUPSYMBOL", lookup_symbol)
                     element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
                     if isinstance(element, Accept):
-                        print("Accept")
                         #XXX change parse so that stack is [bos, startsymbol, eos]
                         bos = self.previous_version.parent.children[0]
                         eos = self.previous_version.parent.children[-1]
                         self.previous_version.parent.set_children([bos, self.stack[1], eos])
+                        print("loopcount", self.loopcount)
+                        print ("Accept")
                         return True
                     elif isinstance(element, Shift):
-                        print("Shift")
                         self.undo.append((la, "state", la.state))
                         la.state = element.action
                         self.stack.append(la)
@@ -167,95 +115,54 @@ class IncParser(object):
                         la = self.pop_lookahead(la)
 
                     elif isinstance(element, Reduce):
-                        print("Reduce", element.action)
                         children = []
                         for i in range(element.amount()):
                             children.insert(0, self.stack.pop())
                         self.current_state = self.stack[-1].state #XXX
-                        print("Stack[-1]", self.stack[-1], id(self.stack[-1]))
 
                         goto = self.syntaxtable.lookup(self.current_state, element.action.left)
-                        print("goto", self.current_state, element.action.left)
                         assert goto != None
-                        print("result", goto)
 
                         # save childrens parents state
                         for c in children:
                             self.undo.append((c, 'parent', c.parent))
+                            self.undo.append((c, 'left', c.left))
+                            self.undo.append((c, 'right', c.right))
 
                         new_node = Node(element.action.left, goto.action, children)
-                        #print("created new node", new_node, id(new_node))
                         self.stack.append(new_node)
                         self.current_state = new_node.state
                     elif element is None:
-                        print("ERROR")
                         if self.validating:
-                            print("VALIDATING")
                             self.right_breakdown()
                             self.validating = False
                         else:
                             # undo all changes
                             while len(self.undo) > 0:
                                 node, attribute, value = self.undo.pop(-1)
-                                print("undo", node, attribute, value, "\n")
                                 setattr(node, attribute, value)
                             self.error_node = la
+                            #print ("Error", la.symbol, la.lookup, la.left.symbol, la.right.symbol)
+                            print("loopcount", self.loopcount)
                             return False
             else: # Nonterminal
-                print("nonterminal")
-                #if(la.symbol.name == "WS"):
-                #    la = self.pop_lookahead(la)
-                #    continue
-                if la.changed:#self.has_changed(la):
+                if la.changed:
                     la.changed = False
-                    print("has changed")
                     self.undo.append((la, 'changed', True))
                     la = self.left_breakdown(la)
                 else:
-                    print("has not changed")
-                    # get first terminal in subtree (further opt: add this information to syntax table)
-                   #t = la.get_first_terminal()
-                   #if t:
-                   #    print(t)
-                   #    if t.lookup != "":
-                   #        lookup_symbol = Terminal(t.lookup)
-                   #    else:
-                   #        lookup_symbol = t.symbol
-                   #    element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
-                   #else:
-                   #    element = self.syntaxtable.lookup(self.current_state, la.symbol)
-                   #print(element)
-                   # THIS IS THE RIGHT STUFF
-                   # ------
                     if USE_OPT:
                         follow_id = self.graph.follow(self.current_state, la.symbol)
                         if follow_id: # can we shift this Nonterminal in the current state?
-                            print("Speculative shift")
                             self.stack.append(la)
                             la.state = follow_id #XXX this fixed goto error (i should think about storing the states on the stack instead of inside the elements)
                             self.current_state = follow_id
-                            #self.stack.append(la)
-                            #goto = self.syntaxtable.lookup(self.current_state, la.symbol)
-                            #self.current_state = goto.action
                             la = self.pop_lookahead(la)
                             self.validating = True
                             continue
                         else:
                             la = self.left_breakdown(la)
                     else:
-                   # -------
-                    #elif isinstance(element, Reduce):
-                    #    print("reduce this shit")
-                    #else:
-                    #    print("error?")
-                    # perform reductions
-                    #next_terminal = next(_inputiter)
-                    #a = self.syntaxtable.lookup(self.current_state, next_terminal)
-                    #if isinstance(a, Reduce):
-                    #    print("REDUCE")
-                        #perform
-                    #    pass
-                    # perform all reductions
                     # PARSER WITHOUT OPTIMISATION
                         t = la.next_terminal()
                         if la.lookup != "":
@@ -263,17 +170,13 @@ class IncParser(object):
                         else:
                             lookup_symbol = t.symbol
                         element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
-                        print("PERFORM ALL THE REDUCTIONS", element)
 
                         if self.shiftable(la):
-                            print("SHIFTABLE")
                             self.shift(la)
                             self.right_breakdown()
-                            #print("STACK after shift:", self.stack)
                             la = self.pop_lookahead(la)
                         else:
                             la = self.left_breakdown(la)
-            print("---------------")
         print("============ INCREMENTAL PARSE END ================= ")
 
     def left_breakdown(self, la):
@@ -295,7 +198,6 @@ class IncParser(object):
         self.current_state = la.state
 
     def pop_lookahead(self, la):
-        print("pop_lookahead", la, id(la))
         while(la.right_sibling() is None):
             la = la.parent
         return la.right_sibling()
