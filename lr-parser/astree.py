@@ -123,11 +123,11 @@ class AST(object):
 class Node(object):
     def __init__(self, symbol, state, children):
         self.symbol = symbol
-        self.children = children
         self.state = state
         self.parent = None
-        for c in self.children:
-            c.parent = self
+        self.left = None
+        self.right = None
+        self.set_children(children)
 
     def mark_changed(self):
         node = self
@@ -138,17 +138,30 @@ class Node(object):
 
     def set_children(self, children):
         self.children = children
-        for c in self.children:
+        last = None
+        for c in children:
             c.parent = self
+            c.left = last
+            if last is not None:
+                last.right = c
+            last = c
+        if last is not None:
+            last.right = None # last child has no right sibling
 
     def remove_child(self, child):
         for i in xrange(len(self.children)):
             if self.children[i] is child:
                 removed_child = self.children.pop(i)
                 removed_child.deleted = True
+                # update siblings
+                if removed_child.left:
+                    removed_child.left.right = removed_child.right
+                if removed_child.right:
+                    removed_child.right.left = removed_child.left
                 return
 
     def replace_children(self, la, children):
+        assert False # is this used?
         i = 0
         children.reverse()
         for c in self.children:
@@ -161,6 +174,7 @@ class Node(object):
             i += 1
 
     def insert_before_node(self, node, newnode):
+        assert False # never used?
         i = 0
         for c in self.children:
             if c is node:
@@ -177,10 +191,29 @@ class Node(object):
                 self.children.insert(i+1, newnode)
                 newnode.parent = self
                 newnode.mark_changed()
+                # update siblings
+                newnode.left = c
+                newnode.right = c.right
+
+                c.right = newnode
+                newnode.right.left = newnode
                 return
             i += 1
 
     def right_sibling(self):
+        return self.right
+
+    def old_right_sibling(self):
+        if not self.parent:
+            return None
+        siblings = self.parent.children
+        for i in range(len(siblings)):
+            if siblings[i] is self:
+                if i+1 < len(siblings):
+                    print("returning right sibling", siblings[i+1], self.right)
+                    return siblings[i+1]
+
+    def old_right_sibling(self):
         if not self.parent:
             return None
         siblings = self.parent.children
