@@ -939,7 +939,7 @@ expression_nn ::=    assignment_expression_nn
 ,
 """
 "//[^\\r\\n]*":<ws>
-"\"[^\"]*\"":STRING_LITERAL
+"\"(\\\\.|[^\\\\"])*\"":STRING_LITERAL
 "\'[^\']*\'":CHARACTER_LITERAL
 "boolean":BOOLEAN
 "byte":BYTE
@@ -1033,11 +1033,11 @@ expression_nn ::=    assignment_expression_nn
 "\^=":XOREQ
 "\|=":OREQ
 
-"[0-9]+":INTEGER_LITERAL
+"0x[0-9A-Fa-f]+|[0-9]+":INTEGER_LITERAL
 "[0-9]+\.[0-9]+":FLOATING_POINT_LITERAL
 "(true|false)":BOOLEAN_LITERAL
 "null":NULL_LITERAL
-"[a-zA-Z][a-zA-Z0-9_]*":IDENTIFIER
+"[a-zA-Z_][a-zA-Z0-9_]*":IDENTIFIER
 
 "const":CONST
 "goto":GOTO
