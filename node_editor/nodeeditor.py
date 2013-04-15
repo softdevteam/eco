@@ -73,6 +73,8 @@ class NodeEditor(QFrame):
         self.selection_start = Cursor(0,0)
         self.selection_end = Cursor(0,0)
 
+        self.viewport_y = 0
+
         self.node_list = []
         self.node_map = {}
         self.max_cols = []
@@ -123,6 +125,10 @@ class NodeEditor(QFrame):
             self.show_cursor = 1
         self.update()
 
+    def sliderChanged(self, value):
+        self.update()
+        self.viewport_y = value
+
     def paintEvent(self, event):
         QtGui.QFrame.paintEvent(self, event)
         paint = QtGui.QPainter()
@@ -132,40 +138,53 @@ class NodeEditor(QFrame):
         y = 0
         x = 0
 
-        bos = self.ast.parent.children[0]
+        #bos = self.ast.parent.children[0]
+        bos = self.node_list[self.viewport_y]
         self.indentations = {}
         self.node_map.clear()
         self.node_map[(x,y)] = bos
         self.max_cols = []
 
+        # calculate how many lines we need to show
+        self.init_height = self.geometry().height()
+        print("initial height", self.init_height)
+
+        print("start painting")
         x, y = self.paintAST(paint, bos, x, y)
+        print("end painting")
         self.max_cols.append(x) # last line
 
         if self.hasFocus() and self.show_cursor:
             #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
             paint.drawRect(3 + self.cursor.x * self.fontwt, 5 + self.cursor.y * self.fontht, 0, self.fontht - 3)
 
-        self.paintSelection(paint)
+        #self.paintSelection(paint)
         paint.end()
 
         width = (max(self.max_cols)+1) * self.fontwt
         height = len(self.max_cols) * self.fontht + 3
-        geom = self.geometry()
-        geom.setWidth(width)
-        geom.setHeight(height)
-        self.setMinimumSize(QSize(width, height))
+        #geom = self.geometry()
+        #geom.setWidth(width)
+        #geom.setHeight(height)
+        #self.setMinimumSize(QSize(width, height))
         if self.hasFocus():
             self.getWindow().ui.scrollArea.ensureVisible (self.cursor.x * self.fontwt, self.cursor.y * self.fontht, self.fontwt, self.fontht+3 )
 
+        self.getWindow().ui.verticalScrollBar.setMaximum(len(self.node_list) + 1)
+
     def paintAST(self, paint, bos, x, y):
         node = bos.next_terminal()
-        parser = self.parsers[bos.parent]
+        parser = self.parsers[bos.get_root()]
         while node and not isinstance(node, EOS):
             if node.symbol.name in ["\n", "\r"]:
                 self.max_cols.append(x)
                 y += 1
                 x = 0
                 self.node_map[(x,y)] = node
+
+                if len(self.max_cols) * self.fontht > self.init_height:
+                    break
+
             else:
                 if node.lookup == "<ws>" and x == 0:
                     self.indentations[y] = len(node.symbol.name)
@@ -289,7 +308,7 @@ class NodeEditor(QFrame):
             return 0
 
     def get_nodes_at_position(self):
-        node = self.node_list[self.cursor.y]
+        node = self.node_list[self.cursor.y + self.viewport_y]
         x = 0#len(node.symbol.name)
         inbetween = False
         while x < self.cursor.x:
@@ -432,6 +451,10 @@ class NodeEditor(QFrame):
     def focusNextPrevChild(self, b):
         # don't switch to next widget on TAB
         return False
+
+    def XXXkeyPressEvent(self, e):
+        import cProfile
+        cProfile.runctx("self.linkkeyPressEvent(e)", globals(), locals())
 
     def keyPressEvent(self, e):
         print("====================== KEYPRESS (>>%s<<) ============================" % (repr(e.text()),))
@@ -1065,6 +1088,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
         self.connect(self.ui.actionRandomDel, SIGNAL("triggered()"), self.ui.frame.randomDeletion)
         self.connect(self.ui.actionUndoRandomDel, SIGNAL("triggered()"), self.ui.frame.undoDeletion)
+        self.connect(self.ui.verticalScrollBar, SIGNAL("valueChanged(int)"), self.ui.frame.sliderChanged)
 
         self.ui.graphicsView.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform | QPainter.TextAntialiasing)
 
