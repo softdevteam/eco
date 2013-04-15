@@ -1092,18 +1092,40 @@ Shifting ::= "Shifting" ":" <Shifting optimisation> ";"
 "[\\n\\r]":<return>
 """)
 
-sql_error = Language("Sql Error",
+testing = Language("testing",
 """
-A ::= A "+" B
-    | B
-B ::= "1"
+  expr ::=     "(" expr ")"
+             | "|" expr "|"
+             | "-" expr  "NEG"
 
+             | "!" expr    "NEG"
 
+             | expr "%" expr_fix
+             | expr "*" expr_fix
+             | expr "/" expr_fix
+             | expr "+" expr_fix
+             | expr "-" expr_fix
+             | expr "T_LE" expr_fix
+             | expr "T_GE" expr_fix
+             | expr "<" expr_fix
+             | expr ">" expr_fix
+             | expr "T_EQ" expr_fix
+             | expr "T_NEQ" expr_fix
+             | expr "T_AND" expr_fix
+             | expr "T_OR" expr_fix
+
+             | expr "?" expr  ":" expr
+
+             | expr_fix
+
+    expr_fix ::=
+            | "BOOL_VAL"
+            | "INT_NUM"
+            | "FLOAT_NUM"
+            | "T_NIL"
 """
 ,
 """
-"1":1
-"\+":+
 """
 )
 
@@ -1123,6 +1145,7 @@ from lang_java_extract import javav1_e
 from java15 import java15
 from java15_sql import java15_sql
 from sql_simple import sql
+from greenmarl import greenmarl
 
 #languages = [java_error, java_error_simplified, super_simple, calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, smalltalk_ebnf, lisp,
 #             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
