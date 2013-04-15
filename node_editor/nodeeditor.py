@@ -629,7 +629,6 @@ class NodeEditor(QFrame):
             tl = self.lexers[root]
             text = new_node.symbol.name
             match = tl.match(text)[0]
-            assert match[0] == text
             new_node.lookup = match[1]
             new_node.priority = match[2]
             #new_node.regex = pl.regex(text)
