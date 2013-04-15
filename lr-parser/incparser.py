@@ -66,8 +66,8 @@ class IncParser(object):
     def init_ast(self):
         bos = BOS(Terminal(""), 0, [])
         eos = EOS(FinishSymbol(), 0, [])
-        empty = Node(Terminal(""), 0,  [], 0)
-        empty.priority -= 1
+        bos.next_term = eos
+        eos.prev_term = bos
         root = Node(Nonterminal("Root"), 0, [bos, eos])
         self.previous_version = AST(root)
 

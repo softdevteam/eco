@@ -8,6 +8,7 @@ class AST(object):
     def __init__(self, parent):
         self.parent = parent
         self.progress = 0
+        self.terminals = []
 
     def get_bos(self):
         return self.parent.children[0]
@@ -127,6 +128,8 @@ class Node(object):
         self.parent = None
         self.left = None
         self.right = None
+        self.prev_term = None
+        self.next_term = None
         self.set_children(children)
 
     def mark_changed(self):
@@ -158,6 +161,9 @@ class Node(object):
                     removed_child.left.right = removed_child.right
                 if removed_child.right:
                     removed_child.right.left = removed_child.left
+                # update terminal pointers
+                child.prev_term.next_term = child.next_term
+                child.next_term.prev_term = child.prev_term
                 return
 
     def replace_children(self, la, children):
@@ -194,9 +200,13 @@ class Node(object):
                 # update siblings
                 newnode.left = c
                 newnode.right = c.right
-
                 c.right = newnode
                 newnode.right.left = newnode
+                # update terminal pointers
+                newnode.prev_term = node
+                node.next_term.prev_term = newnode
+                newnode.next_term = node.next_term
+                node.next_term = newnode
                 return
             i += 1
 
@@ -234,6 +244,9 @@ class Node(object):
                 last = siblings[i]
 
     def next_terminal(self):
+        return self.next_term
+
+    def old_next_terminal(self):
         if isinstance(self, EOS):
             return None
 
@@ -253,6 +266,9 @@ class Node(object):
         return node
 
     def previous_terminal(self):
+        return self.prev_term
+
+    def old_previous_terminal(self):
         if isinstance(self, BOS):
             return None
 
