@@ -605,10 +605,15 @@ class NodeEditor(QFrame):
         root = new_node.get_root()
         if not isinstance(new_node.symbol, MagicTerminal):
             pl = self.priorities[root]
+            tl = self.lexers[root]
             text = new_node.symbol.name
-            new_node.regex = pl.regex(text)
-            new_node.priority = pl.priority(text)
-            new_node.lookup = pl.name(text)
+            match = tl.match(text)[0]
+            assert match[0] == text
+            new_node.lookup = match[1]
+            new_node.priority = match[2]
+            #new_node.regex = pl.regex(text)
+            #new_node.priority = pl.priority(text)
+            #new_node.lookup = pl.name(text)
 
     def cursor_movement(self, key):
         if key == QtCore.Qt.Key_Up:
