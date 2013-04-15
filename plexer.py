@@ -14,6 +14,12 @@ class PriorityLexer(object):
 
         self.test_rules()
 
+        # compile regex
+        self.compiled_regex = {}
+        for k in self.rules:
+            c = re.compile("^"+k+"$")
+            self.compiled_regex[k] = c
+
     def test_rules(self):
         import re
         for rule in self.rules:
@@ -47,14 +53,16 @@ class PriorityLexer(object):
 
     def regex(self, text):
         for k in self.rules.keys():
-            m = re.match("^("+k+")$", text)
+            #m = re.match("^("+k+")$", text)
+            m = self.compiled_regex[k].match(text)
             if m:
                 return k
         return ""
 
     def matches(self, text, cls):
         for k in self.rules.keys():
-            m = re.match("^("+k+")$", text)
+            #m = re.match("^("+k+")$", text)
+            m = self.compiled_regex[k].match(text)
             if m:
                 return True
         return False
