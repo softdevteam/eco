@@ -227,7 +227,6 @@ ExpressionStatement ::=
 
 SelectionStatement ::=
 	  "IF" "(" Expression ")" Statement
-    | "IF" "(" Expression ")" Statement "ELSE" Statement
     | "SWITCH" "(" Expression ")" Block
 
 IterationStatement ::=
@@ -359,8 +358,8 @@ DimExpr ::=
 	  "[" Expression "]"
 
 Dims ::=
-	  "[" "]"
-	| Dims "[" "]"
+	  "OP_DIM"
+	| Dims "OP_DIM"
 
 PostfixExpression ::=
 	  PrimaryExpression
