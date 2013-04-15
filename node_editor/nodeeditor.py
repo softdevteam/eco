@@ -73,6 +73,7 @@ class NodeEditor(QFrame):
         self.selection_start = Cursor(0,0)
         self.selection_end = Cursor(0,0)
 
+        self.node_list = []
         self.node_map = {}
         self.max_cols = []
         self.indentations = {}
@@ -106,6 +107,9 @@ class NodeEditor(QFrame):
         self.lexers[lrp.previous_version.parent] = self.getTL()
         self.priorities[lrp.previous_version.parent] = self.getPL()
         self.parser_langs[lrp.previous_version.parent] = lang_name
+
+        self.node_list = []
+        self.node_list.append(self.ast.parent.children[0]) # bos is first terminal in first line
 
     def set_sublanguage(self, language):
         self.sublanguage = language
@@ -241,7 +245,9 @@ class NodeEditor(QFrame):
             width = end.x
             paint.fillRect(3 + 0 * self.fontwt, 2+end.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
 
+
     def recalculate_positions(self): # without painting
+        return
         y = 0
         x = 0
 
@@ -276,7 +282,6 @@ class NodeEditor(QFrame):
 
         return x, y
 
-
     def get_indentation(self, y):
         try:
             return self.indentations[y]
@@ -284,6 +289,18 @@ class NodeEditor(QFrame):
             return 0
 
     def get_nodes_at_position(self):
+        node = self.node_list[self.cursor.y]
+        x = 0#len(node.symbol.name)
+        inbetween = False
+        while x < self.cursor.x:
+            node = node.next_terminal()
+            x += len(node.symbol.name)
+        if x > self.cursor.x:
+            inbetween = True
+        print("got nodes from pos", node, inbetween, x, self.cursor.x)
+        return ([node, node.next_terminal()], inbetween, x)
+
+    def OLDget_nodes_at_position(self):
         print("==================== Get nodes at pos ====================== ")
         print("Position:", self.cursor)
         # Look up node in position map (if there is no direct match, i.e. inbetween node, try to find end of node)
@@ -498,9 +515,12 @@ class NodeEditor(QFrame):
                             del self.priorities[root]
                         else:
                             node.parent.remove_child(node)
+                            if node.lookup == "<return>":
+                                del self.node_list[self.cursor.y+1]
 
                     else:
                         repairnode = node
+            # NORMAL KEY
             else:
                 if self.hasSelection():
                     self.deleteSelection()
@@ -520,6 +540,7 @@ class NodeEditor(QFrame):
                             text += " " * indentation
                         else:
                             indentation = 0
+
                     newnode = self.create_node(str(text))
                 if inbetween:
                     print("BETWEEN")
@@ -721,6 +742,8 @@ class NodeEditor(QFrame):
             node = TextNode(symbol, -1, [], -1)
             node.lookup = match[1]
             parent.insert_after_node(bos, node)
+            if node.lookup == "<return>":
+                self.node_list.insert(1, node)
 
     def repair(self, startnode):
         if startnode is None:
@@ -744,16 +767,22 @@ class NodeEditor(QFrame):
         left_tokens.reverse()
         # expand to the right as long as tokens may match
         right_tokens = self.get_matching_tokens(startnode, regex_list, "right")
+        print("    Tokenlist:", left_tokens, right_tokens)
 
         # merge all tokens together
-        print("    Tokenlist:", left_tokens, right_tokens)
-        newtoken_text = []
-        for token in left_tokens:
-            newtoken_text.append(token.symbol.name)
-        newtoken_text.append(startnode.symbol.name)
-        for token in right_tokens:
-            newtoken_text.append(token.symbol.name)
-        print("    Relexing:", repr("".join(newtoken_text)))
+        # do not repair return nodes since this destroys the mapping
+        if startnode.symbol.name not in ["\n", "\r"]:
+            newtoken_text = []
+            for token in left_tokens:
+                newtoken_text.append(token.symbol.name)
+            newtoken_text.append(startnode.symbol.name)
+            for token in right_tokens:
+                newtoken_text.append(token.symbol.name)
+            print("    Relexing:", repr("".join(newtoken_text)))
+        else:
+            newtoken_text = [startnode.symbol.name]
+            left_tokens = []
+            right_tokens = []
 
 
         tl = self.lexers[root]
@@ -799,6 +828,8 @@ class NodeEditor(QFrame):
                 #node = self.create_new_node(token)#token.value)
                 parent.insert_after_node(startnode, node)
                 print("adding", node)
+                if node.lookup == "<return>":
+                    self.node_list.insert(self.cursor.y, node)
             parent.remove_child(startnode)
             #print("parent children after", parent.children)
             parent.mark_changed() # XXX changed or not changed? if it fits this hasn't really changed. only the removed nodes have changed
