@@ -184,7 +184,10 @@ class NodeEditor(QFrame):
        ##self.getWindow().ui.scrollArea.horizontalScrollBar().setMaximum((width - self.getWindow().ui.scrollArea.viewport().size().width())/self.fontwt)
        ##self.getWindow().ui.scrollArea.horizontalScrollBar().setPageStep(1)
         self.getWindow().ui.scrollArea.verticalScrollBar().setMinimum(0)
-        self.getWindow().ui.scrollArea.verticalScrollBar().setMaximum(len(self.line_info) - self.geometry().height() / self.fontht)
+        total_lines = len(self.line_info)
+        max_visible_lines = self.geometry().height() / self.fontht
+        vmax = max(0, total_lines - max_visible_lines)
+        self.getWindow().ui.scrollArea.verticalScrollBar().setMaximum(vmax)
         self.getWindow().ui.scrollArea.verticalScrollBar().setPageStep(1)
 
     def paintLines(self, paint, startline):
