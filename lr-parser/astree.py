@@ -135,7 +135,7 @@ class Node(object):
     def mark_changed(self):
         node = self
         #node.changed = True
-        while node.parent:
+        while node.parent and node.parent.changed is False:
             node = node.parent
             node.changed = True
 
