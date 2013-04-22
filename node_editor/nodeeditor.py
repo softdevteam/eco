@@ -73,8 +73,11 @@ class NodeEditor(QFrame):
         self.selection_start = Cursor(0,0)
         self.selection_end = Cursor(0,0)
 
+        self.viewport_x = 0
         self.viewport_y = 0
 
+        self.changed_line = -1
+        self.line_info = []
         self.node_list = []
         self.node_map = {}
         self.max_cols = []
@@ -129,6 +132,10 @@ class NodeEditor(QFrame):
         self.update()
         self.viewport_y = value
 
+    def sliderXChanged(self, value):
+        self.update()
+        self.viewport_x = value
+
     def paintEvent(self, event):
         QtGui.QFrame.paintEvent(self, event)
         paint = QtGui.QPainter()
@@ -138,20 +145,19 @@ class NodeEditor(QFrame):
         y = 0
         x = 0
 
-        #bos = self.ast.parent.children[0]
-        bos = self.node_list[self.viewport_y]
+        bos = self.ast.parent.children[0]
+        #bos = self.node_list[self.viewport_y]
         self.indentations = {}
         self.node_map.clear()
         self.node_map[(x,y)] = bos
         self.max_cols = []
+        self.longest_column = 0
 
         # calculate how many lines we need to show
         self.init_height = self.geometry().height()
-        print("initial height", self.init_height)
 
-        print("start painting")
-        x, y = self.paintAST(paint, bos, x, y)
-        print("end painting")
+        #x, y = self.paintAST(paint, bos, -self.viewport_x, y)
+        self.paintLines(paint)
         self.max_cols.append(x) # last line
 
         if self.hasFocus() and self.show_cursor:
@@ -161,16 +167,36 @@ class NodeEditor(QFrame):
         #self.paintSelection(paint)
         paint.end()
 
-        width = (max(self.max_cols)+1) * self.fontwt
-        height = len(self.max_cols) * self.fontht + 3
-        #geom = self.geometry()
-        #geom.setWidth(width)
-        #geom.setHeight(height)
-        #self.setMinimumSize(QSize(width, height))
-        if self.hasFocus():
-            self.getWindow().ui.scrollArea.ensureVisible (self.cursor.x * self.fontwt, self.cursor.y * self.fontht, self.fontwt, self.fontht+3 )
+       #width = (max(self.max_cols)+1) * self.fontwt
+       #print("width:", width)
+       #print(self.geometry())
+       #print("viewport", self.getWindow().ui.scrollArea.viewport().geometry())
+       #height = len(self.max_cols) * self.fontht + 3
+       #geom = self.geometry()
+       #geom.setWidth(width)
+       #geom.setHeight(height)
+       #self.setMinimumWidth(width)
+       #if self.hasFocus():
+       #    pass
+       #    #self.getWindow().ui.scrollArea.ensureVisible (self.cursor.x * self.fontwt, self.cursor.y * self.fontht, self.fontwt, self.fontht+3 )
 
-        self.getWindow().ui.verticalScrollBar.setMaximum(len(self.node_list) + 1)
+       ##self.getWindow().ui.scrollArea.horizontalScrollBar().setMinimum(0)
+       ##self.getWindow().ui.scrollArea.horizontalScrollBar().setMaximum((width - self.getWindow().ui.scrollArea.viewport().size().width())/self.fontwt)
+       ##self.getWindow().ui.scrollArea.horizontalScrollBar().setPageStep(1)
+       #self.getWindow().ui.scrollArea.verticalScrollBar().setMinimum(0)
+       #self.getWindow().ui.scrollArea.verticalScrollBar().setMaximum(len(self.node_list) + 1 - geom.height()/self.fontht)
+       #self.getWindow().ui.scrollArea.verticalScrollBar().setPageStep(1)
+
+    def paintLines(self, paint):
+        for i in range(len(self.line_info)):
+            line = self.line_info[i]
+            line_str = []
+            for node in line:
+                if node.lookup != "<return>":
+                    line_str.append(node.symbol.name)
+            text = "".join(line_str)
+            paint.drawText(QtCore.QPointF(3, self.fontht + i*self.fontht), text)
+            self.max_cols.append(len(text))
 
     def paintAST(self, paint, bos, x, y):
         node = bos.next_terminal()
@@ -179,7 +205,7 @@ class NodeEditor(QFrame):
             if node.symbol.name in ["\n", "\r"]:
                 self.max_cols.append(x)
                 y += 1
-                x = 0
+                x = -self.viewport_x
                 self.node_map[(x,y)] = node
 
                 if len(self.max_cols) * self.fontht > self.init_height:
@@ -308,6 +334,30 @@ class NodeEditor(QFrame):
             return 0
 
     def get_nodes_at_position(self):
+        # special case: cursor at beginning of line
+        y = self.cursor.y
+        if self.cursor.x == 0:
+            if y > 0:
+                node = self.line_info[y-1][-1]
+            else:
+                bos = self.ast.parent.children[0]
+                node = bos
+            return ([node, node.next_terminal()], False, 0)
+
+        line = self.line_info[self.cursor.y]
+        x = 0
+        inbetween = False
+        for node in line:
+            x += len(node.symbol.name) # XXX: later store line length in line_info as well
+            if x >= self.cursor.x:
+                break
+        if x > self.cursor.x:
+            inbetween = True
+        print("got nodes from pos", node, inbetween, x, self.cursor.x)
+        return ([node, node.next_terminal()], inbetween, x)
+
+    def OLD2get_nodes_at_position(self):
+        print("cursor", self.cursor)
         node = self.node_list[self.cursor.y + self.viewport_y]
         x = 0#len(node.symbol.name)
         inbetween = False
@@ -424,6 +474,7 @@ class NodeEditor(QFrame):
     def coordinate_to_cursor(self, x, y):
         cursor_x = x / self.fontwt
         cursor_y = y / self.fontht
+        return Cursor(cursor_x, cursor_y)
 
         result = Cursor(0,0)
         if cursor_y < 0:
@@ -462,6 +513,7 @@ class NodeEditor(QFrame):
         selected_nodes, inbetween, x = self.get_nodes_at_position()
 
         text = e.text()
+        self.changed_line = self.cursor.y
 
         if e.key() == Qt.Key_Tab:
             text = "    "
@@ -501,6 +553,7 @@ class NodeEditor(QFrame):
                         # if at beginning of line: move to previous line
                         if self.cursor.y > 0:
                             self.cursor.y -= 1
+                            self.changed_line = self.cursor.y
                             self.cursor.x = self.max_cols[self.cursor.y]
                 if inbetween:   # inside node
                     internal_position = len(selected_nodes[0].symbol.name) - (x - self.cursor.x)
@@ -539,7 +592,7 @@ class NodeEditor(QFrame):
                         else:
                             node.parent.remove_child(node)
                             if node.lookup == "<return>":
-                                del self.node_list[self.cursor.y+1]
+                                del self.node_list[self.viewport_y + self.cursor.y+1]
 
                     else:
                         repairnode = node
@@ -563,6 +616,7 @@ class NodeEditor(QFrame):
                             text += " " * indentation
                         else:
                             indentation = 0
+
 
                     newnode = self.create_node(str(text))
                 if inbetween:
@@ -605,13 +659,106 @@ class NodeEditor(QFrame):
 
         self.recalculate_positions() # XXX ensures that positions are up to date before next keypress is called
         print("second get_nodes_at_pos")
-        selected_nodes, _, _ = self.get_nodes_at_position()
-        self.getWindow().btReparse(selected_nodes)
+        #selected_nodes, _, _ = self.get_nodes_at_position()
+        self.getWindow().btReparse([])#selected_nodes)
+        self.rescan_line(self.changed_line)
 
         root = selected_nodes[0].get_root()
         lrp = self.parsers[root]
         self.getWindow().showLookahead(lrp)
         self.update()
+
+    def rescan_line(self, y):
+        # Start at the first node and run until you find a newline
+        # replace the current line with all nodes found on the way
+        # if there are more nodes after the newline
+        #     copy them into a new line
+        #     rescan that line
+        # if you reach the next lines node, a new line was deleted
+        #     merge this and the next line
+        #     delete the next line
+        #     the next lines node is line[-1].next_terminal()
+        print("==== RESCANNING LINE ====")
+        line = self.line_info[y]
+        startnode = line[0]
+        endnode = line[-1]
+
+        # newline in empty line was deleted -> delete current line
+        if startnode is endnode and endnode.deleted:
+            del self.line_info[y]
+            return
+
+        # a newline was deleted -> merge with next line
+        if endnode.deleted:
+            endnode = self.line_info[y+1][-1]
+            del self.line_info[y+1]
+        print(startnode)
+        print(endnode)
+
+        node = startnode
+        new_list = []
+
+        print("Startline\n", line)
+
+        while node is not endnode:
+            new_list.append(node)
+            if node.lookup == "<return>":
+                self.line_info[y] = new_list
+                new_list = []
+                y += 1
+                self.line_info.insert(y, [])
+            node = node.next_terminal()
+        new_list.append(endnode)
+        self.line_info[y] = new_list
+
+    def repair_line(self, y):
+        print("repair")
+
+        line = self.line_info[y]
+        print(line)
+        startnode = line[0]
+        endnode = line[-1]
+
+        # update current line
+        new_list = []
+        node = startnode
+        while node is not endnode:
+            new_list.append(node)
+            node = node.next_terminal()
+        new_list.append(endnode)
+        self.line_info[y] = new_list
+        print("repaired to")
+        print(new_list)
+        return
+
+        if node is not line[-1]: # if the found newline is not the last element
+            self.line_info.insert(y+1, [node.next_terminal(), endnode])
+            self.rescan_line(y+1)
+
+       #while node is not endnode:
+       #    print(node.symbol.name, id(node), node.next_terminal())
+
+       #    if node is endnode:
+       #        print("found endnode")
+       #        new_list.append(endnode)
+       #        break
+
+       #    print("appending", node.symbol.name)
+       #    new_list.append(node)
+
+       #    # check for new newlines
+       #    if node.lookup == "<return>":
+       #        new_line = [node.next_terminal(), endnode]
+       #        self.line_info.insert(y+1, new_line)
+       #        self.rescan_line(y+1)
+       #        break
+
+       #    # XXX check for deleted newlines
+
+       #    node = node.next_terminal()
+       #self.line_info[y] = new_list
+       #print(new_list)
+
 
     def add_magic(self):
         # Create magic token
@@ -646,6 +793,9 @@ class NodeEditor(QFrame):
 
     def add_node(self, previous_node, new_node):
         previous_node.parent.insert_after_node(previous_node, new_node)
+        if self.cursor.x == 0:
+            line = self.line_info[self.cursor.y]
+            line.insert(0, new_node)
         root = new_node.get_root()
         if not isinstance(new_node.symbol, MagicTerminal):
             pl = self.priorities[root]
@@ -665,10 +815,12 @@ class NodeEditor(QFrame):
                 if self.cursor.x > self.max_cols[self.cursor.y]:
                     self.cursor.x = self.max_cols[self.cursor.y]
         elif key == QtCore.Qt.Key_Down:
-            if self.cursor.y < len(self.max_cols)-1:
+            if self.cursor.y < (self.geometry().height() / self.fontht) - 1:
                 self.cursor.y += 1
                 if self.cursor.x > self.max_cols[self.cursor.y]:
                     self.cursor.x = self.max_cols[self.cursor.y]
+            else:
+                self.viewport_y += 1
         elif key == QtCore.Qt.Key_Left:
             if self.cursor.x > 0:
                 self.cursor.x -= 1
@@ -757,17 +909,24 @@ class NodeEditor(QFrame):
         success = lexer.match(text)
         # insert tokens into tree
         parent = parser.previous_version.parent
-        bos = parser.previous_version.get_bos()
-        success.reverse()
+        last_node = parser.previous_version.get_bos()
+        line_nodes = []
         for match in success:#lex.tokens:
             symbol = Terminal(match[0])
             node = TextNode(symbol, -1, [], -1)
             node.lookup = match[1]
-            parent.insert_after_node(bos, node)
+            parent.insert_after_node(last_node, node)
+            line_nodes.append(node)
+
             if node.lookup == "<return>":
+                self.line_info.append(line_nodes)
+                line_nodes = []
                 self.node_list.insert(1, node)
 
+            last_node = node
+
     def repair(self, startnode):
+        # XXX don't split nodes at once, but see if the relxing results in the same nodes
         if startnode is None:
             return
         if isinstance(startnode, BOS) or isinstance(startnode, EOS):
@@ -794,6 +953,7 @@ class NodeEditor(QFrame):
         # merge all tokens together
         # do not repair return nodes since this destroys the mapping
         if startnode.symbol.name not in ["\n", "\r"]:
+            #self.node_list.remove(startnode) # be sure you don't add it double
             newtoken_text = []
             for token in left_tokens:
                 newtoken_text.append(token.symbol.name)
@@ -802,9 +962,11 @@ class NodeEditor(QFrame):
                 newtoken_text.append(token.symbol.name)
             print("    Relexing:", repr("".join(newtoken_text)))
         else:
-            newtoken_text = [startnode.symbol.name]
+            startnode.symbol.name
+            startnode.lookup == "<return>" # XXX use tl.match here
             left_tokens = []
             right_tokens = []
+            return
 
 
         tl = self.lexers[root]
@@ -826,6 +988,37 @@ class NodeEditor(QFrame):
        #success = lex.lex()
        #print(lex.tokens)
        #print("relexing done")
+
+        # NEW NODE INSERTION ALGORITHM THAT TRYS TO REUSE OLD OBJECTS
+        if success:
+            list_of_reusable_nodes = []
+            list_of_reusable_nodes.extend(left_tokens)
+            list_of_reusable_nodes.append(startnode)
+            list_of_reusable_nodes.extend(right_tokens)
+
+            print(len(success), len(list_of_reusable_nodes))
+            for match in success:
+                if len(list_of_reusable_nodes) > 0:
+                    reusable_node = list_of_reusable_nodes.pop(0)
+                    print("overwriting", reusable_node, "with", match)
+                    reusable_node.symbol.name = match[0]
+                    reusable_node.lookup = match[1]
+                    reusable_node.parent.mark_changed()
+                    last_node = reusable_node
+                else:
+                    print("creating newnode", match)
+                    newnode = TextNode(Terminal(match[0]), -1, [], -1)
+                    newnode.lookup = match[1]
+                    last_node.parent.insert_after_node(last_node, newnode)
+                    newnode.parent.mark_changed()
+                    last_node = newnode
+
+            # delete leftover nodes
+            for node in list_of_reusable_nodes:
+                node.parent.mark_changed()
+                node.parent.remove_child(node)
+
+        return
 
         # if relexing successfull, replace old tokens with new ones
         if success: #XXX is this false at any time?
@@ -851,7 +1044,7 @@ class NodeEditor(QFrame):
                 parent.insert_after_node(startnode, node)
                 print("adding", node)
                 if node.lookup == "<return>":
-                    self.node_list.insert(self.cursor.y, node)
+                    self.node_list.insert(self.cursor.y + self.viewport_y, node)
             parent.remove_child(startnode)
             #print("parent children after", parent.children)
             parent.mark_changed() # XXX changed or not changed? if it fits this hasn't really changed. only the removed nodes have changed
@@ -984,6 +1177,7 @@ class NodeEditor(QFrame):
                 x = random.randint(0, self.max_cols[y])
                 self.cursor = Cursor(x,y)
 
+                print("+++++++++++ DELETING", x, y)
                 event = QKeyEvent(QEvent.KeyPress, Qt.Key_Delete, Qt.NoModifier, "delete")
                 #QCoreApplication.postEvent(self, event)
                 self.keyPressEvent(event)
@@ -1054,6 +1248,18 @@ class Cursor(object):
     def __repr__(self):
         return "Cursor(%s, %s)" % (self.x, self.y)
 
+class ScopeScrollArea(QtGui.QAbstractScrollArea):
+    def setWidgetResizable(self, b):
+        self.resizable = True
+    def setAlignment(self, align):
+        self.alignment = align
+    def setWidget(self, widget):
+        widget.setParent(self.viewport())
+        self.widget = widget
+        #self.viewport().setBackgroundRole(QPalette.Dark)
+   #def viewportEvent(self, event):
+   #    self.widget.resize(self.viewport().geometry().width(), self.viewport().geometry().height())
+   #    return True
 
 class Window(QtGui.QMainWindow):
     def __init__(self):
@@ -1088,7 +1294,8 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
         self.connect(self.ui.actionRandomDel, SIGNAL("triggered()"), self.ui.frame.randomDeletion)
         self.connect(self.ui.actionUndoRandomDel, SIGNAL("triggered()"), self.ui.frame.undoDeletion)
-        self.connect(self.ui.verticalScrollBar, SIGNAL("valueChanged(int)"), self.ui.frame.sliderChanged)
+        self.connect(self.ui.scrollArea.verticalScrollBar(), SIGNAL("valueChanged(int)"), self.ui.frame.sliderChanged)
+        self.connect(self.ui.scrollArea.horizontalScrollBar(), SIGNAL("valueChanged(int)"), self.ui.frame.sliderXChanged)
 
         self.ui.graphicsView.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform | QPainter.TextAntialiasing)
 
@@ -1144,7 +1351,9 @@ class Window(QtGui.QMainWindow):
         results = []
         for key in self.ui.frame.parsers:
             lang = self.ui.frame.parser_langs[key]
-            status = self.ui.frame.parsers[key].inc_parse()
+            import cProfile
+            cProfile.runctx("status = self.ui.frame.parsers[key].inc_parse()", globals(), locals())
+            status = False
             qlabel = QLabel(lang)
             if status:
                 results.append("<span style='background-color: #00ff00'>" + lang + "</span>")
