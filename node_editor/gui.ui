@@ -56,9 +56,15 @@
          </layout>
         </item>
         <item>
-         <widget class="QScrollArea" name="scrollArea">
+         <widget class="ScopeScrollArea" name="scrollArea">
           <property name="frameShape">
            <enum>QFrame::StyledPanel</enum>
+          </property>
+          <property name="verticalScrollBarPolicy">
+           <enum>Qt::ScrollBarAlwaysOn</enum>
+          </property>
+          <property name="horizontalScrollBarPolicy">
+           <enum>Qt::ScrollBarAlwaysOff</enum>
           </property>
           <property name="widgetResizable">
            <bool>true</bool>
@@ -71,7 +77,7 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>516</width>
+             <width>501</width>
              <height>507</height>
             </rect>
            </property>
@@ -117,9 +123,9 @@
                  <colorrole role="Window">
                   <brush brushstyle="SolidPattern">
                    <color alpha="255">
-                    <red>255</red>
+                    <red>230</red>
                     <green>255</green>
-                    <blue>255</blue>
+                    <blue>216</blue>
                    </color>
                   </brush>
                  </colorrole>
@@ -137,9 +143,9 @@
                  <colorrole role="Window">
                   <brush brushstyle="SolidPattern">
                    <color alpha="255">
-                    <red>255</red>
+                    <red>230</red>
                     <green>255</green>
-                    <blue>255</blue>
+                    <blue>216</blue>
                    </color>
                   </brush>
                  </colorrole>
@@ -148,18 +154,18 @@
                  <colorrole role="Base">
                   <brush brushstyle="SolidPattern">
                    <color alpha="255">
-                    <red>255</red>
+                    <red>230</red>
                     <green>255</green>
-                    <blue>255</blue>
+                    <blue>216</blue>
                    </color>
                   </brush>
                  </colorrole>
                  <colorrole role="Window">
                   <brush brushstyle="SolidPattern">
                    <color alpha="255">
-                    <red>255</red>
+                    <red>230</red>
                     <green>255</green>
-                    <blue>255</blue>
+                    <blue>216</blue>
                    </color>
                   </brush>
                  </colorrole>
@@ -184,22 +190,6 @@
               <property name="frameShadow">
                <enum>QFrame::Sunken</enum>
               </property>
-              <widget class="QScrollBar" name="verticalScrollBar">
-               <property name="geometry">
-                <rect>
-                 <x>490</x>
-                 <y>50</y>
-                 <width>20</width>
-                 <height>431</height>
-                </rect>
-               </property>
-               <property name="maximum">
-                <number>10</number>
-               </property>
-               <property name="orientation">
-                <enum>Qt::Vertical</enum>
-               </property>
-              </widget>
              </widget>
             </item>
            </layout>
@@ -540,6 +530,12 @@
   <customwidget>
    <class>NodeEditor</class>
    <extends>QFrame</extends>
+   <header>nodeeditor</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ScopeScrollArea</class>
+   <extends>QScrollArea</extends>
    <header>nodeeditor</header>
    <container>1</container>
   </customwidget>

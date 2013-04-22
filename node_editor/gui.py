@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Mon Apr 15 17:13:21 2013
+# Created: Wed Apr 17 15:44:43 2013
 #      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
@@ -57,13 +57,15 @@ class Ui_MainWindow(object):
         self.cbShowLangBoxes.setObjectName(_fromUtf8("cbShowLangBoxes"))
         self.horizontalLayout.addWidget(self.cbShowLangBoxes)
         self.verticalLayout_3.addLayout(self.horizontalLayout)
-        self.scrollArea = QtGui.QScrollArea(self.groupBox_2)
+        self.scrollArea = ScopeScrollArea(self.groupBox_2)
         self.scrollArea.setFrameShape(QtGui.QFrame.StyledPanel)
+        self.scrollArea.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.scrollArea.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.scrollArea.setObjectName(_fromUtf8("scrollArea"))
         self.scrollAreaWidgetContents = QtGui.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 516, 507))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 501, 507))
         self.scrollAreaWidgetContents.setObjectName(_fromUtf8("scrollAreaWidgetContents"))
         self.verticalLayout_5 = QtGui.QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_5.setMargin(0)
@@ -81,19 +83,19 @@ class Ui_MainWindow(object):
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Base, brush)
-        brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
+        brush = QtGui.QBrush(QtGui.QColor(230, 255, 216))
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Window, brush)
         brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Base, brush)
-        brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
+        brush = QtGui.QBrush(QtGui.QColor(230, 255, 216))
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Window, brush)
-        brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
+        brush = QtGui.QBrush(QtGui.QColor(230, 255, 216))
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Base, brush)
-        brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
+        brush = QtGui.QBrush(QtGui.QColor(230, 255, 216))
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Window, brush)
         self.frame.setPalette(palette)
@@ -104,10 +106,6 @@ class Ui_MainWindow(object):
         self.frame.setFrameShape(QtGui.QFrame.NoFrame)
         self.frame.setFrameShadow(QtGui.QFrame.Sunken)
         self.frame.setObjectName(_fromUtf8("frame"))
-        self.verticalScrollBar = QtGui.QScrollBar(self.frame)
-        self.verticalScrollBar.setGeometry(QtCore.QRect(490, 50, 20, 431))
-        self.verticalScrollBar.setOrientation(QtCore.Qt.Vertical)
-        self.verticalScrollBar.setObjectName(_fromUtf8("verticalScrollBar"))
         self.verticalLayout_5.addWidget(self.frame)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.verticalLayout_3.addWidget(self.scrollArea)
@@ -321,4 +319,4 @@ class Ui_MainWindow(object):
         self.actionRandomDel.setText(_translate("MainWindow", "Delete random chars", None))
         self.actionUndoRandomDel.setText(_translate("MainWindow", "Undo random deletion", None))
 
-from nodeeditor import NodeEditor
+from nodeeditor import ScopeScrollArea, NodeEditor
