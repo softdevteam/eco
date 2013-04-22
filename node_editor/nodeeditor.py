@@ -157,7 +157,7 @@ class NodeEditor(QFrame):
         self.init_height = self.geometry().height()
 
         #x, y = self.paintAST(paint, bos, -self.viewport_x, y)
-        self.paintLines(paint)
+        self.paintLines(paint, self.viewport_y)
         self.max_cols.append(x) # last line
 
         if self.hasFocus() and self.show_cursor:
@@ -183,13 +183,14 @@ class NodeEditor(QFrame):
        ##self.getWindow().ui.scrollArea.horizontalScrollBar().setMinimum(0)
        ##self.getWindow().ui.scrollArea.horizontalScrollBar().setMaximum((width - self.getWindow().ui.scrollArea.viewport().size().width())/self.fontwt)
        ##self.getWindow().ui.scrollArea.horizontalScrollBar().setPageStep(1)
-       #self.getWindow().ui.scrollArea.verticalScrollBar().setMinimum(0)
-       #self.getWindow().ui.scrollArea.verticalScrollBar().setMaximum(len(self.node_list) + 1 - geom.height()/self.fontht)
-       #self.getWindow().ui.scrollArea.verticalScrollBar().setPageStep(1)
+        self.getWindow().ui.scrollArea.verticalScrollBar().setMinimum(0)
+        self.getWindow().ui.scrollArea.verticalScrollBar().setMaximum(len(self.line_info) - self.geometry().height() / self.fontht)
+        self.getWindow().ui.scrollArea.verticalScrollBar().setPageStep(1)
 
-    def paintLines(self, paint):
-        for i in range(len(self.line_info)):
-            line = self.line_info[i]
+    def paintLines(self, paint, startline):
+        r = min(len(self.line_info), (self.geometry().height()/self.fontht))
+        for i in range(r):
+            line = self.line_info[startline + i]
             line_str = []
             for node in line:
                 if node.lookup != "<return>":
@@ -333,9 +334,12 @@ class NodeEditor(QFrame):
         except KeyError:
             return 0
 
+    def document_y(self):
+        return self.viewport_y + self.cursor.y
+
     def get_nodes_at_position(self):
         # special case: cursor at beginning of line
-        y = self.cursor.y
+        y = self.document_y()
         if self.cursor.x == 0:
             if y > 0:
                 node = self.line_info[y-1][-1]
@@ -344,7 +348,7 @@ class NodeEditor(QFrame):
                 node = bos
             return ([node, node.next_terminal()], False, 0)
 
-        line = self.line_info[self.cursor.y]
+        line = self.line_info[self.document_y()]
         x = 0
         inbetween = False
         for node in line:
@@ -513,7 +517,7 @@ class NodeEditor(QFrame):
         selected_nodes, inbetween, x = self.get_nodes_at_position()
 
         text = e.text()
-        self.changed_line = self.cursor.y
+        self.changed_line = self.document_y()
 
         if e.key() == Qt.Key_Tab:
             text = "    "
@@ -551,9 +555,9 @@ class NodeEditor(QFrame):
                         self.cursor.x -= 1
                     else:
                         # if at beginning of line: move to previous line
-                        if self.cursor.y > 0:
-                            self.cursor.y -= 1
-                            self.changed_line = self.cursor.y
+                        if self.document_y() > 0:
+                            self.cursor_movement(Qt.Key_Up)
+                            self.changed_line = self.document_y()
                             self.cursor.x = self.max_cols[self.cursor.y]
                 if inbetween:   # inside node
                     internal_position = len(selected_nodes[0].symbol.name) - (x - self.cursor.x)
@@ -612,7 +616,7 @@ class NodeEditor(QFrame):
                 else:
                     if e.key() == Qt.Key_Return:
                         if self.indentation:
-                            indentation = self.get_indentation(self.cursor.y)
+                            indentation = self.get_indentation(self.document_y())
                             text += " " * indentation
                         else:
                             indentation = 0
@@ -649,8 +653,8 @@ class NodeEditor(QFrame):
                 if e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
                     pass # do nothing
                 elif e.key() == Qt.Key_Return:
+                    self.cursor_movement(Qt.Key_Down)
                     self.cursor.x = indentation
-                    self.cursor.y += 1
                 elif e.key() == Qt.Key_Tab:
                     self.cursor.x += 4
                 else:
@@ -794,7 +798,7 @@ class NodeEditor(QFrame):
     def add_node(self, previous_node, new_node):
         previous_node.parent.insert_after_node(previous_node, new_node)
         if self.cursor.x == 0:
-            line = self.line_info[self.cursor.y]
+            line = self.line_info[self.document_y()]
             line.insert(0, new_node)
         root = new_node.get_root()
         if not isinstance(new_node.symbol, MagicTerminal):
@@ -814,13 +818,15 @@ class NodeEditor(QFrame):
                 self.cursor.y -= 1
                 if self.cursor.x > self.max_cols[self.cursor.y]:
                     self.cursor.x = self.max_cols[self.cursor.y]
+            else:
+                self.getWindow().ui.scrollArea.decVSlider()
         elif key == QtCore.Qt.Key_Down:
             if self.cursor.y < (self.geometry().height() / self.fontht) - 1:
                 self.cursor.y += 1
                 if self.cursor.x > self.max_cols[self.cursor.y]:
                     self.cursor.x = self.max_cols[self.cursor.y]
             else:
-                self.viewport_y += 1
+                self.getWindow().ui.scrollArea.incVSlider()
         elif key == QtCore.Qt.Key_Left:
             if self.cursor.x > 0:
                 self.cursor.x -= 1
@@ -1260,6 +1266,12 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
    #def viewportEvent(self, event):
    #    self.widget.resize(self.viewport().geometry().width(), self.viewport().geometry().height())
    #    return True
+
+    def incVSlider(self):
+        self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() + self.verticalScrollBar().singleStep())
+
+    def decVSlider(self):
+        self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() - self.verticalScrollBar().singleStep())
 
 class Window(QtGui.QMainWindow):
     def __init__(self):
