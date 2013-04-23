@@ -912,6 +912,8 @@ class NodeEditor(QFrame):
         self.indentation = True
 
     def insertTextNoSim(self, text):
+        # convert liensbreaks
+        text = text.replace("\r\n","\n")
         parser = list(self.parsers.values())[0]
         lexer = list(self.lexers.values())[0]
         # lex text into tokens
