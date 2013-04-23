@@ -1026,19 +1026,19 @@ class NodeEditor(QFrame):
                     print("overwriting", reusable_node, "with", match)
                     reusable_node.symbol.name = match[0]
                     reusable_node.lookup = match[1]
-                    reusable_node.parent.mark_changed()
+                    reusable_node.mark_changed()
                     last_node = reusable_node
                 else:
                     print("creating newnode", match)
                     newnode = TextNode(Terminal(match[0]), -1, [], -1)
                     newnode.lookup = match[1]
                     last_node.parent.insert_after_node(last_node, newnode)
-                    newnode.parent.mark_changed()
+                    newnode.mark_changed()
                     last_node = newnode
 
             # delete leftover nodes
             for node in list_of_reusable_nodes:
-                node.parent.mark_changed()
+                node.mark_changed()
                 node.parent.remove_child(node)
 
         return
