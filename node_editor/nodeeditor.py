@@ -1382,9 +1382,9 @@ class Window(QtGui.QMainWindow):
         results = []
         for key in self.ui.frame.parsers:
             lang = self.ui.frame.parser_langs[key]
-            import cProfile
-            cProfile.runctx("status = self.ui.frame.parsers[key].inc_parse()", globals(), locals())
-            status = False
+            #import cProfile
+            #cProfile.runctx("status = self.ui.frame.parsers[key].inc_parse()", globals(), locals())
+            status = self.ui.frame.parsers[key].inc_parse()
             qlabel = QLabel(lang)
             if status:
                 results.append("<span style='background-color: #00ff00'>" + lang + "</span>")
