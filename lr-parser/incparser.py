@@ -115,23 +115,7 @@ class IncParser(object):
                         la = self.pop_lookahead(la)
 
                     elif isinstance(element, Reduce):
-                        children = []
-                        for i in range(element.amount()):
-                            children.insert(0, self.stack.pop())
-                        self.current_state = self.stack[-1].state #XXX
-
-                        goto = self.syntaxtable.lookup(self.current_state, element.action.left)
-                        assert goto != None
-
-                        # save childrens parents state
-                        for c in children:
-                            self.undo.append((c, 'parent', c.parent))
-                            self.undo.append((c, 'left', c.left))
-                            self.undo.append((c, 'right', c.right))
-
-                        new_node = Node(element.action.left, goto.action, children)
-                        self.stack.append(new_node)
-                        self.current_state = new_node.state
+                        self.reduce(element)
                     elif element is None:
                         if self.validating:
                             self.right_breakdown()
@@ -142,7 +126,7 @@ class IncParser(object):
                                 node, attribute, value = self.undo.pop(-1)
                                 setattr(node, attribute, value)
                             self.error_node = la
-                            #print ("Error", la.symbol, la.lookup, la.left.symbol, la.right.symbol)
+                            print ("Error", la)
                             print("loopcount", self.loopcount)
                             return False
             else: # Nonterminal
@@ -161,7 +145,16 @@ class IncParser(object):
                             self.validating = True
                             continue
                         else:
-                            la = self.left_breakdown(la)
+                            first_term = la.find_first_terminal()
+                            if first_term.lookup != "":
+                                lookup_symbol = Terminal(first_term.lookup)
+                            else:
+                                lookup_symbol = first_term.symbol
+                            element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
+                            if isinstance(element, Reduce):
+                                self.reduce(element)
+                            else:
+                                la = self.left_breakdown(la)
                     else:
                     # PARSER WITHOUT OPTIMISATION
                         t = la.next_terminal()
@@ -178,6 +171,25 @@ class IncParser(object):
                         else:
                             la = self.left_breakdown(la)
         print("============ INCREMENTAL PARSE END ================= ")
+
+    def reduce(self, element):
+        children = []
+        for i in range(element.amount()):
+            children.insert(0, self.stack.pop())
+        self.current_state = self.stack[-1].state #XXX
+
+        goto = self.syntaxtable.lookup(self.current_state, element.action.left)
+        assert goto != None
+
+        # save childrens parents state
+        for c in children:
+            self.undo.append((c, 'parent', c.parent))
+            self.undo.append((c, 'left', c.left))
+            self.undo.append((c, 'right', c.right))
+
+        new_node = Node(element.action.left, goto.action, children)
+        self.stack.append(new_node)
+        self.current_state = new_node.state
 
     def left_breakdown(self, la):
         if len(la.children) > 0:

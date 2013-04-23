@@ -243,6 +243,17 @@ class Node(object):
             else:
                 last = siblings[i]
 
+    def find_first_terminal(self):
+        node = self
+        while isinstance(node.symbol, Nonterminal):
+            if node.children == []:
+                while node.right is None:
+                    node = node.parent
+                node = node.right
+            else:
+                node = node.children[0]
+        return node
+
     def next_terminal(self):
         return self.next_term
 
