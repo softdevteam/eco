@@ -918,13 +918,21 @@ class NodeEditor(QFrame):
         success = lexer.match(text)
         # insert tokens into tree
         parent = parser.previous_version.parent
+        eos = parent.children.pop()
         last_node = parser.previous_version.get_bos()
         line_nodes = []
         for match in success:#lex.tokens:
             symbol = Terminal(match[0])
             node = TextNode(symbol, -1, [], -1)
             node.lookup = match[1]
-            parent.insert_after_node(last_node, node)
+            #parent.insert_after_node(last_node, node)
+            parent.children.append(node)
+            last_node.next_term = node
+            last_node.right = node
+            node.left = last_node
+            node.prev_term = last_node
+            node.parent = parent
+
             line_nodes.append(node)
 
             if node.lookup == "<return>":
@@ -933,6 +941,12 @@ class NodeEditor(QFrame):
                 self.node_list.insert(1, node)
 
             last_node = node
+        parent.children.append(eos)
+        node.right = eos # link to eos
+        node.next_term = eos
+        eos.left = node
+        eos.prev_term = node
+        node.mark_changed()
 
     def repair(self, startnode):
         # XXX don't split nodes at once, but see if the relxing results in the same nodes
