@@ -380,8 +380,14 @@ class NodeEditor(QFrame):
                 break
         if x > self.cursor.x:
             inbetween = True
-        if not inbetween and self.edit_rightnode and isinstance(node.next_terminal().symbol, MagicTerminal):
-            node = node.next_terminal().symbol.parser.previous_version.get_bos()
+        if not inbetween and self.edit_rightnode:
+            if isinstance(node.next_terminal().symbol, MagicTerminal):
+                node = node.next_terminal().symbol.parser.previous_version.get_bos()
+            elif isinstance(node.next_terminal(), EOS):
+                root = node.next_terminal().get_root()
+                magic = root.get_magicterminal()
+                if magic:
+                    node = magic
         print("got nodes from pos", node, node.next_terminal(), inbetween, x, self.cursor.x)
         return ([node, node.next_terminal()], inbetween, x)
 
