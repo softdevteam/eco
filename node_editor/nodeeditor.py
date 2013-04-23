@@ -50,6 +50,12 @@ priorities = """
     "a":a
 """
 
+class StyleNode(object):
+    def __init__(self, mode, bgcolor):
+        self.mode = mode
+        self.bgcolor = bgcolor
+
+
 class NodeEditor(QFrame):
 
     # ========================== init stuff ========================== #
@@ -190,17 +196,29 @@ class NodeEditor(QFrame):
         self.getWindow().ui.scrollArea.verticalScrollBar().setMaximum(vmax)
         self.getWindow().ui.scrollArea.verticalScrollBar().setPageStep(1)
 
+
     def paintLines(self, paint, startline):
         r = min(len(self.line_info), (self.geometry().height()/self.fontht))
+        backgroundcolor = QColor(255,255,255)
         for i in range(r):
             line = self.line_info[startline + i]
             line_str = []
-            for node in line:
-                if node.lookup != "<return>":
-                    line_str.append(node.symbol.name)
-            text = "".join(line_str)
-            paint.drawText(QtCore.QPointF(3, self.fontht + i*self.fontht), text)
-            self.max_cols.append(len(text))
+            styles = []
+            x = 3
+            for node in line[:-1]:
+                if isinstance(node, StyleNode):
+                    if node.mode == "add":
+                        styles.append(node.bgcolor)
+                    elif node.mode == "remove":
+                        styles.pop()
+                        paint.setPen(QColor(0,0,0))
+                    continue
+                text = node.symbol.name
+                if styles:
+                    paint.fillRect(QRectF(x,3 + self.fontht + i*self.fontht, len(text)*self.fontwt, -self.fontht), styles[-1])
+                paint.drawText(QtCore.QPointF(x, self.fontht + i*self.fontht), text)
+                x += len(text)*self.fontwt
+            self.max_cols.append(x/self.fontwt)
 
     def paintAST(self, paint, bos, x, y):
         node = bos.next_terminal()
@@ -355,12 +373,16 @@ class NodeEditor(QFrame):
         x = 0
         inbetween = False
         for node in line:
+            if isinstance(node, StyleNode):
+                continue
             x += len(node.symbol.name) # XXX: later store line length in line_info as well
             if x >= self.cursor.x:
                 break
         if x > self.cursor.x:
             inbetween = True
-        print("got nodes from pos", node, inbetween, x, self.cursor.x)
+        if not inbetween and self.edit_rightnode and isinstance(node.next_terminal().symbol, MagicTerminal):
+            node = node.next_terminal().symbol.parser.previous_version.get_bos()
+        print("got nodes from pos", node, node.next_terminal(), inbetween, x, self.cursor.x)
         return ([node, node.next_terminal()], inbetween, x)
 
     def OLD2get_nodes_at_position(self):
@@ -707,7 +729,17 @@ class NodeEditor(QFrame):
 
         print("Startline\n", line)
 
+        next_token_after_magic = []
         while node is not endnode:
+
+            if isinstance(node.symbol, MagicTerminal):
+                new_list.append(StyleNode("add", self.nesting_colors[len(next_token_after_magic) % 3]))
+                next_token_after_magic.append(node.next_terminal())
+                node = node.symbol.parser.previous_version.get_bos().next_terminal()
+            if isinstance(node, EOS) and next_token_after_magic:
+                node = next_token_after_magic.pop()
+                new_list.append(StyleNode("remove", self.nesting_colors[len(next_token_after_magic) % 3]))
+
             new_list.append(node)
             if node.lookup == "<return>":
                 self.line_info[y] = new_list
