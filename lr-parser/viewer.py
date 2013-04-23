@@ -72,6 +72,8 @@ class Viewer(object):
             return None
 
         dotnode = pydot.Node(id(node), label="%s (%s)" % (node.symbol.name, node.seen))
+        if node.changed:
+            dotnode.set('color','green')
         graph.add_node(dotnode)
 
         for c in node.children:
@@ -109,7 +111,7 @@ class Viewer(object):
         for stateset in graph.state_sets:
             stateset_info = []
             for state in stateset.elements:
-                stateset_info.append(str(state))
+                stateset_info.append(str(state) + "{" + str(stateset.lookaheads[state]) + "}")
             dotnode = pydot.Node(i, shape='rect', label="%s\n%s" % (i, "\n".join(stateset_info)))
             pydotgraph.add_node(dotnode)
             i += 1
@@ -128,7 +130,7 @@ class Viewer(object):
         stateset = graph.state_sets[_id]
         stateset_info = []
         for state in stateset.elements:
-            stateset_info.append(str(state))
+            stateset_info.append(str(state) + "{" + str(stateset.lookaheads[state]) + "}")
         dotnode = pydot.Node(_id, shape='rect', label="%s\n%s" % (_id, "\n".join(stateset_info)))
         pydotgraph.add_node(dotnode)
 
