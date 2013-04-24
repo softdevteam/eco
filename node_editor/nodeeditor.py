@@ -353,8 +353,11 @@ class NodeEditor(QFrame):
 
     def get_indentation(self, y):
         try:
-            return self.indentations[y]
-        except KeyError:
+            firstnode = self.line_info[y][0]
+            if firstnode.lookup == "<ws>":
+                return len(firstnode.symbol.name)
+            return 0
+        except IndexError:
             return 0
 
     def document_y(self):
