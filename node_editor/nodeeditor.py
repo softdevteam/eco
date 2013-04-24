@@ -83,7 +83,7 @@ class NodeEditor(QFrame):
         self.viewport_y = 0
 
         self.changed_line = -1
-        self.line_info = []
+        self.line_info = [[]]
         self.node_list = []
         self.node_map = {}
         self.max_cols = []
@@ -205,13 +205,15 @@ class NodeEditor(QFrame):
             line_str = []
             styles = []
             x = 3
-            for node in line[:-1]:
+            for node in line:
                 if isinstance(node, StyleNode):
                     if node.mode == "add":
                         styles.append(node.bgcolor)
                     elif node.mode == "remove":
                         styles.pop()
                         paint.setPen(QColor(0,0,0))
+                    continue
+                if node.lookup == "<return>":
                     continue
                 text = node.symbol.name
                 if styles:
@@ -359,6 +361,10 @@ class NodeEditor(QFrame):
         return self.viewport_y + self.cursor.y
 
     def get_nodes_at_position(self):
+        # special case: empty file
+        if self.line_info == [[]]:
+            bos = self.ast.parent.children[0]
+            return ([bos, bos.next_terminal()], False, 0)
         # special case: cursor at beginning of line
         y = self.document_y()
         if self.cursor.x == 0:
@@ -627,7 +633,8 @@ class NodeEditor(QFrame):
                         else:
                             node.parent.remove_child(node)
                             if node.lookup == "<return>":
-                                del self.node_list[self.viewport_y + self.cursor.y+1]
+                                pass
+                                #del self.node_list[self.viewport_y + self.cursor.y+1]
 
                     else:
                         repairnode = node
@@ -715,25 +722,32 @@ class NodeEditor(QFrame):
         #     the next lines node is line[-1].next_terminal()
         print("==== RESCANNING LINE ====")
         line = self.line_info[y]
+        if line == []:
+            return
         startnode = line[0]
         endnode = line[-1]
 
         # newline in empty line was deleted -> delete current line
         if startnode is endnode and endnode.deleted:
             del self.line_info[y]
+            if self.line_info == []:
+                self.line_info = [[]]
             return
 
         # a newline was deleted -> merge with next line
         if endnode.deleted:
-            endnode = self.line_info[y+1][-1]
-            del self.line_info[y+1]
-        print(startnode)
-        print(endnode)
+            try:
+                endnode = self.line_info[y+1][-1]
+                del self.line_info[y+1]
+            except IndexError:
+                endnode = self.ast.parent.children[-1]
+
+        # last line -> endnode = EOS
+        if y == len(self.line_info)-1:
+            endnode = self.ast.parent.children[-1]
 
         node = startnode
         new_list = []
-
-        print("Startline\n", line)
 
         next_token_after_magic = []
         while node is not endnode:
@@ -753,7 +767,8 @@ class NodeEditor(QFrame):
                 y += 1
                 self.line_info.insert(y, [])
             node = node.next_terminal()
-        new_list.append(endnode)
+        if not isinstance(endnode, EOS):
+            new_list.append(endnode)
         self.line_info[y] = new_list
 
     def repair_line(self, y):
@@ -950,6 +965,8 @@ class NodeEditor(QFrame):
         self.indentation = True
 
     def insertTextNoSim(self, text):
+        # init
+        self.line_info = [[]]
         # convert liensbreaks
         text = text.replace("\r\n","\n")
         parser = list(self.parsers.values())[0]
