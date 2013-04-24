@@ -83,7 +83,7 @@ class NodeEditor(QFrame):
         self.viewport_y = 0
 
         self.changed_line = -1
-        self.line_info = [[]]
+        self.line_info = []
         self.node_list = []
         self.node_map = {}
         self.max_cols = []
@@ -121,6 +121,8 @@ class NodeEditor(QFrame):
 
         self.node_list = []
         self.node_list.append(self.ast.parent.children[0]) # bos is first terminal in first line
+
+        self.line_info.append([self.ast.parent.children[0], self.ast.parent.children[1]]) # start with BOS and EOS
 
     def set_sublanguage(self, language):
         self.sublanguage = language
@@ -200,24 +202,26 @@ class NodeEditor(QFrame):
     def paintLines(self, paint, startline):
         r = min(len(self.line_info), (self.geometry().height()/self.fontht))
         backgroundcolor = QColor(255,255,255)
+        nesting_colors = {0: QColor(255,255,255), 1: QColor(255,0,0), 2: QColor(0,200,0), 3:QColor(0,0,255)}
+        nesting = 0
         for i in range(r):
             line = self.line_info[startline + i]
             line_str = []
             styles = []
             x = 3
             for node in line:
-                if isinstance(node, StyleNode):
-                    if node.mode == "add":
-                        styles.append(node.bgcolor)
-                    elif node.mode == "remove":
-                        styles.pop()
-                        paint.setPen(QColor(0,0,0))
+                if isinstance(node, BOS):
+                    if node.parent.get_magicterminal():
+                        nesting += 1
+                    continue
+                if isinstance(node, EOS):
+                    if node.parent.get_magicterminal():
+                        nesting -= 1
                     continue
                 if node.lookup == "<return>":
                     continue
                 text = node.symbol.name
-                if styles:
-                    paint.fillRect(QRectF(x,3 + self.fontht + i*self.fontht, len(text)*self.fontwt, -self.fontht), styles[-1])
+                paint.fillRect(QRectF(x,3 + self.fontht + i*self.fontht, len(text)*self.fontwt, -self.fontht), nesting_colors[nesting])
                 paint.drawText(QtCore.QPointF(x, self.fontht + i*self.fontht), text)
                 x += len(text)*self.fontwt
             self.max_cols.append(x/self.fontwt)
@@ -364,24 +368,17 @@ class NodeEditor(QFrame):
         return self.viewport_y + self.cursor.y
 
     def get_nodes_at_position(self):
-        # special case: empty file
-        if self.line_info == [[]]:
-            bos = self.ast.parent.children[0]
-            return ([bos, bos.next_terminal()], False, 0)
-        # special case: cursor at beginning of line
         y = self.document_y()
-        if self.cursor.x == 0:
-            if y > 0:
-                node = self.line_info[y-1][-1]
-            else:
-                bos = self.ast.parent.children[0]
-                node = bos
+        line = self.line_info[y]
+        print("=== GETTING NODES ====")
+        if self.cursor.x == 0 and not isinstance(line[0], BOS):
+            node = self.line_info[y-1][-1]
             return ([node, node.next_terminal()], False, 0)
-
-        line = self.line_info[self.document_y()]
         x = 0
         inbetween = False
         for node in line:
+            if isinstance(node, EOS):
+                continue
             if isinstance(node, StyleNode):
                 continue
             x += len(node.symbol.name) # XXX: later store line length in line_info as well
@@ -730,8 +727,12 @@ class NodeEditor(QFrame):
         startnode = line[0]
         endnode = line[-1]
 
+        if startnode.deleted:
+            startnode = self.line_info[y-1][-1].next_terminal()
+
         # newline in empty line was deleted -> delete current line
         if startnode is endnode and endnode.deleted:
+            assert False
             del self.line_info[y]
             if self.line_info == []:
                 self.line_info = [[]]
@@ -750,18 +751,21 @@ class NodeEditor(QFrame):
             endnode = self.ast.parent.children[-1]
 
         node = startnode
+
         new_list = []
 
         next_token_after_magic = []
         while node is not endnode:
 
             if isinstance(node.symbol, MagicTerminal):
-                new_list.append(StyleNode("add", self.nesting_colors[len(next_token_after_magic) % 3]))
+                new_list.append(node.symbol.parser.previous_version.get_bos())
                 next_token_after_magic.append(node.next_terminal())
                 node = node.symbol.parser.previous_version.get_bos().next_terminal()
-            if isinstance(node, EOS) and next_token_after_magic:
-                node = next_token_after_magic.pop()
-                new_list.append(StyleNode("remove", self.nesting_colors[len(next_token_after_magic) % 3]))
+                continue
+            if isinstance(node, EOS):
+                new_list.append(node)
+                node = node.parent.get_parent().next_terminal() # magic terminal
+                continue
 
             new_list.append(node)
             if node.lookup == "<return>":
@@ -770,8 +774,7 @@ class NodeEditor(QFrame):
                 y += 1
                 self.line_info.insert(y, [])
             node = node.next_terminal()
-        if not isinstance(endnode, EOS):
-            new_list.append(endnode)
+        new_list.append(endnode)
         self.line_info[y] = new_list
 
     def repair_line(self, y):
@@ -858,7 +861,10 @@ class NodeEditor(QFrame):
         previous_node.parent.insert_after_node(previous_node, new_node)
         if self.cursor.x == 0:
             line = self.line_info[self.document_y()]
-            line.insert(0, new_node)
+            if isinstance(line[0], BOS):
+                line.insert(1, new_node)
+            else:
+                line.insert(0, new_node)
         root = new_node.get_root()
         if not isinstance(new_node.symbol, MagicTerminal):
             pl = self.priorities[root]
@@ -969,9 +975,9 @@ class NodeEditor(QFrame):
 
     def insertTextNoSim(self, text):
         # init
-        self.line_info = [[]]
-        # convert liensbreaks
-        text = text.replace("\r\n","\n")
+        self.line_info = []
+        # convert linebreaks
+        text = text.replace("\r\n","\r")
         parser = list(self.parsers.values())[0]
         lexer = list(self.lexers.values())[0]
         # lex text into tokens
@@ -980,12 +986,11 @@ class NodeEditor(QFrame):
         parent = parser.previous_version.parent
         eos = parent.children.pop()
         last_node = parser.previous_version.get_bos()
-        line_nodes = []
+        line_nodes = [last_node]
         for match in success:#lex.tokens:
             symbol = Terminal(match[0])
             node = TextNode(symbol, -1, [], -1)
             node.lookup = match[1]
-            #parent.insert_after_node(last_node, node)
             parent.children.append(node)
             last_node.next_term = node
             last_node.right = node
@@ -1001,6 +1006,7 @@ class NodeEditor(QFrame):
                 self.node_list.insert(1, node)
 
             last_node = node
+        self.line_info[-1].append(eos)
         parent.children.append(eos)
         node.right = eos # link to eos
         node.next_term = eos
