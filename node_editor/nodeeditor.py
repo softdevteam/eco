@@ -230,7 +230,7 @@ class NodeEditor(QFrame):
                 if self.getWindow().ui.cbShowLangBoxes.isChecked() or node.magic_parent is selected_magic:
                     try:
                         color_id = self.magic_tokens.index(id(node.magic_parent))
-                        paint.fillRect(QRectF(x,3 + self.fontht + i*self.fontht, len(text)*self.fontwt, -self.fontht), self.nesting_colors[color_id])
+                        paint.fillRect(QRectF(x,3 + self.fontht + i*self.fontht, len(text)*self.fontwt, -self.fontht+2), self.nesting_colors[color_id])
                     except ValueError:
                         pass
                 paint.drawText(QtCore.QPointF(x, self.fontht + i*self.fontht), text)
