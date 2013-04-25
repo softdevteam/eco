@@ -382,8 +382,9 @@ class NodeEditor(QFrame):
         y = self.document_y()
         line = self.line_info[y]
         print("=== GETTING NODES ====")
-        if self.cursor.x == 0 and not isinstance(line[0], BOS):
+        if self.cursor.x == 0 and y > 0:# and not isinstance(line[0], BOS):
             node = self.line_info[y-1][-1]
+            print("x=0: got nodes from pos", node, node.next_terminal())
             return ([node, node.next_terminal()], False, 0)
         x = 0
         inbetween = False
