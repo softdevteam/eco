@@ -177,7 +177,7 @@ class NodeEditor(QFrame):
 
         if self.hasFocus() and self.show_cursor:
             #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
-            paint.drawRect(3 + self.cursor.x * self.fontwt, 5 + self.cursor.y * self.fontht, 0, self.fontht - 3)
+            paint.drawRect(0 + self.cursor.x * self.fontwt, 5 + self.cursor.y * self.fontht, 0, self.fontht - 3)
 
         #self.paintSelection(paint)
         paint.end()
@@ -218,7 +218,7 @@ class NodeEditor(QFrame):
             line = self.line_info[startline + i]
             line_str = []
             styles = []
-            x = 3
+            x = 0
             for node in line:
                 if isinstance(node, BOS):
                     continue
@@ -1356,15 +1356,18 @@ class Cursor(object):
 class ScopeScrollArea(QtGui.QAbstractScrollArea):
     def setWidgetResizable(self, b):
         self.resizable = True
+
     def setAlignment(self, align):
         self.alignment = align
+
     def setWidget(self, widget):
-        widget.setParent(self.viewport())
         self.widget = widget
-        #self.viewport().setBackgroundRole(QPalette.Dark)
-   #def viewportEvent(self, event):
-   #    self.widget.resize(self.viewport().geometry().width(), self.viewport().geometry().height())
-   #    return True
+        self.viewport().setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        anotherbox = QtGui.QVBoxLayout(self.viewport())
+        anotherbox.addWidget(widget)
+        anotherbox.setSpacing(0)
+        anotherbox.setContentsMargins(3,0,0,0)
 
     def incVSlider(self):
         self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() + self.verticalScrollBar().singleStep())
