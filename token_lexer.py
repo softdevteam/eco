@@ -37,4 +37,4 @@ class TokenLexer(object):
         if any_match_found:
             return matches
         else:
-            return None
+            return [(token, '', 0)]
