@@ -100,7 +100,13 @@ class NodeEditor(QFrame):
 
         self.last_delchar = ""
         self.lbox_nesting = 0
-        self.nesting_colors = {0: QColor(255,0,0), 1: QColor(0,200,0), 2:QColor(0,0,255)}
+        self.nesting_colors = {
+            0: QColor("#a4c6cf"), # light blue
+            1: QColor("#dd9d9d"), # light red
+            2: QColor("#caffcc"), # light green
+            3: QColor("#f4e790"), # light yellow
+            4: QColor("#dccee4"), # light purple
+        }
 
     def reset(self):
         self.indentations = {}
@@ -207,7 +213,6 @@ class NodeEditor(QFrame):
         node = node.get_root().get_magicterminal()
 
         r = min(len(self.line_info), (self.geometry().height()/self.fontht))
-        nesting_colors = {0: QColor(255,255,255), 1: QColor(255,0,0), 2: QColor(0,200,0), 3:QColor(0,0,255)}
 
         for i in range(r):
             line = self.line_info[startline + i]
@@ -224,8 +229,8 @@ class NodeEditor(QFrame):
                 text = node.symbol.name
                 if self.getWindow().ui.cbShowLangBoxes.isChecked() or node.magic_parent is selected_magic:
                     try:
-                        color_id = self.magic_tokens.index(node.magic_parent) + 1
-                        paint.fillRect(QRectF(x,3 + self.fontht + i*self.fontht, len(text)*self.fontwt, -self.fontht), nesting_colors[color_id])
+                        color_id = self.magic_tokens.index(id(node.magic_parent))
+                        paint.fillRect(QRectF(x,3 + self.fontht + i*self.fontht, len(text)*self.fontwt, -self.fontht), self.nesting_colors[color_id])
                     except ValueError:
                         pass
                 paint.drawText(QtCore.QPointF(x, self.fontht + i*self.fontht), text)
@@ -633,6 +638,7 @@ class NodeEditor(QFrame):
                         previous_node = node.previous_terminal()
                         if magic and isinstance(next_node, EOS) and isinstance(previous_node, BOS):
                             magic.parent.remove_child(magic)
+                            self.magic_tokens.remove(id(magic))
                             del self.parsers[root]
                             del self.lexers[root]
                             del self.priorities[root]
@@ -839,7 +845,7 @@ class NodeEditor(QFrame):
         # Create parser, priorities and lexer
         parser = IncParser(self.sublanguage.grammar, 1, True)
         parser.init_ast(magictoken)
-        self.magic_tokens.append(magictoken)
+        self.magic_tokens.append(id(magictoken))
         root = parser.previous_version.parent
         root.magic_backpointer = magictoken
         pl = PriorityLexer(self.sublanguage.priorities)
