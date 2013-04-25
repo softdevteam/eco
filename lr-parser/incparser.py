@@ -63,9 +63,11 @@ class IncParser(object):
         self.previous_version = None
         print("Incemental parser done")
 
-    def init_ast(self):
+    def init_ast(self, magic_parent=None):
         bos = BOS(Terminal(""), 0, [])
         eos = EOS(FinishSymbol(), 0, [])
+        bos.magic_parent = magic_parent
+        eos.magic_parent = magic_parent
         bos.next_term = eos
         eos.prev_term = bos
         root = Node(Nonterminal("Root"), 0, [bos, eos])
