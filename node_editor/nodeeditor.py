@@ -642,6 +642,8 @@ class NodeEditor(QFrame):
                             del self.parsers[root]
                             del self.lexers[root]
                             del self.priorities[root]
+
+                            selected_nodes, inbetween, x = self.get_nodes_at_position()
                         else:
                             node.parent.remove_child(node)
                             if node.lookup == "<return>":
