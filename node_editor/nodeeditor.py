@@ -93,6 +93,7 @@ class NodeEditor(QFrame):
         self.lexers = {}
         self.priorities = {}
         self.parser_langs = {}
+        self.magic_tokens = []
 
         self.edit_rightnode = False
         self.indentation = True
@@ -200,10 +201,14 @@ class NodeEditor(QFrame):
 
 
     def paintLines(self, paint, startline):
+        # get all selected magic tokens
+        node = self.get_nodes_at_position()[0][0]
+        selected_magic = node.magic_parent
+        node = node.get_root().get_magicterminal()
+
         r = min(len(self.line_info), (self.geometry().height()/self.fontht))
-        backgroundcolor = QColor(255,255,255)
         nesting_colors = {0: QColor(255,255,255), 1: QColor(255,0,0), 2: QColor(0,200,0), 3:QColor(0,0,255)}
-        nesting = 0
+
         for i in range(r):
             line = self.line_info[startline + i]
             line_str = []
@@ -211,17 +216,18 @@ class NodeEditor(QFrame):
             x = 3
             for node in line:
                 if isinstance(node, BOS):
-                    if node.parent.get_magicterminal():
-                        nesting += 1
                     continue
                 if isinstance(node, EOS):
-                    if node.parent.get_magicterminal():
-                        nesting -= 1
                     continue
                 if node.lookup == "<return>":
                     continue
                 text = node.symbol.name
-                paint.fillRect(QRectF(x,3 + self.fontht + i*self.fontht, len(text)*self.fontwt, -self.fontht), nesting_colors[nesting])
+                if self.getWindow().ui.cbShowLangBoxes.isChecked() or node.magic_parent is selected_magic:
+                    try:
+                        color_id = self.magic_tokens.index(node.magic_parent) + 1
+                        paint.fillRect(QRectF(x,3 + self.fontht + i*self.fontht, len(text)*self.fontwt, -self.fontht), nesting_colors[color_id])
+                    except ValueError:
+                        pass
                 paint.drawText(QtCore.QPointF(x, self.fontht + i*self.fontht), text)
                 x += len(text)*self.fontwt
             self.max_cols.append(x/self.fontwt)
@@ -832,7 +838,8 @@ class NodeEditor(QFrame):
 
         # Create parser, priorities and lexer
         parser = IncParser(self.sublanguage.grammar, 1, True)
-        parser.init_ast()
+        parser.init_ast(magictoken)
+        self.magic_tokens.append(magictoken)
         root = parser.previous_version.parent
         root.magic_backpointer = magictoken
         pl = PriorityLexer(self.sublanguage.priorities)
