@@ -706,8 +706,9 @@ class NodeEditor(QFrame):
                 if e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
                     pass # do nothing
                 elif e.key() == Qt.Key_Return:
-                    self.cursor_movement(Qt.Key_Down)
-                    self.cursor.x = indentation
+                    #self.cursor_movement(Qt.Key_Down)
+                    #self.cursor.x = indentation
+                    pass
                 elif e.key() == Qt.Key_Tab:
                     self.cursor.x += 4
                 else:
@@ -719,6 +720,9 @@ class NodeEditor(QFrame):
         #selected_nodes, _, _ = self.get_nodes_at_position()
         self.getWindow().btReparse([])#selected_nodes)
         self.rescan_line(self.changed_line)
+        if e.key() == Qt.Key_Return:
+            self.cursor_movement(Qt.Key_Down)
+            self.cursor.x = indentation
 
         root = selected_nodes[0].get_root()
         lrp = self.parsers[root]
@@ -894,6 +898,7 @@ class NodeEditor(QFrame):
             #new_node.lookup = pl.name(text)
 
     def cursor_movement(self, key):
+        print("CUROSOR MOVE")
         if key == QtCore.Qt.Key_Up:
             if self.cursor.y > 0:
                 self.cursor.y -= 1
@@ -902,7 +907,7 @@ class NodeEditor(QFrame):
             else:
                 self.getWindow().ui.scrollArea.decVSlider()
         elif key == QtCore.Qt.Key_Down:
-            if self.cursor.y < (self.geometry().height() / self.fontht) - 1:
+            if self.cursor.y < (self.geometry().height() / self.fontht) - 1 and self.document_y() < len(self.line_info)-1:
                 self.cursor.y += 1
                 if self.cursor.x > self.max_cols[self.cursor.y]:
                     self.cursor.x = self.max_cols[self.cursor.y]
