@@ -130,6 +130,7 @@ class Node(object):
         self.right = None
         self.prev_term = None
         self.next_term = None
+        self.magic_parent = None
         self.set_children(children)
 
     def mark_changed(self):
@@ -207,6 +208,7 @@ class Node(object):
                 node.next_term.prev_term = newnode
                 newnode.next_term = node.next_term
                 node.next_term = newnode
+                newnode.magic_parent = node.magic_parent
                 return
             i += 1
 
