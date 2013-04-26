@@ -742,7 +742,6 @@ class NodeEditor(QFrame):
         #     merge this and the next line
         #     delete the next line
         #     the next lines node is line[-1].next_terminal()
-        print("==== RESCANNING LINE ====")
         line = self.line_info[y]
         if line == []:
             return
@@ -1029,6 +1028,7 @@ class NodeEditor(QFrame):
                 self.node_list.insert(1, node)
 
             last_node = node
+        self.line_info.append(line_nodes) #add last line
         self.line_info[-1].append(eos)
         parent.children.append(eos)
         node.right = eos # link to eos
@@ -1425,7 +1425,8 @@ class Window(QtGui.QMainWindow):
     def openfile(self):
         filename = QFileDialog.getOpenFileName()#"Open File", "", "Files (*.*)")
         text = open(filename, "r").read()
-        if text[:-1] in ["\n", "\r"]:
+        # for some reason text has an additional newline
+        if text[-1] in ["\n", "\r"]:
             text = text[:-1]
         # key simulated opening
         #self.ui.frame.insertText(text)
