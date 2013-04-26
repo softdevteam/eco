@@ -1298,7 +1298,7 @@ class NodeEditor(QFrame):
         self.indentation = False
         for cursor, c in reversed(self.deleted_chars):
             self.cursor = cursor
-            if c == "\n":
+            if c in ["\n","\r"]:
                 key = Qt.Key_Return
                 modifier = Qt.NoModifier
             elif ord(c) in range(97, 122): # a-z
