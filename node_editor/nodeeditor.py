@@ -713,11 +713,10 @@ class NodeEditor(QFrame):
                     self.cursor.x += 1
             self.repair(repairnode)
 
-        self.recalculate_positions() # XXX ensures that positions are up to date before next keypress is called
-        print("second get_nodes_at_pos")
-        #selected_nodes, _, _ = self.get_nodes_at_position()
-        self.getWindow().btReparse([])#selected_nodes)
+        self.getWindow().btReparse([])
         self.rescan_line(self.changed_line)
+        self.repaint() # this recalculates self.max_cols
+
         if e.key() == Qt.Key_Return:
             self.cursor_movement(Qt.Key_Down)
             self.cursor.x = indentation
@@ -896,7 +895,6 @@ class NodeEditor(QFrame):
             #new_node.lookup = pl.name(text)
 
     def cursor_movement(self, key):
-        print("CUROSOR MOVE")
         if key == QtCore.Qt.Key_Up:
             if self.cursor.y > 0:
                 self.cursor.y -= 1
