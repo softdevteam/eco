@@ -144,8 +144,12 @@ class NodeEditor(QFrame):
         self.update()
 
     def sliderChanged(self, value):
-        self.update()
+        change = self.viewport_y - value
         self.viewport_y = value
+        if change > 0 and self.cursor.y < len(self.max_cols)-1:
+            self.cursor.y += change
+        elif change < 0 and self.cursor.y > 0:
+            self.cursor.y += change
 
     def sliderXChanged(self, value):
         self.update()
@@ -175,6 +179,8 @@ class NodeEditor(QFrame):
         self.paintLines(paint, self.viewport_y)
 
         if self.hasFocus() and self.show_cursor:
+            if self.cursor.x > self.max_cols[self.cursor.y]:
+                self.cursor.x = self.max_cols[self.cursor.y]
             #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
             paint.drawRect(0 + self.cursor.x * self.fontwt, 5 + self.cursor.y * self.fontht, 0, self.fontht - 3)
 
@@ -211,7 +217,7 @@ class NodeEditor(QFrame):
         selected_magic = node.magic_parent
         node = node.get_root().get_magicterminal()
 
-        r = min(len(self.line_info), (self.geometry().height()/self.fontht))
+        r = min(len(self.line_info)-self.viewport_y, (self.geometry().height()/self.fontht))
 
         for i in range(r):
             line = self.line_info[startline + i]
