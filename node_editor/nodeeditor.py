@@ -381,10 +381,10 @@ class NodeEditor(QFrame):
     def get_nodes_at_position(self):
         y = self.document_y()
         line = self.line_info[y]
-        print("=== GETTING NODES ====")
+        #print("=== GETTING NODES ====")
         if self.cursor.x == 0 and y > 0:# and not isinstance(line[0], BOS):
             node = self.line_info[y-1][-1]
-            print("x=0: got nodes from pos", node, node.next_terminal())
+            #print("x=0: got nodes from pos", node, node.next_terminal())
             return ([node, node.next_terminal()], False, 0)
         x = 0
         inbetween = False
@@ -406,7 +406,7 @@ class NodeEditor(QFrame):
                 magic = root.get_magicterminal()
                 if magic:
                     node = magic
-        print("got nodes from pos", node, node.next_terminal(), inbetween, x, self.cursor.x)
+        #print("got nodes from pos", node, node.next_terminal(), inbetween, x, self.cursor.x)
         return ([node, node.next_terminal()], inbetween, x)
 
     def OLD2get_nodes_at_position(self):
