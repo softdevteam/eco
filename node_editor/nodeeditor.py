@@ -173,7 +173,6 @@ class NodeEditor(QFrame):
 
         #x, y = self.paintAST(paint, bos, -self.viewport_x, y)
         self.paintLines(paint, self.viewport_y)
-        self.max_cols.append(x) # last line
 
         if self.hasFocus() and self.show_cursor:
             #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
@@ -527,7 +526,6 @@ class NodeEditor(QFrame):
     def coordinate_to_cursor(self, x, y):
         cursor_x = x / self.fontwt
         cursor_y = y / self.fontht
-        return Cursor(cursor_x, cursor_y)
 
         result = Cursor(0,0)
         if cursor_y < 0:
