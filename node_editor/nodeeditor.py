@@ -184,7 +184,7 @@ class NodeEditor(QFrame):
             #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
             paint.drawRect(0 + self.cursor.x * self.fontwt, 5 + self.cursor.y * self.fontht, 0, self.fontht - 3)
 
-        #self.paintSelection(paint)
+        self.paintSelection(paint)
         paint.end()
 
        #width = (max(self.max_cols)+1) * self.fontwt
@@ -319,20 +319,20 @@ class NodeEditor(QFrame):
         end = max(self.selection_start, self.selection_end)
         if start.y == end.y:
             width = end.x - start.x
-            paint.fillRect(3 + start.x * self.fontwt, 2+start.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
+            paint.fillRect(start.x * self.fontwt, 4+start.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
         else:
             # paint start to line end
             width = self.max_cols[start.y] - start.x
-            paint.fillRect(3 + start.x * self.fontwt, 2+start.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
+            paint.fillRect(start.x * self.fontwt, 4+start.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
 
             # paint lines in between
             for y in range(start.y+1, end.y):
                 width = self.max_cols[y]
-                paint.fillRect(3 + 0 * self.fontwt, 2+y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
+                paint.fillRect(0 * self.fontwt, 4+y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
 
             # paint line start to end
             width = end.x
-            paint.fillRect(3 + 0 * self.fontwt, 2+end.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
+            paint.fillRect(0 * self.fontwt, 4+end.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
 
 
     def recalculate_positions(self): # without painting
@@ -465,34 +465,27 @@ class NodeEditor(QFrame):
     def get_nodes_from_selection(self):
         cur_start = min(self.selection_start, self.selection_end)
         cur_end = max(self.selection_start, self.selection_end)
-        start = None
-        include_start = False
-        x = cur_start.x
-        y = cur_start.y
-        while not start and x <= self.max_cols[y]:
-            try:
-                start = self.node_map[(x, y)]
-                break
-            except KeyError:
-                include_start = True
-                x += 1
 
-        if include_start:
-            diff_start = len(start.symbol.name) - (x - cur_start.x)
-        else:
-            diff_start = 0
+        temp = self.cursor
 
-        end = None
-        x = cur_end.x
-        y = cur_end.y
-        while not end and x <= self.max_cols[y]:
-            try:
-                end = self.node_map[(x, y)]
-                break
-            except KeyError:
-                x += 1
+        self.cursor = cur_start
+        start_node, start_inbetween, start_x = self.get_nodes_at_position()
+        diff_start = 0
+        if start_inbetween:
+            diff_start = len(start_node[0].symbol.name) - (start_x - self.cursor.x)
+        include_start = True
 
-        diff_end = len(end.symbol.name) - (x - cur_end.x)
+        self.cursor = cur_end
+        end_node, end_inbetween, end_x = self.get_nodes_at_position()
+        diff_end = 0
+        if end_inbetween:
+            diff_end = len(end_node[0].symbol.name) - (end_x - self.cursor.x)
+
+        self.cursor = temp
+
+        start = start_node[0]
+        end = end_node[0]
+
 
         nodes = []
         node = start
