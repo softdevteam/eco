@@ -591,6 +591,11 @@ class NodeEditor(QFrame):
             self.update()
             selected_nodes, _, _ = self.get_nodes_at_position()
             self.getWindow().showAst(selected_nodes)
+
+            # update lookahead when moving cursors
+            root = selected_nodes[0].get_root()
+            lrp = self.parsers[root]
+            self.getWindow().showLookahead(lrp)
             return
         elif e.key() in [Qt.Key_End, Qt.Key_Home]:
             if e.key() == Qt.Key_Home:
