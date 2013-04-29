@@ -146,9 +146,8 @@ class NodeEditor(QFrame):
     def sliderChanged(self, value):
         change = self.viewport_y - value
         self.viewport_y = value
-        if change > 0 and self.cursor.y < len(self.max_cols)-1:
-            self.cursor.y += change
-        elif change < 0 and self.cursor.y > 0:
+        #if (change < 0 and 0 < self.cursor.y):
+        if (change > 0 and self.cursor.y < len(self.max_cols)-1):
             self.cursor.y += change
 
     def sliderXChanged(self, value):
@@ -572,6 +571,17 @@ class NodeEditor(QFrame):
         text = e.text()
         self.changed_line = self.document_y()
 
+        if e.key() == Qt.Key_Backspace:
+            if self.document_y() > 0 and self.cursor.x == 0:
+                print("sjdlksajdlkjsalkdjsalkdjsadjaslkjdlka")
+                self.cursor_movement(Qt.Key_Up)
+                self.repaint() # XXX store line width in line_info to avoid unnecessary redrawing
+                #self.changed_line = self.document_y()
+                self.cursor.x = self.max_cols[self.cursor.y]
+                event = QKeyEvent(QEvent.KeyPress, Qt.Key_Delete, e.modifiers(), e.text())
+                self.keyPressEvent(event)
+                return
+
         if e.key() == Qt.Key_Tab:
             text = "    "
         if e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
@@ -607,7 +617,6 @@ class NodeEditor(QFrame):
                     if self.cursor.x > 0:
                         self.cursor.x -= 1
                     else:
-                        # if at beginning of line: move to previous line
                         if self.document_y() > 0:
                             self.cursor_movement(Qt.Key_Up)
                             self.changed_line = self.document_y()
@@ -777,7 +786,6 @@ class NodeEditor(QFrame):
 
         next_token_after_magic = []
         while node is not endnode:
-
             if isinstance(node.symbol, MagicTerminal):
                 new_list.append(node.symbol.parser.previous_version.get_bos())
                 next_token_after_magic.append(node.next_terminal())
