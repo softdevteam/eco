@@ -114,6 +114,7 @@ class NodeEditor(QFrame):
         self.node_map = {}
         self.cursor = Cursor(0,0)
         self.update()
+        self.line_info = []
 
     def set_lrparser(self, lrp, lang_name):
         self.parsers = {}
@@ -1458,8 +1459,8 @@ class Window(QtGui.QMainWindow):
         self.lrp.init_ast()
         self.pl = PriorityLexer(new_priorities)
         self.tl = TokenLexer(self.pl.rules)
-        self.ui.frame.set_lrparser(self.lrp, self.main_language)
         self.ui.frame.reset()
+        self.ui.frame.set_lrparser(self.lrp, self.main_language)
         self.ui.graphicsView.setScene(QGraphicsScene())
         print("Done.")
 
