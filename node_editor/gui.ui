@@ -59,8 +59,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>477</width>
-             <height>576</height>
+             <width>501</width>
+             <height>571</height>
             </rect>
            </property>
            <property name="sizePolicy">
@@ -181,7 +181,6 @@
               <property name="frameShadow">
                <enum>QFrame::Sunken</enum>
               </property>
-              <zorder>horizontalLayoutWidget</zorder>
              </widget>
             </item>
            </layout>
@@ -512,7 +511,7 @@
      <x>0</x>
      <y>0</y>
      <width>979</width>
-     <height>24</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -534,7 +533,7 @@
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen">
    <property name="text">
-    <string>Open...</string>
+    <string>Import...</string>
    </property>
   </action>
   <action name="actionRandomDel">
