@@ -150,6 +150,7 @@ class NodeEditor(QFrame):
         #if (change < 0 and 0 < self.cursor.y):
         if (change > 0 and self.cursor.y < len(self.max_cols)-1):
             self.cursor.y += change
+        self.update()
 
     def sliderXChanged(self, value):
         self.update()
