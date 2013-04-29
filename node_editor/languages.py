@@ -1143,12 +1143,12 @@ from lang_java import java
 from lang_java_v1 import javav1
 from lang_java_extract import javav1_e
 from java15 import java15
-from java15_sql import java15_sql
 from sql_simple import sql
 from greenmarl import greenmarl
 
 import gops
 java15_exp = gops.extract("Java 1.5 expression", java15, "expression")
+java15_sql = gops.add_alt("Java 1.5 + SQL", java15,  "unary_expression", "<SQL>")
 
 
 #languages = [java_error, java_error_simplified, super_simple, calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, smalltalk_ebnf, lisp,
