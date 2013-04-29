@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Thu Apr 25 15:27:48 2013
-#      by: PyQt4 UI code generator 4.9.6
+# Created: Mon Apr 29 09:37:39 2013
+#      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -12,16 +12,7 @@ from PyQt4 import QtCore, QtGui
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
 except AttributeError:
-    def _fromUtf8(s):
-        return s
-
-try:
-    _encoding = QtGui.QApplication.UnicodeUTF8
-    def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig, _encoding)
-except AttributeError:
-    def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig)
+    _fromUtf8 = lambda s: s
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -48,15 +39,6 @@ class Ui_MainWindow(object):
         self.groupBox_2.setObjectName(_fromUtf8("groupBox_2"))
         self.verticalLayout_3 = QtGui.QVBoxLayout(self.groupBox_2)
         self.verticalLayout_3.setObjectName(_fromUtf8("verticalLayout_3"))
-        self.horizontalLayout = QtGui.QHBoxLayout()
-        self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
-        self.label_3 = QtGui.QLabel(self.groupBox_2)
-        self.label_3.setObjectName(_fromUtf8("label_3"))
-        self.horizontalLayout.addWidget(self.label_3)
-        self.cbShowLangBoxes = QtGui.QCheckBox(self.groupBox_2)
-        self.cbShowLangBoxes.setObjectName(_fromUtf8("cbShowLangBoxes"))
-        self.horizontalLayout.addWidget(self.cbShowLangBoxes)
-        self.verticalLayout_3.addLayout(self.horizontalLayout)
         self.scrollArea = ScopeScrollArea(self.groupBox_2)
         self.scrollArea.setFrameShape(QtGui.QFrame.StyledPanel)
         self.scrollArea.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
@@ -65,13 +47,13 @@ class Ui_MainWindow(object):
         self.scrollArea.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.scrollArea.setObjectName(_fromUtf8("scrollArea"))
         self.scrollAreaWidgetContents = QtGui.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 501, 507))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 477, 576))
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.scrollAreaWidgetContents.sizePolicy().hasHeightForWidth())
         self.scrollAreaWidgetContents.setSizePolicy(sizePolicy)
-        self.scrollAreaWidgetContents.setAutoFillBackground(False)
+        self.scrollAreaWidgetContents.setAutoFillBackground(True)
         self.scrollAreaWidgetContents.setObjectName(_fromUtf8("scrollAreaWidgetContents"))
         self.verticalLayout_5 = QtGui.QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_5.setMargin(0)
@@ -115,21 +97,41 @@ class Ui_MainWindow(object):
         self.verticalLayout_5.addWidget(self.frame)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.verticalLayout_3.addWidget(self.scrollArea)
+        self.horizontalLayout = QtGui.QHBoxLayout()
+        self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
+        self.cbShowLangBoxes = QtGui.QCheckBox(self.groupBox_2)
+        self.cbShowLangBoxes.setObjectName(_fromUtf8("cbShowLangBoxes"))
+        self.horizontalLayout.addWidget(self.cbShowLangBoxes)
         self.label = QtGui.QLabel(self.groupBox_2)
         self.label.setObjectName(_fromUtf8("label"))
-        self.verticalLayout_3.addWidget(self.label)
+        self.horizontalLayout.addWidget(self.label)
         self.lineEdit = QtGui.QLineEdit(self.groupBox_2)
         self.lineEdit.setObjectName(_fromUtf8("lineEdit"))
-        self.verticalLayout_3.addWidget(self.lineEdit)
+        self.horizontalLayout.addWidget(self.lineEdit)
+        self.verticalLayout_3.addLayout(self.horizontalLayout)
+        self.horizontalLayout_4 = QtGui.QHBoxLayout()
+        self.horizontalLayout_4.setContentsMargins(-1, 0, -1, -1)
+        self.horizontalLayout_4.setObjectName(_fromUtf8("horizontalLayout_4"))
         self.label_2 = QtGui.QLabel(self.groupBox_2)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.label_2.sizePolicy().hasHeightForWidth())
+        self.label_2.setSizePolicy(sizePolicy)
         self.label_2.setObjectName(_fromUtf8("label_2"))
-        self.verticalLayout_3.addWidget(self.label_2)
+        self.horizontalLayout_4.addWidget(self.label_2)
         self.te_pstatus = QtGui.QTextEdit(self.groupBox_2)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Minimum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.te_pstatus.sizePolicy().hasHeightForWidth())
+        self.te_pstatus.setSizePolicy(sizePolicy)
         self.te_pstatus.setMaximumSize(QtCore.QSize(16777215, 24))
         self.te_pstatus.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.te_pstatus.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.te_pstatus.setObjectName(_fromUtf8("te_pstatus"))
-        self.verticalLayout_3.addWidget(self.te_pstatus)
+        self.horizontalLayout_4.addWidget(self.te_pstatus)
+        self.verticalLayout_3.addLayout(self.horizontalLayout_4)
         self.groupBox_3 = QtGui.QGroupBox(self.splitter)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -270,7 +272,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_3.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 24))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
@@ -297,32 +299,31 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow", None))
-        self.groupBox_2.setTitle(_translate("MainWindow", "Input", None))
-        self.label_3.setText(_translate("MainWindow", "Program input:", None))
-        self.cbShowLangBoxes.setText(_translate("MainWindow", "Show language boxes", None))
-        self.label.setText(_translate("MainWindow", "Next possible input:", None))
-        self.label_2.setText(_translate("MainWindow", "Parsing status:", None))
-        self.groupBox_3.setTitle(_translate("MainWindow", "Grammar stuff", None))
-        self.cb_toggle_ws.setText(_translate("MainWindow", "Show whitespace nodes", None))
-        self.cb_toggle_ast.setText(_translate("MainWindow", "Show AST", None))
-        self.cb_fit_ast.setText(_translate("MainWindow", "fit AST in view", None))
-        self.bt_show_sel_ast.setText(_translate("MainWindow", "show AST from selection", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("MainWindow", "AST", None))
-        self.btShowWholeGraph.setText(_translate("MainWindow", "Show whole graph", None))
-        self.btShowSingleState.setText(_translate("MainWindow", "Show single state", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("MainWindow", "Stategraph", None))
-        self.label_6.setText(_translate("MainWindow", "Select main grammar", None))
-        self.cb_add_implicit_ws.setText(_translate("MainWindow", "Add implicit whitespaces to grammar", None))
-        self.groupBox.setTitle(_translate("MainWindow", "Language", None))
-        self.label_4.setText(_translate("MainWindow", "Grammar:", None))
-        self.label_5.setText(_translate("MainWindow", "Priorities:", None))
-        self.btUpdate.setText(_translate("MainWindow", "Update", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), _translate("MainWindow", "Grammars", None))
-        self.menuFile.setTitle(_translate("MainWindow", "File", None))
-        self.menuOptions.setTitle(_translate("MainWindow", "Options", None))
-        self.actionOpen.setText(_translate("MainWindow", "Open...", None))
-        self.actionRandomDel.setText(_translate("MainWindow", "Delete random chars", None))
-        self.actionUndoRandomDel.setText(_translate("MainWindow", "Undo random deletion", None))
+        MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
+        self.groupBox_2.setTitle(QtGui.QApplication.translate("MainWindow", "Input", None, QtGui.QApplication.UnicodeUTF8))
+        self.cbShowLangBoxes.setText(QtGui.QApplication.translate("MainWindow", "Show language boxes", None, QtGui.QApplication.UnicodeUTF8))
+        self.label.setText(QtGui.QApplication.translate("MainWindow", "Next possible input:", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_2.setText(QtGui.QApplication.translate("MainWindow", "Parsing status:", None, QtGui.QApplication.UnicodeUTF8))
+        self.groupBox_3.setTitle(QtGui.QApplication.translate("MainWindow", "Languages", None, QtGui.QApplication.UnicodeUTF8))
+        self.cb_toggle_ws.setText(QtGui.QApplication.translate("MainWindow", "Show whitespace nodes", None, QtGui.QApplication.UnicodeUTF8))
+        self.cb_toggle_ast.setText(QtGui.QApplication.translate("MainWindow", "Show AST", None, QtGui.QApplication.UnicodeUTF8))
+        self.cb_fit_ast.setText(QtGui.QApplication.translate("MainWindow", "fit AST in view", None, QtGui.QApplication.UnicodeUTF8))
+        self.bt_show_sel_ast.setText(QtGui.QApplication.translate("MainWindow", "show AST from selection", None, QtGui.QApplication.UnicodeUTF8))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QtGui.QApplication.translate("MainWindow", "Parse tree", None, QtGui.QApplication.UnicodeUTF8))
+        self.btShowWholeGraph.setText(QtGui.QApplication.translate("MainWindow", "Show whole graph", None, QtGui.QApplication.UnicodeUTF8))
+        self.btShowSingleState.setText(QtGui.QApplication.translate("MainWindow", "Show single state", None, QtGui.QApplication.UnicodeUTF8))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QtGui.QApplication.translate("MainWindow", "Stategraph", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_6.setText(QtGui.QApplication.translate("MainWindow", "Select main grammar", None, QtGui.QApplication.UnicodeUTF8))
+        self.cb_add_implicit_ws.setText(QtGui.QApplication.translate("MainWindow", "Add implicit whitespaces to grammar", None, QtGui.QApplication.UnicodeUTF8))
+        self.groupBox.setTitle(QtGui.QApplication.translate("MainWindow", "Language", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_4.setText(QtGui.QApplication.translate("MainWindow", "Grammar:", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_5.setText(QtGui.QApplication.translate("MainWindow", "Tokenizer rules:", None, QtGui.QApplication.UnicodeUTF8))
+        self.btUpdate.setText(QtGui.QApplication.translate("MainWindow", "Update", None, QtGui.QApplication.UnicodeUTF8))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), QtGui.QApplication.translate("MainWindow", "Language", None, QtGui.QApplication.UnicodeUTF8))
+        self.menuFile.setTitle(QtGui.QApplication.translate("MainWindow", "File", None, QtGui.QApplication.UnicodeUTF8))
+        self.menuOptions.setTitle(QtGui.QApplication.translate("MainWindow", "Options", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionOpen.setText(QtGui.QApplication.translate("MainWindow", "Open...", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionRandomDel.setText(QtGui.QApplication.translate("MainWindow", "Delete random chars", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionUndoRandomDel.setText(QtGui.QApplication.translate("MainWindow", "Undo random deletion", None, QtGui.QApplication.UnicodeUTF8))
 
 from nodeeditor import ScopeScrollArea, NodeEditor
