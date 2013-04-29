@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Mon Apr 29 09:37:39 2013
-#      by: PyQt4 UI code generator 4.9.5
+# Created: Mon Apr 29 13:38:56 2013
+#      by: PyQt4 UI code generator 4.9.6
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -12,7 +12,16 @@ from PyQt4 import QtCore, QtGui
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
 except AttributeError:
-    _fromUtf8 = lambda s: s
+    def _fromUtf8(s):
+        return s
+
+try:
+    _encoding = QtGui.QApplication.UnicodeUTF8
+    def _translate(context, text, disambig):
+        return QtGui.QApplication.translate(context, text, disambig, _encoding)
+except AttributeError:
+    def _translate(context, text, disambig):
+        return QtGui.QApplication.translate(context, text, disambig)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -47,7 +56,7 @@ class Ui_MainWindow(object):
         self.scrollArea.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.scrollArea.setObjectName(_fromUtf8("scrollArea"))
         self.scrollAreaWidgetContents = QtGui.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 477, 576))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 501, 571))
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -272,7 +281,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_3.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 24))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 22))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
@@ -299,31 +308,31 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
-        self.groupBox_2.setTitle(QtGui.QApplication.translate("MainWindow", "Input", None, QtGui.QApplication.UnicodeUTF8))
-        self.cbShowLangBoxes.setText(QtGui.QApplication.translate("MainWindow", "Show language boxes", None, QtGui.QApplication.UnicodeUTF8))
-        self.label.setText(QtGui.QApplication.translate("MainWindow", "Next possible input:", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_2.setText(QtGui.QApplication.translate("MainWindow", "Parsing status:", None, QtGui.QApplication.UnicodeUTF8))
-        self.groupBox_3.setTitle(QtGui.QApplication.translate("MainWindow", "Languages", None, QtGui.QApplication.UnicodeUTF8))
-        self.cb_toggle_ws.setText(QtGui.QApplication.translate("MainWindow", "Show whitespace nodes", None, QtGui.QApplication.UnicodeUTF8))
-        self.cb_toggle_ast.setText(QtGui.QApplication.translate("MainWindow", "Show AST", None, QtGui.QApplication.UnicodeUTF8))
-        self.cb_fit_ast.setText(QtGui.QApplication.translate("MainWindow", "fit AST in view", None, QtGui.QApplication.UnicodeUTF8))
-        self.bt_show_sel_ast.setText(QtGui.QApplication.translate("MainWindow", "show AST from selection", None, QtGui.QApplication.UnicodeUTF8))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QtGui.QApplication.translate("MainWindow", "Parse tree", None, QtGui.QApplication.UnicodeUTF8))
-        self.btShowWholeGraph.setText(QtGui.QApplication.translate("MainWindow", "Show whole graph", None, QtGui.QApplication.UnicodeUTF8))
-        self.btShowSingleState.setText(QtGui.QApplication.translate("MainWindow", "Show single state", None, QtGui.QApplication.UnicodeUTF8))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QtGui.QApplication.translate("MainWindow", "Stategraph", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_6.setText(QtGui.QApplication.translate("MainWindow", "Select main grammar", None, QtGui.QApplication.UnicodeUTF8))
-        self.cb_add_implicit_ws.setText(QtGui.QApplication.translate("MainWindow", "Add implicit whitespaces to grammar", None, QtGui.QApplication.UnicodeUTF8))
-        self.groupBox.setTitle(QtGui.QApplication.translate("MainWindow", "Language", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_4.setText(QtGui.QApplication.translate("MainWindow", "Grammar:", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_5.setText(QtGui.QApplication.translate("MainWindow", "Tokenizer rules:", None, QtGui.QApplication.UnicodeUTF8))
-        self.btUpdate.setText(QtGui.QApplication.translate("MainWindow", "Update", None, QtGui.QApplication.UnicodeUTF8))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), QtGui.QApplication.translate("MainWindow", "Language", None, QtGui.QApplication.UnicodeUTF8))
-        self.menuFile.setTitle(QtGui.QApplication.translate("MainWindow", "File", None, QtGui.QApplication.UnicodeUTF8))
-        self.menuOptions.setTitle(QtGui.QApplication.translate("MainWindow", "Options", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionOpen.setText(QtGui.QApplication.translate("MainWindow", "Open...", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionRandomDel.setText(QtGui.QApplication.translate("MainWindow", "Delete random chars", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionUndoRandomDel.setText(QtGui.QApplication.translate("MainWindow", "Undo random deletion", None, QtGui.QApplication.UnicodeUTF8))
+        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow", None))
+        self.groupBox_2.setTitle(_translate("MainWindow", "Input", None))
+        self.cbShowLangBoxes.setText(_translate("MainWindow", "Show language boxes", None))
+        self.label.setText(_translate("MainWindow", "Next possible input:", None))
+        self.label_2.setText(_translate("MainWindow", "Parsing status:", None))
+        self.groupBox_3.setTitle(_translate("MainWindow", "Languages", None))
+        self.cb_toggle_ws.setText(_translate("MainWindow", "Show whitespace nodes", None))
+        self.cb_toggle_ast.setText(_translate("MainWindow", "Show AST", None))
+        self.cb_fit_ast.setText(_translate("MainWindow", "fit AST in view", None))
+        self.bt_show_sel_ast.setText(_translate("MainWindow", "show AST from selection", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("MainWindow", "Parse tree", None))
+        self.btShowWholeGraph.setText(_translate("MainWindow", "Show whole graph", None))
+        self.btShowSingleState.setText(_translate("MainWindow", "Show single state", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("MainWindow", "Stategraph", None))
+        self.label_6.setText(_translate("MainWindow", "Select main grammar", None))
+        self.cb_add_implicit_ws.setText(_translate("MainWindow", "Add implicit whitespaces to grammar", None))
+        self.groupBox.setTitle(_translate("MainWindow", "Language", None))
+        self.label_4.setText(_translate("MainWindow", "Grammar:", None))
+        self.label_5.setText(_translate("MainWindow", "Tokenizer rules:", None))
+        self.btUpdate.setText(_translate("MainWindow", "Update", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), _translate("MainWindow", "Language", None))
+        self.menuFile.setTitle(_translate("MainWindow", "File", None))
+        self.menuOptions.setTitle(_translate("MainWindow", "Options", None))
+        self.actionOpen.setText(_translate("MainWindow", "Import...", None))
+        self.actionRandomDel.setText(_translate("MainWindow", "Delete random chars", None))
+        self.actionUndoRandomDel.setText(_translate("MainWindow", "Undo random deletion", None))
 
 from nodeeditor import ScopeScrollArea, NodeEditor
