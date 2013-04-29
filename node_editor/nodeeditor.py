@@ -1416,7 +1416,7 @@ class Window(QtGui.QMainWindow):
 
         self.ui.listWidget.item(0).setSelected(True)
 
-        self.loadLanguage(self.ui.listWidget.item(5))
+        self.loadLanguage(self.ui.listWidget.item(0))
 
         self.connect(self.ui.listWidget, SIGNAL("itemClicked(QListWidgetItem *)"), self.loadLanguage)
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
