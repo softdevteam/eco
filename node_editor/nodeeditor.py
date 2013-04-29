@@ -144,8 +144,11 @@ class NodeEditor(QFrame):
         self.update()
 
     def sliderChanged(self, value):
-        self.update()
+        change = self.viewport_y - value
         self.viewport_y = value
+        #if (change < 0 and 0 < self.cursor.y):
+        if (change > 0 and self.cursor.y < len(self.max_cols)-1):
+            self.cursor.y += change
 
     def sliderXChanged(self, value):
         self.update()
@@ -173,9 +176,10 @@ class NodeEditor(QFrame):
 
         #x, y = self.paintAST(paint, bos, -self.viewport_x, y)
         self.paintLines(paint, self.viewport_y)
-        self.max_cols.append(x) # last line
 
         if self.hasFocus() and self.show_cursor:
+            if self.cursor.x > self.max_cols[self.cursor.y]:
+                self.cursor.x = self.max_cols[self.cursor.y]
             #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
             paint.drawRect(0 + self.cursor.x * self.fontwt, 5 + self.cursor.y * self.fontht, 0, self.fontht - 3)
 
@@ -212,7 +216,7 @@ class NodeEditor(QFrame):
         selected_magic = node.magic_parent
         node = node.get_root().get_magicterminal()
 
-        r = min(len(self.line_info), (self.geometry().height()/self.fontht))
+        r = min(len(self.line_info)-self.viewport_y, (self.geometry().height()/self.fontht))
 
         for i in range(r):
             line = self.line_info[startline + i]
@@ -381,10 +385,10 @@ class NodeEditor(QFrame):
     def get_nodes_at_position(self):
         y = self.document_y()
         line = self.line_info[y]
-        print("=== GETTING NODES ====")
+        #print("=== GETTING NODES ====")
         if self.cursor.x == 0 and y > 0:# and not isinstance(line[0], BOS):
             node = self.line_info[y-1][-1]
-            print("x=0: got nodes from pos", node, node.next_terminal())
+            #print("x=0: got nodes from pos", node, node.next_terminal())
             return ([node, node.next_terminal()], False, 0)
         x = 0
         inbetween = False
@@ -406,7 +410,7 @@ class NodeEditor(QFrame):
                 magic = root.get_magicterminal()
                 if magic:
                     node = magic
-        print("got nodes from pos", node, node.next_terminal(), inbetween, x, self.cursor.x)
+        #print("got nodes from pos", node, node.next_terminal(), inbetween, x, self.cursor.x)
         return ([node, node.next_terminal()], inbetween, x)
 
     def OLD2get_nodes_at_position(self):
@@ -527,7 +531,6 @@ class NodeEditor(QFrame):
     def coordinate_to_cursor(self, x, y):
         cursor_x = x / self.fontwt
         cursor_y = y / self.fontht
-        return Cursor(cursor_x, cursor_y)
 
         result = Cursor(0,0)
         if cursor_y < 0:
@@ -568,6 +571,17 @@ class NodeEditor(QFrame):
         text = e.text()
         self.changed_line = self.document_y()
 
+        if e.key() == Qt.Key_Backspace:
+            if self.document_y() > 0 and self.cursor.x == 0:
+                print("sjdlksajdlkjsalkdjsalkdjsadjaslkjdlka")
+                self.cursor_movement(Qt.Key_Up)
+                self.repaint() # XXX store line width in line_info to avoid unnecessary redrawing
+                #self.changed_line = self.document_y()
+                self.cursor.x = self.max_cols[self.cursor.y]
+                event = QKeyEvent(QEvent.KeyPress, Qt.Key_Delete, e.modifiers(), e.text())
+                self.keyPressEvent(event)
+                return
+
         if e.key() == Qt.Key_Tab:
             text = "    "
         if e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
@@ -603,7 +617,6 @@ class NodeEditor(QFrame):
                     if self.cursor.x > 0:
                         self.cursor.x -= 1
                     else:
-                        # if at beginning of line: move to previous line
                         if self.document_y() > 0:
                             self.cursor_movement(Qt.Key_Up)
                             self.changed_line = self.document_y()
@@ -715,11 +728,10 @@ class NodeEditor(QFrame):
                     self.cursor.x += 1
             self.repair(repairnode)
 
-        self.recalculate_positions() # XXX ensures that positions are up to date before next keypress is called
-        print("second get_nodes_at_pos")
-        #selected_nodes, _, _ = self.get_nodes_at_position()
-        self.getWindow().btReparse([])#selected_nodes)
+        self.getWindow().btReparse([])
         self.rescan_line(self.changed_line)
+        self.repaint() # this recalculates self.max_cols
+
         if e.key() == Qt.Key_Return:
             self.cursor_movement(Qt.Key_Down)
             self.cursor.x = indentation
@@ -739,7 +751,6 @@ class NodeEditor(QFrame):
         #     merge this and the next line
         #     delete the next line
         #     the next lines node is line[-1].next_terminal()
-        print("==== RESCANNING LINE ====")
         line = self.line_info[y]
         if line == []:
             return
@@ -775,7 +786,6 @@ class NodeEditor(QFrame):
 
         next_token_after_magic = []
         while node is not endnode:
-
             if isinstance(node.symbol, MagicTerminal):
                 new_list.append(node.symbol.parser.previous_version.get_bos())
                 next_token_after_magic.append(node.next_terminal())
@@ -898,7 +908,6 @@ class NodeEditor(QFrame):
             #new_node.lookup = pl.name(text)
 
     def cursor_movement(self, key):
-        print("CUROSOR MOVE")
         if key == QtCore.Qt.Key_Up:
             if self.cursor.y > 0:
                 self.cursor.y -= 1
@@ -1027,6 +1036,7 @@ class NodeEditor(QFrame):
                 self.node_list.insert(1, node)
 
             last_node = node
+        self.line_info.append(line_nodes) #add last line
         self.line_info[-1].append(eos)
         parent.children.append(eos)
         node.right = eos # link to eos
@@ -1300,7 +1310,7 @@ class NodeEditor(QFrame):
         self.indentation = False
         for cursor, c in reversed(self.deleted_chars):
             self.cursor = cursor
-            if c == "\n":
+            if c in ["\n","\r"]:
                 key = Qt.Key_Return
                 modifier = Qt.NoModifier
             elif ord(c) in range(97, 122): # a-z
@@ -1423,7 +1433,8 @@ class Window(QtGui.QMainWindow):
     def openfile(self):
         filename = QFileDialog.getOpenFileName()#"Open File", "", "Files (*.*)")
         text = open(filename, "r").read()
-        if text[:-1] in ["\n", "\r"]:
+        # for some reason text has an additional newline
+        if text[-1] in ["\n", "\r"]:
             text = text[:-1]
         # key simulated opening
         #self.ui.frame.insertText(text)
