@@ -68,3 +68,32 @@ def add_alt(new_name, old_lang, rule, alt):
         if r[0] == rule:
             r.append([alt])
     return Language(new_name, _rules_to_str(rules), old_lang.priorities)
+
+
+def extract(new_name, old_lang, rule_name):
+    rules = _parse_grm(old_lang.grammar)
+    rd = {}
+    for r in rules:
+        rd[r[0]] = r
+    stack = [rule_name]
+    inc = set() # All rules which need to be in the extract
+    while len(stack) > 0:
+        rn = stack.pop()
+        if rn in inc:
+            continue
+        inc.add(rn)
+        for alt in rd[rn][1:]:
+            for e in alt:
+                if len(e) == 0:
+                    continue
+                if e[0] in "\"<":
+                    continue
+                stack.append(e)
+
+    new_rules = [rd[rule_name]]
+    for rn in inc:
+        if rn == rule_name:
+            continue
+        new_rules.append(rd[rn])
+
+    return Language(new_name, _rules_to_str(new_rules), old_lang.priorities)

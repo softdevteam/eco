@@ -1147,8 +1147,12 @@ from java15_sql import java15_sql
 from sql_simple import sql
 from greenmarl import greenmarl
 
+import gops
+java15_exp = gops.extract("Java 1.5 expression", java15, "expression")
+
+
 #languages = [java_error, java_error_simplified, super_simple, calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, smalltalk_ebnf, lisp,
 #             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
 #             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
 
-languages = [base_language, super_simple, calc1, lisp, javav1, java15, java15_sql, sql]
+languages = [base_language, super_simple, calc1, lisp, javav1, java15, java15_sql, sql, java15_exp]
