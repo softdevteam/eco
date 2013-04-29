@@ -1012,6 +1012,10 @@ class NodeEditor(QFrame):
         lexer = list(self.lexers.values())[0]
         # lex text into tokens
         success = lexer.match(text)
+        # reset tree
+        bos = parser.previous_version.parent.children[0]
+        eos = parser.previous_version.parent.children[-1]
+        parser.previous_version.parent.children = [bos, eos]
         # insert tokens into tree
         parent = parser.previous_version.parent
         eos = parent.children.pop()
@@ -1440,6 +1444,7 @@ class Window(QtGui.QMainWindow):
         #self.ui.frame.insertText(text)
         self.ui.frame.insertTextNoSim(text)
         self.btReparse(None)
+        self.update()
 
     def loadLanguage(self, item):
         print("Loading Language...")
