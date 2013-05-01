@@ -675,6 +675,8 @@ class NodeEditor(QFrame):
                     if self.sublanguage:
                         newnode = self.add_magic()
                         self.edit_rightnode = True # writes next char into magic ast
+                    else:
+                        return
                 elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier | Qt.ShiftModifier:
                     self.edit_rightnode = True # writes next char into magic ast
                     self.update()
