@@ -9,4 +9,5 @@ class Empty{
     private int getint(){
         return this.x;
     }
+
 }
