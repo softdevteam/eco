@@ -220,15 +220,6 @@ class Parser(object):
         rule.add_alternative(symbols_level[-1])
         return rule
 
-    def add_implicit_whitespaces(self, l):
-        return l
-        with_whitespaces = []
-        for e in l:
-            with_whitespaces.append(e)
-            if e is not l[-1]:
-                with_whitespaces.append(Terminal("WS"))
-        return with_whitespaces
-
     def parse_nonterminal(self):
         t = self.next_token()
         assert t.name == "Nonterminal"
