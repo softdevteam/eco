@@ -1006,6 +1006,8 @@ class NodeEditor(QFrame):
     def insertTextNoSim(self, text):
         # init
         self.line_info = []
+        self.cursor = Cursor(0,0)
+        self.viewport_y = 0
         # convert linebreaks
         text = text.replace("\r\n","\r")
         parser = list(self.parsers.values())[0]
