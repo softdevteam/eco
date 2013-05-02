@@ -1010,6 +1010,13 @@ class NodeEditor(QFrame):
         self.line_info = []
         self.cursor = Cursor(0,0)
         self.viewport_y = 0
+        for node in list(self.parsers):
+            if node is not self.ast.parent:
+                del self.parsers[node]
+                del self.lexers[node]
+                del self.priorities[node]
+                del self.parser_langs[node]
+                self.magic_tokens = []
         # convert linebreaks
         text = text.replace("\r\n","\r")
         parser = list(self.parsers.values())[0]
