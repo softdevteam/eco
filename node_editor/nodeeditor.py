@@ -410,7 +410,7 @@ class NodeEditor(QFrame):
             inbetween = True
         if not inbetween and self.edit_rightnode:
             if isinstance(node.next_terminal().symbol, MagicTerminal):
-                node = node.next_terminal().symbol.parser.previous_version.get_bos()
+                node = node.next_terminal().symbol.parser.children[0]
             elif isinstance(node.next_terminal(), EOS):
                 root = node.next_terminal().get_root()
                 magic = root.get_magicterminal()
@@ -500,7 +500,7 @@ class NodeEditor(QFrame):
             node = node.next_terminal()
             # extend search into magic tree
             if isinstance(node.symbol, MagicTerminal):
-                node = node.symbol.parser.previous_version.get_bos()
+                node = node.symbol.parser.children[0]
                 continue
             # extend search outside magic tree
             if isinstance(node, EOS):
@@ -791,9 +791,10 @@ class NodeEditor(QFrame):
         next_token_after_magic = []
         while node is not endnode:
             if isinstance(node.symbol, MagicTerminal):
-                new_list.append(node.symbol.parser.previous_version.get_bos())
+                bos = node.symbol.parser.children[0]
+                new_list.append(bos)
                 next_token_after_magic.append(node.next_terminal())
-                node = node.symbol.parser.previous_version.get_bos().next_terminal()
+                node = bos.next_terminal()
                 continue
             if isinstance(node, EOS):
                 new_list.append(node)
@@ -880,7 +881,7 @@ class NodeEditor(QFrame):
         #self.add_node(parser.previous_version.get_bos(), starting_node)
         #self.node_map[(self.cursor[0], self.cursor[1])] = root.children[0]
 
-        magictoken.symbol.parser = parser
+        magictoken.symbol.parser = root
         return magictoken
 
     def create_node(self, text, magic=False):
