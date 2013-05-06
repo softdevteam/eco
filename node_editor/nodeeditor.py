@@ -1508,7 +1508,7 @@ class Window(QtGui.QMainWindow):
         #self.ui.frame.insertText(text)
         self.ui.frame.insertTextNoSim(text)
         self.btReparse(None)
-        self.update()
+        self.ui.frame.update()
 
     def savefile(self):
         filename = QFileDialog.getSaveFileName()
