@@ -59,8 +59,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>501</width>
-             <height>571</height>
+             <width>477</width>
+             <height>576</height>
             </rect>
            </property>
            <property name="sizePolicy">
@@ -507,7 +507,7 @@
      <x>0</x>
      <y>0</y>
      <width>979</width>
-     <height>22</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -516,9 +516,9 @@
     </property>
     <addaction name="actionNew"/>
     <addaction name="actionOpen"/>
-    <addaction name="actionImport"/>
-    <addaction name="separator"/>
     <addaction name="actionSave"/>
+    <addaction name="separator"/>
+    <addaction name="actionImport"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
