@@ -1366,6 +1366,7 @@ class NodeEditor(QFrame):
         self.lexers = {}
         self.parser_langs = {}
         self.reset()
+        self.magic_tokens = []
 
         for node in p:
             # load grammar
@@ -1385,6 +1386,8 @@ class NodeEditor(QFrame):
             self.parser_langs[node] = p[node]
             if node is main_lang:
                 self.ast = parser.previous_version
+            if node.get_magicterminal():
+                self.magic_tokens.append(id(node.get_magicterminal()))
         node = self.ast.parent
         self.line_info.append([node.children[0], node.children[-1]])
         self.rescan_line(0)
