@@ -1156,3 +1156,7 @@ java15_sql = gops.add_alt("Java 1.5 + SQL ref. Java 1.5 expression", java15,  "u
 #             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
 
 languages = [base_language, super_simple, calc1, lisp, javav1, java15, java15_sql, sql, java15_exp, sql_java_exp]
+
+lang_dict = {}
+for l in languages:
+    lang_dict[l.name] = l

@@ -9,6 +9,10 @@ from PyQt4.QtCore import *
 from PyQt4 import QtGui
 from PyQt4.QtGui import *
 
+try:
+    import cPickle as pickle
+except:
+    import pickle
 
 from gui import Ui_MainWindow
 
@@ -19,7 +23,7 @@ from viewer import Viewer
 from gparser import Terminal, MagicTerminal
 from astree import TextNode, BOS, EOS
 
-from languages import languages
+from languages import languages, lang_dict
 
 from token_lexer import TokenLexer
 
@@ -688,8 +692,6 @@ class NodeEditor(QFrame):
                             text += " " * indentation
                         else:
                             indentation = 0
-
-
                     newnode = self.create_node(str(text))
                 if inbetween:
                     print("BETWEEN")
@@ -1341,6 +1343,51 @@ class NodeEditor(QFrame):
             self.keyPressEvent(event)
         self.indentation = True
 
+    def saveToFile(self, filename):
+        f = open(filename, "w")
+
+        # create pickle structure
+        p = {}
+        for node in self.parsers:
+            p[node] = self.parser_langs[node]
+        # remember main language root node
+        main_lang = self.ast.parent
+        pickle.dump((main_lang, p), f)
+
+    def loadFromFile(self, filename):
+        from astree import AST
+        f = open(filename, "r")
+        main_lang, p = pickle.load(f)
+
+        #reset
+        self.parsers = {}
+        self.lexers = {}
+        self.priorities = {}
+        self.lexers = {}
+        self.parser_langs = {}
+        self.reset()
+
+        for node in p:
+            # load grammar
+            lang_name = p[node]
+            lang = lang_dict[lang_name]
+            # create parser
+            parser = IncParser(lang.grammar, 1, True) #XXX use whitespace checkbox
+            parser.previous_version = AST(node)
+            self.parsers[node] = parser
+            # create priorities
+            pl = PriorityLexer(lang.priorities)
+            self.priorities[node] = pl
+            # create tokenlexer
+            tl = TokenLexer(pl.rules)
+            self.lexers[node] = tl
+            # load language
+            self.parser_langs[node] = p[node]
+            if node is main_lang:
+                self.ast = parser.previous_version
+        node = self.ast.parent
+        self.line_info.append([node.children[0], node.children[-1]])
+        self.rescan_line(0)
 
 class Cursor(object):
     def __init__(self, x, y):
@@ -1435,7 +1482,9 @@ class Window(QtGui.QMainWindow):
         self.loadLanguage(self.ui.listWidget.item(0))
 
         self.connect(self.ui.listWidget, SIGNAL("itemClicked(QListWidgetItem *)"), self.loadLanguage)
+        self.connect(self.ui.actionImport, SIGNAL("triggered()"), self.importfile)
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
+        self.connect(self.ui.actionSave, SIGNAL("triggered()"), self.savefile)
         self.connect(self.ui.actionRandomDel, SIGNAL("triggered()"), self.ui.frame.randomDeletion)
         self.connect(self.ui.actionUndoRandomDel, SIGNAL("triggered()"), self.ui.frame.undoDeletion)
         self.connect(self.ui.scrollArea.verticalScrollBar(), SIGNAL("valueChanged(int)"), self.ui.frame.sliderChanged)
@@ -1445,7 +1494,7 @@ class Window(QtGui.QMainWindow):
 
         self.ui.frame.setFocus(True)
 
-    def openfile(self):
+    def importfile(self):
         filename = QFileDialog.getOpenFileName()#"Open File", "", "Files (*.*)")
         text = open(filename, "r").read()
         # for some reason text has an additional newline
@@ -1456,6 +1505,14 @@ class Window(QtGui.QMainWindow):
         self.ui.frame.insertTextNoSim(text)
         self.btReparse(None)
         self.update()
+
+    def savefile(self):
+        filename = QFileDialog.getSaveFileName()
+        self.ui.frame.saveToFile(filename)
+
+    def openfile(self):
+        filename = QFileDialog.getOpenFileName()
+        self.ui.frame.loadFromFile(filename)
 
     def loadLanguage(self, item):
         print("Loading Language...")

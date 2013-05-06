@@ -59,8 +59,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>477</width>
-             <height>576</height>
+             <width>501</width>
+             <height>571</height>
             </rect>
            </property>
            <property name="sizePolicy">
@@ -507,14 +507,18 @@
      <x>0</x>
      <y>0</y>
      <width>979</width>
-     <height>24</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionNew"/>
     <addaction name="actionOpen"/>
+    <addaction name="actionImport"/>
+    <addaction name="separator"/>
+    <addaction name="actionSave"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
@@ -527,7 +531,7 @@
    <addaction name="menuOptions"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="actionOpen">
+  <action name="actionImport">
    <property name="text">
     <string>Import...</string>
    </property>
@@ -540,6 +544,21 @@
   <action name="actionUndoRandomDel">
    <property name="text">
     <string>Undo random deletion</string>
+   </property>
+  </action>
+  <action name="actionOpen">
+   <property name="text">
+    <string>Open...</string>
+   </property>
+  </action>
+  <action name="actionSave">
+   <property name="text">
+    <string>Save...</string>
+   </property>
+  </action>
+  <action name="actionNew">
+   <property name="text">
+    <string>New</string>
    </property>
   </action>
  </widget>
