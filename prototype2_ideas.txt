@@ -21,3 +21,7 @@ use extract from grammar
 SAVING/LOADING
 --------------
 Rethink parse tree and language box tokens and their pointers in the editor to simplify saving/loading
+
+VISUALIZATION
+-------------
+Make each node draw itself and return its height/width to the editor
