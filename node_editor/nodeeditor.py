@@ -28,6 +28,8 @@ from languages import languages, lang_dict
 from token_lexer import TokenLexer
 
 from time import time
+import os
+import math
 
 grammar = """
     E ::= T
@@ -217,6 +219,7 @@ class NodeEditor(QFrame):
 
 
     def paintLines(self, paint, startline):
+        import os
         # get all selected magic tokens
         node = self.get_nodes_at_position()[0][0]
         selected_magic = node.magic_parent
@@ -237,6 +240,10 @@ class NodeEditor(QFrame):
                 if node.lookup == "<return>":
                     continue
                 text = node.symbol.name
+                if node.image:
+                    paint.drawImage(QPoint(x, 3 + i * self.fontht), node.image)
+                    x += math.ceil(node.image.width() * 1.0 / self.fontwt) * self.fontwt
+                    continue
                 if self.getWindow().ui.cbShowLangBoxes.isChecked() or node.magic_parent is selected_magic:
                     try:
                         color_id = self.magic_tokens.index(id(node.magic_parent))
@@ -403,7 +410,10 @@ class NodeEditor(QFrame):
                 continue
             if isinstance(node, StyleNode):
                 continue
-            x += len(node.symbol.name) # XXX: later store line length in line_info as well
+            if node.image:
+                x += math.ceil(node.image.width() * 1.0 / self.fontwt)
+            else:
+                x += len(node.symbol.name) # XXX: later store line length in line_info as well
             if x >= self.cursor.x:
                 break
         if x > self.cursor.x:
@@ -800,6 +810,12 @@ class NodeEditor(QFrame):
                 new_list.append(node)
                 node = node.parent.get_parent().next_terminal() # magic terminal
                 continue
+            if node.magic_parent and node.magic_parent.symbol.name == "<Chemicals>":
+                filename = "chemicals/" + node.symbol.name + ".png"
+                if os.path.isfile(filename):
+                    node.image = QImage(filename)
+                else:
+                    node.image = None
 
             new_list.append(node)
             if node.lookup == "<return>":

@@ -334,6 +334,7 @@ class TextNode(Node):
         self.changed = False
         self.seen = 0
         self.deleted = False
+        self.image = None
 
         self.regex = ""
         self.text = ""

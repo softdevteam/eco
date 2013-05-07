@@ -1145,6 +1145,7 @@ from lang_java_extract import javav1_e
 from java15 import java15
 from sql_simple import sql
 from greenmarl import greenmarl
+from lang_chem import chemicals
 
 import gops
 java15_exp = gops.extract("Java 1.5 expression", java15, "expression")
@@ -1155,7 +1156,7 @@ java15_sql = gops.add_alt("Java 1.5 + SQL ref. Java 1.5 expression", java15,  "u
 #             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
 #             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
 
-languages = [base_language, super_simple, calc1, lisp, javav1, java15, java15_sql, sql, java15_exp, sql_java_exp]
+languages = [base_language, super_simple, calc1, lisp, javav1, java15, java15_sql, sql, java15_exp, sql_java_exp, chemicals]
 
 lang_dict = {}
 for l in languages:
