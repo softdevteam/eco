@@ -61,6 +61,12 @@ class StyleNode(object):
         self.mode = mode
         self.bgcolor = bgcolor
 
+class PlaceholderNode(object):
+    def __init__(self, node):
+        self.node = node
+
+    def __getattr__(self, name):
+        return self.node.__getattribute__(name)
 
 class NodeEditor(QFrame):
 
@@ -233,6 +239,8 @@ class NodeEditor(QFrame):
             styles = []
             x = 0
             for node in line:
+                if isinstance(node, PlaceholderNode):
+                    continue
                 if isinstance(node, BOS):
                     continue
                 if isinstance(node, EOS):
@@ -582,7 +590,6 @@ class NodeEditor(QFrame):
 
         if e.key() == Qt.Key_Backspace:
             if self.document_y() > 0 and self.cursor.x == 0:
-                print("sjdlksajdlkjsalkdjsalkdjsadjaslkjdlka")
                 self.cursor_movement(Qt.Key_Up)
                 self.repaint() # XXX store line width in line_info to avoid unnecessary redrawing
                 #self.changed_line = self.document_y()
@@ -816,12 +823,23 @@ class NodeEditor(QFrame):
                     node.image = QImage(filename)
                 else:
                     node.image = None
+                if node.image:
+                    empty_lines = int(math.ceil(node.image.height() * 1.0 / self.fontht))
+                    empty_lines = max(0, empty_lines - 1)
+                    for i in range(empty_lines):
+                        # check if dummy lines exists, add if not
+                        if y+1+i < len(self.line_info) and  isinstance(self.line_info[y+1+i][0], PlaceholderNode):
+                            break
+                        else:
+                            self.line_info.insert(y+1, [PlaceholderNode(node)])
 
             new_list.append(node)
             if node.lookup == "<return>":
                 self.line_info[y] = new_list
                 new_list = []
                 y += 1
+                while y < len(self.line_info) and isinstance(self.line_info[y][0], PlaceholderNode):
+                    y += 1
                 self.line_info.insert(y, [])
             node = node.next_terminal()
         new_list.append(endnode)
