@@ -1,10 +1,10 @@
 from languages import Language
 
 chemicals = Language("Chemicals","""
-S ::= "h2o"
+S ::= "chem"
 """
 ,
 """
-"(h2o|H2O)":h2o
+"[a-zA-Z0-9]+":chem
 """
 )
