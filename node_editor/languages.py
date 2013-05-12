@@ -1148,9 +1148,10 @@ from greenmarl import greenmarl
 from lang_chem import chemicals
 
 import gops
-java15_exp = gops.extract("Java 1.5 expression", java15, "expression")
+java15_chem = gops.add_alt("Java 1.5 + chemical", java15, "unary_expression", "<Chemicals>")
+java15_exp = gops.extract("Java 1.5 expression", java15_chem, "expression")
 sql_java_exp = gops.add_alt("SQL ref. Java 1.5 expression", sql,  "y_condition", "<Java 1.5 expression>")
-java15_sql = gops.add_alt("Java 1.5 + SQL ref. Java 1.5 expression", java15,  "unary_expression", "<SQL ref. Java 1.5 expression>")
+java15_sql = gops.add_alt("Java 1.5 + chemical + SQL", java15_chem,  "unary_expression", "<SQL ref. Java 1.5 expression>")
 
 #languages = [java_error, java_error_simplified, super_simple, calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, smalltalk_ebnf, lisp,
 #             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
