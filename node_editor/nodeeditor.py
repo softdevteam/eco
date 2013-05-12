@@ -234,7 +234,15 @@ class NodeEditor(QFrame):
 
         r = min(len(self.line_info)-self.viewport_y, (self.geometry().height()/self.fontht))
 
-        for i in range(r):
+        # check if the line starts with a partial image
+        y = startline
+        line = self.line_info[y]
+        while len(line) == 1 and isinstance(line[0], ImageNode) and line[0].y > 0:
+            y -= 1
+            line = self.line_info[y]
+
+        line_range = range(y - startline, r)
+        for i in line_range:
             line = self.line_info[startline + i]
             line_str = []
             styles = []
