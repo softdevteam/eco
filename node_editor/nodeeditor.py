@@ -804,7 +804,12 @@ class NodeEditor(QFrame):
         endnode = line[-1]
 
         if startnode.deleted:
-            startnode = self.line_info[y-1][-1].next_terminal()
+            i = 1
+            node = self.line_info[y-i][-1]
+            while isinstance(node, ImageNode): # last element should always be a newline
+                i += 1
+                node = self.line_info[y-i][-1]
+            startnode = node.next_terminal()
 
         # newline in empty line was deleted -> delete current line
         if startnode is endnode and endnode.deleted:
