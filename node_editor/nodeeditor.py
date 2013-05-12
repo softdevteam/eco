@@ -270,7 +270,8 @@ class NodeEditor(QFrame):
                         pass
                 paint.drawText(QtCore.QPointF(x, self.fontht + i*self.fontht), text)
                 x += len(text)*self.fontwt
-            self.max_cols.append(x/self.fontwt)
+            if i >= 0:
+                self.max_cols.append(x/self.fontwt)
 
     def paintAST(self, paint, bos, x, y):
         node = bos.next_terminal()
