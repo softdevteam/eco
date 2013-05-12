@@ -583,8 +583,9 @@ class NodeEditor(QFrame):
 
         # fix cursor
         line = self.line_info[self.viewport_y + result.y]
-        if len(line) == 1 and isinstance(line[0], ImageNode):
+        while len(line) == 1 and isinstance(line[0], ImageNode):
             result.y -= 1
+            line = self.line_info[self.viewport_y + result.y]
         return result
 
     def mouseMoveEvent(self, e):
