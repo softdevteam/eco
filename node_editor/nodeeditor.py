@@ -411,6 +411,10 @@ class NodeEditor(QFrame):
         #print("=== GETTING NODES ====")
         if self.cursor.x == 0 and y > 0:# and not isinstance(line[0], BOS):
             node = self.line_info[y-1][-1]
+            i = 2
+            while isinstance(node, ImageNode):
+                node = self.line_info[y-i][-1]
+                i+=1
             #print("x=0: got nodes from pos", node, node.next_terminal())
             return ([node, node.next_terminal()], False, 0)
         x = 0
@@ -805,8 +809,12 @@ class NodeEditor(QFrame):
         # a newline was deleted -> merge with next line
         if endnode.deleted:
             try:
-                endnode = self.line_info[y+1][-1]
-                del self.line_info[y+1]
+                i = 1
+                endnode = self.line_info[y+i][-1]
+                while isinstance(endnode, ImageNode):
+                    i += 1
+                    endnode = self.line_info[y+i][-1]
+                del self.line_info[y+i]
             except IndexError:
                 endnode = self.ast.parent.children[-1]
 
@@ -837,7 +845,7 @@ class NodeEditor(QFrame):
                 else:
                     node.image = None
                     # delete subsequent imagenodes
-                    while isinstance(self.line_info[y+1][0], ImageNode):
+                    while y+1 < len(self.line_info) and isinstance(self.line_info[y+1][0], ImageNode):
                         del self.line_info[y+1]
                 if node.image:
                     empty_lines = int(math.ceil(node.image.height() * 1.0 / self.fontht))
