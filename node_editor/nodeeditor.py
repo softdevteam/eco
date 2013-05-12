@@ -61,9 +61,10 @@ class StyleNode(object):
         self.mode = mode
         self.bgcolor = bgcolor
 
-class PlaceholderNode(object):
-    def __init__(self, node):
+class ImageNode(object):
+    def __init__(self, node, y):
         self.node = node
+        self.y = y
 
     def __getattr__(self, name):
         return self.node.__getattribute__(name)
@@ -239,7 +240,7 @@ class NodeEditor(QFrame):
             styles = []
             x = 0
             for node in line:
-                if isinstance(node, PlaceholderNode):
+                if isinstance(node, ImageNode) and node.y > 0:
                     continue
                 if isinstance(node, BOS):
                     continue
@@ -248,7 +249,8 @@ class NodeEditor(QFrame):
                 if node.lookup == "<return>":
                     continue
                 text = node.symbol.name
-                if node.image:
+                if isinstance(node, ImageNode):
+                    node = node.node
                     paint.drawImage(QPoint(x, 3 + i * self.fontht), node.image)
                     x += math.ceil(node.image.width() * 1.0 / self.fontwt) * self.fontwt
                     continue
@@ -631,6 +633,15 @@ class NodeEditor(QFrame):
                 return
             self.edit_rightnode = False
             if e.key() in [Qt.Key_Delete, Qt.Key_Backspace]:
+                if isinstance(selected_nodes[0], ImageNode):
+                    selected_nodes[0].backspace(-1)
+                    # remove all related imagenodes
+                    selected_nodes[0].image = None
+                    # refresh
+                    self.getWindow().btReparse([])
+                    self.rescan_line(self.changed_line)
+                    self.repaint() # this recalculates self.max_cols
+                    return
                 if self.hasSelection():
                     self.deleteSelection()
                     return
@@ -734,6 +745,8 @@ class NodeEditor(QFrame):
                 else:
                     # insert node, repair
                     node = selected_nodes[0]
+                    if isinstance(node, ImageNode):
+                        node = node.next_terminal()
                     self.add_node(node, newnode)
                     #node.parent.insert_after_node(node, newnode)
                     repairnode = newnode
@@ -823,22 +836,28 @@ class NodeEditor(QFrame):
                     node.image = QImage(filename)
                 else:
                     node.image = None
+                    # delete subsequent imagenodes
+                    while isinstance(self.line_info[y+1][0], ImageNode):
+                        del self.line_info[y+1]
                 if node.image:
                     empty_lines = int(math.ceil(node.image.height() * 1.0 / self.fontht))
                     empty_lines = max(0, empty_lines - 1)
                     for i in range(empty_lines):
                         # check if dummy lines exists, add if not
-                        if y+1+i < len(self.line_info) and  isinstance(self.line_info[y+1+i][0], PlaceholderNode):
+                        if y+1+i < len(self.line_info) and  isinstance(self.line_info[y+1+i][0], ImageNode):
                             break
                         else:
-                            self.line_info.insert(y+1, [PlaceholderNode(node)])
+                            return_node = TextNode(Terminal("\n"), -1, [], -1)
+                            return_node.lookup = "<return>"
+                            self.line_info.insert(y+1, [ImageNode(node, i+1)])
+                    node = ImageNode(node, 0)
 
             new_list.append(node)
             if node.lookup == "<return>":
                 self.line_info[y] = new_list
                 new_list = []
                 y += 1
-                while y < len(self.line_info) and isinstance(self.line_info[y][0], PlaceholderNode):
+                while y < len(self.line_info) and isinstance(self.line_info[y][0], ImageNode):
                     y += 1
                 self.line_info.insert(y, [])
             node = node.next_terminal()
