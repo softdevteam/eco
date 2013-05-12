@@ -417,6 +417,8 @@ class NodeEditor(QFrame):
         y = self.document_y()
         line = self.line_info[y]
         #print("=== GETTING NODES ====")
+        inbetween = False
+        x = 0
         if self.cursor.x == 0 and y > 0:# and not isinstance(line[0], BOS):
             node = self.line_info[y-1][-1]
             i = 2
@@ -424,22 +426,22 @@ class NodeEditor(QFrame):
                 node = self.line_info[y-i][-1]
                 i+=1
             #print("x=0: got nodes from pos", node, node.next_terminal())
-            return ([node, node.next_terminal()], False, 0)
-        x = 0
-        inbetween = False
-        for node in line:
-            if isinstance(node, EOS):
-                continue
-            if isinstance(node, StyleNode):
-                continue
-            if node.image:
-                x += math.ceil(node.image.width() * 1.0 / self.fontwt)
-            else:
-                x += len(node.symbol.name) # XXX: later store line length in line_info as well
-            if x >= self.cursor.x:
-                break
-        if x > self.cursor.x:
-            inbetween = True
+            #return ([node, node.next_terminal()], False, 0)
+        else:
+            x = 0
+            for node in line:
+                if isinstance(node, EOS):
+                    continue
+                if isinstance(node, StyleNode):
+                    continue
+                if node.image:
+                    x += math.ceil(node.image.width() * 1.0 / self.fontwt)
+                else:
+                    x += len(node.symbol.name) # XXX: later store line length in line_info as well
+                if x >= self.cursor.x:
+                    break
+            if x > self.cursor.x:
+                inbetween = True
         if not inbetween and self.edit_rightnode:
             if isinstance(node.next_terminal().symbol, MagicTerminal):
                 node = node.next_terminal().symbol.parser.children[0]
@@ -598,6 +600,7 @@ class NodeEditor(QFrame):
         print("====================== KEYPRESS (>>%s<<) ============================" % (repr(e.text()),))
         print("first get_nodes_at_pos")
         selected_nodes, inbetween, x = self.get_nodes_at_position()
+        print(selected_nodes)
 
         text = e.text()
         self.changed_line = self.document_y()
