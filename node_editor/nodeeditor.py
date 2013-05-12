@@ -580,6 +580,11 @@ class NodeEditor(QFrame):
             result.x = cursor_x
         else:
             result.x = self.max_cols[result.y]
+
+        # fix cursor
+        line = self.line_info[self.viewport_y + result.y]
+        if len(line) == 1 and isinstance(line[0], ImageNode):
+            result.y -= 1
         return result
 
     def mouseMoveEvent(self, e):
