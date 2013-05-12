@@ -977,6 +977,8 @@ class NodeEditor(QFrame):
         if key == QtCore.Qt.Key_Up:
             if self.cursor.y > 0:
                 self.cursor.y -= 1
+                while isinstance(self.line_info[self.document_y()][-1], ImageNode):
+                    self.cursor.y -= 1
                 if self.cursor.x > self.max_cols[self.cursor.y]:
                     self.cursor.x = self.max_cols[self.cursor.y]
             else:
@@ -984,6 +986,8 @@ class NodeEditor(QFrame):
         elif key == QtCore.Qt.Key_Down:
             if self.cursor.y < (self.geometry().height() / self.fontht) - 1 and self.document_y() < len(self.line_info)-1:
                 self.cursor.y += 1
+                while isinstance(self.line_info[self.document_y()][-1], ImageNode):
+                    self.cursor.y += 1
                 if self.cursor.x > self.max_cols[self.cursor.y]:
                     self.cursor.x = self.max_cols[self.cursor.y]
             else:
