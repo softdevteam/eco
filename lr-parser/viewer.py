@@ -71,7 +71,7 @@ class Viewer(object):
         if restrict_nodes and node not in restrict_nodes:
             return None
 
-        dotnode = pydot.Node(id(node), label="%s (%s)" % (node.symbol.name, node.seen))
+        dotnode = pydot.Node(id(node), label=" %s " % node.symbol.name)
         if node.changed:
             dotnode.set('color','green')
         graph.add_node(dotnode)
