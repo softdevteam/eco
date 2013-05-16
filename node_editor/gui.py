@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Mon May  6 18:35:57 2013
+# Created: Wed May 15 17:03:43 2013
 #      by: PyQt4 UI code generator 4.9.5
 #
 # WARNING! All changes made in this file will be lost!
@@ -47,7 +47,7 @@ class Ui_MainWindow(object):
         self.scrollArea.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.scrollArea.setObjectName(_fromUtf8("scrollArea"))
         self.scrollAreaWidgetContents = QtGui.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 477, 576))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 438, 576))
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -147,6 +147,26 @@ class Ui_MainWindow(object):
         self.tab.setObjectName(_fromUtf8("tab"))
         self.gridLayout_2 = QtGui.QGridLayout(self.tab)
         self.gridLayout_2.setObjectName(_fromUtf8("gridLayout_2"))
+        self.horizontalLayout_5 = QtGui.QHBoxLayout()
+        self.horizontalLayout_5.setContentsMargins(0, 0, -1, -1)
+        self.horizontalLayout_5.setObjectName(_fromUtf8("horizontalLayout_5"))
+        self.cb_fit_ast = QtGui.QCheckBox(self.tab)
+        self.cb_fit_ast.setObjectName(_fromUtf8("cb_fit_ast"))
+        self.horizontalLayout_5.addWidget(self.cb_fit_ast)
+        self.cb_toggle_ast = QtGui.QCheckBox(self.tab)
+        self.cb_toggle_ast.setCheckable(True)
+        self.cb_toggle_ast.setChecked(False)
+        self.cb_toggle_ast.setObjectName(_fromUtf8("cb_toggle_ast"))
+        self.horizontalLayout_5.addWidget(self.cb_toggle_ast)
+        self.cb_toggle_ws = QtGui.QCheckBox(self.tab)
+        self.cb_toggle_ws.setEnabled(True)
+        self.cb_toggle_ws.setChecked(False)
+        self.cb_toggle_ws.setObjectName(_fromUtf8("cb_toggle_ws"))
+        self.horizontalLayout_5.addWidget(self.cb_toggle_ws)
+        self.gridLayout_2.addLayout(self.horizontalLayout_5, 4, 0, 1, 1)
+        self.bt_show_sel_ast = QtGui.QPushButton(self.tab)
+        self.bt_show_sel_ast.setObjectName(_fromUtf8("bt_show_sel_ast"))
+        self.gridLayout_2.addWidget(self.bt_show_sel_ast, 7, 0, 1, 1)
         self.graphicsView = QtGui.QGraphicsView(self.tab)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
@@ -167,22 +187,6 @@ class Ui_MainWindow(object):
         self.graphicsView.setAutoFillBackground(True)
         self.graphicsView.setObjectName(_fromUtf8("graphicsView"))
         self.gridLayout_2.addWidget(self.graphicsView, 0, 0, 1, 1)
-        self.cb_toggle_ws = QtGui.QCheckBox(self.tab)
-        self.cb_toggle_ws.setEnabled(True)
-        self.cb_toggle_ws.setChecked(False)
-        self.cb_toggle_ws.setObjectName(_fromUtf8("cb_toggle_ws"))
-        self.gridLayout_2.addWidget(self.cb_toggle_ws, 1, 0, 1, 1)
-        self.cb_toggle_ast = QtGui.QCheckBox(self.tab)
-        self.cb_toggle_ast.setCheckable(True)
-        self.cb_toggle_ast.setChecked(False)
-        self.cb_toggle_ast.setObjectName(_fromUtf8("cb_toggle_ast"))
-        self.gridLayout_2.addWidget(self.cb_toggle_ast, 2, 0, 1, 1)
-        self.cb_fit_ast = QtGui.QCheckBox(self.tab)
-        self.cb_fit_ast.setObjectName(_fromUtf8("cb_fit_ast"))
-        self.gridLayout_2.addWidget(self.cb_fit_ast, 3, 0, 1, 1)
-        self.bt_show_sel_ast = QtGui.QPushButton(self.tab)
-        self.bt_show_sel_ast.setObjectName(_fromUtf8("bt_show_sel_ast"))
-        self.gridLayout_2.addWidget(self.bt_show_sel_ast, 4, 0, 1, 1)
         self.tabWidget.addTab(self.tab, _fromUtf8(""))
         self.tab_2 = QtGui.QWidget()
         self.tab_2.setObjectName(_fromUtf8("tab_2"))
@@ -303,7 +307,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuOptions.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(2)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -313,9 +317,9 @@ class Ui_MainWindow(object):
         self.label.setText(QtGui.QApplication.translate("MainWindow", "Valid tokens:", None, QtGui.QApplication.UnicodeUTF8))
         self.label_2.setText(QtGui.QApplication.translate("MainWindow", "Parsing status:", None, QtGui.QApplication.UnicodeUTF8))
         self.groupBox_3.setTitle(QtGui.QApplication.translate("MainWindow", "Languages", None, QtGui.QApplication.UnicodeUTF8))
-        self.cb_toggle_ws.setText(QtGui.QApplication.translate("MainWindow", "Show whitespace nodes", None, QtGui.QApplication.UnicodeUTF8))
-        self.cb_toggle_ast.setText(QtGui.QApplication.translate("MainWindow", "Show parse tree", None, QtGui.QApplication.UnicodeUTF8))
         self.cb_fit_ast.setText(QtGui.QApplication.translate("MainWindow", "Fit AST in view", None, QtGui.QApplication.UnicodeUTF8))
+        self.cb_toggle_ast.setText(QtGui.QApplication.translate("MainWindow", "Show parse tree", None, QtGui.QApplication.UnicodeUTF8))
+        self.cb_toggle_ws.setText(QtGui.QApplication.translate("MainWindow", "Show whitespace nodes", None, QtGui.QApplication.UnicodeUTF8))
         self.bt_show_sel_ast.setText(QtGui.QApplication.translate("MainWindow", "Show selected text parse tree", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QtGui.QApplication.translate("MainWindow", "Parse tree", None, QtGui.QApplication.UnicodeUTF8))
         self.btShowWholeGraph.setText(QtGui.QApplication.translate("MainWindow", "Show whole graph", None, QtGui.QApplication.UnicodeUTF8))

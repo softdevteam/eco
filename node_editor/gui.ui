@@ -59,7 +59,7 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>477</width>
+             <width>438</width>
              <height>576</height>
             </rect>
            </property>
@@ -266,13 +266,63 @@
         <item>
          <widget class="QTabWidget" name="tabWidget">
           <property name="currentIndex">
-           <number>2</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tab">
            <attribute name="title">
             <string>Parse tree</string>
            </attribute>
            <layout class="QGridLayout" name="gridLayout_2">
+            <item row="4" column="0">
+             <layout class="QHBoxLayout" name="horizontalLayout_5">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="QCheckBox" name="cb_fit_ast">
+                <property name="text">
+                 <string>Fit AST in view</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="cb_toggle_ast">
+                <property name="text">
+                 <string>Show parse tree</string>
+                </property>
+                <property name="checkable">
+                 <bool>true</bool>
+                </property>
+                <property name="checked">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="cb_toggle_ws">
+                <property name="enabled">
+                 <bool>true</bool>
+                </property>
+                <property name="text">
+                 <string>Show whitespace nodes</string>
+                </property>
+                <property name="checked">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="7" column="0">
+             <widget class="QPushButton" name="bt_show_sel_ast">
+              <property name="text">
+               <string>Show selected text parse tree</string>
+              </property>
+             </widget>
+            </item>
             <item row="0" column="0">
              <widget class="QGraphicsView" name="graphicsView">
               <property name="sizePolicy">
@@ -320,46 +370,6 @@
               </property>
               <property name="autoFillBackground">
                <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QCheckBox" name="cb_toggle_ws">
-              <property name="enabled">
-               <bool>true</bool>
-              </property>
-              <property name="text">
-               <string>Show whitespace nodes</string>
-              </property>
-              <property name="checked">
-               <bool>false</bool>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QCheckBox" name="cb_toggle_ast">
-              <property name="text">
-               <string>Show parse tree</string>
-              </property>
-              <property name="checkable">
-               <bool>true</bool>
-              </property>
-              <property name="checked">
-               <bool>false</bool>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0">
-             <widget class="QCheckBox" name="cb_fit_ast">
-              <property name="text">
-               <string>Fit AST in view</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="0">
-             <widget class="QPushButton" name="bt_show_sel_ast">
-              <property name="text">
-               <string>Show selected text parse tree</string>
               </property>
              </widget>
             </item>
