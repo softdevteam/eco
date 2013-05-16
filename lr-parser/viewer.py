@@ -74,6 +74,7 @@ class Viewer(object):
         dotnode = pydot.Node(id(node), label=" %s " % node.symbol.name)
         if node.changed:
             dotnode.set('color','green')
+        dotnode.set('fontsize', '10')
         graph.add_node(dotnode)
 
         for c in node.children:
