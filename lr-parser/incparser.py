@@ -128,7 +128,7 @@ class IncParser(object):
                                 node, attribute, value = self.undo.pop(-1)
                                 setattr(node, attribute, value)
                             self.error_node = la
-                            print ("Error", la)
+                            print ("Error", la, la.prev_term, la.next_term)
                             print("loopcount", self.loopcount)
                             return False
             else: # Nonterminal

@@ -996,6 +996,7 @@ expression_nn ::=    assignment_expression_nn
 "try":TRY
 "catch":CATCH
 "finally":FINALLY
+"assert":ASSERT
 "new":NEW
 "\+\+":PLUSPLUS
 "\-\-":MINUSMINUS
@@ -1034,7 +1035,7 @@ expression_nn ::=    assignment_expression_nn
 "\|=":OREQ
 
 "0x[0-9A-Fa-f]+|[0-9]+":INTEGER_LITERAL
-"[0-9]+\.[0-9]+":FLOATING_POINT_LITERAL
+"[0-9]+\.[0-9]+([eE][0-9]+)?[fFdD]?|[0-9]+[eE][0-9]+[fFdD]?":FLOATING_POINT_LITERAL
 "(true|false)":BOOLEAN_LITERAL
 "null":NULL_LITERAL
 "[a-zA-Z_][a-zA-Z0-9_]*":IDENTIFIER
@@ -1042,7 +1043,6 @@ expression_nn ::=    assignment_expression_nn
 "const":CONST
 "goto":GOTO
 "strictfp":STRICTFP
-"assert":ASSERT
 "ellipsis":ELLIPSIS
 "enum":ENUM
 
