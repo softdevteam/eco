@@ -25,3 +25,7 @@ Rethink parse tree and language box tokens and their pointers in the editor to s
 VISUALIZATION
 -------------
 Make each node draw itself and return its height/width to the editor
+
+- dynamic line height
+- unicode identifiers
+- math views
