@@ -996,6 +996,7 @@ expression_nn ::=    assignment_expression_nn
 "try":TRY
 "catch":CATCH
 "finally":FINALLY
+"assert":ASSERT
 "new":NEW
 "\+\+":PLUSPLUS
 "\-\-":MINUSMINUS
@@ -1042,7 +1043,6 @@ expression_nn ::=    assignment_expression_nn
 "const":CONST
 "goto":GOTO
 "strictfp":STRICTFP
-"assert":ASSERT
 "ellipsis":ELLIPSIS
 "enum":ENUM
 
