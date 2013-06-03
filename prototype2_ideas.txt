@@ -29,3 +29,8 @@ Make each node draw itself and return its height/width to the editor
 - dynamic line height
 - unicode identifiers
 - math views
+
+GRAMMAR COMBINATION AND EXTRACTION
+----------------------------------
+
+Example: expression ::= bla <SQL:where_clause> # reference SQL but start at 'where_clause'
