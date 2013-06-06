@@ -34,3 +34,13 @@ GRAMMAR COMBINATION AND EXTRACTION
 ----------------------------------
 
 Example: expression ::= bla <SQL:where_clause> # reference SQL but start at 'where_clause'
+
+GAMMARS:
+
+- Eifel
+- Pascal
+- Go
+- JavaScript (Lukas)
+- HTML (Lukas)
+- XML (Krish)
+- CSS (Krish)
