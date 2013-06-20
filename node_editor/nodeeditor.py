@@ -128,6 +128,7 @@ class NodeEditor(QFrame):
         self.cursor = Cursor(0,0)
         self.update()
         self.line_info = []
+        self.magic_tokens = []
 
     def set_lrparser(self, lrp, lang_name):
         self.parsers = {}
@@ -139,6 +140,7 @@ class NodeEditor(QFrame):
         self.lexers[lrp.previous_version.parent] = self.getTL()
         self.priorities[lrp.previous_version.parent] = self.getPL()
         self.parser_langs[lrp.previous_version.parent] = lang_name
+        self.magic_tokens = []
 
         self.node_list = []
         self.node_list.append(self.ast.parent.children[0]) # bos is first terminal in first line
@@ -265,7 +267,7 @@ class NodeEditor(QFrame):
                 if self.getWindow().ui.cbShowLangBoxes.isChecked() or node.magic_parent is selected_magic:
                     try:
                         color_id = self.magic_tokens.index(id(node.magic_parent))
-                        paint.fillRect(QRectF(x,3 + self.fontht + i*self.fontht, len(text)*self.fontwt, -self.fontht+2), self.nesting_colors[color_id])
+                        paint.fillRect(QRectF(x,3 + self.fontht + i*self.fontht, len(text)*self.fontwt, -self.fontht+2), self.nesting_colors[color_id % 5])
                     except ValueError:
                         pass
                 paint.drawText(QtCore.QPointF(x, self.fontht + i*self.fontht), text)
