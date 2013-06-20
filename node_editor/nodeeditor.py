@@ -257,6 +257,8 @@ class NodeEditor(QFrame):
         startline = real_line
         print("new startline", total)
 
+        r = min(len(self.line_info)-startline, (self.geometry().height()/self.fontht))
+
         line_range = range(0, r)
         #y = 0
         for i in line_range:
@@ -290,8 +292,8 @@ class NodeEditor(QFrame):
                 x += len(text)*self.fontwt
             if i >= 0:
                 self.max_cols.append(x/self.fontwt)
-                for i in range(int(y_inc)-1):
-                    self.max_cols.append(0)
+                #for i in range(int(y_inc)-1):
+                #    self.max_cols.append(0)
 
     def paintAST(self, paint, bos, x, y):
         node = bos.next_terminal()
