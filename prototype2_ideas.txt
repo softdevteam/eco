@@ -44,3 +44,7 @@ GAMMARS:
 - HTML (Lukas)
 - XML (Krish)
 - CSS (Krish)
+
+MAKE PARSE TREE INDEPENDENT FROM INC PARSER
+-------------------------------------------
+Possible to switch inc parser on the fly and parse the current parse tree with it
