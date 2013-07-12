@@ -195,11 +195,11 @@ class NodeEditor(QFrame):
         #x, y = self.paintAST(paint, bos, -self.viewport_x, y)
         self.paintLines(paint, self.viewport_y)
 
-        if self.hasFocus() and self.show_cursor:
-            if self.cursor.x > self.max_cols[self.cursor.y]:
-                self.cursor.x = self.max_cols[self.cursor.y]
-            #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
-            paint.drawRect(0 + self.cursor.x * self.fontwt, 5 + self.cursor.y * self.fontht, 0, self.fontht - 3)
+       #if self.hasFocus() and self.show_cursor:
+       #    if self.cursor.x > self.max_cols[self.cursor.y]:
+       #        self.cursor.x = self.max_cols[self.cursor.y]
+       #    #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
+       #    paint.drawRect(0 + self.cursor.x * self.fontwt, 5 + self.cursor.y * self.fontht, 0, self.fontht - 3)
 
         self.paintSelection(paint)
         paint.end()
@@ -267,6 +267,9 @@ class NodeEditor(QFrame):
             styles = []
             x = 0
             y_inc = 1
+            # draw cursor
+            if (startline + i) == self.cursor.y:
+                paint.drawRect(0 + self.cursor.x * self.fontwt, 5 + y * self.fontht, 3, self.fontht - 3)
             for node in line:
                 if isinstance(node, BOS):
                     continue
@@ -1027,17 +1030,13 @@ class NodeEditor(QFrame):
         if key == QtCore.Qt.Key_Up:
             if self.cursor.y > 0:
                 self.cursor.y -= 1
-                while isinstance(self.line_info[self.document_y()][-1], ImageNode):
-                    self.cursor.y -= 1
                 if self.cursor.x > self.max_cols[self.cursor.y]:
                     self.cursor.x = self.max_cols[self.cursor.y]
             else:
                 self.getWindow().ui.scrollArea.decVSlider()
         elif key == QtCore.Qt.Key_Down:
-            if self.cursor.y < (self.geometry().height() / self.fontht) - 1 and self.document_y() < len(self.line_info)-1:
+            if self.cursor.y < len(self.line_info) - 1:
                 self.cursor.y += 1
-                while isinstance(self.line_info[self.document_y()][-1], ImageNode):
-                    self.cursor.y += 1
                 if self.cursor.x > self.max_cols[self.cursor.y]:
                     self.cursor.x = self.max_cols[self.cursor.y]
             else:
@@ -1513,9 +1512,9 @@ class NodeEditor(QFrame):
         self.rescan_line(0)
 
 class Cursor(object):
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+    def __init__(self, pos, line):
+        self.x = pos
+        self.y = line
 
     def copy(self):
         return Cursor(self.x, self.y)
