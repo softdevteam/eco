@@ -4,7 +4,12 @@ Put the cursor as node in the AST and move it from one token to another. This
 way it possible to use the arrow keys even when we have non-textual nodes with
 odd sizes
 
-Also allows to draw BOS/EOS (shows language box boundaries) without interfering with cursor movement
+Also allows to draw BOS/EOS (shows language box boundaries) without interfering
+with cursor movement
+
+Better: Don't put cursor into AST but use values relative to ast nodes for position
+Also: Nodes tell cursor how far to move (i.e. how wide one character is)
+Problem: Relexing/Repair algorithm changes nodes (hard to update cursor)
 
 LANGUAGE BOXES
 --------------
@@ -12,23 +17,23 @@ Rethink how to make them visible
 
 ALTER GRAMMARS ON THE FLY
 -------------------------
-adding whitespace rules
-adding language box tokens
-use extract from grammar
-    reuse stategraph if possible (avoid unneccesary rebuilding)
-    e.g. not starting at state0 but at stateX (state of Nonterminals first appearance)
+- adding whitespace rules
+- adding language box tokens
+- use extract from grammar
+    - reuse stategraph if possible (avoid unneccesary rebuilding) e.g. not
+      starting at state0 but at stateX (state of Nonterminals first appearance)
 
 SAVING/LOADING
 --------------
-Rethink parse tree and language box tokens and their pointers in the editor to simplify saving/loading
+- Rethink parse tree and language box tokens and their pointers in the editor
+  to simplify saving/loading
 
 VISUALIZATION
 -------------
-Make each node draw itself and return its height/width to the editor
-
-- dynamic line height
-- unicode identifiers
-- math views
+- Make each node draw itself and return its height/width (in chars?) to the
+  editor (global font var needed)
+- Draw lines as labels(?) that know their pos/height/width for easier
+  mouseclick detection (or manually store pos infos of each lines when drawing)
 
 GRAMMAR COMBINATION AND EXTRACTION
 ----------------------------------
@@ -48,3 +53,9 @@ GAMMARS:
 MAKE PARSE TREE INDEPENDENT FROM INC PARSER
 -------------------------------------------
 Possible to switch inc parser on the fly and parse the current parse tree with it
+
+UNSORTED NOTES
+--------------
+- dynamic line height
+- unicode identifiers
+- math views
