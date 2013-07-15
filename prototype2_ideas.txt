@@ -6,6 +6,9 @@ odd sizes
 
 Also allows to draw BOS/EOS (shows language box boundaries) without interfering with cursor movement
 
+Better: Don't put cursor into AST but use values relative to ast nodes for position
+Also: Nodes tell cursor how far to move (i.e. how wide one character is)
+
 LANGUAGE BOXES
 --------------
 Rethink how to make them visible
