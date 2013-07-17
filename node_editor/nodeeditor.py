@@ -615,6 +615,7 @@ class NodeEditor(QFrame):
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
             self.cursor = self.coordinate_to_cursor(e.x(), e.y())
+            self.fix_cursor_on_image()
             self.selection_start = self.cursor.copy()
             self.selection_end = self.cursor.copy()
 
@@ -625,6 +626,11 @@ class NodeEditor(QFrame):
             lrp = self.parsers[root]
             self.getWindow().showLookahead(lrp)
             self.update()
+
+    def fix_cursor_on_image(self):
+        nodes, _, x = self.get_nodes_at_position()
+        if isinstance(nodes[0], ImageNode):
+            self.cursor.x = x
 
     def coordinate_to_cursor(self, x, y):
         result = Cursor(0,0)
@@ -857,6 +863,8 @@ class NodeEditor(QFrame):
             self.cursor_movement(Qt.Key_Down)
             self.cursor.x = indentation
 
+        self.fix_cursor_on_image()
+
         root = selected_nodes[0].get_root()
         lrp = self.parsers[root]
         self.getWindow().showLookahead(lrp)
@@ -1088,6 +1096,7 @@ class NodeEditor(QFrame):
                 if node.image:
                     s = self.get_nodesize_in_chars(node)
                     self.cursor.x += s.w - 1
+        self.fix_cursor_on_image()
 
     # ========================== AST modification stuff ========================== #
 
