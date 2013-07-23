@@ -69,6 +69,11 @@ class ImageNode(object):
     def __getattr__(self, name):
         return self.node.__getattribute__(name)
 
+class NodeSize(object):
+    def __init__(self, w, h):
+        self.w = w
+        self.h = h
+
 class NodeEditor(QFrame):
 
     # ========================== init stuff ========================== #
@@ -97,9 +102,11 @@ class NodeEditor(QFrame):
 
         self.changed_line = -1
         self.line_info = []
+        self.line_heights = []
         self.node_list = []
         self.node_map = {}
         self.max_cols = []
+        self.line_widths = {}
         self.indentations = {}
 
         self.parsers = {}
@@ -124,11 +131,12 @@ class NodeEditor(QFrame):
     def reset(self):
         self.indentations = {}
         self.max_cols = []
+        self.line_widths = {}
         self.node_map = {}
         self.cursor = Cursor(0,0)
         self.update()
         self.line_info = []
-        self.magic_tokens = []
+        self.line_heights = []
 
     def set_lrparser(self, lrp, lang_name):
         self.parsers = {}
@@ -146,6 +154,7 @@ class NodeEditor(QFrame):
         self.node_list.append(self.ast.parent.children[0]) # bos is first terminal in first line
 
         self.line_info.append([self.ast.parent.children[0], self.ast.parent.children[1]]) # start with BOS and EOS
+        self.line_heights.append(1)
 
     def set_sublanguage(self, language):
         self.sublanguage = language
@@ -194,11 +203,11 @@ class NodeEditor(QFrame):
         #x, y = self.paintAST(paint, bos, -self.viewport_x, y)
         self.paintLines(paint, self.viewport_y)
 
-        if self.hasFocus() and self.show_cursor:
-            if self.cursor.x > self.max_cols[self.cursor.y]:
-                self.cursor.x = self.max_cols[self.cursor.y]
-            #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
-            paint.drawRect(0 + self.cursor.x * self.fontwt, 5 + self.cursor.y * self.fontht, 0, self.fontht - 3)
+       #if self.hasFocus() and self.show_cursor:
+       #    if self.cursor.x > self.max_cols[self.cursor.y]:
+       #        self.cursor.x = self.max_cols[self.cursor.y]
+       #    #paint.drawRect(3 + self.cursor[0] * self.fontwt, 2 + self.cursor[1] * self.fontht, self.fontwt-1, self.fontht)
+       #    paint.drawRect(0 + self.cursor.x * self.fontwt, 5 + self.cursor.y * self.fontht, 0, self.fontht - 3)
 
         self.paintSelection(paint)
         paint.end()
@@ -220,60 +229,92 @@ class NodeEditor(QFrame):
        ##self.getWindow().ui.scrollArea.horizontalScrollBar().setMaximum((width - self.getWindow().ui.scrollArea.viewport().size().width())/self.fontwt)
        ##self.getWindow().ui.scrollArea.horizontalScrollBar().setPageStep(1)
         self.getWindow().ui.scrollArea.verticalScrollBar().setMinimum(0)
-        total_lines = len(self.line_info)
+        total_lines = sum(self.line_heights)#len(self.line_info)
         max_visible_lines = self.geometry().height() / self.fontht
         vmax = max(0, total_lines - max_visible_lines)
         self.getWindow().ui.scrollArea.verticalScrollBar().setMaximum(vmax)
         self.getWindow().ui.scrollArea.verticalScrollBar().setPageStep(1)
 
+    def get_nodesize_in_chars(self, node):
+        if isinstance(node, ImageNode):
+            w = math.ceil(node.image.width() * 1.0 / self.fontwt)
+            h = math.ceil(node.image.height() * 1.0 / self.fontht)
+            return NodeSize(w, h)
+        else:
+            return NodeSize(len(node.symbol.name), 1)
 
     def paintLines(self, paint, startline):
         import os
+
+        print("startline", startline)
+        # find proper startline
+        total = 0
+        real_line = 0
+        for h in self.line_heights:
+            if total+h > startline:
+                break
+            total += h
+            real_line += 1
+        print("total", total)
+        print("real_line", real_line)
+
         # get all selected magic tokens
         node = self.get_nodes_at_position()[0][0]
         selected_magic = node.magic_parent
         node = node.get_root().get_magicterminal()
 
-        r = min(len(self.line_info)-self.viewport_y, (self.geometry().height()/self.fontht))
+        r = min(sum(self.line_heights)-self.viewport_y, (self.geometry().height()/self.fontht))
+        print("r", r)
 
         # check if the line starts with a partial image
-        y = startline
-        line = self.line_info[y]
-        while len(line) == 1 and isinstance(line[0], ImageNode) and line[0].y > 0:
-            y -= 1
-            line = self.line_info[y]
+        y = total - startline
+        self.paint_start = (real_line, y)
+        print("y", y)
+        startline = real_line
+        print("new startline", total)
 
-        line_range = range(y - startline, r)
+        r = min(len(self.line_info)-startline, (self.geometry().height()/self.fontht))
+
+        draw_cursor_at = QRect(0,0,0,0)
+
+        line_range = range(0, r)
+        #y = 0
         for i in line_range:
             line = self.line_info[startline + i]
             line_str = []
             styles = []
             x = 0
+            y_inc = 1
+            # draw cursor
+            if (startline + i) == self.cursor.y:
+                draw_cursor_at = QRect(0 + self.cursor.x * self.fontwt, 5 + y * self.fontht, 0, self.fontht - 3)
             for node in line:
-                if isinstance(node, ImageNode) and node.y > 0:
-                    continue
                 if isinstance(node, BOS):
                     continue
                 if isinstance(node, EOS):
                     continue
                 if node.lookup == "<return>":
+                    y += y_inc
                     continue
                 text = node.symbol.name
                 if isinstance(node, ImageNode):
                     node = node.node
-                    paint.drawImage(QPoint(x, 3 + i * self.fontht), node.image)
+                    paint.drawImage(QPoint(x, 3 + y * self.fontht), node.image)
                     x += math.ceil(node.image.width() * 1.0 / self.fontwt) * self.fontwt
+                    y_inc = max(y_inc, math.ceil(node.image.height() * 1.0 / self.fontht))
                     continue
                 if self.getWindow().ui.cbShowLangBoxes.isChecked() or node.magic_parent is selected_magic:
                     try:
                         color_id = self.magic_tokens.index(id(node.magic_parent))
-                        paint.fillRect(QRectF(x,3 + self.fontht + i*self.fontht, len(text)*self.fontwt, -self.fontht+2), self.nesting_colors[color_id % 5])
+                        paint.fillRect(QRectF(x,3 + self.fontht + y*self.fontht, len(text)*self.fontwt, -self.fontht+2), self.nesting_colors[color_id % 5])
                     except ValueError:
                         pass
-                paint.drawText(QtCore.QPointF(x, self.fontht + i*self.fontht), text)
+                paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text)
                 x += len(text)*self.fontwt
             if i >= 0:
                 self.max_cols.append(x/self.fontwt)
+                self.line_widths[startline + i] = x / self.fontwt
+        paint.drawRect(draw_cursor_at)
 
     def paintAST(self, paint, bos, x, y):
         node = bos.next_terminal()
@@ -343,7 +384,7 @@ class NodeEditor(QFrame):
                 paint.drawRect(3 + 0 * self.fontwt,   3 + self.lbox_nesting + y       * self.fontht, width * self.fontwt, self.fontht - 2*(self.lbox_nesting))
 
             # paint line start to end
-            width = end.x
+            width = end.self.cursor.x, self.curspr.y - self.viewport_sx
             paint.drawRect(3 + 0 * self.fontwt,       3 + self.lbox_nesting + end.y   * self.fontht, width * self.fontwt, self.fontht - 2*(self.lbox_nesting))
         paint.setPen(QColor(0,0,0,255))
 
@@ -413,13 +454,35 @@ class NodeEditor(QFrame):
         except IndexError:
             return 0
 
+    def get_relative_cursor(self):
+        return Cursor(self.cursor.x, self.cursor.y - self.viewport_y)
+
     def document_y(self):
-        return self.viewport_y + self.cursor.y
+        return self.cursor.y
+        #return self.get_real_line(self.viewport_y + self.cursor.y)
+
+    def get_real_line(self, y):
+        total = 0
+        real_line = 0
+        for i in self.line_heights:
+            if total+i > y:
+                break
+            total += i
+            real_line += 1
+        return real_line
+
+    def get_selected_node(self):
+        nodes, _, _ = self.get_nodes_at_position()
+        return nodes[0]
 
     def get_nodes_at_position(self):
-        y = self.document_y()
+        y = self.cursor.y#self.document_y()
         line = self.line_info[y]
-        #print("=== GETTING NODES ====")
+        print("=== GETTING NODES ====")
+        print("viewport", self.viewport_y)
+        print("cursor.y", self.cursor.y)
+        print("y", y)
+        print("line", line)
         inbetween = False
         x = 0
         if self.cursor.x == 0 and y > 0:# and not isinstance(line[0], BOS):
@@ -553,6 +616,7 @@ class NodeEditor(QFrame):
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
             self.cursor = self.coordinate_to_cursor(e.x(), e.y())
+            self.fix_cursor_on_image()
             self.selection_start = self.cursor.copy()
             self.selection_end = self.cursor.copy()
 
@@ -564,30 +628,36 @@ class NodeEditor(QFrame):
             self.getWindow().showLookahead(lrp)
             self.update()
 
-    def coordinate_to_cursor(self, x, y):
-        cursor_x = x / self.fontwt
-        cursor_y = y / self.fontht
+    def fix_cursor_on_image(self):
+        nodes, _, x = self.get_nodes_at_position()
+        if isinstance(nodes[0], ImageNode):
+            self.cursor.x = x
 
+    def coordinate_to_cursor(self, x, y):
         result = Cursor(0,0)
-        if cursor_y < 0:
-            result.y = 0
-        elif cursor_y < len(self.max_cols):
-            result.y = cursor_y
-        else:
-            result.y = len(self.max_cols) - 1
+
+        mouse_y = y / self.fontht
+        first_line = self.paint_start[0]
+        y_offset = self.paint_start[1]
+
+        y = y_offset
+        line = first_line
+        while line < len(self.line_heights) - 1:
+            y += self.line_heights[line]
+            if y > mouse_y:
+                break
+            line += 1
+        result.y = line
+
+        cursor_x = x / self.fontwt
 
         if cursor_x < 0:
             result.x = 0
-        elif cursor_x <= self.max_cols[result.y]:
+        elif cursor_x <= self.line_widths[result.y]:
             result.x = cursor_x
         else:
-            result.x = self.max_cols[result.y]
+            result.x = self.line_widths[result.y]
 
-        # fix cursor
-        line = self.line_info[self.viewport_y + result.y]
-        while len(line) == 1 and isinstance(line[0], ImageNode):
-            result.y -= 1
-            line = self.line_info[self.viewport_y + result.y]
         return result
 
     def mouseMoveEvent(self, e):
@@ -642,7 +712,7 @@ class NodeEditor(QFrame):
             if e.key() == Qt.Key_Home:
                 self.cursor.x = 0
             else:
-                self.cursor.x = self.max_cols[self.cursor.y]
+                self.cursor.x = self.line_widths[self.cursor.y]
         elif text != "":
             if e.key() == Qt.Key_C and e.modifiers() == Qt.ControlModifier:
                 self.copySelection()
@@ -676,7 +746,7 @@ class NodeEditor(QFrame):
                         if self.document_y() > 0:
                             self.cursor_movement(Qt.Key_Up)
                             self.changed_line = self.document_y()
-                            self.cursor.x = self.max_cols[self.cursor.y]
+                            self.cursor.x = self.line_widths[self.cursor.y]
                 if inbetween:   # inside node
                     internal_position = len(selected_nodes[0].symbol.name) - (x - self.cursor.x)
                     self.last_delchar = selected_nodes[0].backspace(internal_position)
@@ -794,6 +864,8 @@ class NodeEditor(QFrame):
             self.cursor_movement(Qt.Key_Down)
             self.cursor.x = indentation
 
+        self.fix_cursor_on_image()
+
         root = selected_nodes[0].get_root()
         lrp = self.parsers[root]
         self.getWindow().showLookahead(lrp)
@@ -840,6 +912,7 @@ class NodeEditor(QFrame):
                     i += 1
                     endnode = self.line_info[y+i][-1]
                 del self.line_info[y+i]
+                del self.line_heights[y+i]
             except IndexError:
                 endnode = self.ast.parent.children[-1]
 
@@ -850,6 +923,7 @@ class NodeEditor(QFrame):
         node = startnode
 
         new_list = []
+        line_height = 1
 
         next_token_after_magic = []
         while node is not endnode:
@@ -869,33 +943,26 @@ class NodeEditor(QFrame):
                     node.image = QImage(filename)
                 else:
                     node.image = None
-                    # delete subsequent imagenodes
-                    while y+1 < len(self.line_info) and isinstance(self.line_info[y+1][0], ImageNode):
-                        del self.line_info[y+1]
                 if node.image:
-                    empty_lines = int(math.ceil(node.image.height() * 1.0 / self.fontht))
-                    empty_lines = max(0, empty_lines - 1)
-                    for i in range(empty_lines):
-                        # check if dummy lines exists, add if not
-                        if y+1+i < len(self.line_info) and  isinstance(self.line_info[y+1+i][0], ImageNode):
-                            break
-                        else:
-                            return_node = TextNode(Terminal("\n"), -1, [], -1)
-                            return_node.lookup = "<return>"
-                            self.line_info.insert(y+1, [ImageNode(node, i+1)])
+                    print("added image")
                     node = ImageNode(node, 0)
+                    image_line_height = int(math.ceil(node.image.height() * 1.0 / self.fontht))
+                    print(image_line_height)
+                    line_height = max(line_height, image_line_height)
 
             new_list.append(node)
             if node.lookup == "<return>":
                 self.line_info[y] = new_list
+                self.line_heights[y] = line_height
                 new_list = []
+                line_height = 1
                 y += 1
-                while y < len(self.line_info) and isinstance(self.line_info[y][0], ImageNode):
-                    y += 1
                 self.line_info.insert(y, [])
+                self.line_heights.insert(y, 1)
             node = node.next_terminal()
         new_list.append(endnode)
         self.line_info[y] = new_list
+        self.line_heights[y] = line_height
 
     def repair_line(self, y):
         print("repair")
@@ -999,30 +1066,38 @@ class NodeEditor(QFrame):
             #new_node.lookup = pl.name(text)
 
     def cursor_movement(self, key):
+        cur = self.cursor
+
         if key == QtCore.Qt.Key_Up:
             if self.cursor.y > 0:
                 self.cursor.y -= 1
-                while isinstance(self.line_info[self.document_y()][-1], ImageNode):
-                    self.cursor.y -= 1
-                if self.cursor.x > self.max_cols[self.cursor.y]:
-                    self.cursor.x = self.max_cols[self.cursor.y]
+                if self.cursor.x > self.line_widths[cur.y]:
+                    self.cursor.x = self.line_widths[cur.y]
             else:
                 self.getWindow().ui.scrollArea.decVSlider()
         elif key == QtCore.Qt.Key_Down:
-            if self.cursor.y < (self.geometry().height() / self.fontht) - 1 and self.document_y() < len(self.line_info)-1:
+            if self.cursor.y < len(self.line_info) - 1:
                 self.cursor.y += 1
-                while isinstance(self.line_info[self.document_y()][-1], ImageNode):
-                    self.cursor.y += 1
-                if self.cursor.x > self.max_cols[self.cursor.y]:
-                    self.cursor.x = self.max_cols[self.cursor.y]
+                if self.cursor.x > self.line_widths[cur.y]:
+                    self.cursor.x = self.line_widths[cur.y]
             else:
                 self.getWindow().ui.scrollArea.incVSlider()
         elif key == QtCore.Qt.Key_Left:
             if self.cursor.x > 0:
-                self.cursor.x -= 1
+                node = self.get_selected_node()
+                if node.image:
+                    s = self.get_nodesize_in_chars(node)
+                    self.cursor.x -= s.w
+                else:
+                    self.cursor.x -= 1
         elif key == QtCore.Qt.Key_Right:
-            if self.cursor.x < self.max_cols[self.cursor.y]:
+            if self.cursor.x < self.line_widths[cur.y]:
                 self.cursor.x += 1
+                node = self.get_selected_node()
+                if node.image:
+                    s = self.get_nodesize_in_chars(node)
+                    self.cursor.x += s.w - 1
+        self.fix_cursor_on_image()
 
     # ========================== AST modification stuff ========================== #
 
@@ -1101,6 +1176,7 @@ class NodeEditor(QFrame):
     def insertTextNoSim(self, text):
         # init
         self.line_info = []
+        self.line_heights = []
         self.cursor = Cursor(0,0)
         self.viewport_y = 0
         for node in list(self.parsers):
@@ -1140,11 +1216,13 @@ class NodeEditor(QFrame):
 
             if node.lookup == "<return>":
                 self.line_info.append(line_nodes)
+                self.line_heights.append(1)
                 line_nodes = []
                 self.node_list.insert(1, node)
 
             last_node = node
         self.line_info.append(line_nodes) #add last line
+        self.line_heights.append(1)
         self.line_info[-1].append(eos)
         parent.children.append(eos)
         node.right = eos # link to eos
@@ -1481,12 +1559,13 @@ class NodeEditor(QFrame):
                 self.magic_tokens.append(id(node.get_magicterminal()))
         node = self.ast.parent
         self.line_info.append([node.children[0], node.children[-1]])
+        self.line_heights.append(1)
         self.rescan_line(0)
 
 class Cursor(object):
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+    def __init__(self, pos, line):
+        self.x = pos
+        self.y = line
 
     def copy(self):
         return Cursor(self.x, self.y)
