@@ -56,6 +56,9 @@ priorities = """
     "a":a
 """
 
+def print_var(name, value):
+    print("%s: %s" % (name, value))
+
 class StyleNode(object):
     def __init__(self, mode, bgcolor):
         self.mode = mode
@@ -479,10 +482,10 @@ class NodeEditor(QFrame):
         y = self.cursor.y#self.document_y()
         line = self.line_info[y]
         print("=== GETTING NODES ====")
-        print("viewport", self.viewport_y)
-        print("cursor.y", self.cursor.y)
-        print("y", y)
-        print("line", line)
+        #print("viewport", self.viewport_y)
+        #print("cursor.y", self.cursor.y)
+        #print("y", y)
+        #print("line", line)
         inbetween = False
         x = 0
         if self.cursor.x == 0 and y > 0:# and not isinstance(line[0], BOS):
@@ -835,12 +838,13 @@ class NodeEditor(QFrame):
                         self.repair(node2)
                     #node.parent.insert_after_node(node, node2)
                     #node.parent.insert_after_node(node2, node3)
-                    repairnode = None
+                    repairnode = node
                 else:
                     # insert node, repair
                     node = selected_nodes[0]
                     if isinstance(node, ImageNode):
                         node = node.next_terminal()
+                    print("add_node", node, newnode)
                     self.add_node(node, newnode)
                     #node.parent.insert_after_node(node, newnode)
                     repairnode = newnode
@@ -854,7 +858,8 @@ class NodeEditor(QFrame):
                     self.cursor.x += 4
                 else:
                     self.cursor.x += 1
-            self.repair(repairnode)
+            #self.repair(repairnode)
+            self.relex(repairnode)
 
         self.getWindow().btReparse([])
         self.rescan_line(self.changed_line)
@@ -882,6 +887,7 @@ class NodeEditor(QFrame):
         #     delete the next line
         #     the next lines node is line[-1].next_terminal()
         line = self.line_info[y]
+        print("Rescanning line", line)
         if line == []:
             return
         startnode = line[0]
@@ -954,6 +960,7 @@ class NodeEditor(QFrame):
             if node.lookup == "<return>":
                 self.line_info[y] = new_list
                 self.line_heights[y] = line_height
+                print("create new line", new_list)
                 new_list = []
                 line_height = 1
                 y += 1
@@ -963,54 +970,88 @@ class NodeEditor(QFrame):
         new_list.append(endnode)
         self.line_info[y] = new_list
         self.line_heights[y] = line_height
+        print("Rescaned to", new_list)
 
-    def repair_line(self, y):
-        print("repair")
+    def relex(self, startnode):
+        # XXX when typing to not create new node but insert char into old node
+        #     (saves a few insertions and is easier to lex)
 
-        line = self.line_info[y]
+        root = startnode.get_root()
+        tl = self.lexers[root]
+
+        line = self.line_info[self.changed_line]
         print(line)
-        startnode = line[0]
-        endnode = line[-1]
+        if startnode is not line[0]:
+            startnode = startnode.prev_term
 
-        # update current line
-        new_list = []
-        node = startnode
-        while node is not endnode:
-            new_list.append(node)
-            node = node.next_terminal()
-        new_list.append(endnode)
-        self.line_info[y] = new_list
-        print("repaired to")
-        print(new_list)
+        if isinstance(startnode, BOS) or isinstance(startnode.symbol, MagicTerminal):
+            startnode = startnode.next_term
+
+        end_node = line[-1]
+        token = startnode
+        relex_string = []
+        while token is not end_node:
+            if isinstance(token.symbol, MagicTerminal): # found a language box
+                # start another relexing process after the box
+                next_token = token.next_term
+                self.relex(next_token)
+                break
+            if isinstance(token, EOS): # reached end of language box
+                break
+            relex_string.append(token.symbol.name)
+            token = token.next_term
+
+        success = tl.match("".join(relex_string))
+
+        old_node = startnode
+        old_x = 0
+        new_x = 0
+        after_startnode = False
+        debug_old = []
+        debug_new = []
+        for match in success:
+            if after_startnode:
+                if old_node.symbol.name == match[0] and old_node.lookup == match[1]:
+                    # XXX optimisation only
+                    # from here everything is going to be relexed to the same
+                    # XXX check construction location
+                    break
+
+            # 1) len(relexed) == len(old) => update old with relexed
+            # 2) len(relexed) >  len(old) => update old with relexed and delete following previous until counts <=
+            # 3) len(relexed) <  len(old) => insert token
+
+            if new_x < old_x: # insert
+                additional_node = TextNode(Terminal(match[0]), -1, [], -1)
+                additional_node.lookup = match[1]
+                self.add_node(old_node.prev_term, additional_node)
+                old_x += 0
+                new_x  += len(match[0])
+                debug_old.append("")
+                debug_new.append(match[0])
+            else:
+                old_x += len(old_node.symbol.name)
+                new_x  += len(match[0])
+                debug_old.append(old_node.symbol.name)
+                debug_new.append(match[0])
+                old_node.symbol.name = match[0]
+                old_node.lookup = match[1]
+
+                old_node = old_node.next_term
+
+            # relexed was bigger than old_node => delete as many nodes that fit into len(relexed)
+            while old_x < new_x:
+                if old_x + len(old_node.symbol.name) <= new_x:
+                    old_x += len(old_node.symbol.name)
+                    delete_node = old_node
+                    old_node = delete_node.next_term
+                    delete_node.parent.remove_child(delete_node)
+                else:
+                    break
+
+        if old_x != new_x: # sanity check
+            raise AssertionError("old_x(%s) != new_x(%s) %s => %s" % (old_x, new_x, debug_old, debug_new))
         return
-
-        if node is not line[-1]: # if the found newline is not the last element
-            self.line_info.insert(y+1, [node.next_terminal(), endnode])
-            self.rescan_line(y+1)
-
-       #while node is not endnode:
-       #    print(node.symbol.name, id(node), node.next_terminal())
-
-       #    if node is endnode:
-       #        print("found endnode")
-       #        new_list.append(endnode)
-       #        break
-
-       #    print("appending", node.symbol.name)
-       #    new_list.append(node)
-
-       #    # check for new newlines
-       #    if node.lookup == "<return>":
-       #        new_line = [node.next_terminal(), endnode]
-       #        self.line_info.insert(y+1, new_line)
-       #        self.rescan_line(y+1)
-       #        break
-
-       #    # XXX check for deleted newlines
-
-       #    node = node.next_terminal()
-       #self.line_info[y] = new_list
-       #print(new_list)
 
 
     def add_magic(self):
@@ -1232,6 +1273,7 @@ class NodeEditor(QFrame):
         node.mark_changed()
 
     def repair(self, startnode):
+        return
         # XXX don't split nodes at once, but see if the relxing results in the same nodes
         if startnode is None:
             return
