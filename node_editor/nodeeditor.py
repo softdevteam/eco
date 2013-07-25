@@ -249,7 +249,6 @@ class NodeEditor(QFrame):
     def paintLines(self, paint, startline):
         import os
 
-        print("startline", startline)
         # find proper startline
         total = 0
         real_line = 0
@@ -258,8 +257,6 @@ class NodeEditor(QFrame):
                 break
             total += h
             real_line += 1
-        print("total", total)
-        print("real_line", real_line)
 
         # get all selected magic tokens
         node = self.get_nodes_at_position()[0][0]
@@ -267,14 +264,11 @@ class NodeEditor(QFrame):
         node = node.get_root().get_magicterminal()
 
         r = min(sum(self.line_heights)-self.viewport_y, (self.geometry().height()/self.fontht))
-        print("r", r)
 
         # check if the line starts with a partial image
         y = total - startline
         self.paint_start = (real_line, y)
-        print("y", y)
         startline = real_line
-        print("new startline", total)
 
         r = min(len(self.line_info)-startline, (self.geometry().height()/self.fontht))
 
@@ -481,11 +475,6 @@ class NodeEditor(QFrame):
     def get_nodes_at_position(self):
         y = self.cursor.y#self.document_y()
         line = self.line_info[y]
-        print("=== GETTING NODES ====")
-        #print("viewport", self.viewport_y)
-        #print("cursor.y", self.cursor.y)
-        #print("y", y)
-        #print("line", line)
         inbetween = False
         x = 0
         if self.cursor.x == 0 and y > 0:# and not isinstance(line[0], BOS):
@@ -494,8 +483,6 @@ class NodeEditor(QFrame):
             while isinstance(node, ImageNode):
                 node = self.line_info[y-i][-1]
                 i+=1
-            #print("x=0: got nodes from pos", node, node.next_terminal())
-            #return ([node, node.next_terminal()], False, 0)
         else:
             x = 0
             for node in line:
@@ -519,56 +506,7 @@ class NodeEditor(QFrame):
                 magic = root.get_magicterminal()
                 if magic:
                     node = magic
-        #print("got nodes from pos", node, node.next_terminal(), inbetween, x, self.cursor.x)
         return ([node, node.next_terminal()], inbetween, x)
-
-    def OLD2get_nodes_at_position(self):
-        print("cursor", self.cursor)
-        node = self.node_list[self.cursor.y + self.viewport_y]
-        x = 0#len(node.symbol.name)
-        inbetween = False
-        while x < self.cursor.x:
-            node = node.next_terminal()
-            x += len(node.symbol.name)
-        if x > self.cursor.x:
-            inbetween = True
-        print("got nodes from pos", node, inbetween, x, self.cursor.x)
-        return ([node, node.next_terminal()], inbetween, x)
-
-    def OLDget_nodes_at_position(self):
-        print("==================== Get nodes at pos ====================== ")
-        print("Position:", self.cursor)
-        # Look up node in position map (if there is no direct match, i.e. inbetween node, try to find end of node)
-        node_at_pos = None
-        x = self.cursor.x
-        y = self.cursor.y
-        inbetween = False
-        while not node_at_pos and x <= self.max_cols[y]:
-            try:
-                node_at_pos = self.node_map[(x, y)]
-                break
-            except KeyError:
-                x += 1
-                inbetween = True
-        #print(self.node_map)
-        print("node at pos:", node_at_pos)
-        selected_nodes = [node_at_pos, node_at_pos.next_terminal()]
-        print("Selected Nodes:", selected_nodes)
-        #if isinstance(selected_nodes[1].symbol, MagicTerminal) and self.edit_rightnode:
-        if self.edit_rightnode:
-            print("edit right", selected_nodes)
-            if isinstance(selected_nodes[1], EOS):
-                root = selected_nodes[1].get_root()
-                magic = root.get_magicterminal()
-                if magic:
-                    selected_nodes = [magic, magic.next_terminal()]
-            if isinstance(selected_nodes[1].symbol, MagicTerminal):
-                bos = selected_nodes[1].symbol.parser.previous_version.get_bos()
-                selected_nodes = [bos, bos.next_terminal()]
-
-        print("Final selected nodes", selected_nodes)
-        print("==================== END (get_nodes_at_pos) ====================== ")
-        return (selected_nodes, inbetween, x)
 
     def get_nodes_from_selection(self):
         cur_start = min(self.selection_start, self.selection_end)
@@ -679,10 +617,7 @@ class NodeEditor(QFrame):
         cProfile.runctx("self.linkkeyPressEvent(e)", globals(), locals())
 
     def keyPressEvent(self, e):
-        print("====================== KEYPRESS (>>%s<<) ============================" % (repr(e.text()),))
-        print("first get_nodes_at_pos")
         selected_nodes, inbetween, x = self.get_nodes_at_position()
-        print(selected_nodes)
 
         text = e.text()
         self.changed_line = self.document_y()
@@ -819,34 +754,21 @@ class NodeEditor(QFrame):
                             indentation = 0
                     newnode = self.create_node(str(text))
                 if inbetween:
-                    print("BETWEEN")
                     node = selected_nodes[0]
                     # split, insert new node, repair
                     internal_position = len(node.symbol.name) - (x - self.cursor.x)
                     node2 = newnode
                     node3 = self.create_node(node.symbol.name[internal_position:])
                     node.symbol.name = node.symbol.name[:internal_position]
-                    print("node1", node)
-                    print("node2", node2)
-                    print("node3", node3)
                     self.add_node(node, node2)
                     self.add_node(node2, node3)
-                    self.repair(node2)
-                    if not node3.deleted:
-                        self.repair(node3)
-                    if not node2.deleted:
-                        self.repair(node2)
-                    #node.parent.insert_after_node(node, node2)
-                    #node.parent.insert_after_node(node2, node3)
                     repairnode = node
                 else:
                     # insert node, repair
                     node = selected_nodes[0]
                     if isinstance(node, ImageNode):
                         node = node.next_terminal()
-                    print("add_node", node, newnode)
                     self.add_node(node, newnode)
-                    #node.parent.insert_after_node(node, newnode)
                     repairnode = newnode
                 if e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
                     pass # do nothing
@@ -858,7 +780,6 @@ class NodeEditor(QFrame):
                     self.cursor.x += 4
                 else:
                     self.cursor.x += 1
-            #self.repair(repairnode)
             self.relex(repairnode)
 
         self.getWindow().btReparse([])
@@ -887,7 +808,6 @@ class NodeEditor(QFrame):
         #     delete the next line
         #     the next lines node is line[-1].next_terminal()
         line = self.line_info[y]
-        print("Rescanning line", line)
         if line == []:
             return
         startnode = line[0]
@@ -950,17 +870,14 @@ class NodeEditor(QFrame):
                 else:
                     node.image = None
                 if node.image:
-                    print("added image")
                     node = ImageNode(node, 0)
                     image_line_height = int(math.ceil(node.image.height() * 1.0 / self.fontht))
-                    print(image_line_height)
                     line_height = max(line_height, image_line_height)
 
             new_list.append(node)
             if node.lookup == "<return>":
                 self.line_info[y] = new_list
                 self.line_heights[y] = line_height
-                print("create new line", new_list)
                 new_list = []
                 line_height = 1
                 y += 1
@@ -970,7 +887,6 @@ class NodeEditor(QFrame):
         new_list.append(endnode)
         self.line_info[y] = new_list
         self.line_heights[y] = line_height
-        print("Rescaned to", new_list)
 
     def relex(self, startnode):
         # XXX when typing to not create new node but insert char into old node
@@ -980,7 +896,6 @@ class NodeEditor(QFrame):
         tl = self.lexers[root]
 
         line = self.line_info[self.changed_line]
-        print(line)
         if startnode is not line[0]:
             startnode = startnode.prev_term
 
@@ -1271,133 +1186,6 @@ class NodeEditor(QFrame):
         eos.left = node
         eos.prev_term = node
         node.mark_changed()
-
-    def repair(self, startnode):
-        return
-        # XXX don't split nodes at once, but see if the relxing results in the same nodes
-        if startnode is None:
-            return
-        if isinstance(startnode, BOS) or isinstance(startnode, EOS):
-            return
-        if isinstance(startnode.symbol, MagicTerminal):
-            return
-        print("========== Starting Repair procedure ==========")
-        print("Startnode", startnode.symbol)
-        root = startnode.get_root()
-        regex_list = []
-        # find all regexs that include the new input string
-        for regex in self.lexers[root].regexlist.keys():
-            if self.in_regex(startnode.symbol.name, regex):
-                regex_list.append(regex)
-        print("    Possible regex:", regex_list)
-
-        # expand to the left as long as all chars of those tokens are inside one of the regexs
-        left_tokens = self.get_matching_tokens(startnode, regex_list, "left")
-        left_tokens.reverse()
-        # expand to the right as long as tokens may match
-        right_tokens = self.get_matching_tokens(startnode, regex_list, "right")
-        print("    Tokenlist:", left_tokens, right_tokens)
-
-        # merge all tokens together
-        # do not repair return nodes since this destroys the mapping
-        if startnode.symbol.name not in ["\n", "\r"]:
-            #self.node_list.remove(startnode) # be sure you don't add it double
-            newtoken_text = []
-            for token in left_tokens:
-                newtoken_text.append(token.symbol.name)
-            newtoken_text.append(startnode.symbol.name)
-            for token in right_tokens:
-                newtoken_text.append(token.symbol.name)
-            print("    Relexing:", repr("".join(newtoken_text)))
-        else:
-            startnode.symbol.name
-            startnode.lookup == "<return>" # XXX use tl.match here
-            left_tokens = []
-            right_tokens = []
-            return
-
-
-        tl = self.lexers[root]
-        success = tl.match("".join(newtoken_text))
-        #return
-
-        # relex token
-       #from lexer import Lexer
-       #lex = Lexer("".join(newtoken_text))
-       #regex_dict = {}
-       #i = 0
-       #print("creating groups")
-       #for regex in self.getPL().rules.keys():
-       #    regex_dict["Group_" + str(i)] = regex
-       #    print(i, regex)
-       #    i += 1
-       #lex.set_regex(regex_dict)
-       #print("check for valid lex")
-       #success = lex.lex()
-       #print(lex.tokens)
-       #print("relexing done")
-
-        # NEW NODE INSERTION ALGORITHM THAT TRYS TO REUSE OLD OBJECTS
-        if success:
-            list_of_reusable_nodes = []
-            list_of_reusable_nodes.extend(left_tokens)
-            list_of_reusable_nodes.append(startnode)
-            list_of_reusable_nodes.extend(right_tokens)
-
-            print(len(success), len(list_of_reusable_nodes))
-            for match in success:
-                if len(list_of_reusable_nodes) > 0:
-                    reusable_node = list_of_reusable_nodes.pop(0)
-                    print("overwriting", reusable_node, "with", match)
-                    reusable_node.symbol.name = match[0]
-                    reusable_node.lookup = match[1]
-                    reusable_node.mark_changed()
-                    last_node = reusable_node
-                else:
-                    print("creating newnode", match)
-                    newnode = TextNode(Terminal(match[0]), -1, [], -1)
-                    newnode.lookup = match[1]
-                    last_node.parent.insert_after_node(last_node, newnode)
-                    newnode.mark_changed()
-                    last_node = newnode
-
-            # delete leftover nodes
-            for node in list_of_reusable_nodes:
-                node.mark_changed()
-                node.parent.remove_child(node)
-
-        return
-
-        # if relexing successfull, replace old tokens with new ones
-        if success: #XXX is this false at any time?
-            print("success", success)
-            parent = startnode.parent
-            # remove old tokens
-            # XXX this removes the first appearance of that token (which isn't always the one relexed)
-            for token in left_tokens:
-                #print("left remove", token)
-                token.parent.remove_child(token)
-            for token in right_tokens:
-                #print("right remove", token)
-                token.parent.remove_child(token) #XXX maybe invoke mark_changed here
-            # create and insert new tokens
-            #print("parent children before", parent.children)
-            #lex.tokens.reverse()
-            success.reverse()
-            for match in success:#lex.tokens:
-                symbol = Terminal(match[0])
-                node = TextNode(symbol, -1, [], -1)
-                node.lookup = match[1]
-                #node = self.create_new_node(token)#token.value)
-                parent.insert_after_node(startnode, node)
-                print("adding", node)
-                if node.lookup == "<return>":
-                    self.node_list.insert(self.cursor.y + self.viewport_y, node)
-            parent.remove_child(startnode)
-            #print("parent children after", parent.children)
-            parent.mark_changed() # XXX changed or not changed? if it fits this hasn't really changed. only the removed nodes have changed
-        print("Repaired to", startnode)
-        print("============== End Repair ================")
 
     def get_matching_tokens(self, startnode, regex_list, direction):
         token_list = []
