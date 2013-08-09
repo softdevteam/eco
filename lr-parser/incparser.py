@@ -19,7 +19,7 @@ from astree import AST, TextNode, BOS, EOS
 Node = TextNode
 
 # deactivate parser output for now
-def noprint(*args, **kwargs):
+def print(*args, **kwargs):
     pass
 
 class IncParser(object):
@@ -73,7 +73,7 @@ class IncParser(object):
         root = Node(Nonterminal("Root"), 0, [bos, eos])
         self.previous_version = AST(root)
 
-    def inc_parse(self):
+    def inc_parse(self, line_indents):
         print("============ NEW INCREMENTAL PARSE ================= ")
         self.error_node = None
         self.stack = []
@@ -83,6 +83,7 @@ class IncParser(object):
         bos = self.previous_version.parent.children[0]
         la = self.pop_lookahead(bos)
         self.loopcount = 0
+        done_indents = []
 
         USE_OPT = True
 
@@ -96,6 +97,58 @@ class IncParser(object):
                         lookup_symbol = Terminal(la.lookup)
                     else:
                         lookup_symbol = la.symbol
+
+                    # emit indent/dedent tokens
+                    if (la.lookup == "<return>" or isinstance(la, EOS)) and id(la) not in done_indents:
+                        try:
+                            indent = line_indents[la.linenr]
+                        except AttributeError:
+                            indent = None
+                        if indent is None:
+                            done_indents.append(id(la))
+                            continue
+
+                        # get next indentation
+                        if la.linenr+1 >= len(line_indents):
+                            next_indent = 0
+                        else:
+                            next_indent = line_indents[la.linenr+1]
+                        i = 2
+                        while next_indent is None:
+                            next_indent = line_indents[la.linenr+i]
+                            i += 1
+
+                        done_indents.append(id(la))
+
+                        if indent < next_indent:
+                            indent_token = TextNode(Terminal("INDENT"), -1, [], -1)
+                            indent_token.right = la.right
+                            la = indent_token
+                            continue
+
+                        if indent > next_indent:
+                            temp = next_indent
+                            dedent_counter = 0
+                            y = la.linenr
+                            while indent != next_indent:
+                                y -= 1
+                                prev_indent = line_indents[y]
+                                if prev_indent < indent:
+                                    indent = prev_indent
+                                    dedent_counter += 1
+
+                            print("dedent counter", dedent_counter)
+                            if dedent_counter > 0:
+                                first = dedent_token = TextNode(Terminal("DEDENT"), -1, [], -1)
+                                for i in range(dedent_counter-1):
+                                    token = TextNode(Terminal("DEDENT"), -1, [], -1)
+                                    dedent_token.right = token
+                                    dedent_token = token
+                                dedent_token.right = la
+                                la = first
+                            continue
+
+
                     element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
                     if isinstance(element, Accept):
                         #XXX change parse so that stack is [bos, startsymbol, eos]

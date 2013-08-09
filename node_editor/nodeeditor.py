@@ -106,11 +106,11 @@ class NodeEditor(QFrame):
         self.changed_line = -1
         self.line_info = []
         self.line_heights = []
+        self.line_indents = []
         self.node_list = []
         self.node_map = {}
         self.max_cols = []
         self.line_widths = {}
-        self.indentations = {}
 
         self.parsers = {}
         self.lexers = {}
@@ -140,6 +140,7 @@ class NodeEditor(QFrame):
         self.update()
         self.line_info = []
         self.line_heights = []
+        self.line_indents = []
 
     def set_lrparser(self, lrp, lang_name):
         self.parsers = {}
@@ -158,6 +159,7 @@ class NodeEditor(QFrame):
 
         self.line_info.append([self.ast.parent.children[0], self.ast.parent.children[1]]) # start with BOS and EOS
         self.line_heights.append(1)
+        self.line_indents.append(None)
 
     def set_sublanguage(self, language):
         self.sublanguage = language
@@ -782,8 +784,8 @@ class NodeEditor(QFrame):
                     self.cursor.x += 1
             self.relex(repairnode)
 
-        self.getWindow().btReparse([])
         self.rescan_line(self.changed_line)
+        self.getWindow().btReparse([])
         self.repaint() # this recalculates self.max_cols
 
         if e.key() == Qt.Key_Return:
@@ -877,15 +879,18 @@ class NodeEditor(QFrame):
             new_list.append(node)
             if node.lookup == "<return>":
                 self.line_info[y] = new_list
+                self.fix_indentation(y)
                 self.line_heights[y] = line_height
                 new_list = []
                 line_height = 1
                 y += 1
                 self.line_info.insert(y, [])
                 self.line_heights.insert(y, 1)
+                self.line_indents.insert(y, None)
             node = node.next_terminal()
         new_list.append(endnode)
         self.line_info[y] = new_list
+        self.fix_indentation(y)
         self.line_heights[y] = line_height
 
     def relex(self, startnode):
@@ -966,8 +971,46 @@ class NodeEditor(QFrame):
 
         if old_x != new_x: # sanity check
             raise AssertionError("old_x(%s) != new_x(%s) %s => %s" % (old_x, new_x, debug_old, debug_new))
+
         return
 
+    def fix_indentation(self, y):
+        line = self.line_info[y]
+        first_token = line[0]
+        last_token = line[-1]
+        last_token.linenr = y
+
+        if first_token.lookup == "<return>":
+            self.line_indents[y] = None
+        elif first_token.lookup == "<ws>":
+            next_token = first_token.next_term
+            if next_token.lookup not in ["<return>","<ws>"]:
+                self.line_indents[y] = len(first_token.symbol.name)
+            else:
+                self.line_indents[y] = None
+        else:
+            self.line_indents[y] = 0
+
+        return
+        # old stuff
+        last_token = self.line_info[y] # is either a newline or eos
+        assert isinstance(last_token, EOS) or last_token.lookup == "<return>"
+
+        if isinstance(last_token, EOS):
+            # dedent everything
+            return
+
+        next_token = last_token.next_term
+        if next_token.lookup == "<ws>" and next_token.next_term.lookup not in ["<ws>", "<return>"]:
+            spaces = len(next_token.symbol.name)
+            indentation = space - sum(last_token.indent_stack)
+            # copy
+        return
+
+        if first_token.lookup == "<ws>":
+            next_token = first_token.next_term
+            if next_token.lookup not in ["<ws>", "<return>"]:
+                first_token.lookup = "INDENT"
 
     def add_magic(self):
         # Create magic token
@@ -1053,6 +1096,8 @@ class NodeEditor(QFrame):
                 if node.image:
                     s = self.get_nodesize_in_chars(node)
                     self.cursor.x += s.w - 1
+        line = self.line_info[self.cursor.y]
+        print(line)
         self.fix_cursor_on_image()
 
     # ========================== AST modification stuff ========================== #
@@ -1559,7 +1604,7 @@ class Window(QtGui.QMainWindow):
             lang = self.ui.frame.parser_langs[key]
             #import cProfile
             #cProfile.runctx("status = self.ui.frame.parsers[key].inc_parse()", globals(), locals())
-            status = self.ui.frame.parsers[key].inc_parse()
+            status = self.ui.frame.parsers[key].inc_parse(self.ui.frame.line_indents)
             qlabel = QLabel(lang)
             if status:
                 results.append("<span style='background-color: #00ff00'>" + lang + "</span>")
