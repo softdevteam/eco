@@ -19,7 +19,7 @@ from astree import AST, TextNode, BOS, EOS
 Node = TextNode
 
 # deactivate parser output for now
-def print(*args, **kwargs):
+def noprint(*args, **kwargs):
     pass
 
 class IncParser(object):
@@ -133,6 +133,8 @@ class IncParser(object):
                             while indent != next_indent:
                                 y -= 1
                                 prev_indent = line_indents[y]
+                                if prev_indent is None:
+                                    continue
                                 if prev_indent < indent:
                                     indent = prev_indent
                                     dedent_counter += 1
