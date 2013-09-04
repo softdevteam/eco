@@ -86,6 +86,9 @@ class IncParser(object):
         done_indents = []
 
         USE_OPT = True
+        INDENTATION_BASED = False
+
+        print(line_indents)
 
         while(True):
             self.loopcount += 1
@@ -99,93 +102,73 @@ class IncParser(object):
                         lookup_symbol = la.symbol
 
                     # emit indent/dedent tokens
-                    if (la.lookup == "<return>" or isinstance(la, EOS)) and id(la) not in done_indents:
-                        try:
-                            indent = line_indents[la.linenr]
-                        except AttributeError:
-                            indent = None
-                        if indent is None:
+                    if INDENTATION_BASED:
+                        if (la.lookup == "<return>" or isinstance(la, EOS)) and id(la) not in done_indents:
+                            try:
+                                indent = line_indents[la.linenr]
+                            except AttributeError:
+                                indent = None
+                            if indent is None:
+                                done_indents.append(id(la))
+                                continue
+
+                            # get next indentation
+                            if la.linenr+1 >= len(line_indents):
+                                next_indent = 0
+                            else:
+                                next_indent = line_indents[la.linenr+1]
+                            i = 2
+                            while next_indent is None:
+                                next_indent = line_indents[la.linenr+i]
+                                i += 1
+
                             done_indents.append(id(la))
-                            continue
 
-                        # get next indentation
-                        if la.linenr+1 >= len(line_indents):
-                            next_indent = 0
-                        else:
-                            next_indent = line_indents[la.linenr+1]
-                        i = 2
-                        while next_indent is None:
-                            next_indent = line_indents[la.linenr+i]
-                            i += 1
+                            result = None
+                            if indent < next_indent:
+                                indent_token = TextNode(Terminal("INDENT"), -1, [], -1)
+                                #indent_token.right = la.right
+                                #la = indent_token
+                                result = self.parse_terminal(indent_token, indent_token.symbol)
+                                #continue
 
-                        done_indents.append(id(la))
+                            elif indent > next_indent:
+                                temp = next_indent
+                                dedent_counter = 0
+                                y = la.linenr
+                                while indent != next_indent:
+                                    y -= 1
+                                    prev_indent = line_indents[y]
+                                    if prev_indent is None:
+                                        continue
+                                    if prev_indent < indent:
+                                        indent = prev_indent
+                                        dedent_counter += 1
 
-                        if indent < next_indent:
-                            indent_token = TextNode(Terminal("INDENT"), -1, [], -1)
-                            indent_token.right = la.right
-                            la = indent_token
-                            continue
+                                if dedent_counter > 0:
+                                    #first = dedent_token = TextNode(Terminal("DEDENT"), -1, [], -1)
+                                    for i in range(dedent_counter):
+                                        token = TextNode(Terminal("DEDENT"), -1, [], -1)
+                                        #dedent_token.right = token
+                                        #dedent_token = token
+                                        result = self.parse_terminal(token, token.symbol)
+                                    #dedent_token.right = la
+                                    #la = first
+                                #continue
 
-                        if indent > next_indent:
-                            temp = next_indent
-                            dedent_counter = 0
-                            y = la.linenr
-                            while indent != next_indent:
-                                y -= 1
-                                prev_indent = line_indents[y]
-                                if prev_indent is None:
-                                    continue
-                                if prev_indent < indent:
-                                    indent = prev_indent
-                                    dedent_counter += 1
+                            if result == "Accept":
+                                return True
+                            elif result == "Error":
+                                return False
 
-                            print("dedent counter", dedent_counter)
-                            if dedent_counter > 0:
-                                first = dedent_token = TextNode(Terminal("DEDENT"), -1, [], -1)
-                                for i in range(dedent_counter-1):
-                                    token = TextNode(Terminal("DEDENT"), -1, [], -1)
-                                    dedent_token.right = token
-                                    dedent_token = token
-                                dedent_token.right = la
-                                la = first
-                            continue
-
-
-                    element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
-                    if isinstance(element, Accept):
-                        #XXX change parse so that stack is [bos, startsymbol, eos]
-                        bos = self.previous_version.parent.children[0]
-                        eos = self.previous_version.parent.children[-1]
-                        self.previous_version.parent.set_children([bos, self.stack[1], eos])
-                        print("loopcount", self.loopcount)
-                        print ("Accept")
+                    result = self.parse_terminal(la, lookup_symbol)
+                    if result == "Accept":
                         return True
-                    elif isinstance(element, Shift):
-                        self.undo.append((la, "state", la.state))
-                        la.state = element.action
-                        self.stack.append(la)
-                        self.current_state = element.action
-                        if not la.lookup == "<ws>":
-                            # last_shift_state is used to predict next symbol
-                            # whitespace destroys correct behaviour
-                            self.last_shift_state = element.action
-                        la = self.pop_lookahead(la)
+                    elif result == "Error":
+                        return False
+                    elif result != None:
+                        la = result
 
-                    elif isinstance(element, Reduce):
-                        self.reduce(element)
-                    elif element is None:
-                        if self.validating:
-                            self.right_breakdown()
-                            self.validating = False
-                        else:
-                            # undo all changes
-                            while len(self.undo) > 0:
-                                node, attribute, value = self.undo.pop(-1)
-                                setattr(node, attribute, value)
-                            self.error_node = la
-                            print ("Error", la, la.prev_term, la.next_term)
-                            print("loopcount", self.loopcount)
-                            return False
             else: # Nonterminal
                 if la.changed:
                     la.changed = False
@@ -228,6 +211,48 @@ class IncParser(object):
                         else:
                             la = self.left_breakdown(la)
         print("============ INCREMENTAL PARSE END ================= ")
+
+    def parse_terminal(self, la, lookup_symbol):
+        #print("Parsing terminal", la)
+        element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
+        if isinstance(element, Accept):
+            #XXX change parse so that stack is [bos, startsymbol, eos]
+            bos = self.previous_version.parent.children[0]
+            eos = self.previous_version.parent.children[-1]
+            self.previous_version.parent.set_children([bos, self.stack[1], eos])
+            print("loopcount", self.loopcount)
+            print ("Accept")
+            return "Accept"
+        elif isinstance(element, Shift):
+            print("Shift", la)
+            self.undo.append((la, "state", la.state))
+            la.state = element.action
+            self.stack.append(la)
+            self.current_state = element.action
+            if not la.lookup == "<ws>":
+                # last_shift_state is used to predict next symbol
+                # whitespace destroys correct behaviour
+                self.last_shift_state = element.action
+            if la.symbol.name not in ["INDENT", "DEDENT"]:
+                return self.pop_lookahead(la)
+
+        elif isinstance(element, Reduce):
+            #print("Reducing")
+            self.reduce(element)
+            return self.parse_terminal(la, lookup_symbol)
+        elif element is None:
+            if self.validating:
+                self.right_breakdown()
+                self.validating = False
+            else:
+                # undo all changes
+                while len(self.undo) > 0:
+                    node, attribute, value = self.undo.pop(-1)
+                    setattr(node, attribute, value)
+                self.error_node = la
+                print ("Error", la, la.prev_term, la.next_term)
+                print("loopcount", self.loopcount)
+                return "Error"
 
     def reduce(self, element):
         children = []
