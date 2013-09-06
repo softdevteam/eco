@@ -3,12 +3,21 @@ sys.path.append("../")
 
 import re
 from gparser import Nonterminal, Terminal
+from syntaxtable import FinishSymbol
 
 class AST(object):
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         self.parent = parent
         self.progress = 0
         self.terminals = []
+
+    def init(self):
+        bos = BOS(Terminal(""), 0, [])
+        eos = EOS(FinishSymbol(), 0, [])
+        bos.next_term = eos
+        eos.prev_term = bos
+        root = TextNode(Nonterminal("Root"), 0, [bos, eos])
+        self.parent = root
 
     def get_bos(self):
         return self.parent.children[0]
@@ -121,6 +130,10 @@ class AST(object):
     def pprint(self):
         self.parent.pprint()
 
+    def cprint(self, output=[]):
+        self.parent.cprint(output)
+        return "\n".join(output)
+
 class Node(object):
     def __init__(self, symbol, state, children):
         self.symbol = symbol
@@ -167,29 +180,8 @@ class Node(object):
                 child.next_term.prev_term = child.prev_term
                 return
 
-    def replace_children(self, la, children):
-        assert False # is this used?
-        i = 0
-        children.reverse()
-        for c in self.children:
-            if c is la:
-                self.children.pop(i)
-                for newchild in children:
-                    self.children.insert(i, newchild)
-                    newchild.parent = self
-                return i
-            i += 1
-
-    def insert_before_node(self, node, newnode):
-        assert False # never used?
-        i = 0
-        for c in self.children:
-            if c is node:
-                self.children.insert(i, newnode)
-                newnode.parent = self
-                newnode.mark_changed()
-                return
-            i += 1
+    def insert_after(self, node):
+        self.parent.insert_after_node(self, node)
 
     def insert_after_node(self, node, newnode):
         i = 0
@@ -316,6 +308,12 @@ class Node(object):
         for c in self.children:
             c.pprint(indent)
 
+    def cprint(self, output, indent=0):
+        output.append(" "*indent + str(self.symbol))
+        indent += 4
+        for c in self.children:
+            c.cprint(output, indent)
+
     def __eq__(self, other):
         if isinstance(other, Node):
             return other.symbol == self.symbol and other.state == self.state and other.children == self.children
@@ -327,7 +325,7 @@ uppercase = set(list(string.ascii_uppercase))
 digits = set(list(string.digits))
 
 class TextNode(Node):
-    def __init__(self, symbol, state, children, pos=-1):
+    def __init__(self, symbol, state=-1, children=[], pos=-1):
         Node.__init__(self, symbol, state, children)
         self.pos = pos
         self.position = 0
