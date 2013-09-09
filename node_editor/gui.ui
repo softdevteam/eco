@@ -59,8 +59,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>438</width>
-             <height>576</height>
+             <width>501</width>
+             <height>571</height>
             </rect>
            </property>
            <property name="sizePolicy">
@@ -266,63 +266,13 @@
         <item>
          <widget class="QTabWidget" name="tabWidget">
           <property name="currentIndex">
-           <number>0</number>
+           <number>2</number>
           </property>
           <widget class="QWidget" name="tab">
            <attribute name="title">
             <string>Parse tree</string>
            </attribute>
            <layout class="QGridLayout" name="gridLayout_2">
-            <item row="4" column="0">
-             <layout class="QHBoxLayout" name="horizontalLayout_5">
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <item>
-               <widget class="QCheckBox" name="cb_fit_ast">
-                <property name="text">
-                 <string>Fit AST in view</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QCheckBox" name="cb_toggle_ast">
-                <property name="text">
-                 <string>Show parse tree</string>
-                </property>
-                <property name="checkable">
-                 <bool>true</bool>
-                </property>
-                <property name="checked">
-                 <bool>false</bool>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QCheckBox" name="cb_toggle_ws">
-                <property name="enabled">
-                 <bool>true</bool>
-                </property>
-                <property name="text">
-                 <string>Show whitespace nodes</string>
-                </property>
-                <property name="checked">
-                 <bool>false</bool>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item row="7" column="0">
-             <widget class="QPushButton" name="bt_show_sel_ast">
-              <property name="text">
-               <string>Show selected text parse tree</string>
-              </property>
-             </widget>
-            </item>
             <item row="0" column="0">
              <widget class="QGraphicsView" name="graphicsView">
               <property name="sizePolicy">
@@ -370,6 +320,46 @@
               </property>
               <property name="autoFillBackground">
                <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QCheckBox" name="cb_toggle_ws">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="text">
+               <string>Show whitespace nodes</string>
+              </property>
+              <property name="checked">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QCheckBox" name="cb_toggle_ast">
+              <property name="text">
+               <string>Show parse tree</string>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="checked">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QCheckBox" name="cb_fit_ast">
+              <property name="text">
+               <string>Fit AST in view</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0">
+             <widget class="QPushButton" name="bt_show_sel_ast">
+              <property name="text">
+               <string>Show selected text parse tree</string>
               </property>
              </widget>
             </item>
@@ -517,7 +507,7 @@
      <x>0</x>
      <y>0</y>
      <width>979</width>
-     <height>24</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -526,9 +516,9 @@
     </property>
     <addaction name="actionNew"/>
     <addaction name="actionOpen"/>
-    <addaction name="actionSave"/>
-    <addaction name="separator"/>
     <addaction name="actionImport"/>
+    <addaction name="separator"/>
+    <addaction name="actionSave"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
@@ -542,6 +532,9 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionImport">
+   <property name="icon">
+    <iconset theme="document-import"/>
+   </property>
    <property name="text">
     <string>Import...</string>
    </property>
@@ -557,16 +550,25 @@
    </property>
   </action>
   <action name="actionOpen">
+   <property name="icon">
+    <iconset theme="document-open"/>
+   </property>
    <property name="text">
     <string>Open...</string>
    </property>
   </action>
   <action name="actionSave">
+   <property name="icon">
+    <iconset theme="document-save"/>
+   </property>
    <property name="text">
     <string>Save...</string>
    </property>
   </action>
   <action name="actionNew">
+   <property name="icon">
+    <iconset theme="document-new"/>
+   </property>
    <property name="text">
     <string>New</string>
    </property>
