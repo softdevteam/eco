@@ -58,3 +58,4 @@ class Test_CalcLexer(Test_IncrementalLexer):
         node = node.next_term; assert node.symbol == Terminal("*")
         node = node.next_term; assert node.symbol == Terminal(" ")
         node = node.next_term; assert node.symbol == Terminal("3")
+        node = node.next_term; assert isinstance(node, EOS)
