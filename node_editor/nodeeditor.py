@@ -18,6 +18,7 @@ from gui import Ui_MainWindow
 
 from plexer import PriorityLexer
 from incparser import IncParser
+from inclexer import IncrementalLexer
 from viewer import Viewer
 
 from gparser import Terminal, MagicTerminal
@@ -142,16 +143,15 @@ class NodeEditor(QFrame):
         self.line_heights = []
         self.line_indents = []
 
-    def set_lrparser(self, lrp, lang_name):
+    def set_mainlanguage(self, parser, lexer, lang_name):
         self.parsers = {}
         self.lexers = {}
         self.priorities = {}
-        self.lrp = lrp
-        self.ast = lrp.previous_version
-        self.parsers[lrp.previous_version.parent] = self.lrp
-        self.lexers[lrp.previous_version.parent] = self.getTL()
-        self.priorities[lrp.previous_version.parent] = self.getPL()
-        self.parser_langs[lrp.previous_version.parent] = lang_name
+        self.lrp = parser
+        self.ast = parser.previous_version
+        self.parsers[parser.previous_version.parent] = parser
+        self.lexers[parser.previous_version.parent] = lexer
+        self.parser_langs[parser.previous_version.parent] = lang_name
         self.magic_tokens = []
 
         self.node_list = []
@@ -898,79 +898,8 @@ class NodeEditor(QFrame):
         #     (saves a few insertions and is easier to lex)
 
         root = startnode.get_root()
-        tl = self.lexers[root]
-
-        line = self.line_info[self.changed_line]
-        if startnode is not line[0]:
-            startnode = startnode.prev_term
-
-        if isinstance(startnode, BOS) or isinstance(startnode.symbol, MagicTerminal):
-            startnode = startnode.next_term
-
-        end_node = line[-1]
-        token = startnode
-        relex_string = []
-        while token is not end_node:
-            if isinstance(token.symbol, MagicTerminal): # found a language box
-                # start another relexing process after the box
-                next_token = token.next_term
-                self.relex(next_token)
-                break
-            if isinstance(token, EOS): # reached end of language box
-                break
-            relex_string.append(token.symbol.name)
-            token = token.next_term
-
-        success = tl.match("".join(relex_string))
-
-        old_node = startnode
-        old_x = 0
-        new_x = 0
-        after_startnode = False
-        debug_old = []
-        debug_new = []
-        for match in success:
-            if after_startnode:
-                if old_node.symbol.name == match[0] and old_node.lookup == match[1]:
-                    # XXX optimisation only
-                    # from here everything is going to be relexed to the same
-                    # XXX check construction location
-                    break
-
-            # 1) len(relexed) == len(old) => update old with relexed
-            # 2) len(relexed) >  len(old) => update old with relexed and delete following previous until counts <=
-            # 3) len(relexed) <  len(old) => insert token
-
-            if new_x < old_x: # insert
-                additional_node = TextNode(Terminal(match[0]), -1, [], -1)
-                additional_node.lookup = match[1]
-                self.add_node(old_node.prev_term, additional_node)
-                old_x += 0
-                new_x  += len(match[0])
-                debug_old.append("")
-                debug_new.append(match[0])
-            else:
-                old_x += len(old_node.symbol.name)
-                new_x  += len(match[0])
-                debug_old.append(old_node.symbol.name)
-                debug_new.append(match[0])
-                old_node.symbol.name = match[0]
-                old_node.lookup = match[1]
-
-                old_node = old_node.next_term
-
-            # relexed was bigger than old_node => delete as many nodes that fit into len(relexed)
-            while old_x < new_x:
-                if old_x + len(old_node.symbol.name) <= new_x:
-                    old_x += len(old_node.symbol.name)
-                    delete_node = old_node
-                    old_node = delete_node.next_term
-                    delete_node.parent.remove_child(delete_node)
-                else:
-                    break
-
-        if old_x != new_x: # sanity check
-            raise AssertionError("old_x(%s) != new_x(%s) %s => %s" % (old_x, new_x, debug_old, debug_new))
+        lexer = self.lexers[root]
+        lexer.relex(startnode)
 
         return
 
@@ -1019,19 +948,13 @@ class NodeEditor(QFrame):
         # Create parser, priorities and lexer
         parser = IncParser(self.sublanguage.grammar, 1, True)
         parser.init_ast(magictoken)
+        lexer = IncrementalLexer(self.sublanguage.priorities)
         self.magic_tokens.append(id(magictoken))
         root = parser.previous_version.parent
         root.magic_backpointer = magictoken
-        pl = PriorityLexer(self.sublanguage.priorities)
-        tl = TokenLexer(pl.rules)
         self.parsers[root] = parser
-        self.lexers[root] = tl
-        self.priorities[root] = pl
+        self.lexers[root] = lexer
         self.parser_langs[root] = self.sublanguage.name
-        # Add starting token to new tree
-        #starting_node = self.create_node("")
-        #self.add_node(parser.previous_version.get_bos(), starting_node)
-        #self.node_map[(self.cursor[0], self.cursor[1])] = root.children[0]
 
         magictoken.symbol.parser = root
         return magictoken
@@ -1054,12 +977,10 @@ class NodeEditor(QFrame):
                 line.insert(0, new_node)
         root = new_node.get_root()
         if not isinstance(new_node.symbol, MagicTerminal):
-            pl = self.priorities[root]
-            tl = self.lexers[root]
+            lexer = self.lexers[root]
             text = new_node.symbol.name
-            match = tl.match(text)[0]
+            match = lexer.lex(text)[0]
             new_node.lookup = match[1]
-            new_node.priority = match[2]
             #new_node.regex = pl.regex(text)
             #new_node.priority = pl.priority(text)
             #new_node.lookup = pl.name(text)
@@ -1184,7 +1105,6 @@ class NodeEditor(QFrame):
             if node is not self.ast.parent:
                 del self.parsers[node]
                 del self.lexers[node]
-                del self.priorities[node]
                 del self.parser_langs[node]
                 self.magic_tokens = []
         # convert linebreaks
@@ -1192,7 +1112,11 @@ class NodeEditor(QFrame):
         parser = list(self.parsers.values())[0]
         lexer = list(self.lexers.values())[0]
         # lex text into tokens
-        success = lexer.match(text)
+        new = TextNode(Terminal("text"))
+        lexer.relex(new)
+        return
+        assert False
+        success = lexer.lex(text)
         # reset tree
         bos = parser.previous_version.parent.children[0]
         eos = parser.previous_version.parent.children[-1]
@@ -1202,7 +1126,7 @@ class NodeEditor(QFrame):
         eos = parent.children.pop()
         last_node = parser.previous_version.get_bos()
         line_nodes = [last_node]
-        for match in success:#lex.tokens:
+        for match in success:
             symbol = Terminal(match[0])
             node = TextNode(symbol, -1, [], -1)
             node.lookup = match[1]
@@ -1420,12 +1344,9 @@ class NodeEditor(QFrame):
             parser = IncParser(lang.grammar, 1, True) #XXX use whitespace checkbox
             parser.previous_version = AST(node)
             self.parsers[node] = parser
-            # create priorities
-            pl = PriorityLexer(lang.priorities)
-            self.priorities[node] = pl
             # create tokenlexer
-            tl = TokenLexer(pl.rules)
-            self.lexers[node] = tl
+            lexer = IncrementalLexer(lang.priorities)
+            self.lexers[node] = lexer
             # load language
             self.parser_langs[node] = p[node]
             if node is main_lang:
@@ -1577,10 +1498,9 @@ class Window(QtGui.QMainWindow):
         print("Creating Incremental Parser")
         self.lrp = IncParser(new_grammar, 1, whitespaces)
         self.lrp.init_ast()
-        self.pl = PriorityLexer(new_priorities)
-        self.tl = TokenLexer(self.pl.rules)
+        lexer = IncrementalLexer(new_priorities)
         self.ui.frame.reset()
-        self.ui.frame.set_lrparser(self.lrp, self.main_language)
+        self.ui.frame.set_mainlanguage(self.lrp, lexer, self.main_language)
         self.ui.graphicsView.setScene(QGraphicsScene())
         print("Done.")
 
