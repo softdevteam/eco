@@ -9,6 +9,9 @@ from astree import BOS, EOS, TextNode
 import re
 
 class IncrementalLexer(object):
+    # XXX needs to be replaced by a lexing automaton to avoid uneccessary
+    # relexing of unchanged nodes
+
     def __init__(self, rules):
         pl = PriorityLexer(rules)
         self.regexlist = pl.rules
@@ -62,7 +65,7 @@ class IncrementalLexer(object):
 
         # find end node
         end_node = startnode.next_term
-        while not isinstance(end_node, EOS) and end_node.symbol.name != "\r": #XXX eos
+        while not isinstance(end_node, EOS) and end_node.symbol.name != "\r": #XXX lboxes
             end_node = end_node.next_term
 
         token = startnode

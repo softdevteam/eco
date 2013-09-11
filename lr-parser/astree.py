@@ -388,10 +388,8 @@ class TextNode(Node):
         self.mark_changed()
 
     def insert(self, char, pos):
-        #XXX change type of name to list for all symbols
         l = list(self.symbol.name)
-        internal_pos = pos - self.position
-        l.insert(internal_pos-1, char)
+        l.insert(pos, str(char))
         self.change_text("".join(l))
 
     def delete(self, pos):
