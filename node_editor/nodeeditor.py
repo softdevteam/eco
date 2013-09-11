@@ -78,6 +78,15 @@ class NodeSize(object):
         self.w = w
         self.h = h
 
+class Line(object):
+    def __init__(self, node, height=1):
+        self.node = node
+        self.height = height
+        self.width = 0
+
+    def __repr__(self):
+        return "Line(%s, width=%s, height=%s)" % (self.node, self.width, self.height)
+
 class NodeEditor(QFrame):
 
     # ========================== init stuff ========================== #
@@ -113,6 +122,8 @@ class NodeEditor(QFrame):
         self.max_cols = []
         self.line_widths = {}
 
+        self.lines = []
+
         self.parsers = {}
         self.lexers = {}
         self.priorities = {}
@@ -142,6 +153,7 @@ class NodeEditor(QFrame):
         self.line_info = []
         self.line_heights = []
         self.line_indents = []
+        self.lines = []
 
     def set_mainlanguage(self, parser, lexer, lang_name):
         self.parsers = {}
@@ -160,6 +172,9 @@ class NodeEditor(QFrame):
         self.line_info.append([self.ast.parent.children[0], self.ast.parent.children[1]]) # start with BOS and EOS
         self.line_heights.append(1)
         self.line_indents.append(None)
+
+        self.lines.append(Line(self.ast.parent.children[0], 1))
+        self.eos = self.ast.parent.children[1]
 
     def set_sublanguage(self, language):
         self.sublanguage = language
@@ -248,7 +263,7 @@ class NodeEditor(QFrame):
         else:
             return NodeSize(len(node.symbol.name), 1)
 
-    def paintLines(self, paint, startline):
+    def paintLinesOld(self, paint, startline):
         import os
 
         # find proper startline
@@ -314,6 +329,68 @@ class NodeEditor(QFrame):
                 self.max_cols.append(x/self.fontwt)
                 self.line_widths[startline + i] = x / self.fontwt
         paint.drawRect(draw_cursor_at)
+
+
+    # paint lines using new line manager
+    def paintLines(self, paint, startline):
+        import os
+
+        # find internal line corresponding to visual line
+        visual_line = 0
+        internal_line = 0
+        for l in self.lines:
+            if visual_line + l.height > startline:
+                break
+            visual_line += l.height
+            internal_line += 1
+
+        x = 0
+        y = -visual_line
+        node = self.lines[visual_line].node
+
+        max_y = self.geometry().height()/self.fontht
+
+        line = internal_line
+        while y < max_y:
+            dx, dy = self.paint_node(paint, node, x, y)
+            print(node, "changes", dx, dy)
+            x += dx
+            y += dy
+
+            # after we drew a return, update line width
+            if node.lookup == "<return>":
+                self.lines[line].width = x / self.fontwt
+                line += 1
+                x = 0
+
+            # draw cursor
+            if y == self.cursor.y:
+                draw_cursor_at = QRect(0 + self.cursor.x * self.fontwt, 5 + y * self.fontht, 0, self.fontht - 3)
+                paint.drawRect(draw_cursor_at)
+
+            node = node.next_term
+            # if we reached EOS we can stop drawing
+            if isinstance(node, EOS):
+                self.lines[line].width = x / self.fontwt
+                break
+        print(self.lines)
+
+    def paint_node(self, paint, node, x, y):
+        print(node)
+        if isinstance(node, EOS):
+            return 0, 0
+        if isinstance(node, TextNode):
+            if node.lookup == "<return>": # XXX create special return node
+                dx = 0
+                dy = 1
+            else:
+                text = node.symbol.name
+                paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text)
+                dx = len(text) * self.fontwt
+                dy = 0
+            return dx, dy
+        print("not implemented", node)
+        return 0,0
 
     def paintAST(self, paint, bos, x, y):
         node = bos.next_terminal()
@@ -637,7 +714,7 @@ class NodeEditor(QFrame):
         elif e.key() == Qt.Key_Home:
             self.cursor.x = 0
         elif e.key() == Qt.Key_End:
-            self.cursor.x = self.line_widths[self.cursor.y]
+            self.cursor.x = self.lines[self.cursor.y].width
         elif e.key() == Qt.Key_C and e.modifiers() == Qt.ControlModifier:
             self.copySelection()
         elif e.key() == Qt.Key_V and e.modifiers() == Qt.ControlModifier:
@@ -651,6 +728,7 @@ class NodeEditor(QFrame):
             if self.sublanguage:
                 newnode = self.add_magic()
                 self.edit_rightnode = True # writes next char into magic ast
+                # XXX add magic between or after node
         elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier | Qt.ShiftModifier:
             self.edit_rightnode = True # writes next char into magic ast
             self.update()
@@ -660,6 +738,8 @@ class NodeEditor(QFrame):
             indentation = self.key_normal(e, selected_nodes, inbetween, x)
 
         self.rescan_line(self.changed_line)
+        self.rescan_linebreaks(self.changed_line)
+        print("LINES", self.lines)
         self.getWindow().btReparse([])
         self.repaint() # this recalculates self.max_cols
 
@@ -712,6 +792,8 @@ class NodeEditor(QFrame):
                     self.edit_rightnode = True
                     selected_nodes, _, _ = self.get_nodes_at_position()
                     self.edit_rightnode = False
+                if node.symbol.name == "\r":
+                    self.delete_linebreak(self.changed_line, node)
                 self.last_delchar = node.backspace(0)
 
                 # if node is empty, delete it and repair previous/next node
@@ -827,6 +909,32 @@ class NodeEditor(QFrame):
         print("line is still", self.line_info)
         self.relex(node)
         return indentation
+
+    def delete_linebreak(self, y, node):
+        current = self.lines[y].node
+        deleted = self.lines[y+1].node
+        assert deleted is node
+        del self.lines[y]
+
+        # XXX adjust line_height
+
+    def rescan_linebreaks(self, y):
+        """ Scan all nodes between this return node and the next lines return
+        node. All other return nodes you find that are not the next lines
+        return node are new and must be inserted into self.lines """
+
+        current = self.lines[y].node
+        try:
+            next = self.lines[y+1].node #XXX last line has eos -> create line manager class
+        except IndexError:
+            next = self.eos
+
+        current = current.next_term
+        while current is not next:
+            if current.symbol.name == "\r":
+                y += 1
+                self.lines.insert(y, Line(current))
+            current = current.next_term
 
     def rescan_line(self, y):
         # Start at the first node and run until you find a newline
@@ -1028,15 +1136,15 @@ class NodeEditor(QFrame):
         if key == QtCore.Qt.Key_Up:
             if self.cursor.y > 0:
                 self.cursor.y -= 1
-                if self.cursor.x > self.line_widths[cur.y]:
-                    self.cursor.x = self.line_widths[cur.y]
+                if self.cursor.x > self.lines[cur.y].width:
+                    self.cursor.x = self.lines[cur.y].width
             else:
                 self.getWindow().ui.scrollArea.decVSlider()
         elif key == QtCore.Qt.Key_Down:
             if self.cursor.y < len(self.line_info) - 1:
                 self.cursor.y += 1
-                if self.cursor.x > self.line_widths[cur.y]:
-                    self.cursor.x = self.line_widths[cur.y]
+                if self.cursor.x > self.lines[cur.y].width:
+                    self.cursor.x = self.lines[cur.y].width
             else:
                 self.getWindow().ui.scrollArea.incVSlider()
         elif key == QtCore.Qt.Key_Left:
@@ -1048,7 +1156,7 @@ class NodeEditor(QFrame):
                 else:
                     self.cursor.x -= 1
         elif key == QtCore.Qt.Key_Right:
-            if self.cursor.x < self.line_widths[cur.y]:
+            if self.cursor.x < self.lines[cur.y].width:
                 self.cursor.x += 1
                 node = self.get_selected_node()
                 if node.image:
