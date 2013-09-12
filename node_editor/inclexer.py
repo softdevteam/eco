@@ -67,7 +67,13 @@ class IncrementalLexer(object):
 
         # find end node
         end_node = startnode.next_term
-        while not isinstance(end_node, EOS) and end_node.symbol.name != "\r": #XXX lboxes
+        while True:
+            if isinstance(end_node, EOS):
+                break
+            if isinstance(end_node.symbol, MagicTerminal):
+                break
+            if end_node.symbol.name == "\r":
+                break
             end_node = end_node.next_term
 
         token = startnode

@@ -248,7 +248,7 @@ class NodeEditor(QFrame):
         self.getWindow().ui.scrollArea.verticalScrollBar().setPageStep(1)
 
     def get_nodesize_in_chars(self, node):
-        if isinstance(node, ImageNode):
+        if node.image:
             w = math.ceil(node.image.width() * 1.0 / self.fontwt)
             h = math.ceil(node.image.height() * 1.0 / self.fontht)
             return NodeSize(w, h)
@@ -377,6 +377,7 @@ class NodeEditor(QFrame):
 
             # if we found a language box, continue drawing inside of it
             if isinstance(node.symbol, MagicTerminal):
+                print(node.symbol)
                 x, y, line = self.paint_nodes(paint, node.symbol.ast.children[0], x, y, line, max_y, lbox+1)
                 node = node.next_term
 
@@ -557,10 +558,52 @@ class NodeEditor(QFrame):
         return real_line
 
     def get_selected_node(self):
-        nodes, _, _ = self.get_nodes_at_position()
-        return nodes[0]
+        node, _, _ = self.get_nodes_at_position()
+        return node
 
     def get_nodes_at_position(self):
+        node = self.lines[self.cursor.y].node
+        x = 0
+        node, x = self.find_node_at_position(x, node)
+        print("first got", node)
+
+        if self.edit_rightnode:
+            node = node.next_term
+            # node is last in language box -> select next node outside magic box
+            if isinstance(node, EOS):
+                root = node.get_root()
+                lbox = root.get_magicterminal()
+                if lbox:
+                    node = lbox
+            # node is language box
+            elif isinstance(node.symbol, MagicTerminal):
+                node = node.symbol.ast.children[0]
+        if x == self.cursor.x:
+            inside = False
+        else:
+            inside = True
+        print("got node", node)
+        return node, inside, x
+
+    def find_node_at_position(self, x, node):
+        while x < self.cursor.x:
+            node = node.next_term
+            if isinstance(node, EOS):
+                return None, x
+            if isinstance(node.symbol, MagicTerminal):
+                found, x = self.find_node_at_position(x, node.symbol.ast.children[0])
+                if found is not None:
+                    node = found
+                    break
+                else:
+                    continue
+            if node.image is None:
+                x += len(node.symbol.name)
+            else:
+                x += math.ceil(node.image.width() * 1.0 / self.fontwt)
+        return node, x
+
+    def get_nodes_at_position_line_representation(self):
         y = self.cursor.y#self.document_y()
         line = self.line_info[y]
         inbetween = False
@@ -658,8 +701,8 @@ class NodeEditor(QFrame):
             self.update()
 
     def fix_cursor_on_image(self):
-        nodes, _, x = self.get_nodes_at_position()
-        if isinstance(nodes[0], ImageNode):
+        node, _, x = self.get_nodes_at_position()
+        if node.image:
             self.cursor.x = x
 
     def coordinate_to_cursor(self, x, y):
@@ -709,7 +752,7 @@ class NodeEditor(QFrame):
         if e.key() in [Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Control, Qt.Key_Meta]:
             return
 
-        selected_nodes, inbetween, x = self.get_nodes_at_position()
+        selected_node, inbetween, x = self.get_nodes_at_position()
 
         text = e.text()
         self.changed_line = self.document_y()
@@ -733,16 +776,17 @@ class NodeEditor(QFrame):
                 self.copySelection()
                 self.deleteSelection()
         elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
-            self.key_ctrl_space(e, selected_nodes, inbetween, x)
+            self.key_ctrl_space(e, selected_node, inbetween, x)
         elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier | Qt.ShiftModifier:
             self.edit_rightnode = True # writes next char into magic ast
             self.update()
+            return
         elif e.key() == Qt.Key_Delete:
-            self.key_delete(e, selected_nodes[0], inbetween, x)
+            self.key_delete(e, selected_node, inbetween, x)
         else:
-            indentation = self.key_normal(e, selected_nodes, inbetween, x)
+            indentation = self.key_normal(e, selected_node, inbetween, x)
 
-        self.rescan_line(self.changed_line)
+        #self.rescan_line(self.changed_line)
         self.rescan_linebreaks(self.changed_line)
         self.getWindow().btReparse([])
         self.repaint() # this recalculates self.max_cols
@@ -753,21 +797,31 @@ class NodeEditor(QFrame):
 
         self.fix_cursor_on_image()
 
-        root = selected_nodes[0].get_root()
+        root = selected_node.get_root()
         lrp = self.parsers[root]
         self.getWindow().showLookahead(lrp)
         self.update()
 
-    def key_ctrl_space(self, e, nodes, inside, x):
+    def key_ctrl_space(self, e, node, inside, x):
         self.showSubgrammarMenu()
         if self.sublanguage:
             newnode = self.add_magic()
             self.edit_rightnode = True # writes next char into magic ast
-            # XXX add magic between or after node
             if not inside:
-                nodes[0].insert_after(newnode)
+                node.insert_after(newnode)
             else:
-                pass # XXX split node and insert and repair
+                node = node
+                internal_position = len(node.symbol.name) - (x - self.cursor.x)
+                text1 = node.symbol.name[:internal_position]
+                text2 = node.symbol.name[internal_position:]
+                node.symbol.name = text1
+                node.insert_after(newnode)
+
+                node2 = TextNode(Terminal(text2))
+                newnode.insert_after(node2)
+
+                self.relex(node)
+                self.relex(node2)
 
     def key_backspace(self, e):
         if self.document_y() > 0 and self.cursor.x == 0:
@@ -781,7 +835,7 @@ class NodeEditor(QFrame):
 
 
     def key_delete(self, e, node, inside, x):
-        if isinstance(node, ImageNode):
+        if node.image:
             node.backspace(-1)
             # remove all related imagenodes
             node.image = None
@@ -803,9 +857,9 @@ class NodeEditor(QFrame):
                 node = node.next_terminal() # delete should edit the node to the right from the selected node
                 # if lbox is selected, select first node in lbox
                 if isinstance(node.symbol, MagicTerminal) or isinstance(node, EOS):
-                    self.edit_rightnode = True
-                    selected_nodes, _, _ = self.get_nodes_at_position()
-                    self.edit_rightnode = False
+                    bos = node.symbol.ast.children[0]
+                    self.key_delete(e, bos, inside, x)
+                    return
                 if node.symbol.name == "\r":
                     self.delete_linebreak(self.changed_line, node)
                 self.last_delchar = node.backspace(0)
@@ -833,7 +887,6 @@ class NodeEditor(QFrame):
                         self.magic_tokens.remove(id(magic))
                         del self.parsers[root]
                         del self.lexers[root]
-                        del self.priorities[root]
                     else:
                         # normal node is empty -> remove it from AST
                         node.parent.remove_child(node)
@@ -842,11 +895,11 @@ class NodeEditor(QFrame):
         self.edit_rightnode = False
         self.cursor_movement(e.key())
         self.update()
-        selected_nodes, _, _ = self.get_nodes_at_position()
-        self.getWindow().showAst(selected_nodes)
+        selected_node, _, _ = self.get_nodes_at_position()
+        self.getWindow().showAst(selected_node)
 
         # update lookahead when moving cursors
-        root = selected_nodes[0].get_root()
+        root = selected_node.get_root()
         lrp = self.parsers[root]
         self.getWindow().showLookahead(lrp)
 
@@ -856,7 +909,8 @@ class NodeEditor(QFrame):
     def key_end(self, e):
         self.cursor.x = self.line_widths[self.cursor.y]
 
-    def key_normal(self, e, nodes, inside, x):
+    def key_normal(self, e, node, inside, x):
+        print("key_normal", e, node, inside, x)
         indentation = 0
         # modify text
         if e.key() == Qt.Key_Tab:
@@ -871,41 +925,18 @@ class NodeEditor(QFrame):
                     text += " " * indentation
         # edit node
         if inside:
-            node = nodes[0]
             internal_position = len(node.symbol.name) - (x - self.cursor.x)
             node.insert(text, internal_position)
         else:
-            # append to next node: [node] [new old]
-            node = nodes[1]
+            # append to node: [node newtext] [next node]
             pos = 0
-            if isinstance(node, EOS):
-                node = node.previous_terminal()
-                if isinstance(node, BOS):
-                    # empty AST
-                    bos = node
-                    node = TextNode(Terminal(""))
-                    bos.insert_after(node)
-                else:
-                    pos = len(node.symbol.name)
-                    if node.symbol.name == "\r":
-                        # [node] [\r]
-                        # new [eos]
-                        ret = node
-                        node = TextNode(Terminal(""))
-                        ret.insert_after(node)
-                        self.line_info[self.changed_line].insert(0, node)
-            if node.symbol.name == "\r":
-                # put text into previous node
-                # [node new] [\r]
-                node = nodes[0]
+            if isinstance(node, BOS) or node.symbol.name == "\r" or isinstance(node.symbol, MagicTerminal):
+                # insert new node: [bos] [newtext] [next node]
+                old = node
+                node = TextNode(Terminal(""))
+                old.insert_after(node)
+            else:
                 pos = len(node.symbol.name)
-                if node.symbol.name == "\r":
-                    ret = node
-                    node = TextNode(Terminal(""))
-                    ret.insert_after(node)
-                    self.line_info[self.changed_line].insert(0, node)
-            if isinstance(node, ImageNode):
-                node = nodes[0]
             node.insert(text, pos)
 
         if e.key() == Qt.Key_Tab:
@@ -1048,7 +1079,6 @@ class NodeEditor(QFrame):
         root = startnode.get_root()
         lexer = self.lexers[root]
         lexer.relex(startnode)
-
         return
 
     def fix_indentation(self, y):

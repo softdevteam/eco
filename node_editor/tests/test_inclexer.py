@@ -38,6 +38,13 @@ class Test_CalcLexer(Test_IncrementalLexer):
         expected.append(("3", "INT"))
         assert tokens == expected
 
+    def test_lex2(self):
+        tokens = self.lex("+2")
+        expected = []
+        expected.append(("+", "+"))
+        expected.append(("2", "INT"))
+        assert tokens == expected
+
     def test_relex(self):
         ast = AST()
         ast.init()
@@ -45,7 +52,6 @@ class Test_CalcLexer(Test_IncrementalLexer):
         new = TextNode(Terminal("1 + 2 * 3"))
         bos.insert_after(new)
         self.relex(new)
-        text = "1 + 2 * 3"
         assert ast.parent.symbol == Nonterminal("Root")
         assert isinstance(ast.parent.children[0], BOS)
         assert isinstance(ast.parent.children[-1], EOS)
@@ -59,3 +65,24 @@ class Test_CalcLexer(Test_IncrementalLexer):
         node = node.next_term; assert node.symbol == Terminal(" ")
         node = node.next_term; assert node.symbol == Terminal("3")
         node = node.next_term; assert isinstance(node, EOS)
+
+    def test_relex2(self):
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        new = TextNode(Terminal("1"))
+        bos.insert_after(new)
+        self.relex(new)
+        node = bos.next_term; assert node.symbol == Terminal("1")
+
+        new.symbol.name = "1+"
+        self.relex(new)
+        node = bos.next_term; assert node.symbol == Terminal("1")
+        node = node.next_term; assert node.symbol == Terminal("+")
+
+        node.symbol.name = "+2"
+        self.relex(node)
+        node = bos.next_term; assert node.symbol == Terminal("1")
+        node = node.next_term; assert node.symbol == Terminal("+")
+        node = node.next_term; assert node.symbol == Terminal("2")
+
