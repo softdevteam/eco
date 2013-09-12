@@ -5,14 +5,16 @@ sys.path.append("../lr-parser/")
 
 from plexer import PriorityLexer
 from gparser import MagicTerminal, Terminal
-from astree import BOS, EOS, TextNode
-import re
+from astree import BOS, EOS, TextNode, ImageNode
+from PyQt4.QtGui import QImage
+import re, os
 
 class IncrementalLexer(object):
     # XXX needs to be replaced by a lexing automaton to avoid uneccessary
     # relexing of unchanged nodes
 
-    def __init__(self, rules):
+    def __init__(self, rules, language=""):
+        self.language = language
         pl = PriorityLexer(rules)
         self.regexlist = pl.rules
         self.compiled_regexes = {}
@@ -102,7 +104,15 @@ class IncrementalLexer(object):
             # 3) len(relexed) <  len(old) => insert token
 
             if new_x < old_x: # insert
-                additional_node = TextNode(Terminal(match[0]), -1, [], -1)
+                if self.language == "Chemicals":
+                    filename = "chemicals/" + node.symbol.name + ".png"
+                    if os.path.isfile(filename):
+                        additional_node = ImageNode(node, 0)
+                        additional_node.image = QImage(filename)
+                    else:
+                        node.image = None
+                else:
+                    additional_node = TextNode(Terminal(match[0]), -1, [], -1)
                 additional_node.lookup = match[1]
                 old_node.prev_term.parent.insert_after_node(old_node.prev_term, additional_node)
                 #self.add_node(old_node.prev_term, additional_node)
@@ -117,6 +127,11 @@ class IncrementalLexer(object):
                 debug_new.append(match[0])
                 old_node.symbol.name = match[0]
                 old_node.lookup = match[1]
+
+                if self.language == "Chemicals":
+                    filename = "chemicals/" + old_node.symbol.name + ".png"
+                    if os.path.isfile(filename):
+                        old_node.image = QImage(filename)
 
                 old_node = old_node.next_term
 

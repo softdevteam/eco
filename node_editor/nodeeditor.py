@@ -22,7 +22,7 @@ from inclexer import IncrementalLexer
 from viewer import Viewer
 
 from gparser import Terminal, MagicTerminal
-from astree import TextNode, BOS, EOS
+from astree import TextNode, BOS, EOS, ImageNode
 
 from languages import languages, lang_dict
 
@@ -64,14 +64,6 @@ class StyleNode(object):
     def __init__(self, mode, bgcolor):
         self.mode = mode
         self.bgcolor = bgcolor
-
-class ImageNode(object):
-    def __init__(self, node, y):
-        self.node = node
-        self.y = y
-
-    def __getattr__(self, name):
-        return self.node.__getattribute__(name)
 
 class NodeSize(object):
     def __init__(self, w, h):
@@ -333,7 +325,6 @@ class NodeEditor(QFrame):
 
     # paint lines using new line manager
     def paintLines(self, paint, startline):
-        import os
 
         # find internal line corresponding to visual line
         visual_line = 0
@@ -345,7 +336,7 @@ class NodeEditor(QFrame):
             internal_line += 1
 
         x = 0
-        y = -visual_line
+        y = -visual_line # start drawing outside of viewport to display partial images
         node = self.lines[visual_line].node
 
         self.paint_start = (internal_line, y)
@@ -353,42 +344,62 @@ class NodeEditor(QFrame):
         max_y = self.geometry().height()/self.fontht
 
         line = internal_line
+
+        self.paint_nodes(paint, node, x, y, line, max_y)
+
+    def paint_nodes(self, paint, node, x, y, line, max_y, lbox=0):
         while y < max_y:
+
+            # draw language boxes
+            if lbox > 0:
+                color = self.nesting_colors[lbox % 5]
+                paint.fillRect(QRectF(x,3 + self.fontht + y*self.fontht, len(node.symbol.name)*self.fontwt, -self.fontht+2), color)
+
+            # draw node
             dx, dy = self.paint_node(paint, node, x, y)
             x += dx
-            y += dy
+            #y += dy
+            self.lines[line].height = max(self.lines[line].height, dy)
 
             # after we drew a return, update line width
             if node.lookup == "<return>":
                 self.lines[line].width = x / self.fontwt
-                line += 1
                 x = 0
+                y += self.lines[line].height
+                line += 1
 
             # draw cursor
-            if y == self.cursor.y:
+            if line == self.cursor.y:
                 draw_cursor_at = QRect(0 + self.cursor.x * self.fontwt, 5 + y * self.fontht, 0, self.fontht - 3)
                 paint.drawRect(draw_cursor_at)
 
             node = node.next_term
+
+            # if we found a language box, continue drawing inside of it
+            if isinstance(node.symbol, MagicTerminal):
+                x, y, line = self.paint_nodes(paint, node.symbol.ast.children[0], x, y, line, max_y, lbox+1)
+                node = node.next_term
+
             # if we reached EOS we can stop drawing
             if isinstance(node, EOS):
                 self.lines[line].width = x / self.fontwt
                 break
+        return x, y, line
 
     def paint_node(self, paint, node, x, y):
-        if isinstance(node, EOS):
-            return 0, 0
-        if isinstance(node, TextNode):
-            if node.lookup == "<return>": # XXX create special return node
-                dx = 0
-                dy = 1
-            else:
-                text = node.symbol.name
-                paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text)
-                dx = len(text) * self.fontwt
-                dy = 0
+        dx, dy = (0, 0)
+        if node.symbol.name == "\r" or isinstance(node, EOS):
             return dx, dy
-        return 0,0
+        if node.image is not None:
+            paint.drawImage(QPoint(x, 3 + y * self.fontht), node.image)
+            dx = math.ceil(node.image.width() * 1.0 / self.fontwt) * self.fontwt
+            dy = math.ceil(node.image.height() * 1.0 / self.fontht)
+        elif isinstance(node, TextNode):
+            text = node.symbol.name
+            paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text)
+            dx = len(text) * self.fontwt
+            dy = 0
+        return dx, dy
 
     def paintAST(self, paint, bos, x, y):
         node = bos.next_terminal()
@@ -722,11 +733,7 @@ class NodeEditor(QFrame):
                 self.copySelection()
                 self.deleteSelection()
         elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
-            self.showSubgrammarMenu()
-            if self.sublanguage:
-                newnode = self.add_magic()
-                self.edit_rightnode = True # writes next char into magic ast
-                # XXX add magic between or after node
+            self.key_ctrl_space(e, selected_nodes, inbetween, x)
         elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier | Qt.ShiftModifier:
             self.edit_rightnode = True # writes next char into magic ast
             self.update()
@@ -750,6 +757,17 @@ class NodeEditor(QFrame):
         lrp = self.parsers[root]
         self.getWindow().showLookahead(lrp)
         self.update()
+
+    def key_ctrl_space(self, e, nodes, inside, x):
+        self.showSubgrammarMenu()
+        if self.sublanguage:
+            newnode = self.add_magic()
+            self.edit_rightnode = True # writes next char into magic ast
+            # XXX add magic between or after node
+            if not inside:
+                nodes[0].insert_after(newnode)
+            else:
+                pass # XXX split node and insert and repair
 
     def key_backspace(self, e):
         if self.document_y() > 0 and self.cursor.x == 0:
@@ -1078,7 +1096,7 @@ class NodeEditor(QFrame):
         # Create parser, priorities and lexer
         parser = IncParser(self.sublanguage.grammar, 1, True)
         parser.init_ast(magictoken)
-        lexer = IncrementalLexer(self.sublanguage.priorities)
+        lexer = IncrementalLexer(self.sublanguage.priorities, self.sublanguage.name)
         self.magic_tokens.append(id(magictoken))
         root = parser.previous_version.parent
         root.magic_backpointer = magictoken
@@ -1087,6 +1105,7 @@ class NodeEditor(QFrame):
         self.parser_langs[root] = self.sublanguage.name
 
         magictoken.symbol.parser = root
+        magictoken.symbol.ast = root
         return magictoken
 
     def create_node(self, text, magic=False):

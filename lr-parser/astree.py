@@ -433,3 +433,11 @@ class BOS(SpecialTextNode):
 
 class EOS(SpecialTextNode):
     pass
+
+class ImageNode(object):
+    def __init__(self, node, y):
+        self.node = node
+        self.y = y
+
+    def __getattr__(self, name):
+        return self.node.__getattribute__(name)
