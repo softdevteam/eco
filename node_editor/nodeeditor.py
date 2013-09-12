@@ -348,6 +348,8 @@ class NodeEditor(QFrame):
         y = -visual_line
         node = self.lines[visual_line].node
 
+        self.paint_start = (internal_line, y)
+
         max_y = self.geometry().height()/self.fontht
 
         line = internal_line
@@ -658,8 +660,8 @@ class NodeEditor(QFrame):
 
         y = y_offset
         line = first_line
-        while line < len(self.line_heights) - 1:
-            y += self.line_heights[line]
+        while line < len(self.lines) - 1:
+            y += self.lines[line].height
             if y > mouse_y:
                 break
             line += 1
@@ -669,10 +671,10 @@ class NodeEditor(QFrame):
 
         if cursor_x < 0:
             result.x = 0
-        elif cursor_x <= self.line_widths[result.y]:
+        elif cursor_x <= self.lines[result.y].width:
             result.x = cursor_x
         else:
-            result.x = self.line_widths[result.y]
+            result.x = self.lines[result.y].width
 
         return result
 
