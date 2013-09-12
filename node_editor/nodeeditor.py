@@ -353,7 +353,6 @@ class NodeEditor(QFrame):
         line = internal_line
         while y < max_y:
             dx, dy = self.paint_node(paint, node, x, y)
-            print(node, "changes", dx, dy)
             x += dx
             y += dy
 
@@ -373,10 +372,8 @@ class NodeEditor(QFrame):
             if isinstance(node, EOS):
                 self.lines[line].width = x / self.fontwt
                 break
-        print(self.lines)
 
     def paint_node(self, paint, node, x, y):
-        print(node)
         if isinstance(node, EOS):
             return 0, 0
         if isinstance(node, TextNode):
@@ -389,7 +386,6 @@ class NodeEditor(QFrame):
                 dx = len(text) * self.fontwt
                 dy = 0
             return dx, dy
-        print("not implemented", node)
         return 0,0
 
     def paintAST(self, paint, bos, x, y):
@@ -739,7 +735,6 @@ class NodeEditor(QFrame):
 
         self.rescan_line(self.changed_line)
         self.rescan_linebreaks(self.changed_line)
-        print("LINES", self.lines)
         self.getWindow().btReparse([])
         self.repaint() # this recalculates self.max_cols
 
@@ -786,7 +781,6 @@ class NodeEditor(QFrame):
                 repairnode = node #XXX repair node here
             else: # between two nodes
                 node = node.next_terminal() # delete should edit the node to the right from the selected node
-                print("del", node)
                 # if lbox is selected, select first node in lbox
                 if isinstance(node.symbol, MagicTerminal) or isinstance(node, EOS):
                     self.edit_rightnode = True
@@ -798,7 +792,6 @@ class NodeEditor(QFrame):
 
                 # if node is empty, delete it and repair previous/next node
                 if node.symbol.name == "" and not isinstance(node, BOS):
-                    print("node is now empty")
                    # for all current languages we are using, deleting a node
                    # shouldn't change how nodes are lexed
 
@@ -822,7 +815,6 @@ class NodeEditor(QFrame):
                         del self.lexers[root]
                         del self.priorities[root]
                     else:
-                        print("delete node")
                         # normal node is empty -> remove it from AST
                         node.parent.remove_child(node)
 
@@ -845,7 +837,6 @@ class NodeEditor(QFrame):
         self.cursor.x = self.line_widths[self.cursor.y]
 
     def key_normal(self, e, nodes, inside, x):
-        print("normal", nodes)
         indentation = 0
         # modify text
         if e.key() == Qt.Key_Tab:
@@ -860,12 +851,10 @@ class NodeEditor(QFrame):
                     text += " " * indentation
         # edit node
         if inside:
-            print("inside")
             node = nodes[0]
             internal_position = len(node.symbol.name) - (x - self.cursor.x)
             node.insert(text, internal_position)
         else:
-            print("between")
             # append to next node: [node] [new old]
             node = nodes[1]
             pos = 0
@@ -897,7 +886,6 @@ class NodeEditor(QFrame):
                     self.line_info[self.changed_line].insert(0, node)
             if isinstance(node, ImageNode):
                 node = nodes[0]
-            print("inserting", text, "into", node, "at", pos)
             node.insert(text, pos)
 
         if e.key() == Qt.Key_Tab:
@@ -905,8 +893,6 @@ class NodeEditor(QFrame):
         else:
             self.cursor.x += 1
 
-        print("relexing", node)
-        print("line is still", self.line_info)
         self.relex(node)
         return indentation
 
@@ -947,12 +933,10 @@ class NodeEditor(QFrame):
         #     delete the next line
         #     the next lines node is line[-1].next_terminal()
         line = self.line_info[y]
-        print("rescanning line", line)
         if line == []:
             return
         startnode = line[0]
         endnode = line[-1]
-        print(startnode, endnode)
 
        #while not isinstance(endnode, EOS) and endnode.symbol.name != "\r":
        #    print("go one")
@@ -1036,7 +1020,6 @@ class NodeEditor(QFrame):
         self.line_info[y] = new_list
         self.fix_indentation(y)
         self.line_heights[y] = line_height
-        print(self.line_info)
 
     def relex(self, startnode):
         # XXX when typing to not create new node but insert char into old node
@@ -1163,7 +1146,6 @@ class NodeEditor(QFrame):
                     s = self.get_nodesize_in_chars(node)
                     self.cursor.x += s.w - 1
         line = self.line_info[self.cursor.y]
-        print(line)
         self.fix_cursor_on_image()
 
     # ========================== AST modification stuff ========================== #
