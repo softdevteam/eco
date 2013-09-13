@@ -1171,7 +1171,7 @@ class NodeEditor(QFrame):
             else:
                 self.getWindow().ui.scrollArea.decVSlider()
         elif key == QtCore.Qt.Key_Down:
-            if self.cursor.y < len(self.line_info) - 1:
+            if self.cursor.y < len(self.lines) - 1:
                 self.cursor.y += 1
                 if self.cursor.x > self.lines[cur.y].width:
                     self.cursor.x = self.lines[cur.y].width
@@ -1192,7 +1192,6 @@ class NodeEditor(QFrame):
                 if node.image:
                     s = self.get_nodesize_in_chars(node)
                     self.cursor.x += s.w - 1
-        line = self.line_info[self.cursor.y]
         self.fix_cursor_on_image()
 
     # ========================== AST modification stuff ========================== #
