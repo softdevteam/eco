@@ -60,6 +60,11 @@ class IncrementalLexer(object):
         # XXX when typing to not create new node but insert char into old node
         #     (saves a few insertions and is easier to lex)
 
+        # if ndoe itself is a newline it won't be relexed, so do it manually
+        if startnode.symbol.name == "\r":
+            result = self.lex(startnode.symbol.name)
+            startnode.lookup = result[0][1]
+
         startnode = startnode.prev_term
 
         if isinstance(startnode, BOS) or isinstance(startnode.symbol, MagicTerminal):

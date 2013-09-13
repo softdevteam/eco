@@ -86,3 +86,26 @@ class Test_CalcLexer(Test_IncrementalLexer):
         node = node.next_term; assert node.symbol == Terminal("+")
         node = node.next_term; assert node.symbol == Terminal("2")
 
+    def test_relex_return(self):
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        eos = ast.parent.children[1]
+        text = TextNode(Terminal("123\r"))
+        bos.insert_after(text)
+        self.relex(text)
+
+        last_return = eos.prev_term
+        assert last_return.symbol.name == "\r"
+        assert last_return.lookup == "<return>"
+
+        new_number = TextNode(Terminal("3"))
+        last_return.insert_after(new_number)
+        self.relex(new_number)
+
+        new = TextNode(Terminal("\r"))
+        last_return.insert_after(new)
+        self.relex(new)
+        assert new.symbol == Terminal("\r")
+        assert new.lookup == "<return>"
+
