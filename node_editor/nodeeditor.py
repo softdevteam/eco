@@ -377,7 +377,6 @@ class NodeEditor(QFrame):
 
             # if we found a language box, continue drawing inside of it
             if isinstance(node.symbol, MagicTerminal):
-                print(node.symbol)
                 x, y, line = self.paint_nodes(paint, node.symbol.ast.children[0], x, y, line, max_y, lbox+1)
                 node = node.next_term
 
@@ -565,7 +564,6 @@ class NodeEditor(QFrame):
         node = self.lines[self.cursor.y].node
         x = 0
         node, x = self.find_node_at_position(x, node)
-        print("first got", node)
 
         if self.edit_rightnode:
             node = node.next_term
@@ -582,7 +580,6 @@ class NodeEditor(QFrame):
             inside = False
         else:
             inside = True
-        print("got node", node)
         return node, inside, x
 
     def find_node_at_position(self, x, node):
@@ -910,7 +907,6 @@ class NodeEditor(QFrame):
         self.cursor.x = self.line_widths[self.cursor.y]
 
     def key_normal(self, e, node, inside, x):
-        print("key_normal", e, node, inside, x)
         indentation = 0
         # modify text
         if e.key() == Qt.Key_Tab:
