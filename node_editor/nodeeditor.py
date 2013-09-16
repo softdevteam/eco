@@ -877,11 +877,11 @@ class NodeEditor(QFrame):
             if node.symbol.name == "\r":
                 self.delete_linebreak(self.changed_line, node)
             self.last_delchar = node.backspace(0)
+            repairnode = node
 
             # if node is empty, delete it and repair previous/next node
             if node.symbol.name == "" and not isinstance(node, BOS):
-               # for all current languages we are using, deleting a node
-               # shouldn't change how nodes are lexed
+                repairnode = node.prev_term
 
                 root = node.get_root()
                 magic = root.get_magicterminal()
@@ -896,6 +896,8 @@ class NodeEditor(QFrame):
                 else:
                     # normal node is empty -> remove it from AST
                     node.parent.remove_child(node)
+
+            self.relex(repairnode)
 
     def key_cursors(self, e):
         self.edit_rightnode = False

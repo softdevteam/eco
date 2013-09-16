@@ -397,7 +397,6 @@ class TextNode(Node):
         self.backspace(pos)
 
     def backspace(self, pos):
-        print("delete", self, "Pos:", pos,  "selfpos", self.position)
         l = list(self.symbol.name)
         if len(l) == 1: # if node going to be empty: delete
             #XXX merge remaining nodes here
