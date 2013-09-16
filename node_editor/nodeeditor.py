@@ -184,7 +184,7 @@ class NodeEditor(QFrame):
         change = self.viewport_y - value
         self.viewport_y = value
         #if (change < 0 and 0 < self.cursor.y):
-        if (change > 0 and self.cursor.y < len(self.max_cols)-1):
+        if (change > 0 and self.cursor.y < len(self.lines)-1):
             self.cursor.y += change
         self.update()
 
@@ -241,7 +241,9 @@ class NodeEditor(QFrame):
        ##self.getWindow().ui.scrollArea.horizontalScrollBar().setMaximum((width - self.getWindow().ui.scrollArea.viewport().size().width())/self.fontwt)
        ##self.getWindow().ui.scrollArea.horizontalScrollBar().setPageStep(1)
         self.getWindow().ui.scrollArea.verticalScrollBar().setMinimum(0)
-        total_lines = sum(self.line_heights)#len(self.line_info)
+        total_lines = 0
+        for l in self.lines:
+            total_lines += l.height
         max_visible_lines = self.geometry().height() / self.fontht
         vmax = max(0, total_lines - max_visible_lines)
         self.getWindow().ui.scrollArea.verticalScrollBar().setMaximum(vmax)
@@ -336,14 +338,16 @@ class NodeEditor(QFrame):
             internal_line += 1
 
         x = 0
-        y = -visual_line # start drawing outside of viewport to display partial images
-        node = self.lines[visual_line].node
-
+        y = visual_line - startline # start drawing outside of viewport to display partial images
         self.paint_start = (internal_line, y)
 
         max_y = self.geometry().height()/self.fontht
 
         line = internal_line
+        node = self.lines[line].node
+        if node.symbol.name == "\r":
+            node = node.next_term # ignore \r if it is startnode
+
 
         self.paint_nodes(paint, node, x, y, line, max_y)
 
@@ -362,7 +366,7 @@ class NodeEditor(QFrame):
             #y += dy
             self.lines[line].height = max(self.lines[line].height, dy)
 
-            # after we drew a return, update line width
+            # after we drew a return, update line information
             if node.lookup == "<return>":
                 self.lines[line].width = x / self.fontwt
                 x = 0
@@ -394,8 +398,8 @@ class NodeEditor(QFrame):
             return dx, dy
         if node.image is not None and not node.plain_mode:
             paint.drawImage(QPoint(x, 3 + y * self.fontht), node.image)
-            dx = math.ceil(node.image.width() * 1.0 / self.fontwt) * self.fontwt
-            dy = math.ceil(node.image.height() * 1.0 / self.fontht)
+            dx = int(math.ceil(node.image.width() * 1.0 / self.fontwt) * self.fontwt)
+            dy = int(math.ceil(node.image.height() * 1.0 / self.fontht))
         elif isinstance(node, TextNode):
             text = node.symbol.name
             paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text)
