@@ -956,7 +956,7 @@ class NodeEditor(QFrame):
         current = self.lines[y].node
         deleted = self.lines[y+1].node
         assert deleted is node
-        del self.lines[y]
+        del self.lines[y+1]
 
         # XXX adjust line_height
 
