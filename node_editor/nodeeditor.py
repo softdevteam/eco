@@ -184,8 +184,8 @@ class NodeEditor(QFrame):
         change = self.viewport_y - value
         self.viewport_y = value
         #if (change < 0 and 0 < self.cursor.y):
-        if (change > 0 and self.cursor.y < len(self.lines)-1):
-            self.cursor.y += change
+        #if (change > 0 and self.cursor.y < len(self.lines)-1):
+        #    self.cursor.y += change
         self.update()
 
     def sliderXChanged(self, value):
