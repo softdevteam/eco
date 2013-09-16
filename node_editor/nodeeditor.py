@@ -849,7 +849,7 @@ class NodeEditor(QFrame):
         if self.document_y() > 0 and self.cursor.x == 0:
             self.cursor_movement(Qt.Key_Up)
             self.repaint() # XXX store line width in line_info to avoid unnecessary redrawing
-            self.cursor.x = self.max_cols[self.cursor.y]
+            self.cursor.x = self.lines[self.cursor.y].width
         elif self.cursor.x > 0:
             self.cursor.x -= 1
         event = QKeyEvent(QEvent.KeyPress, Qt.Key_Delete, e.modifiers(), e.text())
