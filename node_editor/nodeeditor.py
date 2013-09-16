@@ -350,8 +350,6 @@ class NodeEditor(QFrame):
     def paint_nodes(self, paint, node, x, y, line, max_y, lbox=0):
         self.lines[line].height = 1 # reset height
         while y < max_y:
-            print("painting node", node)
-            print("image:", node.image)
 
             # draw language boxes
             if lbox > 0:
@@ -371,7 +369,6 @@ class NodeEditor(QFrame):
                 y += self.lines[line].height
                 line += 1
                 self.lines[line].height = 1 # reset height
-                print("reset height")
 
             # draw cursor
             if line == self.cursor.y:
@@ -599,7 +596,7 @@ class NodeEditor(QFrame):
                     break
                 else:
                     continue
-            if node.image is None:
+            if node.image is None or node.plain_mode:
                 x += len(node.symbol.name)
             else:
                 x += math.ceil(node.image.width() * 1.0 / self.fontwt)
@@ -950,6 +947,7 @@ class NodeEditor(QFrame):
         # edit node
         if inside:
             internal_position = len(node.symbol.name) - (x - self.cursor.x)
+            print("internal position", internal_position)
             node.insert(text, internal_position)
         else:
             # append to node: [node newtext] [next node]

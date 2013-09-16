@@ -390,7 +390,7 @@ class TextNode(Node):
 
     def insert(self, char, pos):
         l = list(self.symbol.name)
-        l.insert(pos, str(char))
+        l.insert(int(pos), str(char))
         self.change_text("".join(l))
 
     def delete(self, pos):
