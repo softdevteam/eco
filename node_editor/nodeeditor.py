@@ -1293,52 +1293,16 @@ class NodeEditor(QFrame):
                 self.magic_tokens = []
         # convert linebreaks
         text = text.replace("\r\n","\r")
+        text = text.replace("\n","\r")
         parser = list(self.parsers.values())[0]
         lexer = list(self.lexers.values())[0]
         # lex text into tokens
-        new = TextNode(Terminal("text"))
-        lexer.relex(new)
-        return
-        assert False
-        success = lexer.lex(text)
-        # reset tree
         bos = parser.previous_version.parent.children[0]
-        eos = parser.previous_version.parent.children[-1]
-        parser.previous_version.parent.children = [bos, eos]
-        # insert tokens into tree
-        parent = parser.previous_version.parent
-        eos = parent.children.pop()
-        last_node = parser.previous_version.get_bos()
-        line_nodes = [last_node]
-        for match in success:
-            symbol = Terminal(match[0])
-            node = TextNode(symbol, -1, [], -1)
-            node.lookup = match[1]
-            parent.children.append(node)
-            last_node.next_term = node
-            last_node.right = node
-            node.left = last_node
-            node.prev_term = last_node
-            node.parent = parent
-
-            line_nodes.append(node)
-
-            if node.lookup == "<return>":
-                self.line_info.append(line_nodes)
-                self.line_heights.append(1)
-                line_nodes = []
-                self.node_list.insert(1, node)
-
-            last_node = node
-        self.line_info.append(line_nodes) #add last line
-        self.line_heights.append(1)
-        self.line_info[-1].append(eos)
-        parent.children.append(eos)
-        node.right = eos # link to eos
-        node.next_term = eos
-        eos.left = node
-        eos.prev_term = node
-        node.mark_changed()
+        new = TextNode(Terminal(text))
+        bos.insert_after(new)
+        lexer.relex(new)
+        self.rescan_linebreaks(0)
+        return
 
     def get_matching_tokens(self, startnode, regex_list, direction):
         token_list = []
