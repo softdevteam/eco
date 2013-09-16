@@ -395,7 +395,7 @@ class NodeEditor(QFrame):
         dx, dy = (0, 0)
         if node.symbol.name == "\r" or isinstance(node, EOS):
             return dx, dy
-        if node.image is not None:
+        if node.image is not None and not node.plain_mode:
             paint.drawImage(QPoint(x, 3 + y * self.fontht), node.image)
             dx = math.ceil(node.image.width() * 1.0 / self.fontwt) * self.fontwt
             dy = math.ceil(node.image.height() * 1.0 / self.fontht)
@@ -702,9 +702,24 @@ class NodeEditor(QFrame):
             self.getWindow().showLookahead(lrp)
             self.update()
 
+    def mouseDoubleClickEvent(self, e):
+        if e.button() == Qt.LeftButton:
+            self.cursor = self.coordinate_to_cursor(e.x(), e.y())
+            selected_node, _, _ = self.get_nodes_at_position()
+            if selected_node.image is None:
+                return
+
+            self.fix_cursor_on_image()
+            if selected_node.image is not None:
+                selected_node.plain_mode = True
+                self.cursor.x -= math.ceil(selected_node.image.width() * 1.0 / self.fontwt)
+                self.cursor.x += len(selected_node.symbol.name)
+                self.update()
+
+
     def fix_cursor_on_image(self):
         node, _, x = self.get_nodes_at_position()
-        if node.image:
+        if node.image and not node.plain_mode:
             self.cursor.x = x
 
     def coordinate_to_cursor(self, x, y):
@@ -761,7 +776,9 @@ class NodeEditor(QFrame):
 
         self.edit_rightnode = False # has been processes in get_nodes_at_pos -> reset
 
-        if e.key() == Qt.Key_Backspace:
+        if e.key() == Qt.Key_Escape:
+            self.key_escape(e, selected_node)
+        elif e.key() == Qt.Key_Backspace:
             self.key_backspace(e)
         elif e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             self.key_cursors(e)
@@ -803,6 +820,12 @@ class NodeEditor(QFrame):
         lrp = self.parsers[root]
         self.getWindow().showLookahead(lrp)
         self.update()
+
+    def key_escape(self, e, node):
+        if node.plain_mode:
+            node.plain_mode = False
+            self.fix_cursor_on_image()
+            self.update()
 
     def key_ctrl_space(self, e, node, inside, x):
         self.showSubgrammarMenu()
@@ -1185,7 +1208,7 @@ class NodeEditor(QFrame):
         elif key == QtCore.Qt.Key_Left:
             if self.cursor.x > 0:
                 node = self.get_selected_node()
-                if node.image:
+                if node.image and not node.plain_mode:
                     s = self.get_nodesize_in_chars(node)
                     self.cursor.x -= s.w
                 else:
@@ -1194,7 +1217,7 @@ class NodeEditor(QFrame):
             if self.cursor.x < self.lines[cur.y].width:
                 self.cursor.x += 1
                 node = self.get_selected_node()
-                if node.image:
+                if node.image and not node.plain_mode:
                     s = self.get_nodesize_in_chars(node)
                     self.cursor.x += s.w - 1
         self.fix_cursor_on_image()

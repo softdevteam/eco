@@ -333,6 +333,7 @@ class TextNode(Node):
         self.seen = 0
         self.deleted = False
         self.image = None
+        self.plain_mode = False
 
         self.regex = ""
         self.text = ""
