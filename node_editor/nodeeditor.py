@@ -694,10 +694,10 @@ class NodeEditor(QFrame):
             self.selection_start = self.cursor.copy()
             self.selection_end = self.cursor.copy()
 
-            selected_nodes, _, _ = self.get_nodes_at_position()
-            self.getWindow().btReparse(selected_nodes)
+            selected_node, _, _ = self.get_nodes_at_position()
+            self.getWindow().btReparse(selected_node)
 
-            root = selected_nodes[0].get_root()
+            root = selected_node.get_root()
             lrp = self.parsers[root]
             self.getWindow().showLookahead(lrp)
             self.update()
