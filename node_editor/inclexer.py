@@ -121,7 +121,7 @@ class IncrementalLexer(object):
                         additional_node = ImageNode(node, 0)
                         additional_node.image = QImage(filename)
                     else:
-                        node.image = None
+                        additional_node.image = None
                 else:
                     additional_node = TextNode(Terminal(match[0]), -1, [], -1)
                 additional_node.lookup = match[1]
@@ -143,6 +143,8 @@ class IncrementalLexer(object):
                     filename = "chemicals/" + old_node.symbol.name + ".png"
                     if os.path.isfile(filename):
                         old_node.image = QImage(filename)
+                    else:
+                        old_node.image = None
 
                 old_node = old_node.next_term
 

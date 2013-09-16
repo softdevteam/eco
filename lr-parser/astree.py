@@ -418,7 +418,7 @@ class TextNode(Node):
             return l[0]
         else:
             internal_pos = pos - self.position
-            delchar = l.pop(pos)
+            delchar = l.pop(int(pos))
             self.change_text("".join(l))
             return delchar
 

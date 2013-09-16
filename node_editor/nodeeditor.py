@@ -857,61 +857,45 @@ class NodeEditor(QFrame):
 
 
     def key_delete(self, e, node, inside, x):
-        if node.image:
-            node.backspace(-1)
-            # remove all related imagenodes
-            node.image = None
-            # refresh
-            self.getWindow().btReparse([])
-            self.rescan_line(self.changed_line)
-            self.repaint() # this recalculates self.max_cols
+        if self.hasSelection():
+            self.deleteSelection()
             return
-        else:
-            if self.hasSelection():
-                self.deleteSelection()
+
+        if inside: # cursor inside a node
+            internal_position = len(node.symbol.name) - (x - self.cursor.x)
+            self.last_delchar = node.backspace(internal_position)
+            self.relex(node)
+        else: # between two nodes
+            node = node.next_terminal() # delete should edit the node to the right from the selected node
+            # if lbox is selected, select first node in lbox
+            if isinstance(node.symbol, MagicTerminal) or isinstance(node, EOS):
+                bos = node.symbol.ast.children[0]
+                self.key_delete(e, bos, inside, x)
                 return
+            if node.image and not node.plain_mode:
+                return
+            if node.symbol.name == "\r":
+                self.delete_linebreak(self.changed_line, node)
+            self.last_delchar = node.backspace(0)
 
-            if inside: # cursor inside a node
-                internal_position = len(node.symbol.name) - (x - self.cursor.x)
-                self.last_delchar = node.backspace(internal_position)
-                repairnode = node #XXX repair node here
-            else: # between two nodes
-                node = node.next_terminal() # delete should edit the node to the right from the selected node
-                # if lbox is selected, select first node in lbox
-                if isinstance(node.symbol, MagicTerminal) or isinstance(node, EOS):
-                    bos = node.symbol.ast.children[0]
-                    self.key_delete(e, bos, inside, x)
-                    return
-                if node.symbol.name == "\r":
-                    self.delete_linebreak(self.changed_line, node)
-                self.last_delchar = node.backspace(0)
+            # if node is empty, delete it and repair previous/next node
+            if node.symbol.name == "" and not isinstance(node, BOS):
+               # for all current languages we are using, deleting a node
+               # shouldn't change how nodes are lexed
 
-                # if node is empty, delete it and repair previous/next node
-                if node.symbol.name == "" and not isinstance(node, BOS):
-                   # for all current languages we are using, deleting a node
-                   # shouldn't change how nodes are lexed
-
-                   #if isinstance(other, BOS):
-                   #    repairnode = node.next_terminal()
-                   #elif isinstance(other, EOS):
-                   #    assert False
-                   #    repairnode = node.previous_terminal()
-                   #else:
-                   #    repairnode = other
-                    # check if magic terminal is empty
-                    root = node.get_root()
-                    magic = root.get_magicterminal()
-                    next_node = node.next_terminal()
-                    previous_node = node.previous_terminal()
-                    if magic and isinstance(next_node, EOS) and isinstance(previous_node, BOS):
-                        # language box is empty -> delete it and all references
-                        magic.parent.remove_child(magic)
-                        self.magic_tokens.remove(id(magic))
-                        del self.parsers[root]
-                        del self.lexers[root]
-                    else:
-                        # normal node is empty -> remove it from AST
-                        node.parent.remove_child(node)
+                root = node.get_root()
+                magic = root.get_magicterminal()
+                next_node = node.next_terminal()
+                previous_node = node.previous_terminal()
+                if magic and isinstance(next_node, EOS) and isinstance(previous_node, BOS):
+                    # language box is empty -> delete it and all references
+                    magic.parent.remove_child(magic)
+                    self.magic_tokens.remove(id(magic))
+                    del self.parsers[root]
+                    del self.lexers[root]
+                else:
+                    # normal node is empty -> remove it from AST
+                    node.parent.remove_child(node)
 
     def key_cursors(self, e):
         self.edit_rightnode = False
@@ -947,7 +931,6 @@ class NodeEditor(QFrame):
         # edit node
         if inside:
             internal_position = len(node.symbol.name) - (x - self.cursor.x)
-            print("internal position", internal_position)
             node.insert(text, internal_position)
         else:
             # append to node: [node newtext] [next node]
