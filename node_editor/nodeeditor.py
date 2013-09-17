@@ -314,12 +314,12 @@ class NodeEditor(QFrame):
             paint.fillRect(start.x * self.fontwt, 4+start.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
         else:
             # paint start to line end
-            width = self.max_cols[start.y] - start.x
+            width = self.lines[start.y].width - start.x
             paint.fillRect(start.x * self.fontwt, 4+start.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
 
             # paint lines in between
             for y in range(start.y+1, end.y):
-                width = self.max_cols[y]
+                width = self.lines[y].width
                 paint.fillRect(0 * self.fontwt, 4+y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
 
             # paint line start to end
@@ -393,19 +393,19 @@ class NodeEditor(QFrame):
         start_node, start_inbetween, start_x = self.get_nodes_at_position()
         diff_start = 0
         if start_inbetween:
-            diff_start = len(start_node[0].symbol.name) - (start_x - self.cursor.x)
+            diff_start = len(start_node.symbol.name) - (start_x - self.cursor.x)
         include_start = True
 
         self.cursor = cur_end
         end_node, end_inbetween, end_x = self.get_nodes_at_position()
         diff_end = 0
         if end_inbetween:
-            diff_end = len(end_node[0].symbol.name) - (end_x - self.cursor.x)
+            diff_end = len(end_node.symbol.name) - (end_x - self.cursor.x)
 
         self.cursor = temp
 
-        start = start_node[0]
-        end = end_node[0]
+        start = start_node
+        end = end_node
 
 
         nodes = []
