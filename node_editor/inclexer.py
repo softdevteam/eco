@@ -14,12 +14,27 @@ class IncrementalLexer(object):
     # relexing of unchanged nodes
 
     def __init__(self, rules, language=""):
+        self.indentation_based = False
         self.language = language
+        if rules.startswith("%"):
+            config_line = rules.splitlines()[0]     # get first line
+            self.parse_config(config_line[1:])      # remove %
+            rules = "\n".join(rules.splitlines()[1:]) # remove config line
         pl = PriorityLexer(rules)
         self.regexlist = pl.rules
         self.compiled_regexes = {}
         for regex in self.regexlist:
             self.compiled_regexes[regex] = re.compile(regex)
+
+    def is_indentation_based(self):
+        return self.indentation_based
+
+    def parse_config(self, config):
+        settings = config.split(",")
+        for s in settings:
+            name, value = s.split("=")
+            if name == "indentation" and value == "true":
+                self.indentation_based = True
 
     def lex(self, text):
         matches = []

@@ -738,6 +738,11 @@ class NodeEditor(QFrame):
         if indent_node.lookup != "<ws>":
             return
 
+        root = indent_node.get_root()
+        lexer = self.lexers[root]
+        if not lexer.is_indentation_based():
+            return
+
         indent_level = len(indent_node.symbol.name)
         previous_indent_stack = self.lines[y-1].indent_stack
         this_indent_stack = list(previous_indent_stack) # copy previous list

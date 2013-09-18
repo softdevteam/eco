@@ -12,7 +12,7 @@ indent_based = Language("Indentation based language",
     assignment ::= "ID" "=" "ID"
 """
 ,
-"""
+"""%indentation=true
 "pass":pass
 "class":class
 "def":def
