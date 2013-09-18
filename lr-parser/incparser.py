@@ -10,7 +10,7 @@ except:
 
 import time
 
-from gparser import Parser, Nonterminal, Terminal,MagicTerminal, Epsilon
+from gparser import Parser, Nonterminal, Terminal,MagicTerminal, Epsilon, IndentationTerminal
 from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
 from stategraph import StateGraph
 from constants import LR0, LR1, LALR
@@ -150,6 +150,9 @@ class IncParser(object):
 
     def parse_terminal(self, la, lookup_symbol):
         #print("Parsing terminal", la)
+        if isinstance(lookup_symbol, IndentationTerminal):
+            #XXX hack: change parsing table to accept IndentationTerminals
+            lookup_symbol = Terminal(lookup_symbol.name)
         element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
         if isinstance(element, Accept):
             #XXX change parse so that stack is [bos, startsymbol, eos]

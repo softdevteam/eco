@@ -21,7 +21,7 @@ from incparser import IncParser
 from inclexer import IncrementalLexer
 from viewer import Viewer
 
-from gparser import Terminal, MagicTerminal
+from gparser import Terminal, MagicTerminal, IndentationTerminal
 from astree import TextNode, BOS, EOS, ImageNode
 
 from languages import languages, lang_dict
@@ -296,7 +296,7 @@ class NodeEditor(QFrame):
 
     def paint_node(self, paint, node, x, y):
         dx, dy = (0, 0)
-        if node.symbol.name == "\r" or isinstance(node, EOS) or node.symbol.name in ["INDENT", "DEDENT"]:
+        if node.symbol.name == "\r" or isinstance(node, EOS) or isinstance(node.symbol, IndentationTerminal):
             return dx, dy
         if node.image is not None and not node.plain_mode:
             paint.drawImage(QPoint(x, 3 + y * self.fontht), node.image)
@@ -373,7 +373,7 @@ class NodeEditor(QFrame):
             node = node.next_term
             if isinstance(node, EOS):
                 return None, x
-            if node.symbol.name in ["INDENT", "DEDENT"]:
+            if isinstance(node.symbol, IndentationTerminal):
                 continue
             if isinstance(node.symbol, MagicTerminal):
                 found, x = self.find_node_at_position(x, node.symbol.ast.children[0])
@@ -614,7 +614,7 @@ class NodeEditor(QFrame):
         else: # between two nodes
             node = node.next_terminal() # delete should edit the node to the right from the selected node
             # if lbox is selected, select first node in lbox
-            while node.symbol.name in ["INDENT", "DEDENT"]:
+            while isinstance(node.symbol, IndentationTerminal):
                 node = node.next_term
             if isinstance(node.symbol, MagicTerminal) or isinstance(node, EOS):
                 bos = node.symbol.ast.children[0]
@@ -730,7 +730,7 @@ class NodeEditor(QFrame):
         node = newline.next_term # get first node in line
 
         # clean up previous indents/dedents
-        while node.symbol.name in ["INDENT", "DEDENT"]:
+        while isinstance(node.symbol, IndentationTerminal):
             node.parent.remove_child(node)
             node = node.next_term
 
@@ -746,12 +746,12 @@ class NodeEditor(QFrame):
             if indent_level > i:
                 # push INDENT and return
                 this_indent_stack.append(indent_level)
-                tokens.append(TextNode(Terminal("INDENT")))
+                tokens.append(TextNode(IndentationTerminal("INDENT")))
                 break
             if indent_level < i:
                 # push DEDENT
                 this_indent_stack.pop()
-                tokens.append(TextNode(Terminal("DEDENT")))
+                tokens.append(TextNode(IndentationTerminal("DEDENT")))
                 pass
             if indent_level == i:
                 # we are done
@@ -765,11 +765,11 @@ class NodeEditor(QFrame):
         if y == len(self.lines)-1: # last line
             eos = newline.get_root().children[-1]
             node = eos.prev_term
-            while node.symbol.name in ["INDENT", "DEDENT"]:
+            while isinstance(node.symbol, IndentationTerminal):
                 node.parent.remove_child(node)
                 node = node.prev_term
             for i in range(len(this_indent_stack)-1):
-                node.insert_after(TextNode(Terminal("DEDENT")))
+                node.insert_after(TextNode(IndentationTerminal("DEDENT")))
 
 
     def relex(self, startnode):

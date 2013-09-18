@@ -36,6 +36,10 @@ class MagicTerminal(Terminal):
     def __repr__(self):
         return "MagicTerminal('%s')" % (repr(self.name),)
 
+class IndentationTerminal(Terminal):
+    def __repr__(self):
+        return "IndentationTerminal('%s')" % (repr(self.name),)
+
 class Nonterminal(Symbol):
     def __repr__(self):
         return "Nonterminal('%s')" % (self.name,)

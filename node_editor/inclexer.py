@@ -4,7 +4,7 @@ sys.path.append("../")
 sys.path.append("../lr-parser/")
 
 from plexer import PriorityLexer
-from gparser import MagicTerminal, Terminal
+from gparser import MagicTerminal, Terminal, IndentationTerminal
 from astree import BOS, EOS, TextNode, ImageNode
 from PyQt4.QtGui import QImage
 import re, os
@@ -65,7 +65,7 @@ class IncrementalLexer(object):
             result = self.lex(startnode.symbol.name)
             startnode.lookup = result[0][1]
 
-        if startnode.symbol.name in ["INDENT", "DEDENT"]:
+        if isinstance(startnode.symbol, IndentationTerminal):
             startnode = startnode.next_term
         else:
             startnode = startnode.prev_term
@@ -76,7 +76,7 @@ class IncrementalLexer(object):
         # find end node
         end_node = startnode.next_term
         while True:
-            if end_node.symbol.name in ["INDENT", "DEDENT"]:
+            if isinstance(end_node.symbol, IndentationTerminal):
                 break
             if isinstance(end_node, EOS):
                 break
