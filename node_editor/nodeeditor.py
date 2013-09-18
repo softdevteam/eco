@@ -434,6 +434,10 @@ class NodeEditor(QFrame):
 
         return (nodes, diff_start, diff_end)
 
+    def focusNextPrevChild(self, b):
+        # don't switch to next widget on TAB
+        return False
+
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
             self.cursor = self.coordinate_to_cursor(e.x(), e.y())
