@@ -65,7 +65,10 @@ class IncrementalLexer(object):
             result = self.lex(startnode.symbol.name)
             startnode.lookup = result[0][1]
 
-        startnode = startnode.prev_term
+        if startnode.symbol.name in ["INDENT", "DEDENT"]:
+            startnode = startnode.next_term
+        else:
+            startnode = startnode.prev_term
 
         if isinstance(startnode, BOS) or isinstance(startnode.symbol, MagicTerminal):
             startnode = startnode.next_term
@@ -73,6 +76,8 @@ class IncrementalLexer(object):
         # find end node
         end_node = startnode.next_term
         while True:
+            if end_node.symbol.name in ["INDENT", "DEDENT"]:
+                break
             if isinstance(end_node, EOS):
                 break
             if isinstance(end_node.symbol, MagicTerminal):

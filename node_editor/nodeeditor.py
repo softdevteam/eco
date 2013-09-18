@@ -75,6 +75,7 @@ class Line(object):
         self.node = node
         self.height = height
         self.width = 0
+        self.indent_stack = None
 
     def __repr__(self):
         return "Line(%s, width=%s, height=%s)" % (self.node, self.width, self.height)
@@ -161,7 +162,9 @@ class NodeEditor(QFrame):
         self.line_heights.append(1)
         self.line_indents.append(None)
 
-        self.lines.append(Line(self.ast.parent.children[0], 1))
+        first_line = Line(self.ast.parent.children[0], 1)
+        first_line.indent_stack = [0]
+        self.lines.append(first_line)
         self.eos = self.ast.parent.children[1]
 
     def set_sublanguage(self, language):
@@ -293,7 +296,7 @@ class NodeEditor(QFrame):
 
     def paint_node(self, paint, node, x, y):
         dx, dy = (0, 0)
-        if node.symbol.name == "\r" or isinstance(node, EOS):
+        if node.symbol.name == "\r" or isinstance(node, EOS) or node.symbol.name in ["INDENT", "DEDENT"]:
             return dx, dy
         if node.image is not None and not node.plain_mode:
             paint.drawImage(QPoint(x, 3 + y * self.fontht), node.image)
@@ -370,6 +373,8 @@ class NodeEditor(QFrame):
             node = node.next_term
             if isinstance(node, EOS):
                 return None, x
+            if node.symbol.name in ["INDENT", "DEDENT"]:
+                continue
             if isinstance(node.symbol, MagicTerminal):
                 found, x = self.find_node_at_position(x, node.symbol.ast.children[0])
                 if found is not None:
@@ -544,6 +549,7 @@ class NodeEditor(QFrame):
             indentation = self.key_normal(e, selected_node, inbetween, x)
 
         self.rescan_linebreaks(self.changed_line)
+        self.rescan_indentations(self.changed_line)
         self.getWindow().btReparse([])
         self.repaint() # this recalculates self.max_cols
 
@@ -608,6 +614,8 @@ class NodeEditor(QFrame):
         else: # between two nodes
             node = node.next_terminal() # delete should edit the node to the right from the selected node
             # if lbox is selected, select first node in lbox
+            while node.symbol.name in ["INDENT", "DEDENT"]:
+                node = node.next_term
             if isinstance(node.symbol, MagicTerminal) or isinstance(node, EOS):
                 bos = node.symbol.ast.children[0]
                 self.key_delete(e, bos, inside, x)
@@ -713,6 +721,56 @@ class NodeEditor(QFrame):
                 y += 1
                 self.lines.insert(y, Line(current))
             current = current.next_term
+
+    def rescan_indentations(self, y):
+        if y == 0:
+            return
+
+        newline = self.lines[y].node # get newline node
+        node = newline.next_term # get first node in line
+
+        # clean up previous indents/dedents
+        while node.symbol.name in ["INDENT", "DEDENT"]:
+            node.parent.remove_child(node)
+            node = node.next_term
+
+        indent_node = node
+        if indent_node.lookup != "<ws>":
+            return
+
+        indent_level = len(indent_node.symbol.name)
+        previous_indent_stack = self.lines[y-1].indent_stack
+        this_indent_stack = list(previous_indent_stack) # copy previous list
+        tokens = []
+        for i in reversed(previous_indent_stack):
+            if indent_level > i:
+                # push INDENT and return
+                this_indent_stack.append(indent_level)
+                tokens.append(TextNode(Terminal("INDENT")))
+                break
+            if indent_level < i:
+                # push DEDENT
+                this_indent_stack.pop()
+                tokens.append(TextNode(Terminal("DEDENT")))
+                pass
+            if indent_level == i:
+                # we are done
+                break
+
+        for token in tokens:
+            newline.insert_after(token)
+
+        self.lines[y].indent_stack = this_indent_stack
+
+        if y == len(self.lines)-1: # last line
+            eos = newline.get_root().children[-1]
+            node = eos.prev_term
+            while node.symbol.name in ["INDENT", "DEDENT"]:
+                node.parent.remove_child(node)
+                node = node.prev_term
+            for i in range(len(this_indent_stack)-1):
+                node.insert_after(TextNode(Terminal("DEDENT")))
+
 
     def relex(self, startnode):
         # XXX when typing to not create new node but insert char into old node
