@@ -596,6 +596,9 @@ class NodeEditor(QFrame):
                 self.relex(node2)
 
     def key_backspace(self, e):
+        node = self.get_selected_node()
+        if node.image is not None and not node.plain_mode:
+            return
         if self.document_y() > 0 and self.cursor.x == 0:
             self.cursor_movement(Qt.Key_Up)
             self.repaint() # XXX store line width in line_info to avoid unnecessary redrawing
