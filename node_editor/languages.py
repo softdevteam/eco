@@ -1130,13 +1130,19 @@ testing = Language("testing",
 )
 
 
-unicode_grammar = Language("Unicode",
+test = Language("Test",
 """
-S ::= "YEN" ";"
+import_option1 ::= dotted_name
+                 | dot_loop2 dotted_name
+                 | dot_loop2
+dot_loop2 ::= dot_loop2 "."
+            |           "."
+
+dotted_name ::= "i"
 
 """,
 """
-"\xa5":YEN
+"\.":.
 """);
 
 from lang_java import java
@@ -1147,6 +1153,7 @@ from sql_simple import sql
 from greenmarl import greenmarl
 from lang_chem import chemicals
 from lang_indent import indent_based
+from lang_python import lang_python
 
 import gops
 java15_chem = gops.add_alt("Java 1.5 + chemical", java15, "unary_expression", "<Chemicals>")
@@ -1158,7 +1165,7 @@ java15_sql = gops.add_alt("Java 1.5 + chemical + SQL", java15_chem,  "unary_expr
 #             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
 #             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
 
-languages = [base_language, indent_based, super_simple, calc1, lisp, javav1, java15, java15_sql, sql, java15_exp, sql_java_exp, chemicals]
+languages = [test, base_language, indent_based, lang_python, super_simple, calc1, lisp, javav1, java15, java15_sql, sql, java15_exp, sql_java_exp, chemicals]
 
 lang_dict = {}
 for l in languages:
