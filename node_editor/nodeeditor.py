@@ -787,7 +787,8 @@ class NodeEditor(QFrame):
             self.repair_indentation(y)
             indent = self.lines[y].indent_stack[-1]
             if indent == this_indent:
-                break
+                if self.is_logical_line(y):
+                    break
 
 
     def repair_indentation(self, y):
@@ -818,7 +819,7 @@ class NodeEditor(QFrame):
         else:
             indent_level = len(indent_node.symbol.name)
 
-        previous_indent_stack = self.lines[y-1].indent_stack #XXX this line might be non logical
+        previous_indent_stack = self.lines[y-1].indent_stack
         this_indent_stack = list(previous_indent_stack) # copy previous list
         for i in reversed(previous_indent_stack):
             if indent_level > i:
