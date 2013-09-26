@@ -3,12 +3,12 @@ from languages import Language
 lang_python = Language("Python 2.7.5",
 """
 
-file_input ::= file_input newline
+file_input ::= file_input "NEWLINE"
              | file_input stmt
              |
 
-decorator ::= "@" dotted_name "(" [arglist] ")" newline
-            | "@" dotted_name newline
+decorator ::= "@" dotted_name "(" [arglist] ")" "NEWLINE"
+            | "@" dotted_name "NEWLINE"
 decorators ::= decorator | decorator decorators
 decorated ::= decorators classdef
             | decorators funcdef
@@ -39,8 +39,8 @@ fplist_loop1 ::= fplist_loop1 "," fpdef
 
 stmt ::= simple_stmt | compound_stmt
 simple_stmt ::=
-                small_stmt simple_stmt_loop1 ";" newline
-              | small_stmt simple_stmt_loop1     newline
+                small_stmt simple_stmt_loop1 ";" "NEWLINE"
+              | small_stmt simple_stmt_loop1     "NEWLINE"
 
 simple_stmt_loop1 ::= simple_stmt_loop1 ";" small_stmt
                     |
@@ -166,7 +166,7 @@ except_clause ::= "except"
                 | "except" test "," test
 
 suite ::= simple_stmt
-        | newline "INDENT" suite_loop "DEDENT"
+        | "NEWLINE" "INDENT" suite_loop "DEDENT"
 suite_loop ::= suite_loop stmt
              | stmt
 
@@ -351,7 +351,6 @@ yield_expr ::= "yield"
              | "yield" testlist
 
 
-newline ::= "<return>"
 """
 ,
 """%indentation=true

@@ -797,10 +797,6 @@ class NodeEditor(QFrame):
         newline = self.lines[y].node # get newline node
         node = newline.next_term # get first node in line
 
-        if node.symbol.name == "\r": # or comment
-            # not logical line
-            return
-
         # clean up previous indents/dedents
         while isinstance(node.symbol, IndentationTerminal):
             node.parent.remove_child(node)
@@ -812,14 +808,18 @@ class NodeEditor(QFrame):
         if not lexer.is_indentation_based():
             return
 
+        tokens = []
+        if not self.is_logical_line(y):
+            self.lines[y].indent_stack = list(self.lines[y-1].indent_stack)
+            return
+
         if indent_node.lookup != "<ws>":
             indent_level = 0
         else:
             indent_level = len(indent_node.symbol.name)
 
-        previous_indent_stack = self.lines[y-1].indent_stack
+        previous_indent_stack = self.lines[y-1].indent_stack #XXX this line might be non logical
         this_indent_stack = list(previous_indent_stack) # copy previous list
-        tokens = []
         for i in reversed(previous_indent_stack):
             if indent_level > i:
                 # push INDENT and return
@@ -835,6 +835,7 @@ class NodeEditor(QFrame):
                 # we are done
                 break
 
+        tokens.append(TextNode(IndentationTerminal("NEWLINE")))
         for token in tokens:
             newline.insert_after(token)
 
@@ -848,7 +849,21 @@ class NodeEditor(QFrame):
                 node = node.prev_term
             for i in range(len(this_indent_stack)-1):
                 node.insert_after(TextNode(IndentationTerminal("DEDENT")))
+            node.insert_after(TextNode(IndentationTerminal("NEWLINE")))
 
+    def is_logical_line(self, y):
+        newline_node = self.lines[y].node
+        node = newline_node.next_term
+        while True:
+            if isinstance(node, EOS):
+                return False
+            if node.lookup == "<return>": # reached next line
+                return False
+            if node.lookup == "<ws>":
+                node = node.next_term
+                continue
+            # if we are here, we reached a normal node
+            return True
 
     def relex(self, startnode):
         # XXX when typing to not create new node but insert char into old node
