@@ -76,6 +76,7 @@ class Line(object):
         self.height = height
         self.width = 0
         self.indent_stack = None
+        self.indentation = 0
 
     def __repr__(self):
         return "Line(%s, width=%s, height=%s)" % (self.node, self.width, self.height)
@@ -729,7 +730,7 @@ class NodeEditor(QFrame):
                 self.lines.insert(y, Line(current))
             current = current.next_term
 
-    def rescan_indentations(self, y):
+    def rescan_indentations_nostack(self, y):
         if y == 0:
             return
 
@@ -751,6 +752,71 @@ class NodeEditor(QFrame):
             return
 
         indent_level = len(indent_node.symbol.name)
+        previous_indent_level = self.lines[y-1].indentation
+
+        tokens = []
+        if indent_level > previous_indent_level:
+            # emit indent
+            tokens.append(TextNode(IndentationTerminal("INDENT")))
+        elif indent_level < previous_indent_level:
+            # emit dedents
+            current_level = previous_indent_level
+            line_nr = y-1
+            while previous_indent_level > 0 and previous_indent_level > indent_level and line_nr > 0:
+                previous_indent_level = self.lines[line_nr-1]
+                if current_level > previous_indent_level:
+                    tokens.append(TextNode(IndentationTerminal("DEDENT")))
+                current_level = previous_indent_level
+
+        self.lines[y].indentation = indent_level
+
+    def rescan_indentations(self, y):
+        before = self.lines[y].indent_stack
+        self.repair_indentation(y)
+        now = self.lines[y].indent_stack
+        if before == now:
+            # nothing was changed
+            return
+
+        # repair succeeding lines until we reach a line that has equal or smaller indentation
+        this_indent = now[-1]
+        while True:
+            y += 1
+            if y == len(self.lines):
+                break
+            self.repair_indentation(y)
+            indent = self.lines[y].indent_stack[-1]
+            if indent == this_indent:
+                break
+
+
+    def repair_indentation(self, y):
+        if y == 0:
+            return
+
+        newline = self.lines[y].node # get newline node
+        node = newline.next_term # get first node in line
+
+        if node.symbol.name == "\r": # or comment
+            # not logical line
+            return
+
+        # clean up previous indents/dedents
+        while isinstance(node.symbol, IndentationTerminal):
+            node.parent.remove_child(node)
+            node = node.next_term
+
+        indent_node = node
+        root = indent_node.get_root()
+        lexer = self.lexers[root]
+        if not lexer.is_indentation_based():
+            return
+
+        if indent_node.lookup != "<ws>":
+            indent_level = 0
+        else:
+            indent_level = len(indent_node.symbol.name)
+
         previous_indent_stack = self.lines[y-1].indent_stack
         this_indent_stack = list(previous_indent_stack) # copy previous list
         tokens = []
@@ -774,7 +840,7 @@ class NodeEditor(QFrame):
 
         self.lines[y].indent_stack = this_indent_stack
 
-        if y == len(self.lines)-1: # last line
+        if y == len(self.lines)-1 and not isinstance(indent_node, EOS): # last line
             eos = newline.get_root().children[-1]
             node = eos.prev_term
             while isinstance(node.symbol, IndentationTerminal):
