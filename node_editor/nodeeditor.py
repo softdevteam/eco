@@ -1089,6 +1089,8 @@ class NodeEditor(QFrame):
         bos.insert_after(new)
         lexer.relex(new)
         self.rescan_linebreaks(0)
+        for y in range(len(self.lines)):
+            self.repair_indentation(y)
         return
 
     def getTL(self):
