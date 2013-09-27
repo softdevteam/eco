@@ -1092,7 +1092,9 @@ class NodeEditor(QFrame):
         bos = parser.previous_version.parent.children[0]
         new = TextNode(Terminal(text))
         bos.insert_after(new)
-        lexer.relex(new)
+        root = new.get_root()
+        lexer = self.lexers[root]
+        lexer.relex_import(new)
         self.rescan_linebreaks(0)
         for y in range(len(self.lines)):
             self.repair_indentation(y)

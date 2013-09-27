@@ -182,3 +182,26 @@ class IncrementalLexer(object):
             raise AssertionError("old_x(%s) != new_x(%s) %s => %s" % (old_x, new_x, debug_old, debug_new))
 
         return
+
+    def relex_import(self, startnode):
+        success = self.lex(startnode.symbol.name)
+        bos = startnode.prev_term # bos
+        startnode.parent.remove_child(startnode)
+        parent = bos.parent
+        eos = parent.children.pop()
+        last_node = bos
+        for match in success:
+            node = TextNode(Terminal(match[0]))
+            node.lookup = match[1]
+            parent.children.append(node)
+            last_node.next_term = node
+            last_node.right = node
+            node.left = last_node
+            node.prev_term = last_node
+            node.parent = parent
+            last_node = node
+        parent.children.append(eos)
+        last_node.right = eos # link to eos
+        last_node.next_term = eos
+        eos.left = last_node
+        eos.prev_term = last_node
