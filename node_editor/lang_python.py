@@ -369,6 +369,11 @@ yield_expr ::= "yield"
 "def":def
 "for":for
 "while":while
+"if":if
+"else":else
+"elif":elif
+"and":and
+"or":or
 "exec":exec
 "raise":raise
 "global":global
@@ -404,6 +409,7 @@ yield_expr ::= "yield"
 ">>=":>>=
 "\*\*=":**=
 "\/\/="://=
+"\|":|
 "=":=
 "==":==
 "<":<
