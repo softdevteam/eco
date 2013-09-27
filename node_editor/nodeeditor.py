@@ -1348,6 +1348,7 @@ class Window(QtGui.QMainWindow):
         self.ui.tePriorities.document().setPlainText(language.priorities)
         self.main_language = language.name
         self.btUpdateGrammar()
+        self.ui.frame.setFocus(Qt.OtherFocusReason)
 
     def btUpdateGrammar(self):
         new_grammar = str(self.ui.teGrammar.document().toPlainText())
