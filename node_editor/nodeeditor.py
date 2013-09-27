@@ -32,6 +32,8 @@ from time import time
 import os
 import math
 
+from syntaxhighlighter import SyntaxHighlighter
+
 grammar = """
     E ::= T
         | E "+" T
@@ -134,6 +136,8 @@ class NodeEditor(QFrame):
             3: QColor("#f4e790"), # light yellow
             4: QColor("#dccee4"), # light purple
         }
+
+        self.highlighter = SyntaxHighlighter()
 
     def reset(self):
         self.indentations = {}
@@ -304,6 +308,7 @@ class NodeEditor(QFrame):
             dx = int(math.ceil(node.image.width() * 1.0 / self.fontwt) * self.fontwt)
             dy = int(math.ceil(node.image.height() * 1.0 / self.fontht))
         elif isinstance(node, TextNode):
+            paint.setPen(QPen(QColor(self.highlighter.get_color(node))))
             text = node.symbol.name
             paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text)
             dx = len(text) * self.fontwt
