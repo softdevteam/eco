@@ -5,6 +5,8 @@ class SyntaxHighlighter(object):
         "blue": "#268BD2",
         "grey": "#839496",
         "cyan": "#2AA198",
+        "yellow": "#B58900",
+        "purple": "#D33682",
         "black": "#000000"
     }
     keyword_colors = {
@@ -17,7 +19,17 @@ class SyntaxHighlighter(object):
         "NUMBER": "cyan",
         "STRING": "cyan",
         "range":"blue",
-        "object": "blue"
+        "object": "blue",
+        "import": "red",
+        "public": "yellow",
+        "private": "yellow",
+        "static": "yellow",
+        "void": "yellow",
+        "int": "yellow",
+        "float": "yellow",
+        "BOOLEAN_LITERAL": "cyan",
+        "STRING_LITERAL": "cyan",
+        "INTEGER_LITERAL": "cyan",
     }
 
     def get_color(self, node):
