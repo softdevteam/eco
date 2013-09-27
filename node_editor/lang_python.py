@@ -356,6 +356,7 @@ yield_expr ::= "yield"
 """%indentation=true
 "#[^\\r\\n]*":<ws>
 "\"(\\\\.|[^\\\\"])*\"":STRING
+"\'(\\\\.|[^\\\\'])*\'":STRING
 "class":class
 "pass":pass
 "break":break
