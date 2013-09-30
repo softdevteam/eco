@@ -29,6 +29,9 @@ grammar = """
     C ::= "c"
 """
 
+import pytest
+pytest.skip("deprecated")
+
 def test_input():
     lrp = LRParser(grammar)
     assert lrp.check("a b d") == True

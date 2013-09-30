@@ -74,8 +74,6 @@ class Test_CalcParser(Test_IncrementalParser):
 
         self.compare_trees(self.ast.parent, root)
 
-        #XXX create AST-to-text method and compared strings
-
 class Test_JavaParser(Test_IncrementalParser):
 
     def setup_class(cls):

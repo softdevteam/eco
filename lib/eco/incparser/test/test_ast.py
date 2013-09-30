@@ -25,6 +25,8 @@ from incparser.constants import LR0, LR1, LALR
 from incparser.astree import AST, Node
 from grammar_parser.gparser import Parser, Nonterminal, Terminal, Epsilon
 
+import pytest
+
 grammar = """
     E ::= T
         | E "+" T
@@ -73,6 +75,7 @@ def notest_ast():
     ast2 = lrp.get_ast()
 
 def test_incparser_ast():
+    pytest.skip("lrp.check is deprecated")
     lrp = IncParser(grammar)
 
     lrp.check("1 + 2 * 3")

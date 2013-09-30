@@ -26,7 +26,7 @@ try:
 except:
     import pickle
 
-import time
+import time, os
 
 from grammar_parser.gparser import Parser, Nonterminal, Terminal,MagicTerminal, Epsilon, IndentationTerminal
 from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
@@ -47,7 +47,7 @@ class IncParser(object):
         parser = Parser(grammar, whitespaces)
         parser.parse()
 
-        filename = "".join(["pickle/", str(hash(grammar) ^ hash(whitespaces)), ".pcl"])
+        filename = "".join([os.path.dirname(__file__), "/../pickle/", str(hash(grammar) ^ hash(whitespaces)), ".pcl"])
         try:
             print("Try to unpickle former stategraph")
             f = open(filename, "r")

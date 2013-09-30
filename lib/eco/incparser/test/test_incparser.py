@@ -19,11 +19,13 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from incparser import IncParser
-from constants import LR0, LR1, LALR
-from gparser import Terminal, Nonterminal
-from astree import Node
+from incparser.incparser import IncParser
+from incparser.constants import LR0, LR1, LALR
+from grammar_parser.gparser import Terminal, Nonterminal
+from incparser.astree import Node
 from viewer import Viewer
+
+import pytest
 
 grammar = """
     E ::= E "+" T
@@ -34,6 +36,7 @@ grammar = """
 """
 
 def test_input():
+    pytest.skip("deprecated")
     lrp = IncParser(grammar, LR1)
     assert lrp.inc_parse("1 * 2") == True
     lrp.get_ast().pprint()
@@ -44,6 +47,7 @@ def test_input():
     assert False
 
 def test_empty_start():
+    pytest.skip("deprecated")
     grammar = """
         S ::= "a"
             |
@@ -56,6 +60,7 @@ def test_empty_start():
     assert False
 
 def test_multiple_changes_at_once():
+    pytest.skip("deprecated")
     grammar = """
         S ::= C S
             | C
@@ -85,6 +90,7 @@ def test_multiple_changes_at_once():
     assert False
 
 def test_deletion():
+    pytest.skip("deprecated")
     grammar = """
         S ::= C S
             | C
@@ -107,12 +113,14 @@ def test_deletion():
     assert False
 
 def apply_change(lrp, node):
+    pytest.skip("deprecated")
     lrp.all_changes.append(node)
     while(node.parent):
         node = node.parent
         lrp.all_changes.append(node)
 
 def test_multiple_changes_2():
+    pytest.skip("deprecated")
     lrp = IncParser(grammar, LR1)
     lrp.check("1 + 2")
     lrp.previous_version = lrp.get_ast()
@@ -128,6 +136,7 @@ def test_multiple_changes_2():
     assert False
 
 def test_multiple_changes_3():
+    pytest.skip("deprecated")
     lrp = IncParser(grammar, LR1)
     lrp.check("1 + 2")
     lrp.previous_version = lrp.get_ast()

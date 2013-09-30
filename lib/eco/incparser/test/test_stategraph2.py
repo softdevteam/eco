@@ -45,7 +45,7 @@ S_bAd = Production(S, [b, A, d])
 A_c = Production(A, [c])
 A_None = Production(A, [Epsilon()])
 
-graph = StateGraph(p.start_symbol, p.rules)
+graph = StateGraph(p.start_symbol, p.rules, 1)
 graph.build()
 
 def test_state_0():
