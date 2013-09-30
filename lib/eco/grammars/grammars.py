@@ -1146,14 +1146,14 @@ dotted_name ::= "i"
 """);
 
 from lang_java import java
-from lang_java_v1 import javav1
+from java10 import java10
 from lang_java_extract import javav1_e
 from java15 import java15
 from sql_simple import sql
 from greenmarl import greenmarl
-from lang_chem import chemicals
-from lang_indent import indent_based
-from lang_python import lang_python
+from chemical import chemicals
+from indentation import indent_based
+from python275 import python275
 
 import gops
 java15_chem = gops.add_alt("Java 1.5 + chemical", java15, "unary_expression", "<Chemicals>")
@@ -1165,7 +1165,7 @@ java15_sql = gops.add_alt("Java 1.5 + chemical + SQL", java15_chem,  "unary_expr
 #             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
 #             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
 
-languages = [test, base_language, indent_based, lang_python, super_simple, calc1, lisp, javav1, java15, java15_sql, sql, java15_exp, sql_java_exp, chemicals]
+languages = [test, base_language, indent_based, python275, super_simple, calc1, lisp, java10, java15, java15_sql, sql, java15_exp, sql_java_exp, chemicals]
 
 lang_dict = {}
 for l in languages:

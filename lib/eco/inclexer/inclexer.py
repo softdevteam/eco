@@ -1,11 +1,6 @@
-import sys
-sys.path.append(".")
-sys.path.append("../")
-sys.path.append("../lr-parser/")
-
-from plexer import PriorityLexer
-from gparser import MagicTerminal, Terminal, IndentationTerminal
-from astree import BOS, EOS, TextNode, ImageNode
+from grammar_parser.plexer import PriorityLexer
+from grammar_parser.gparser import MagicTerminal, Terminal, IndentationTerminal
+from incparser.astree import BOS, EOS, TextNode, ImageNode
 from PyQt4.QtGui import QImage
 import re, os
 

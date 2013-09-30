@@ -1,10 +1,8 @@
 from __future__ import print_function
-import sys
-sys.path.append("../")
 
 from state import State, StateSet, LR0Element
 from production import Production
-from gparser import Terminal, Nonterminal, Epsilon
+from grammar_parser.gparser import Terminal, Nonterminal, Epsilon
 from syntaxtable import FinishSymbol
 
 from time import time

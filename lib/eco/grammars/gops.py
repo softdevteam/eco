@@ -1,7 +1,7 @@
 # Grammar operations
 
 import re
-from languages import Language
+from grammars import Language
 
 
 

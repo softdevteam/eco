@@ -1,8 +1,5 @@
-import sys
-sys.path.append("../")
-
 from production import Production
-from gparser import Terminal, Nonterminal, Epsilon
+from grammar_parser.gparser import Terminal, Nonterminal, Epsilon
 from constants import LR0, LR1, LALR
 
 class SyntaxTableElement(object):

@@ -1,4 +1,4 @@
-from languages import Language
+from grammars import Language
 
 greenmarl = Language("Greenmarl",
 """

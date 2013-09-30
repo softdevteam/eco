@@ -1,9 +1,6 @@
 from __future__ import print_function
 
 import sys
-sys.path.append("../")
-sys.path.append("../lr-parser/")
-
 from PyQt4 import QtCore
 from PyQt4.QtCore import *
 from PyQt4 import QtGui
@@ -16,17 +13,15 @@ except:
 
 from gui import Ui_MainWindow
 
-from plexer import PriorityLexer
-from incparser import IncParser
-from inclexer import IncrementalLexer
+from grammar_parser.plexer import PriorityLexer
+from incparser.incparser import IncParser
+from inclexer.inclexer import IncrementalLexer
 from viewer import Viewer
 
-from gparser import Terminal, MagicTerminal, IndentationTerminal
-from astree import TextNode, BOS, EOS, ImageNode
+from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal
+from incparser.astree import TextNode, BOS, EOS, ImageNode
 
-from languages import languages, lang_dict
-
-from token_lexer import TokenLexer
+from grammars.grammars import languages, lang_dict
 
 from time import time
 import os

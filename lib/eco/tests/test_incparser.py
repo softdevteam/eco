@@ -6,7 +6,6 @@ from incparser import IncParser
 from inclexer import IncrementalLexer
 from languages import calc1, java15
 from plexer import PriorityLexer
-from token_lexer import TokenLexer
 
 from gparser import Terminal, Nonterminal
 from astree import TextNode, BOS, EOS, FinishSymbol

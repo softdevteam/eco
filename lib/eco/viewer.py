@@ -1,9 +1,7 @@
 #https://chart.googleapis.com/chart?chs=250x100&cht=gv&chl=graph{A--B--C}
-import sys
-sys.path.append("../")
 import pydot
 
-from gparser import MagicTerminal
+from grammar_parser.gparser import MagicTerminal
 
 class Viewer(object):
 

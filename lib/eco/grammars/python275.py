@@ -1,6 +1,6 @@
-from languages import Language
+from grammars import Language
 
-lang_python = Language("Python 2.7.5",
+python275 = Language("Python 2.7.5",
 """
 
 file_input ::= file_input "NEWLINE"

@@ -1,4 +1,4 @@
-from languages import Language
+from grammars import Language
 
 chemicals = Language("Chemicals","""
 S ::= "chem"

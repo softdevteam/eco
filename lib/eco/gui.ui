@@ -578,13 +578,13 @@
   <customwidget>
    <class>NodeEditor</class>
    <extends>QFrame</extends>
-   <header>nodeeditor</header>
+   <header>eco</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>ScopeScrollArea</class>
    <extends>QScrollArea</extends>
-   <header>nodeeditor</header>
+   <header>eco</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -1,4 +1,4 @@
-from languages import Language
+from grammars import Language
 
 javav1_e = Language("Java v1 (Extract)",
 """

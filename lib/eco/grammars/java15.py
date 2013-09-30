@@ -1,4 +1,4 @@
-from languages import Language
+from grammars import Language
 
 java15 = Language("Java 1.5","""
 goal ::=    compilation_unit

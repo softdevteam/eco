@@ -1,8 +1,5 @@
 from __future__ import print_function
 
-import sys
-sys.path.append("../")
-
 try:
     import cPickle as pickle
 except:
@@ -10,7 +7,7 @@ except:
 
 import time
 
-from gparser import Parser, Nonterminal, Terminal,MagicTerminal, Epsilon, IndentationTerminal
+from grammar_parser.gparser import Parser, Nonterminal, Terminal,MagicTerminal, Epsilon, IndentationTerminal
 from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
 from stategraph import StateGraph
 from constants import LR0, LR1, LALR

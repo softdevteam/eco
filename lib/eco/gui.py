@@ -353,4 +353,4 @@ class Ui_MainWindow(object):
         self.actionSave.setText(_translate("MainWindow", "Save...", None))
         self.actionNew.setText(_translate("MainWindow", "New", None))
 
-from nodeeditor import ScopeScrollArea, NodeEditor
+from eco import ScopeScrollArea, NodeEditor

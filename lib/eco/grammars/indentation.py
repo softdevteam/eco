@@ -1,4 +1,4 @@
-from languages import Language
+from grammars import Language
 
 indent_based = Language("Indentation based language",
 """

@@ -1,8 +1,5 @@
-import sys
-sys.path.append("../")
-
 import re
-from gparser import Nonterminal, Terminal
+from grammar_parser.gparser import Nonterminal, Terminal
 from syntaxtable import FinishSymbol
 
 class AST(object):
