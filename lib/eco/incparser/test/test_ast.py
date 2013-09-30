@@ -19,11 +19,11 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from lrparser import LRParser
-from incparser import IncParser
-from constants import LR0, LR1, LALR
-from astree import AST, Node
-from gparser import Parser, Nonterminal, Terminal, Epsilon
+from incparser.lrparser import LRParser
+from incparser.incparser import IncParser
+from incparser.constants import LR0, LR1, LALR
+from incparser.astree import AST, Node
+from grammar_parser.gparser import Parser, Nonterminal, Terminal, Epsilon
 
 grammar = """
     E ::= T

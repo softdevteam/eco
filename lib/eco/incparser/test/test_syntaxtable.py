@@ -19,26 +19,52 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from plexer import PriorityLexer
+from incparser.syntaxtable import SyntaxTable, Goto, Shift, Reduce, Accept, FinishSymbol
+from incparser.stategraph import StateGraph
+from grammar_parser.gparser import Parser, Terminal, Nonterminal, Epsilon
+from incparser.production import Production
 
-code = """
-    "IF":KEYWORD
-    "[a-zA-Z_]+":VAR
-    "[0-9]+":INT
+grammar = """
+    S ::= "b" A "d"
+    A ::= "c"
+        |
 """
 
-def test_plexer():
-    plexer = PriorityLexer(code)
-    assert plexer.get_priority("IF") == 0
-    assert plexer.get_priority("[0-9]+") == 2
+p = Parser(grammar)
+p.parse()
+r = p.rules
 
-    assert plexer.get_cls("IF") == "KEYWORD"
-    assert plexer.get_cls("[0-9]+") == "INT"
+b = Terminal("b")
+c = Terminal("c")
+d = Terminal("d")
+S = Nonterminal("S")
+A = Nonterminal("A")
 
-def test_match():
-    plexer = PriorityLexer(code)
-    assert plexer.matches("13", "INT")
-    assert not plexer.matches("13a", "INT")
+S_bAd = Production(S, [b, A, d])
+A_c = Production(A, [c])
+A_None = Production(A, [Epsilon()])
 
-    assert plexer.matches("variable_", "VAR")
-    assert not plexer.matches("not variable", "VAR")
+syntaxtable = {
+    (0, b): Shift(2),
+    (0, S): Goto(1),
+
+    (1, FinishSymbol()): Accept(),
+
+    (2, c): Shift(4),
+    (2, A): Goto(3),
+    (2, d): Reduce(A_None),
+
+    (3, d): Shift(5),
+
+    (4, d): Reduce(A_c),
+
+    (5, FinishSymbol()): Reduce(S_bAd),
+}
+
+def test_build():
+    graph = StateGraph(p.start_symbol, p.rules, 1)
+    graph.build()
+    st = SyntaxTable(1)
+    st.build(graph)
+    for key in syntaxtable.keys():
+        assert st.table[key] == syntaxtable[key]

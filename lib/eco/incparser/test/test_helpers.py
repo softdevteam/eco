@@ -20,10 +20,10 @@
 # IN THE SOFTWARE.
 
 from grammar_parser.gparser import Parser, Terminal, Nonterminal, Epsilon
-from syntaxtable import FinishSymbol
-from state import State, StateSet, LR1Element
-from production import Production
-from helpers import follow, closure_0, goto_0, closure_1, Helper
+from incparser.syntaxtable import FinishSymbol
+from incparser.state import State, StateSet, LR1Element
+from incparser.production import Production
+from incparser.helpers import follow, closure_0, goto_0, closure_1, Helper
 
 grammar = """
 Z ::= S

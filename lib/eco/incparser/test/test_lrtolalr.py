@@ -20,10 +20,10 @@
 # IN THE SOFTWARE.
 
 from grammar_parser.gparser import Parser, Terminal, Nonterminal
-from state import StateSet, State, LR1Element
-from production import Production
-from stategraph import StateGraph
-from syntaxtable import FinishSymbol
+from incparser.state import StateSet, State, LR1Element
+from incparser.production import Production
+from incparser.stategraph import StateGraph
+from incparser.syntaxtable import FinishSymbol
 
 grammar = """
     S ::= "b" A "c"

@@ -19,8 +19,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from lrparser import LRParser
-from constants import LR0, LR1, LALR
+from incparser.lrparser import LRParser
+from incparser.constants import LR0, LR1, LALR
 
 grammar = """
     S ::= "a" B "d"
