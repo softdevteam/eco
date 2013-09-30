@@ -324,7 +324,7 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow", None))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Eco - Editor for language composition", None))
         self.groupBox_2.setTitle(_translate("MainWindow", "Input", None))
         self.cbShowLangBoxes.setText(_translate("MainWindow", "Show language boxes", None))
         self.label.setText(_translate("MainWindow", "Valid tokens:", None))
