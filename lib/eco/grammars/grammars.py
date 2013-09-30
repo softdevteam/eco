@@ -8,101 +8,6 @@ class Language(object):
     def __str__(self):
         return self.name
 
-java_error2 = Language("Java Error (no arithmetic)",
-"""
-
-Start ::= AssignmentExpression
-
-UnaryExpression ::=
-	  "1"
-
-CastExpression ::=
-	  UnaryExpression
-
-MultiplicativeExpression ::=
-	  CastExpression
-	| MultiplicativeExpression "c" CastExpression
-	| MultiplicativeExpression "a" CastExpression
-
-
-AssignmentExpression ::=
-	  MultiplicativeExpression
-	| UnaryExpression "OP" AssignmentExpression
-
-""",
-"""
-"1":1
-"2":2
-"\+":+
-"\-":-
-"\%":%
-""")
-
-java_error = Language("Java Error",
-"""
-S ::= AssignmentExpression
-
-AssignmentExpression ::=
-	  MultiplicativeExpression ";"
-	| UnaryExpression "Z"
-
-MultiplicativeExpression ::=
-	  CastExpression
-
-CastExpression ::= UnaryExpression
-
-UnaryExpression ::=
-      "INC" UnaryExpression
-    | "DEC" UnaryExpression
-    | MethodCall
-
-MethodCall ::=
-	"IDENTIFIER" "(" ")"
-
-MethodAccess ::=
-	QualifiedName
-
-QualifiedName ::= "IDENTIFIER"
-
-AssignmentOperator ::= "&"
-
-"""
-,
-"""
-    "[a-z]+":IDENTIFIER
-    "\(":(
-    "\)":)
-    ";":;
-    "\&":&
-""")
-
-java_error_simplified = Language("Java Error (simplified)",
-"""
-Start ::= S
-
-S ::=
-	  X "x"
-	| Y "y"
-
-X ::=
-	  A
-
-A ::= Y
-
-Y ::=
-      "INC" Y
-    | B
-
-B ::= "b"
-
-"""
-,
-"""
-    "b":b
-    "x":x
-    "y":y
-""")
-
 super_simple = Language("Shifting optimisation",
 """
     S ::= X | Y
@@ -136,7 +41,7 @@ calc1 = Language("Basic calculator",
 
 merge1 = Language("Grammar to test merging behaviour",
 """
-    S ::= "a" | "ab" 
+    S ::= "a" | "ab"
 """
 ,
 """
@@ -190,49 +95,6 @@ not_in_lr1_fixed = Language("Not in LR(1) (fixed)",
     "y":y
 """)
 
-
-test = Language("Test grammar",
-"""
-    S ::= N "x" "+" "x" N
-          | N "x" "*" "x" N
-    N ::= "1" | "2" | "3"
-"""
-,
-"""
-    "1":1
-    "2":2
-    "3":3
-    "\+":+
-    "\*":*
-    "x":x
-""")
-   #class_body ::= function_definition
-   #function_definition ::= "function" id "{" function_body "}"
-   #function_body ::= statements
-   #statements ::= id "(" ")"
-   #id ::= "ID"
-mylang = Language("Java-ish language",
-"""
-    programm ::= class
-    class ::= "class" id "{" class_body "}"
-    class_body ::= function
-                |
-    function ::= "function" id "{" function_body "}"
-    function_body ::= statement
-                    |
-    statement ::= id "()"
-    id ::= "ID"
-"""
-,
-"""
-    "class":class
-    "{":{
-    "}":}
-    "\(\)":()
-    "function":function
-    "[a-zA-Z]+":ID
-    "[ \\n\\t\\r]+":_
-""")
 
 
 smalltalk = Language("Smalltalk",
@@ -1021,18 +883,6 @@ WS ::= "_"
 "_":_
 """)
 
-test2 = Language("test2",
-"""
-Z ::= A B
-A ::= "x" {Y}
-B ::= Y "x"
-Y ::= "y" |
-""",
-"""
-"x":x
-"y":y
-""")
-
 pager = Language("Grammar to test efficient LR(1) as described by Pager",
 """
 X ::= "a" Y "d" | "a" Z "c" | "a" T | "b" Y "e" | "b" Z "d" | "b" T
@@ -1045,31 +895,6 @@ V ::=
 """
 "x":x
 "y":y
-""")
-
-sql_dummy = Language("SQL",
-"""
-S ::= Statement
-Statement ::= Select | Update
-Select ::= "SELECT" select_args "FROM" identifier ";"
-select_args ::= identifier
-              | identifier "," select_args
-Update ::= "UPDATE" identifier "SET" update_args "WHERE" update_where_args
-update_args ::= identifier "=" identifier
-              | identifier "= "identifier "," update_args
-update_where_args ::= identifier "=" identifier
-identifier ::= "ID"
-""",
-"""
-"SELECT":SELECT
-"UPDATE":UPDATE
-"FROM":FROM
-"SET":SET
-"WHERE":WHERE
-",":,
-"=":=
-"[a-z]+":ID
-"[ ]":<ws>
 """)
 
 base_language = Language("Base",
@@ -1092,62 +917,7 @@ Shifting ::= "Shifting" ":" <Shifting optimisation> ";"
 "[\\n\\r]":<return>
 """)
 
-testing = Language("testing",
-"""
-  expr ::=     "(" expr ")"
-             | "|" expr "|"
-             | "-" expr  "NEG"
-
-             | "!" expr    "NEG"
-
-             | expr "%" expr_fix
-             | expr "*" expr_fix
-             | expr "/" expr_fix
-             | expr "+" expr_fix
-             | expr "-" expr_fix
-             | expr "T_LE" expr_fix
-             | expr "T_GE" expr_fix
-             | expr "<" expr_fix
-             | expr ">" expr_fix
-             | expr "T_EQ" expr_fix
-             | expr "T_NEQ" expr_fix
-             | expr "T_AND" expr_fix
-             | expr "T_OR" expr_fix
-
-             | expr "?" expr  ":" expr
-
-             | expr_fix
-
-    expr_fix ::=
-            | "BOOL_VAL"
-            | "INT_NUM"
-            | "FLOAT_NUM"
-            | "T_NIL"
-"""
-,
-"""
-"""
-)
-
-
-test = Language("Test",
-"""
-import_option1 ::= dotted_name
-                 | dot_loop2 dotted_name
-                 | dot_loop2
-dot_loop2 ::= dot_loop2 "."
-            |           "."
-
-dotted_name ::= "i"
-
-""",
-"""
-"\.":.
-""");
-
-from lang_java import java
 from java10 import java10
-from lang_java_extract import javav1_e
 from java15 import java15
 from sql_simple import sql
 from greenmarl import greenmarl
@@ -1165,7 +935,7 @@ java15_sql = gops.add_alt("Java 1.5 + chemical + SQL", java15_chem,  "unary_expr
 #             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
 #             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
 
-languages = [test, base_language, indent_based, python275, super_simple, calc1, lisp, java10, java15, java15_sql, sql, java15_exp, sql_java_exp, chemicals]
+languages = [base_language, indent_based, python275, super_simple, calc1, lisp, java10, java15, java15_sql, sql, java15_exp, sql_java_exp, chemicals]
 
 lang_dict = {}
 for l in languages:
