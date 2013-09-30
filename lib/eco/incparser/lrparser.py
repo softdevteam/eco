@@ -20,9 +20,8 @@
 # IN THE SOFTWARE.
 
 import sys
-sys.path.append("../")
 
-from gparser import Parser, Nonterminal, Terminal, Epsilon
+from grammar_parser.gparser import Parser, Nonterminal, Terminal, Epsilon
 from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
 from stategraph import StateGraph
 from constants import LR0, LR1, LALR

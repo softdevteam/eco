@@ -1,14 +1,9 @@
-import sys
-sys.path.append(".")
-sys.path.append("../lr-parser/")
-
-from incparser import IncParser
-from inclexer import IncrementalLexer
-from languages import calc1, java15
-from plexer import PriorityLexer
-
-from gparser import Terminal, Nonterminal
-from astree import TextNode, BOS, EOS, FinishSymbol
+from incparser.incparser import IncParser
+from inclexer.inclexer import IncrementalLexer
+from grammars.grammars import calc1, java15
+from grammar_parser.plexer import PriorityLexer
+from grammar_parser.gparser import Terminal, Nonterminal
+from incparser.astree import TextNode, BOS, EOS, FinishSymbol
 
 N = Nonterminal
 T = Terminal

@@ -1,12 +1,8 @@
-import sys
-sys.path.append(".")
-sys.path.append("../lr-parser/")
-
-from inclexer import IncrementalLexer
-from astree import AST
-from languages import calc1
-from astree import TextNode, BOS, EOS
-from gparser import Terminal, Nonterminal
+from inclexer.inclexer import IncrementalLexer
+from incparser.astree import AST
+from grammars.grammars import calc1
+from incparser.astree import TextNode, BOS, EOS
+from grammar_parser.gparser import Terminal, Nonterminal
 
 class Test_IncrementalLexer:
 

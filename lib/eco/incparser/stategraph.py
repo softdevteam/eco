@@ -20,8 +20,6 @@
 # IN THE SOFTWARE.
 
 from __future__ import print_function
-import sys
-sys.path.append("../")
 
 from state import StateSet, State, LR1Element, LR0Element
 from production import Production

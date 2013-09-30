@@ -19,9 +19,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-import sys
-sys.path.append("../")
-
 from lrparser import LRParser
 from incparser import IncParser
 from constants import LR0, LR1, LALR

@@ -19,12 +19,9 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-import sys
-sys.path.append("../")
-
 from syntaxtable import SyntaxTable, Goto, Shift, Reduce, Accept, FinishSymbol
 from stategraph import StateGraph
-from gparser import Parser, Terminal, Nonterminal, Epsilon
+from grammar_parser.gparser import Parser, Terminal, Nonterminal, Epsilon
 from production import Production
 
 grammar = """
