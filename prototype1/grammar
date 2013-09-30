@@ -1,4 +1,0 @@
-S := E
-E := E; E
-E := E + E
-E := INT
