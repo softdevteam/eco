@@ -630,7 +630,6 @@ class NodeEditor(QFrame):
         event = QKeyEvent(QEvent.KeyPress, Qt.Key_Delete, e.modifiers(), e.text())
         self.keyPressEvent(event)
 
-
     def key_delete(self, e, node, inside, x):
         if self.hasSelection():
             self.deleteSelection()
@@ -643,6 +642,8 @@ class NodeEditor(QFrame):
         else: # between two nodes
             node = node.next_terminal() # delete should edit the node to the right from the selected node
             # if lbox is selected, select first node in lbox
+            if isinstance(node, EOS):
+                return
             while isinstance(node.symbol, IndentationTerminal):
                 node = node.next_term
             if isinstance(node.symbol, MagicTerminal) or isinstance(node, EOS):
@@ -674,7 +675,8 @@ class NodeEditor(QFrame):
                     # normal node is empty -> remove it from AST
                     node.parent.remove_child(node)
 
-            self.relex(repairnode)
+            if repairnode is not None and not isinstance(repairnode, BOS):
+                self.relex(repairnode)
 
     def key_cursors(self, e):
         self.edit_rightnode = False
