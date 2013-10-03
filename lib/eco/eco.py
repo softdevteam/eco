@@ -483,10 +483,14 @@ class NodeEditor(QFrame):
                 return
 
             self.fix_cursor_on_image()
-            if selected_node.image is not None:
+            if selected_node.plain_mode is False:
                 selected_node.plain_mode = True
                 self.cursor.x -= math.ceil(selected_node.image.width() * 1.0 / self.fontwt)
                 self.cursor.x += len(selected_node.symbol.name)
+                self.update()
+            else:
+                selected_node.plain_mode = False
+                self.fix_cursor_on_image()
                 self.update()
 
 
