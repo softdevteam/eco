@@ -1,3 +1,4 @@
 #!/bin/sh
-cd ../lib/eco/
+
+cd `dirname $0`/../lib/eco
 python eco.py
