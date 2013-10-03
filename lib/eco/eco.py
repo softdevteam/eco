@@ -586,7 +586,12 @@ class NodeEditor(QFrame):
         self.fix_cursor_on_image()
 
         root = selected_node.get_root()
-        lrp = self.parsers[root]
+        if root in self.parsers:
+            lrp = self.parsers[root]
+        else:
+            selected_node = self.get_selected_node()
+            root = selected_node.get_root()
+            lrp = self.parsers[root]
         self.getWindow().showLookahead(lrp)
         self.update()
 
