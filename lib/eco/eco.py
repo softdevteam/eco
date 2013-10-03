@@ -1341,6 +1341,8 @@ class Window(QtGui.QMainWindow):
 
         self.ui.frame.setFocus(True)
 
+        self.viewer = Viewer("pydot")
+
     def importfile(self):
         filename = QFileDialog.getOpenFileName()#"Open File", "", "Files (*.*)")
         text = open(filename, "r").read()
@@ -1384,17 +1386,17 @@ class Window(QtGui.QMainWindow):
         print("Done.")
 
     def showWholeGraph(self):
-        img = Viewer("pydot").create_pydot_graph(self.lrp.graph)
-        self.showImage(self.ui.gvStategraph, img)
+        self.viewer.create_pydot_graph(self.lrp.graph)
+        self.showImage(self.ui.gvStategraph, self.viewer.image)
 
     def showSingleState(self):
-        img = Viewer("pydot").show_single_state(self.lrp.graph, int(self.ui.leSingleState.text()))
-        self.showImage(self.ui.gvStategraph, img)
+        self.viewer.show_single_state(self.lrp.graph, int(self.ui.leSingleState.text()))
+        self.showImage(self.ui.gvStategraph, self.viewer.image)
 
     def btRefresh(self):
         whitespaces = self.ui.cb_toggle_ws.isChecked()
-        image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, [], whitespaces)
-        self.showImage(self.ui.graphicsView, image)
+        self.viewer.get_tree_image(self.lrp.previous_version.parent, [], whitespaces)
+        self.showImage(self.ui.graphicsView, self.viewer.image)
 
     def btReparse(self, selected_node):
         whitespaces = self.ui.cb_toggle_ws.isChecked()
@@ -1415,8 +1417,8 @@ class Window(QtGui.QMainWindow):
     def showAst(self, selected_node):
         whitespaces = self.ui.cb_toggle_ws.isChecked()
         if self.ui.cb_toggle_ast.isChecked():
-            image = Viewer('pydot').get_tree_image(self.lrp.previous_version.parent, selected_node, whitespaces)
-            self.showImage(self.ui.graphicsView, image)
+            self.viewer.get_tree_image(self.lrp.previous_version.parent, [selected_node], whitespaces)
+            self.showImage(self.ui.graphicsView, self.viewer.image)
 
     def showAstSelection(self):
         whitespaces = self.ui.cb_toggle_ws.isChecked()
@@ -1433,8 +1435,8 @@ class Window(QtGui.QMainWindow):
                 nodes.append(p)
         nodes.append(parent)
         if parent:
-            image = Viewer('pydot').get_tree_image(parent, [start, end], whitespaces, nodes)
-            self.showImage(self.ui.graphicsView, image)
+            self.viewer.get_tree_image(parent, [start, end], whitespaces, nodes)
+            self.showImage(self.ui.graphicsView, self.viewer.image)
 
 
     def showLookahead(self, lrp=None):

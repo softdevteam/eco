@@ -19,14 +19,25 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-import pydot
+import pydot, os
 
 from grammar_parser.gparser import MagicTerminal
+
+tempdir = ".temp/"
 
 class Viewer(object):
 
     def __init__(self, dot_type='google'):
         self.dot_type = dot_type
+        self.image = ""
+        try:
+            os.stat(tempdir)
+        except:
+            os.mkdir(tempdir)
+
+    def __del__(self):
+        import shutil
+        shutil.rmtree(tempdir)
 
     def show_ast(self, grammar, _input):
         from incparser import IncParser
@@ -81,8 +92,8 @@ class Viewer(object):
                 if len(m) > 0:
                     m[0].set('color','red')
 
-            graph.write_png('temp.png')
-            return 'temp.png'
+            graph.write_png(tempdir + 'temp.png')
+            self.image = tempdir + 'temp.png'
 
     def add_node_to_tree(self, node, graph, whitespaces, restrict_nodes):
 
@@ -140,8 +151,8 @@ class Viewer(object):
             end = graph.edges[key]
             pydotgraph.add_edge(pydot.Edge(pydot.Node(start), pydot.Node(end), label=key[1].name))
 
-        pydotgraph.write_png('graphtemp.png')
-        return 'graphtemp.png'
+        pydotgraph.write_png(tempdir + 'graphtemp.png')
+        self.image = tempdir + 'graphtemp.png'
 
     def show_single_state(self, graph, _id):
         pydotgraph = pydot.Dot(graph_type='digraph')
@@ -153,8 +164,8 @@ class Viewer(object):
         dotnode = pydot.Node(_id, shape='rect', label="%s\n%s" % (_id, "\n".join(stateset_info)))
         pydotgraph.add_node(dotnode)
 
-        pydotgraph.write_png('graphsingle.png')
-        return 'graphsingle.png'
+        pydotgraph.write_png(tempdir + 'graphsingle.png')
+        self.image = tempdir + 'graphsingle.png'
 
     def create_graph_string(self, graph):
         s = []
