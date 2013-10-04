@@ -50,31 +50,6 @@ import math
 
 from syntaxhighlighter import SyntaxHighlighter
 
-grammar = """
-    E ::= T
-        | E "+" T
-    T ::= P
-        | T "*" P
-    P ::= "INT"
-"""
-
-priorities = """
-    "[0-9]+":INT
-    "[+]":+
-    "[*]":*
-"""
-
-
-grammar = """
-    S ::= "a" | "abc" | "bc"
-"""
-
-priorities = """
-    "abc":abc
-    "bc":bc
-    "a":a
-"""
-
 def print_var(name, value):
     print("%s: %s" % (name, value))
 
@@ -1324,8 +1299,8 @@ class Window(QtGui.QMainWindow):
         #self.connect(self.ui.pushButton, SIGNAL("clicked()"), self.btReparse)
 
         # init with a grammar and priorities
-        self.ui.teGrammar.document().setPlainText(grammar)
-        self.ui.tePriorities.document().setPlainText(priorities)
+        #self.ui.teGrammar.document().setPlainText(grammar)
+        #self.ui.tePriorities.document().setPlainText(priorities)
         self.connect(self.ui.btUpdate, SIGNAL("clicked()"), self.btUpdateGrammar)
 
         self.connect(self.ui.cb_toggle_ws, SIGNAL("clicked()"), self.btRefresh)
