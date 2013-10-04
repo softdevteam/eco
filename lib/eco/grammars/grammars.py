@@ -952,12 +952,13 @@ java15_chem = gops.add_alt("Java 1.5 + chemical", java15, "unary_expression", "<
 java15_exp = gops.extract("Java 1.5 expression", java15_chem, "expression")
 sql_java_exp = gops.add_alt("SQL ref. Java 1.5 expression", sql,  "y_condition", "<Java 1.5 expression>")
 java15_sql = gops.add_alt("Java 1.5 + chemical + SQL", java15_chem,  "unary_expression", "<SQL ref. Java 1.5 expression>")
+python_prolog = gops.add_alt("Python + Prolog", python275, "atom", "<Prolog>")
 
 #languages = [java_error, java_error_simplified, super_simple, calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, smalltalk_ebnf, lisp,
 #             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
 #             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
 
-languages = [base_language, indent_based, python275, super_simple, calc1, lisp, java10, java15, java15_sql, sql, java15_exp, sql_java_exp, chemicals, prolog]
+languages = [base_language, indent_based, python275, prolog, super_simple, calc1, lisp, python_prolog, java10, java15, java15_sql, sql, java15_exp, sql_java_exp, chemicals, prolog]
 
 lang_dict = {}
 for l in languages:
