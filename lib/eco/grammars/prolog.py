@@ -23,7 +23,9 @@ from grammars import Language
 
 prolog = Language("Prolog",
 """
-program ::= clause_list query | query
+program ::= clause_list query
+          |             query
+          | clause_list
 clause_list ::= clause | clause_list clause
 clause ::= predicate "." | predicate ":-" predicate_list "."
 predicate_list ::= predicate | predicate_list "," predicate
@@ -40,8 +42,8 @@ atom ::= "small_atom" | "string"
 "[\\n\\r]":<return>
 "[0-9]+":numeral
 "\'(\\\\.|[^\\\\'])*\'":string
-"[a-z][a-zA-Z0-9\+\-\*\/\\\^\~\:\? \#\$\&]+":small_atom
-"[A-Z][a-zA-Z0-9\+\-\*\/\\\^\~\:\? \#\$\&]+":variable
+"[a-z][a-zA-Z0-9\+\-\*\/\\\^\~\:\? \#\$\&]*":small_atom
+"[A-Z][a-zA-Z0-9\+\-\*\/\\\^\~\:\? \#\$\&]*":variable
 "\(":(
 "\)":)
 ":-"::-
