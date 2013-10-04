@@ -1165,7 +1165,7 @@ class NodeEditor(QFrame):
         return action
 
     def selectSubgrammar(self, item):
-        print("SELECTED GRAMMAR", item)
+        pass
 
     def randomDeletion(self):
         import random
@@ -1178,7 +1178,6 @@ class NodeEditor(QFrame):
                 x = random.randint(0, self.max_cols[y])
                 self.cursor = Cursor(x,y)
 
-                print("+++++++++++ DELETING", x, y)
                 event = QKeyEvent(QEvent.KeyPress, Qt.Key_Delete, Qt.NoModifier, "delete")
                 #QCoreApplication.postEvent(self, event)
                 self.keyPressEvent(event)
@@ -1381,7 +1380,6 @@ class Window(QtGui.QMainWindow):
         self.ui.frame.loadFromFile(filename)
 
     def loadLanguage(self, item):
-        print("Loading Language...")
         language = languages[self.ui.listWidget.row(item)]
         self.ui.teGrammar.document().setPlainText(language.grammar)
         self.ui.tePriorities.document().setPlainText(language.priorities)
@@ -1393,14 +1391,12 @@ class Window(QtGui.QMainWindow):
         new_grammar = str(self.ui.teGrammar.document().toPlainText())
         new_priorities = str(self.ui.tePriorities.document().toPlainText())
         whitespaces = self.ui.cb_add_implicit_ws.isChecked()
-        print("Creating Incremental Parser")
         self.lrp = IncParser(new_grammar, 1, whitespaces)
         self.lrp.init_ast()
         lexer = IncrementalLexer(new_priorities)
         self.ui.frame.reset()
         self.ui.frame.set_mainlanguage(self.lrp, lexer, self.main_language)
         self.ui.graphicsView.setScene(QGraphicsScene())
-        print("Done.")
 
     def showWholeGraph(self):
         self.viewer.create_pydot_graph(self.lrp.graph)
