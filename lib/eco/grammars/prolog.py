@@ -36,6 +36,8 @@ query ::= "?-" predicate_list "."
 atom ::= "small_atom" | "string"
 """,
 """
+"[ \\t]+":<ws>
+"[\\n\\r]":<return>
 "[0-9]+":numeral
 "\'(\\\\.|[^\\\\'])*\'":string
 "[a-z][a-zA-Z0-9\+\-\*\/\\\^\~\:\? \#\$\&]+":small_atom
