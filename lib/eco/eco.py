@@ -744,6 +744,14 @@ class NodeEditor(QFrame):
 
         # XXX adjust line_height
 
+    def print_line(self, y):
+        current = self.lines[y].node
+        while True:
+            print(current)
+            current = current.next_term
+            if current is None:
+                return
+
     def rescan_linebreaks(self, y):
         """ Scan all nodes between this return node and the next lines return
         node. All other return nodes you find that are not the next lines

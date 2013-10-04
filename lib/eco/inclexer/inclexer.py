@@ -101,8 +101,12 @@ class IncrementalLexer(object):
         else:
             startnode = startnode.prev_term
 
-        if isinstance(startnode, BOS) or isinstance(startnode.symbol, MagicTerminal):
+        if isinstance(startnode, BOS) or isinstance(startnode.symbol, MagicTerminal) or isinstance(startnode.symbol, IndentationTerminal):
             startnode = startnode.next_term
+
+        if isinstance(startnode, EOS):
+            # empty line
+            return
 
         # find end node
         end_node = startnode.next_term

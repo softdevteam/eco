@@ -945,6 +945,7 @@ from greenmarl import greenmarl
 from chemical import chemicals
 from indentation import indent_based
 from python275 import python275
+from prolog import prolog
 
 import gops
 java15_chem = gops.add_alt("Java 1.5 + chemical", java15, "unary_expression", "<Chemicals>")
@@ -956,7 +957,7 @@ java15_sql = gops.add_alt("Java 1.5 + chemical + SQL", java15_chem,  "unary_expr
 #             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
 #             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
 
-languages = [base_language, indent_based, python275, super_simple, calc1, lisp, java10, java15, java15_sql, sql, java15_exp, sql_java_exp, chemicals]
+languages = [base_language, indent_based, python275, super_simple, calc1, lisp, java10, java15, java15_sql, sql, java15_exp, sql_java_exp, chemicals, prolog]
 
 lang_dict = {}
 for l in languages:
