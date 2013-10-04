@@ -850,7 +850,7 @@ class NodeEditor(QFrame):
             return
 
         tokens = []
-        if not self.is_logical_line(y):
+        if not self.is_logical_line(y) and y != len(self.lines)-1: # exception: last line containing eos
             self.lines[y].indent_stack = list(self.lines[y-1].indent_stack)
             return
 
