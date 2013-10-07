@@ -1036,12 +1036,12 @@ class NodeEditor(QFrame):
         end = max(cursor1, cursor2)
 
         chars = 0
-        chars += self.max_cols[start.y] - start.x
+        chars += self.lines[start.y].width - start.x
         chars += 1 # return
         chars += end.x
 
         for y in range(start.y+1, end.y):
-            chars += self.max_cols[y]
+            chars += self.lines[y].width
             chars += 1 # return
 
         return chars
