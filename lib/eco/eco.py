@@ -384,6 +384,7 @@ class NodeEditor(QFrame):
                 lbox = root.get_magicterminal()
                 if lbox:
                     node = lbox
+                    continue
                 else:
                     return None, x
             if isinstance(node.symbol, IndentationTerminal):
