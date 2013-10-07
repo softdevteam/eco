@@ -595,8 +595,8 @@ when_action ::= "GOTO" "NAME"
 "WITH":WITH
 "WORK":WORK
 "\*":*
-"[ \t]":<ws>
-"[\n\r]":<ws>
+"[ \\t]":<ws>
+"[\\n\\r]":<ws>
 "[A-Za-z][A-Za-z_]*":NAME
 "[0-9]+":INTNUM
 "=|<>|<=|>=|<|>":COMPARISON
