@@ -249,6 +249,7 @@ class NodeEditor(QFrame):
 
         self.paint_nodes(paint, node, x, y, line, max_y)
 
+    #XXX if starting node is inside language box, init lbox with amout of languge boxes
     def paint_nodes(self, paint, node, x, y, line, max_y, lbox=0):
         self.lines[line].height = 1 # reset height
         while y < max_y:
@@ -281,13 +282,18 @@ class NodeEditor(QFrame):
 
             # if we found a language box, continue drawing inside of it
             if isinstance(node.symbol, MagicTerminal):
-                x, y, line = self.paint_nodes(paint, node.symbol.ast.children[0], x, y, line, max_y, lbox+1)
-                node = node.next_term
+                lbox += 1
+                node = node.symbol.ast.children[0]
 
             # if we reached EOS we can stop drawing
             if isinstance(node, EOS):
-                self.lines[line].width = x / self.fontwt
-                break
+                lbnode = self.get_languagebox(node)
+                if lbnode:
+                    lbox -= 1
+                    node = lbnode.next_term
+                else:
+                    self.lines[line].width = x / self.fontwt
+                    break
         return x, y, line
 
     def paint_node(self, paint, node, x, y):
@@ -343,6 +349,11 @@ class NodeEditor(QFrame):
         node, _, _ = self.get_nodes_at_position()
         return node
 
+    def get_languagebox(self, node):
+        root = node.get_root()
+        lbox = root.get_magicterminal()
+        return lbox
+
     def get_nodes_at_position(self):
         node = self.lines[self.cursor.y].node
         x = 0
@@ -369,16 +380,16 @@ class NodeEditor(QFrame):
         while x < self.cursor.x:
             node = node.next_term
             if isinstance(node, EOS):
-                return None, x
+                root = node.get_root()
+                lbox = root.get_magicterminal()
+                if lbox:
+                    node = lbox
+                else:
+                    return None, x
             if isinstance(node.symbol, IndentationTerminal):
                 continue
             if isinstance(node.symbol, MagicTerminal):
-                found, x = self.find_node_at_position(x, node.symbol.ast.children[0])
-                if found is not None:
-                    node = found
-                    break
-                else:
-                    continue
+                node = node.symbol.ast.children[0]
             if node.image is None or node.plain_mode:
                 x += len(node.symbol.name)
             else:
@@ -743,7 +754,15 @@ class NodeEditor(QFrame):
             if current.symbol.name == "\r":
                 y += 1
                 self.lines.insert(y, Line(current))
-            current = current.next_term
+            if isinstance(current.symbol, MagicTerminal):
+                current = current.symbol.ast.children[0]
+            elif isinstance(current, EOS):
+                root = current.get_root()
+                lbox = root.get_magicterminal()
+                if lbox:
+                    current = lbox.next_term
+            else:
+                current = current.next_term
 
     def rescan_indentations_nostack(self, y):
         if y == 0:
