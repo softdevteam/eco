@@ -842,6 +842,7 @@ class NodeEditor(QFrame):
         root = indent_node.get_root()
         lexer = self.lexers[root]
         if not lexer.is_indentation_based():
+            self.lines[y].indent_stack = list(self.lines[y-1].indent_stack)
             return
 
         tokens = []
