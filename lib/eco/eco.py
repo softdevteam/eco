@@ -254,6 +254,23 @@ class NodeEditor(QFrame):
         self.lines[line].height = 1 # reset height
         while y < max_y:
 
+            # if we found a language box, continue drawing inside of it
+            if isinstance(node.symbol, MagicTerminal):
+                lbox += 1
+                node = node.symbol.ast.children[0]
+                continue
+
+            # if we reached EOS we can stop drawing
+            if isinstance(node, EOS):
+                lbnode = self.get_languagebox(node)
+                if lbnode:
+                    lbox -= 1
+                    node = lbnode.next_term
+                    continue
+                else:
+                    self.lines[line].width = x / self.fontwt
+                    break
+
             # draw language boxes
             if lbox > 0:
                 color = self.nesting_colors[lbox % 5]
@@ -279,21 +296,6 @@ class NodeEditor(QFrame):
                 paint.drawRect(draw_cursor_at)
 
             node = node.next_term
-
-            # if we found a language box, continue drawing inside of it
-            if isinstance(node.symbol, MagicTerminal):
-                lbox += 1
-                node = node.symbol.ast.children[0]
-
-            # if we reached EOS we can stop drawing
-            if isinstance(node, EOS):
-                lbnode = self.get_languagebox(node)
-                if lbnode:
-                    lbox -= 1
-                    node = lbnode.next_term
-                else:
-                    self.lines[line].width = x / self.fontwt
-                    break
         return x, y, line
 
     def paint_node(self, paint, node, x, y):
