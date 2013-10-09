@@ -641,7 +641,11 @@ class NodeEditor(QFrame):
             node = node.next_terminal() # delete should edit the node to the right from the selected node
             # if lbox is selected, select first node in lbox
             if isinstance(node, EOS):
-                return
+                lbox = self.get_languagebox(node)
+                if lbox:
+                    node = lbox.next_term
+                else:
+                    return
             while isinstance(node.symbol, IndentationTerminal):
                 node = node.next_term
             if isinstance(node.symbol, MagicTerminal) or isinstance(node, EOS):
