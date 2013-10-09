@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Thu Jul 25 13:34:15 2013
-#      by: PyQt4 UI code generator 4.10.1
+# Created: Wed Oct  9 14:16:40 2013
+#      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -56,7 +56,7 @@ class Ui_MainWindow(object):
         self.scrollArea.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.scrollArea.setObjectName(_fromUtf8("scrollArea"))
         self.scrollAreaWidgetContents = QtGui.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 501, 571))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 478, 573))
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -279,12 +279,14 @@ class Ui_MainWindow(object):
         self.horizontalLayout_3.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 21))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
         self.menuOptions = QtGui.QMenu(self.menubar)
         self.menuOptions.setObjectName(_fromUtf8("menuOptions"))
+        self.menuPoject = QtGui.QMenu(self.menubar)
+        self.menuPoject.setObjectName(_fromUtf8("menuPoject"))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName(_fromUtf8("statusbar"))
@@ -309,6 +311,8 @@ class Ui_MainWindow(object):
         icon = QtGui.QIcon.fromTheme(_fromUtf8("document-new"))
         self.actionNew.setIcon(icon)
         self.actionNew.setObjectName(_fromUtf8("actionNew"))
+        self.actionRun = QtGui.QAction(MainWindow)
+        self.actionRun.setObjectName(_fromUtf8("actionRun"))
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addAction(self.actionImport)
@@ -316,8 +320,10 @@ class Ui_MainWindow(object):
         self.menuFile.addAction(self.actionSave)
         self.menuOptions.addAction(self.actionRandomDel)
         self.menuOptions.addAction(self.actionUndoRandomDel)
+        self.menuPoject.addAction(self.actionRun)
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuOptions.menuAction())
+        self.menubar.addAction(self.menuPoject.menuAction())
 
         self.retranslateUi(MainWindow)
         self.tabWidget.setCurrentIndex(2)
@@ -346,11 +352,13 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), _translate("MainWindow", "Language", None))
         self.menuFile.setTitle(_translate("MainWindow", "File", None))
         self.menuOptions.setTitle(_translate("MainWindow", "Options", None))
+        self.menuPoject.setTitle(_translate("MainWindow", "Project", None))
         self.actionImport.setText(_translate("MainWindow", "Import...", None))
         self.actionRandomDel.setText(_translate("MainWindow", "Delete random chars", None))
         self.actionUndoRandomDel.setText(_translate("MainWindow", "Undo random deletion", None))
         self.actionOpen.setText(_translate("MainWindow", "Open...", None))
         self.actionSave.setText(_translate("MainWindow", "Save...", None))
         self.actionNew.setText(_translate("MainWindow", "New", None))
+        self.actionRun.setText(_translate("MainWindow", "Run", None))
 
 from eco import ScopeScrollArea, NodeEditor
