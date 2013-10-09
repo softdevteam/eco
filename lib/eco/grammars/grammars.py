@@ -946,6 +946,7 @@ from chemical import chemicals
 from indentation import indent_based
 from python275 import python275
 from prolog import prolog
+from newprolog import newprolog
 
 import gops
 java15_chem = gops.add_alt("Java 1.5 + chemical", java15, "unary_expression", "<Chemicals>")
@@ -958,7 +959,7 @@ python_prolog = gops.add_alt("Python + Prolog", python275, "atom", "<Prolog>")
 #             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
 #             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
 
-languages = [calc1, python275, prolog, python_prolog, lisp, java15, java15_sql, java15_exp, sql, sql_java_exp, chemicals]
+languages = [calc1, python275, newprolog, prolog, python_prolog, lisp, java15, java15_sql, java15_exp, sql, sql_java_exp, chemicals]
 
 lang_dict = {}
 for l in languages:
