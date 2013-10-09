@@ -1254,6 +1254,34 @@ class NodeEditor(QFrame):
         self.line_info.append([node.children[0], node.children[-1]])
         self.line_heights.append(1)
 
+    def export_unipycation(self):
+        node = self.lines[0].node # first node
+        output = []
+        while True:
+            if isinstance(node.symbol, IndentationTerminal):
+                node = node.next_term
+                continue
+            if isinstance(node.symbol, MagicTerminal):
+                output.append('"""')
+                node = node.symbol.ast.children[0]
+                node = node.next_term
+                continue
+            if isinstance(node, EOS):
+                lbox = self.get_languagebox(node)
+                if lbox:
+                    output.append('"""')
+                    node = lbox.next_term
+                    continue
+                else:
+                    break
+            output.append(node.symbol.name)
+            node = node.next_term
+        import tempfile
+        f = tempfile.mkstemp()
+        os.write(f[0],"".join(output))
+        os.close(f[0])
+        os.system("../../bin/pypy-c " + f[1])
+
 class Cursor(object):
     def __init__(self, pos, line):
         self.x = pos
@@ -1351,6 +1379,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
         self.connect(self.ui.actionSave, SIGNAL("triggered()"), self.savefile)
         self.connect(self.ui.actionRandomDel, SIGNAL("triggered()"), self.ui.frame.randomDeletion)
+        self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.ui.frame.export_unipycation)
         self.connect(self.ui.actionUndoRandomDel, SIGNAL("triggered()"), self.ui.frame.undoDeletion)
         self.connect(self.ui.scrollArea.verticalScrollBar(), SIGNAL("valueChanged(int)"), self.ui.frame.sliderChanged)
         self.connect(self.ui.scrollArea.horizontalScrollBar(), SIGNAL("valueChanged(int)"), self.ui.frame.sliderXChanged)
