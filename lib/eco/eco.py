@@ -1441,8 +1441,9 @@ class Window(QtGui.QMainWindow):
 
     def btRefresh(self):
         whitespaces = self.ui.cb_toggle_ws.isChecked()
-        self.viewer.get_tree_image(self.lrp.previous_version.parent, [], whitespaces)
-        self.showImage(self.ui.graphicsView, self.viewer.image)
+        if self.ui.cb_toggle_ast.isChecked():
+            self.viewer.get_tree_image(self.lrp.previous_version.parent, [], whitespaces)
+            self.showImage(self.ui.graphicsView, self.viewer.image)
 
     def btReparse(self, selected_node):
         whitespaces = self.ui.cb_toggle_ws.isChecked()
