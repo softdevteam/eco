@@ -1,6 +1,6 @@
 from grammars import Language
 
-prolog_carl = Language("Prolog",
+prolog = Language("Prolog",
 """
 query ::= toplevel_op_expr "."
 
