@@ -37,4 +37,8 @@ class Production(object):
         return self._hash
 
     def __repr__(self):
-        return "Production(%s, %s)" % (self.left, self.right)
+        l = []
+        for e in self.right:
+            l.append(e.name)
+        return "%s ::= %s" % (self.left.name, " ".join(l))
+        #return "Production(%s, %s)" % (self.left, self.right)

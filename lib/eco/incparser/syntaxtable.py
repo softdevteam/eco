@@ -85,7 +85,9 @@ class SyntaxTable(object):
                             lookahead = symbols
                         for s in lookahead:
                             if self.table.has_key((i,s)):
-                                print("CONFLICT", (i,s), "before:", self.table[(i,s)], "now:", "Reduce(", state.p, ")")
+                                msg = "Conflict at %s for %s: %s => Reduce(%s)"
+                                print msg % (i, s, self.table[(i,s)], state.p)
+                                #print("CONFLICT", (i,s), "before:", self.table[(i,s)], "now:", "Reduce(", state.p, ")")
                             self.table[(i, s)] = Reduce(state.p)
             # shift, goto
             for s in symbols:
