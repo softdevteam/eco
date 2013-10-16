@@ -1,54 +1,121 @@
-# Copyright (c) 2012--2013 King's College London
-# Created by the Software Development Team <http://soft-dev.org/>
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to
-# deal in the Software without restriction, including without limitation the
-# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-# sell copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-# IN THE SOFTWARE.
-
 from grammars import Language
 
-prolog = Language("Prolog",
+prolog_carl = Language("Prolog",
 """
-program ::= clause_list query
-          |             query
-          | clause_list
-clause_list ::= clause | clause_list clause
-clause ::= predicate "." | predicate ":-" predicate_list "."
-predicate_list ::= predicate | predicate_list "," predicate
-predicate ::= atom | atom "(" term_list ")"
-term_list ::= term | term_list "," term
-term ::= "numeral" | atom | "variable" | structure
-structure ::= atom "(" term_list ")"
-query ::= "?-" predicate_list "."
+query ::= toplevel_op_expr "."
 
-atom ::= "small_atom" | "string"
-""",
+toplevel_op_expr ::= expr1150 "-->" expr1150
+                   | expr1150 ":-"  expr1150
+                   |          ":-"  expr1150
+                   |          "?-"  expr1150
+                   |                expr1150
+
+expr1150 ::= "meta_predicate" expr1100 | expr1100
+
+expr1100 ::= expr1050 ";" expr1100 | expr1050
+
+expr1050 ::= expr1000 "->" expr1050 | "block" expr1000 | expr1000
+
+expr1000 ::= expr900 "," expr1000 | expr900
+
+expr900 ::= "\+" expr900 | "~" expr700 | expr700
+
+expr700 ::= expr600 "<" expr600
+          | expr600 ">" expr600
+          | expr600 "=" expr600
+          | expr600 "=.." expr600
+          | expr600 "=@=" expr600
+          | expr600 "=:=" expr600
+          | expr600 "=<" expr600
+          | expr600 "==" expr600
+          | expr600 "=\=" expr600
+          | expr600 "?=" expr600
+          | expr600 ">=" expr600
+          | expr600 "@<" expr600
+          | expr600 "@=<" expr600
+          | expr600 "@>" expr600
+          | expr600 "@>=" expr600
+          | expr600 "\=" expr600
+          | expr600 "\==" expr600
+          | expr600 "is" expr600
+          | expr600
+
+expr600 ::= expr500 ":" expr600 | expr500
+
+
+expr500 ::= "+"  extraexpr500
+          | "-"  extraexpr500
+          | "?"  extraexpr500
+          | "\\" extraexpr500
+          |      extraexpr500
+
+extraexpr500 ::= extraexpr500 "+"   expr400
+               | extraexpr500 "-"   expr400
+               | extraexpr500 "/\\" expr400
+               | extraexpr500 "\/"  expr400
+               | extraexpr500 "xor" expr400
+               | expr400
+
+expr400 ::= expr400 "*" expr200
+          | expr400 "slash" expr200
+          | expr400 "//"    expr200
+          | expr400 "<<"    expr200
+          | expr400 ">>"    expr200
+          | expr400 "mod"   expr200
+          | expr400 "rem"   expr200
+          |                 expr200
+
+expr200 ::= complexterm "**" complexterm | complexterm "^" expr200 | complexterm
+
+
+complexterm ::= "ATOM" "(" toplevel_op_expr ")" | expr
+
+expr ::= "VAR" | "NUMBER" | "NUMBER" | "NUMBER" | "FLOAT" | "ATOM" | "(" toplevel_op_expr ")" | "{" toplevel_op_expr "}" | listexpr
+
+listexpr ::= "[" listbody "]"
+
+listbody ::= toplevel_op_expr "|" toplevel_op_expr | toplevel_op_expr
+"""
+,
 """
 "[ \\t]+":<ws>
 "[\\n\\r]":<return>
-"[0-9]+":numeral
-"\'(\\\\.|[^\\\\'])*\'":string
-"[a-z][a-zA-Z0-9\+\-\*\/\\\^\~\:\? \#\$\&]*":small_atom
-"[A-Z][a-zA-Z0-9\+\-\*\/\\\^\~\:\? \#\$\&]*":variable
+"\.":.
+"-->":-->
+";":;
+"\:-"::-
+"\?-":?-
+"/\\\\":/\\
+"\\\\":\\
+"slash":/
+"//"://
+"\<\<":<<
+"\>\>":>>
+"\<":<
+"\>":>
 "\(":(
 "\)":)
-":-"::-
-",":,
-"\?-":?-
-".":.
-"""
-)
+"\?":?
+"\{":{
+"\}":}
+"\[":[
+"\]":]
+"~":~
+"\\+":\\+
+"\+":+
+"\-":-
+"\=":=
+"\=@\=":=@=
+"\=:\=":=:=
+"\\\=\=
+"mod":mod
+"rem":rem
+"is":is
+"xor":xor
+"(%[^\\n]*)":COMMENT
+"[A-Z_]([a-zA-Z0-9]|_)*|_":VAR
+"(0|[1-9][0-9]*)":NUMBER
+"(0|[1-9][0-9]*)(\.[0-9]+)([eE][-+]?[0-9]+)?":FLOAT
+"([a-z]([a-zA-Z0-9]|_)*)|('[^']*')|\[\]|!|\+|\-|\{\}":ATOM
+"\"[^\"]*\"":STRING
+""")
