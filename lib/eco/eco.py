@@ -424,7 +424,11 @@ class NodeEditor(QFrame):
 
         start = start_node
         end = end_node
+        if not start_inbetween:
+            start = start_node.next_term
 
+        if start is None or end is None or isinstance(start, EOS):
+            return ([],0,0)
 
         nodes = []
         node = start
@@ -444,6 +448,7 @@ class NodeEditor(QFrame):
                     node = magic
                     continue
             nodes.append(node)
+        nodes.append(end)
 
         return (nodes, diff_start, diff_end)
 
