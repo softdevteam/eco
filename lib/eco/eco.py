@@ -274,7 +274,8 @@ class NodeEditor(QFrame):
             # draw language boxes
             if lbox > 0:
                 color = self.nesting_colors[lbox % 5]
-                paint.fillRect(QRectF(x,3 + self.fontht + y*self.fontht, len(node.symbol.name)*self.fontwt, -self.fontht+2), color)
+                if node.symbol.name != "\r":
+                    paint.fillRect(QRectF(x,3 + self.fontht + y*self.fontht, len(node.symbol.name)*self.fontwt, -self.fontht+2), color)
 
             # draw node
             dx, dy = self.paint_node(paint, node, x, y)
