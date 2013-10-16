@@ -402,6 +402,7 @@ yield_expr ::= "yield"
 "try":try
 "finally":finally
 "except":except
+"print":print
 "\.":.
 "\,":,
 ":"::
