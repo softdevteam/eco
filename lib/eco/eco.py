@@ -535,7 +535,7 @@ class NodeEditor(QFrame):
 
     def keyPressEvent(self, e):
 
-        if e.key() in [Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Control, Qt.Key_Meta]:
+        if e.key() in [Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Control, Qt.Key_Meta, Qt.Key_AltGr]:
             return
 
         selected_node, inbetween, x = self.get_nodes_at_position()
