@@ -2,7 +2,8 @@ from grammars import Language
 
 prolog = Language("Prolog",
 """
-query ::= toplevel_op_expr "."
+query ::= query toplevel_op_expr "."
+        | toplevel_op_expr "."
 
 toplevel_op_expr ::= expr1150 "-->" expr1150
                    | expr1150 ":-"  expr1150
@@ -82,15 +83,19 @@ listbody ::= toplevel_op_expr "|" toplevel_op_expr | toplevel_op_expr
 "[\\n\\r]":<return>
 "\.":.
 "-->":-->
+"->":->
+",":,
 ";":;
+":"::
 "\:-"::-
 "\?-":?-
 "/\\\\":/\\
-"\\\\":\\
-"slash":/
+"/":slash
 "//"://
 "\<\<":<<
 "\>\>":>>
+"\=\<":=<
+"\>\=":>=
 "\<":<
 "\>":>
 "\(":(
@@ -100,19 +105,21 @@ listbody ::= toplevel_op_expr "|" toplevel_op_expr | toplevel_op_expr
 "\}":}
 "\[":[
 "\]":]
+"\|":|
 "~":~
-"\\+":\\+
+"\\\+":\+
 "\+":+
 "\-":-
 "\=":=
 "\=@\=":=@=
 "\=:\=":=:=
-"\\\=\=
+"\\\=":\=
+"\\\\":\\
 "mod":mod
 "rem":rem
 "is":is
 "xor":xor
-"(%[^\\n]*)":COMMENT
+"(%[^\\n\\r]*)":<ws>
 "[A-Z_]([a-zA-Z0-9]|_)*|_":VAR
 "(0|[1-9][0-9]*)":NUMBER
 "(0|[1-9][0-9]*)(\.[0-9]+)([eE][-+]?[0-9]+)?":FLOAT
