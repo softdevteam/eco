@@ -184,8 +184,9 @@ class NodeEditor(QFrame):
         self.update()
 
     def sliderXChanged(self, value):
+        self.move(-value*self.fontwt,0)
+        self.resize(self.parentWidget().geometry().width() + value*self.fontwt, self.geometry().height())
         self.update()
-        self.viewport_x = value
 
     def paintEvent(self, event):
         QtGui.QFrame.paintEvent(self, event)
@@ -210,12 +211,19 @@ class NodeEditor(QFrame):
 
         self.getWindow().ui.scrollArea.verticalScrollBar().setMinimum(0)
         total_lines = 0
+        max_width = 0
         for l in self.lines:
             total_lines += l.height
+            max_width = max(max_width, l.width)
         max_visible_lines = self.geometry().height() / self.fontht
         vmax = max(0, total_lines - max_visible_lines)
         self.getWindow().ui.scrollArea.verticalScrollBar().setMaximum(vmax)
         self.getWindow().ui.scrollArea.verticalScrollBar().setPageStep(1)
+
+        current_width = self.parentWidget().geometry().width() / self.fontwt
+        hmax = max(0, max_width - current_width)
+        self.getWindow().ui.scrollArea.horizontalScrollBar().setMaximum(hmax)
+        self.getWindow().ui.scrollArea.horizontalScrollBar().setPageStep(1)
 
     def get_nodesize_in_chars(self, node):
         if node.image:
