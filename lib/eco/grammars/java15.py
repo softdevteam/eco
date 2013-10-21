@@ -1069,5 +1069,6 @@ expression_nn ::=    assignment_expression_nn
 
 "[ \\t]+":<ws>
 "[\\n\\r]":<return>
-"""
+""",
+"Java"
 )

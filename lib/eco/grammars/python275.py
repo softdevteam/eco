@@ -454,5 +454,5 @@ yield_expr ::= "yield"
 "[a-zA-Z_][a-zA-Z_0-9]*":NAME
 "[0-9]+":NUMBER
 
-""")
-
+""",
+"Python")

@@ -88,7 +88,7 @@ def add_alt(new_name, old_lang, rule, alt):
     for r in rules:
         if r[0] == rule:
             r.append([alt])
-    return Language(new_name, _rules_to_str(rules), old_lang.priorities)
+    return Language(new_name, _rules_to_str(rules), old_lang.priorities, old_lang.base)
 
 
 def extract(new_name, old_lang, rule_name):

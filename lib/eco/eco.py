@@ -49,7 +49,7 @@ from time import time
 import os
 import math
 
-from syntaxhighlighter import SyntaxHighlighter
+import syntaxhighlighter
 from jsonmanager import JsonManager
 
 def print_var(name, value):
@@ -130,8 +130,6 @@ class NodeEditor(QFrame):
             4: QColor("#dccee4"), # light purple
         }
 
-        self.highlighter = SyntaxHighlighter()
-
     def reset(self):
         self.indentations = {}
         self.max_cols = []
@@ -205,7 +203,6 @@ class NodeEditor(QFrame):
 
         self.paintLines(paint, self.viewport_y)
 
-        self.paintSelection(paint)
         paint.end()
 
         self.getWindow().ui.scrollArea.verticalScrollBar().setMinimum(0)
@@ -251,8 +248,11 @@ class NodeEditor(QFrame):
 
         self.paint_nodes(paint, node, x, y, line, max_y)
 
+        self.paintSelection(paint, visual_line)
+
     #XXX if starting node is inside language box, init lbox with amout of languge boxes
     def paint_nodes(self, paint, node, x, y, line, max_y, lbox=0):
+        highlighter = self.get_highlighter(node)
         self.lines[line].height = 1 # reset height
         while y < max_y:
 
@@ -260,6 +260,7 @@ class NodeEditor(QFrame):
             if isinstance(node.symbol, MagicTerminal):
                 lbox += 1
                 node = node.symbol.ast.children[0]
+                highlighter = self.get_highlighter(node)
                 continue
 
             # if we reached EOS we can stop drawing
@@ -268,6 +269,7 @@ class NodeEditor(QFrame):
                 if lbnode:
                     lbox -= 1
                     node = lbnode.next_term
+                    highlighter = self.get_highlighter(node)
                     continue
                 else:
                     self.lines[line].width = x / self.fontwt
@@ -281,7 +283,7 @@ class NodeEditor(QFrame):
                         paint.fillRect(QRectF(x,3 + self.fontht + y*self.fontht, len(node.symbol.name)*self.fontwt, -self.fontht+2), color)
 
             # draw node
-            dx, dy = self.paint_node(paint, node, x, y)
+            dx, dy = self.paint_node(paint, node, x, y, highlighter)
             x += dx
             #y += dy
             self.lines[line].height = max(self.lines[line].height, dy)
@@ -302,7 +304,7 @@ class NodeEditor(QFrame):
             node = node.next_term
         return x, y, line
 
-    def paint_node(self, paint, node, x, y):
+    def paint_node(self, paint, node, x, y, highlighter):
         dx, dy = (0, 0)
         if node.symbol.name == "\r" or isinstance(node, EOS) or isinstance(node.symbol, IndentationTerminal):
             return dx, dy
@@ -311,16 +313,23 @@ class NodeEditor(QFrame):
             dx = int(math.ceil(node.image.width() * 1.0 / self.fontwt) * self.fontwt)
             dy = int(math.ceil(node.image.height() * 1.0 / self.fontht))
         elif isinstance(node, TextNode):
-            paint.setPen(QPen(QColor(self.highlighter.get_color(node))))
+            paint.setPen(QPen(QColor(highlighter.get_color(node))))
             text = node.symbol.name
             paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text)
             dx = len(text) * self.fontwt
             dy = 0
         return dx, dy
 
-    def paintSelection(self, paint):
-        start = min(self.selection_start, self.selection_end)
-        end = max(self.selection_start, self.selection_end)
+    def get_highlighter(self, node):
+        root = node.get_root()
+        base = lang_dict[self.parser_langs[root]].base
+        return syntaxhighlighter.get_highlighter(base)
+
+    def paintSelection(self, paint, offset):
+        start = min(self.selection_start, self.selection_end).copy()
+        end = max(self.selection_start, self.selection_end).copy()
+        start.y -= offset
+        end.y -= offset
         if start.y == end.y:
             width = end.x - start.x
             paint.fillRect(start.x * self.fontwt, 4+start.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))

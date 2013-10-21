@@ -21,10 +21,11 @@
 
 class Language(object):
 
-    def __init__(self, name, grammar, priorities):
+    def __init__(self, name, grammar, priorities, base=""):
         self.name = name
         self.grammar = grammar
         self.priorities = priorities
+        self.base = base
 
     def __str__(self):
         return self.name

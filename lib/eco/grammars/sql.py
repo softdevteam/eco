@@ -603,4 +603,6 @@ when_action ::= "GOTO" "NAME"
 "\"([a-zA-Z0-9 ]|\\\\\")*\"":STRING
 ":[A-Za-z][A-Za-z0-9_]*":PARAMETER
 """
+,
+"Sql"
 )
