@@ -31,6 +31,19 @@ class SyntaxHighlighter(object):
         "black": "#000000"
     }
     keyword_colors = {
+    }
+
+    def get_color(self, node):
+        if node.symbol.name in self.keyword_colors:
+            color = self.keyword_colors[node.symbol.name]
+        elif node.lookup in self.keyword_colors:
+            color = self.keyword_colors[node.lookup]
+        else:
+            color = "black"
+        hexcode = self.colors[color]
+        return hexcode
+class PythonHighlighter(SyntaxHighlighter):
+    keyword_colors = {
         "class": "green",
         "def": "green",
         "for": "green",
@@ -57,6 +70,18 @@ class SyntaxHighlighter(object):
         "len":"blue",
         "reversed":"blue",
         "isinstance":"blue",
+    }
+
+class JavaHighlighter(SyntaxHighlighter):
+    keyword_colors = {
+        "class": "green",
+        "for": "green",
+        "while": "green",
+        "return": "green",
+        "if": "green",
+        "elif": "green",
+        "else": "green",
+        "<ws>": "grey",
         "object": "blue",
         "import": "red",
         "public": "yellow",
@@ -70,12 +95,19 @@ class SyntaxHighlighter(object):
         "INTEGER_LITERAL": "cyan",
     }
 
-    def get_color(self, node):
-        if node.symbol.name in self.keyword_colors:
-            color = self.keyword_colors[node.symbol.name]
-        elif node.lookup in self.keyword_colors:
-            color = self.keyword_colors[node.lookup]
-        else:
-            color = "black"
-        hexcode = self.colors[color]
-        return hexcode
+class SqlHighlighter(SyntaxHighlighter):
+    keyword_colors = {
+        "SELECT": "yellow",
+        "FROM": "purple",
+        "WHERE": "green",
+        "INTNUM": "red",
+        "STRING": "red",
+    }
+def get_highlighter(parent):
+    if parent == "Java":
+        return JavaHighlighter()
+    if parent == "Python":
+        return PythonHighlighter()
+    if parent == "Sql":
+        return SqlHighlighter()
+    return SyntaxHighlighter()
