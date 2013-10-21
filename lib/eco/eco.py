@@ -39,8 +39,9 @@ from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
 from viewer import Viewer
 
-from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal
-from incparser.astree import TextNode, BOS, EOS, ImageNode
+from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
+
+from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 
 from grammars.grammars import languages, lang_dict
 
@@ -49,6 +50,7 @@ import os
 import math
 
 from syntaxhighlighter import SyntaxHighlighter
+from jsonmanager import JsonManager
 
 def print_var(name, value):
     print("%s: %s" % (name, value))
@@ -161,7 +163,7 @@ class NodeEditor(QFrame):
         first_line = Line(self.ast.parent.children[0], 1)
         first_line.indent_stack = [0]
         self.lines.append(first_line)
-        self.eos = self.ast.parent.children[1]
+        self.eos = self.ast.parent.children[-1]
 
     def set_sublanguage(self, language):
         self.sublanguage = language
@@ -1215,6 +1217,48 @@ class NodeEditor(QFrame):
             self.keyPressEvent(event)
         self.indentation = True
 
+    def saveToJson(self, filename):
+        whitespaces = self.getWindow().ui.cb_add_implicit_ws.isChecked()
+
+        root = self.ast.parent
+        language = self.parser_langs[root]
+        manager = JsonManager()
+        manager.save(self.ast.parent, language, whitespaces, filename)
+
+    def loadFromJson(self, filename):
+        manager = JsonManager()
+        language_boxes = manager.load(filename)
+
+        #self.ast.parent = root
+        #self.lines[0].node = root.children[0]
+        #self.eos = root.children[-1]
+
+        # setup main language
+        root, language, whitespaces = language_boxes[0]
+        grammar = lang_dict[language]
+        incparser = IncParser(grammar.grammar, 1, whitespaces)
+        incparser.init_ast()
+        incparser.previous_version.parent = root
+        inclexer = IncrementalLexer(grammar.priorities)
+        self.reset()
+        self.set_mainlanguage(incparser, inclexer, language)
+
+        # setup language boxes
+        for root, language, whitespaces in language_boxes[1:]:
+            grammar = lang_dict[language]
+            incparser = IncParser(grammar.grammar, 1, whitespaces)
+            incparser.init_ast()
+            incparser.previous_version.parent = root
+            inclexer = IncrementalLexer(grammar.priorities)
+            self.parsers[root] = incparser
+            self.lexers[root] = inclexer
+            self.parser_langs[root] = language
+
+        self.rescan_linebreaks(0)
+        for i in range(len(self.lines)):
+            self.rescan_indentations(i)
+        self.getWindow().btReparse([])
+
     def saveToFile(self, filename):
         f = open(filename, "w")
 
@@ -1411,11 +1455,12 @@ class Window(QtGui.QMainWindow):
 
     def savefile(self):
         filename = QFileDialog.getSaveFileName()
-        self.ui.frame.saveToFile(filename)
+        self.ui.frame.saveToJson(filename)
 
     def openfile(self):
         filename = QFileDialog.getOpenFileName()
-        self.ui.frame.loadFromFile(filename)
+        self.ui.frame.loadFromJson(filename)
+        self.ui.frame.update()
 
     def loadLanguage(self, item):
         language = languages[self.ui.listWidget.row(item)]
@@ -1447,7 +1492,7 @@ class Window(QtGui.QMainWindow):
     def btRefresh(self):
         whitespaces = self.ui.cb_toggle_ws.isChecked()
         if self.ui.cb_toggle_ast.isChecked():
-            self.viewer.get_tree_image(self.lrp.previous_version.parent, [], whitespaces)
+            self.viewer.get_tree_image(self.ui.frame.lrp.previous_version.parent, [], whitespaces)
             self.showImage(self.ui.graphicsView, self.viewer.image)
 
     def btReparse(self, selected_node):
@@ -1469,7 +1514,7 @@ class Window(QtGui.QMainWindow):
     def showAst(self, selected_node):
         whitespaces = self.ui.cb_toggle_ws.isChecked()
         if self.ui.cb_toggle_ast.isChecked():
-            self.viewer.get_tree_image(self.lrp.previous_version.parent, [selected_node], whitespaces)
+            self.viewer.get_tree_image(self.ui.frame.lrp.previous_version.parent, [selected_node], whitespaces)
             self.showImage(self.ui.graphicsView, self.viewer.image)
 
     def showAstSelection(self):
