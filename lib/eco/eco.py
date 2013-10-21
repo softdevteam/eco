@@ -130,6 +130,8 @@ class NodeEditor(QFrame):
             4: QColor("#dccee4"), # light purple
         }
 
+        self.selected_lbox = None
+
     def reset(self):
         self.indentations = {}
         self.max_cols = []
@@ -139,6 +141,7 @@ class NodeEditor(QFrame):
         self.line_heights = []
         self.line_indents = []
         self.lines = []
+        self.selected_lbox = None
 
     def set_mainlanguage(self, parser, lexer, lang_name):
         self.parsers = {}
@@ -253,31 +256,39 @@ class NodeEditor(QFrame):
     #XXX if starting node is inside language box, init lbox with amout of languge boxes
     def paint_nodes(self, paint, node, x, y, line, max_y, lbox=0):
         highlighter = self.get_highlighter(node)
+        draw_lbox = False
         self.lines[line].height = 1 # reset height
         while y < max_y:
 
             # if we found a language box, continue drawing inside of it
             if isinstance(node.symbol, MagicTerminal):
                 lbox += 1
-                node = node.symbol.ast.children[0]
+                lbnode = node.symbol.ast
+                if self.selected_lbox is node:
+                    draw_lbox = True
+                node = lbnode.children[0]
                 highlighter = self.get_highlighter(node)
                 continue
 
-            # if we reached EOS we can stop drawing
             if isinstance(node, EOS):
                 lbnode = self.get_languagebox(node)
                 if lbnode:
                     lbox -= 1
                     node = lbnode.next_term
                     highlighter = self.get_highlighter(node)
+                    if self.selected_lbox is lbnode:
+                        draw_lbox = False
+                    #else:
+                    #    draw_lbox = False
                     continue
                 else:
                     self.lines[line].width = x / self.fontwt
                     break
 
             # draw language boxes
-            if lbox > 0:
-                color = self.nesting_colors[lbox % 5]
+            if lbox > 0 and draw_lbox:
+                #color = self.nesting_colors[lbox % 5]
+                color = QColor("#dddddd")
                 if node.symbol.name != "\r":
                     if not node.image or node.plain_mode:
                         paint.fillRect(QRectF(x,3 + self.fontht + y*self.fontht, len(node.symbol.name)*self.fontwt, -self.fontht+2), color)
@@ -389,6 +400,10 @@ class NodeEditor(QFrame):
             inside = False
         else:
             inside = True
+
+        # check lbox
+        self.selected_lbox = self.get_languagebox(node)
+
         return node, inside, x
 
     def find_node_at_position(self, x, node):
@@ -410,6 +425,7 @@ class NodeEditor(QFrame):
                 x += len(node.symbol.name)
             else:
                 x += math.ceil(node.image.width() * 1.0 / self.fontwt)
+
         return node, x
 
     def get_nodes_from_selection(self):
@@ -578,6 +594,7 @@ class NodeEditor(QFrame):
             self.key_ctrl_space(e, selected_node, inbetween, x)
         elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier | Qt.ShiftModifier:
             self.edit_rightnode = True # writes next char into magic ast
+            self.get_nodes_at_position()
             self.update()
             return
         elif e.key() == Qt.Key_Delete:
