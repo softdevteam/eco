@@ -16,7 +16,7 @@ class JsonManager(object):
         main["whitespaces"] = whitespaces
 
         fp = open(filename, "w")
-        json.dump(main, fp, indent=4)
+        json.dump(main, fp)#, indent=4)
         fp.close()
 
     def load(self, filename):
