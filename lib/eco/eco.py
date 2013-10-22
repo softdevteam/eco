@@ -259,11 +259,13 @@ class NodeEditor(QFrame):
 
         self.paint_nodes(paint, node, x, y, line, max_y)
 
-        self.paintSelection(paint, visual_line)
+        #self.paintSelection(paint, visual_line)
 
     #XXX if starting node is inside language box, init lbox with amout of languge boxes
     def paint_nodes(self, paint, node, x, y, line, max_y, lbox=0):
         highlighter = self.get_highlighter(node)
+        selection_start = min(self.selection_start, self.selection_end)
+        selection_end = max(self.selection_start, self.selection_end)
         draw_lbox = False
         self.lines[line].height = 1 # reset height
         while y < max_y:
@@ -306,6 +308,20 @@ class NodeEditor(QFrame):
             x += dx
             #y += dy
             self.lines[line].height = max(self.lines[line].height, dy)
+
+            # draw selection
+            if node.lookup == "<return>" or node is self.eos:
+                if line >= selection_start.y and line <= selection_end.y:
+                    if line == selection_start.y:
+                        draw_start = selection_start.x
+                    else:
+                        draw_start = 0
+                    if line < selection_end.y:
+                        draw_len = self.lines[line].width - draw_start
+                    else:
+                        draw_len = selection_end.x - draw_start
+                    paint.fillRect(QRectF(draw_start*self.fontwt, 3+y*self.fontht, draw_len*self.fontwt, self.fontht), QColor(0,0,255,100))
+                pass
 
             # after we drew a return, update line information
             if node.lookup == "<return>":
