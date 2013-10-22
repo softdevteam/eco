@@ -551,6 +551,7 @@ class NodeEditor(QFrame):
         for l in self.lines[:self.cursor.y]:
             y += l.height * self.fontht
         x = self.cursor.x * self.fontwt
+        y = y - self.getWindow().ui.scrollArea.verticalScrollBar().value() * self.fontht
         return (x,y)
 
     def coordinate_to_cursor(self, x, y):
@@ -1068,6 +1069,15 @@ class NodeEditor(QFrame):
             #new_node.lookup = pl.name(text)
 
     def fix_scrollbars(self):
+        x, y = self.cursor_to_coordinate()
+
+        # fix vertical bar
+        if y < 0:
+            self.getWindow().ui.scrollArea.decVSlider()
+        if y+3 > self.geometry().height(): # the 3 is the padding of the canvas
+            self.getWindow().ui.scrollArea.incVSlider()
+
+        # fix horizontal bar
         if self.cursor.x < -1 * self.geometry().x() / self.fontwt:
             self.getWindow().ui.scrollArea.decHSlider()
         if self.cursor.x > self.parentWidget().geometry().width()/self.fontwt + self.getWindow().ui.scrollArea.horizontalScrollBar().value():
@@ -1232,7 +1242,6 @@ class NodeEditor(QFrame):
             item = toolbar.addAction(str(l), self.createMenuFunction(l))
             menu.addAction(item)
         x,y = self.cursor_to_coordinate()
-        y = y - self.getWindow().ui.scrollArea.verticalScrollBar().value() * self.fontht
         menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
 
     def createMenuFunction(self, l):
