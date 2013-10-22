@@ -403,6 +403,7 @@ yield_expr ::= "yield"
 "finally":finally
 "except":except
 "print":print
+"lambda":lambda
 "\.":.
 "\,":,
 ":"::
