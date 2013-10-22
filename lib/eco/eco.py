@@ -645,6 +645,7 @@ class NodeEditor(QFrame):
             root = selected_node.get_root()
             lrp = self.parsers[root]
         self.getWindow().showLookahead(lrp)
+        self.fix_scrollbars()
         self.update()
 
     def key_escape(self, e, node):
@@ -1059,6 +1060,12 @@ class NodeEditor(QFrame):
             #new_node.priority = pl.priority(text)
             #new_node.lookup = pl.name(text)
 
+    def fix_scrollbars(self):
+        if self.cursor.x < -1 * self.geometry().x() / self.fontwt:
+            self.getWindow().ui.scrollArea.decHSlider()
+        if self.cursor.x > self.parentWidget().geometry().width()/self.fontwt + self.getWindow().ui.scrollArea.horizontalScrollBar().value():
+            self.getWindow().ui.scrollArea.incHSlider()
+
     def cursor_movement(self, key):
         cur = self.cursor
 
@@ -1439,6 +1446,12 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
         anotherbox.addWidget(widget)
         anotherbox.setSpacing(0)
         anotherbox.setContentsMargins(3,0,0,0)
+
+    def incHSlider(self):
+        self.horizontalScrollBar().setSliderPosition(self.horizontalScrollBar().sliderPosition() + self.horizontalScrollBar().singleStep())
+
+    def decHSlider(self):
+        self.horizontalScrollBar().setSliderPosition(self.horizontalScrollBar().sliderPosition() - self.horizontalScrollBar().singleStep())
 
     def incVSlider(self):
         self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() + self.verticalScrollBar().singleStep())
