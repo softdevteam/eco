@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Mon Oct 21 16:35:24 2013
+# Created: Tue Oct 22 17:15:50 2013
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -314,6 +314,8 @@ class Ui_MainWindow(object):
         self.actionNew.setObjectName(_fromUtf8("actionNew"))
         self.actionRun = QtGui.QAction(MainWindow)
         self.actionRun.setObjectName(_fromUtf8("actionRun"))
+        self.actionSelect_font = QtGui.QAction(MainWindow)
+        self.actionSelect_font.setObjectName(_fromUtf8("actionSelect_font"))
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addAction(self.actionImport)
@@ -321,6 +323,7 @@ class Ui_MainWindow(object):
         self.menuFile.addAction(self.actionSave)
         self.menuOptions.addAction(self.actionRandomDel)
         self.menuOptions.addAction(self.actionUndoRandomDel)
+        self.menuOptions.addAction(self.actionSelect_font)
         self.menuPoject.addAction(self.actionRun)
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuOptions.menuAction())
@@ -361,5 +364,6 @@ class Ui_MainWindow(object):
         self.actionSave.setText(_translate("MainWindow", "Save...", None))
         self.actionNew.setText(_translate("MainWindow", "New", None))
         self.actionRun.setText(_translate("MainWindow", "Run", None))
+        self.actionSelect_font.setText(_translate("MainWindow", "Select font..", None))
 
 from eco import ScopeScrollArea, NodeEditor

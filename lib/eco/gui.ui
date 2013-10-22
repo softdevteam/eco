@@ -529,6 +529,7 @@
     </property>
     <addaction name="actionRandomDel"/>
     <addaction name="actionUndoRandomDel"/>
+    <addaction name="actionSelect_font"/>
    </widget>
    <widget class="QMenu" name="menuPoject">
     <property name="title">
@@ -594,6 +595,11 @@
   <action name="actionRun">
    <property name="text">
     <string>Run</string>
+   </property>
+  </action>
+  <action name="actionSelect_font">
+   <property name="text">
+    <string>Select font..</string>
    </property>
   </action>
  </widget>

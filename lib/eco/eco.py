@@ -1380,6 +1380,12 @@ class NodeEditor(QFrame):
         self.line_info.append([node.children[0], node.children[-1]])
         self.line_heights.append(1)
 
+    def change_font(self, font):
+        self.font = font[0]
+        self.fontm = QtGui.QFontMetrics(self.font)
+        self.fontht = self.fontm.height() + 3
+        self.fontwt = self.fontm.width(" ")
+
     def export_unipycation(self):
         node = self.lines[0].node # first node
         output = []
@@ -1511,6 +1517,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
         self.connect(self.ui.actionSave, SIGNAL("triggered()"), self.savefile)
         self.connect(self.ui.actionRandomDel, SIGNAL("triggered()"), self.ui.frame.randomDeletion)
+        self.connect(self.ui.actionSelect_font, SIGNAL("triggered()"), self.change_font)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.ui.frame.export_unipycation)
         self.connect(self.ui.actionUndoRandomDel, SIGNAL("triggered()"), self.ui.frame.undoDeletion)
         self.connect(self.ui.scrollArea.verticalScrollBar(), SIGNAL("valueChanged(int)"), self.ui.frame.sliderChanged)
@@ -1533,6 +1540,10 @@ class Window(QtGui.QMainWindow):
         self.ui.frame.insertTextNoSim(text)
         self.btReparse(None)
         self.ui.frame.update()
+
+    def change_font(self):
+        font = QFontDialog.getFont(self.ui.frame.font)
+        self.ui.frame.change_font(font)
 
     def savefile(self):
         filename = QFileDialog.getSaveFileName()
