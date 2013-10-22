@@ -1412,7 +1412,10 @@ class NodeEditor(QFrame):
         f = tempfile.mkstemp()
         os.write(f[0],"".join(output))
         os.close(f[0])
-        os.system("../../bin/pypy-c " + f[1])
+        if os.environ.has_key("UNIPYCATION"):
+            os.system(os.path.join(os.environ["UNIPYCATION"], "pypy/goal/pypy-c " + f[1]))
+        else:
+            sys.stderr.write("UNIPYCATION environment not set")
 
 class Cursor(object):
     def __init__(self, pos, line):
