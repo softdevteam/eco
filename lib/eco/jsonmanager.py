@@ -2,6 +2,7 @@ import json
 
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
+from PyQt4.QtGui import QImage
 
 class JsonManager(object):
     def __init__(self):
@@ -40,7 +41,7 @@ class JsonManager(object):
         jsnode["symbol"] = node.symbol.__class__.__name__
         jsnode["text"] = node.symbol.name
         jsnode["lookup"] = node.lookup
-        jsnode["image"] = node.image
+        jsnode["image_src"] = node.image_src
 
         children = []
         for c in node.children:
@@ -65,7 +66,9 @@ class JsonManager(object):
         node = node_class(symbol)
         assert node.symbol is symbol
         node.lookup = jsnode["lookup"]
-        node.image = jsnode["image"]
+        node.image_src = jsnode["image_src"]
+        if node.image_src is not None:
+            node.image = QImage(node.image_src)
 
         if isinstance(symbol, Terminal) or isinstance(symbol, FinishSymbol):
             node.prev_term = self.last_terminal
