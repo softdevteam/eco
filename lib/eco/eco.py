@@ -546,6 +546,13 @@ class NodeEditor(QFrame):
         if node.image and not node.plain_mode:
             self.cursor.x = x
 
+    def cursor_to_coordinate(self):
+        y = 0
+        for l in self.lines[:self.cursor.y]:
+            y += l.height * self.fontht
+        x = self.cursor.x * self.fontwt
+        return (x,y)
+
     def coordinate_to_cursor(self, x, y):
         result = Cursor(0,0)
 
@@ -1224,7 +1231,9 @@ class NodeEditor(QFrame):
         for l in languages:
             item = toolbar.addAction(str(l), self.createMenuFunction(l))
             menu.addAction(item)
-        menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + self.cursor.x*self.fontwt, 3 + (self.cursor.y+1)*self.fontht))
+        x,y = self.cursor_to_coordinate()
+        y = y - self.getWindow().ui.scrollArea.verticalScrollBar().value() * self.fontht
+        menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
 
     def createMenuFunction(self, l):
         def action():
