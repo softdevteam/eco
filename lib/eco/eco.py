@@ -1413,7 +1413,7 @@ class NodeEditor(QFrame):
         os.write(f[0],"".join(output))
         os.close(f[0])
         if os.environ.has_key("UNIPYCATION"):
-            os.system(os.path.join(os.environ["UNIPYCATION"], "pypy/goal/pypy-c " + f[1]))
+            os.system(os.path.join(os.environ["UNIPYCATION"], "pypy/goal/pypy-c") + " " + f[1])
         else:
             sys.stderr.write("UNIPYCATION environment not set")
 
