@@ -125,4 +125,5 @@ listbody ::= toplevel_op_expr "|" toplevel_op_expr | toplevel_op_expr
 "(0|[1-9][0-9]*)(\.[0-9]+)([eE][-+]?[0-9]+)?":FLOAT
 "([a-z]([a-zA-Z0-9]|_)*)|('[^']*')|\[\]|!|\+|\-|\{\}":ATOM
 "\"[^\"]*\"":STRING
-""")
+""",
+"Prolog")

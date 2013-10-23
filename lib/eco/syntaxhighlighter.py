@@ -99,9 +99,25 @@ class SqlHighlighter(SyntaxHighlighter):
     keyword_colors = {
         "SELECT": "yellow",
         "FROM": "purple",
-        "WHERE": "green",
+        "WHERE": "purple",
         "INTNUM": "red",
         "STRING": "red",
+    }
+
+class PrologHighlighter(SyntaxHighlighter):
+    keyword_colors = {
+        ":-": "red",
+        "!": "purple",
+        "is": "green",
+        "append": "green",
+        "findall": "green",
+        ">": "green",
+        "<": "green",
+        "=": "green",
+        "\\+": "green",
+        "NUMBER": "cyan",
+        "STRING": "cyan",
+        "<ws>": "grey",
     }
 def get_highlighter(parent):
     if parent == "Java":
@@ -110,4 +126,6 @@ def get_highlighter(parent):
         return PythonHighlighter()
     if parent == "Sql":
         return SqlHighlighter()
+    if parent == "Prolog":
+        return PrologHighlighter()
     return SyntaxHighlighter()
