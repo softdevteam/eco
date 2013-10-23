@@ -620,7 +620,7 @@ class NodeEditor(QFrame):
         elif e.key() == Qt.Key_C and e.modifiers() == Qt.ControlModifier:
             self.copySelection()
         elif e.key() == Qt.Key_V and e.modifiers() == Qt.ControlModifier:
-            self.pasteSelection()
+            self.pasteSelection(selected_node, inbetween, x)
         elif e.key() == Qt.Key_X and e.modifiers() == Qt.ControlModifier:
             if self.hasSelection():
                 self.copySelection()
@@ -637,8 +637,11 @@ class NodeEditor(QFrame):
         else:
             indentation = self.key_normal(e, selected_node, inbetween, x)
 
+        lines_before = len(self.lines)
         self.rescan_linebreaks(self.changed_line)
-        self.rescan_indentations(self.changed_line)
+        new_lines = len(self.lines) - lines_before
+        for i in range(new_lines+1):
+            self.rescan_indentations(self.changed_line+i)
         self.getWindow().btReparse([])
         self.repaint() # this recalculates self.max_cols
 
@@ -658,6 +661,14 @@ class NodeEditor(QFrame):
         self.getWindow().showLookahead(lrp)
         self.fix_scrollbars()
         self.update()
+
+    def println(self, prestring, y):
+        node = self.lines[y].node.next_term
+        x = []
+        while node is not None and node.symbol.name != "\r":
+            x.append(node.symbol.name)
+            node = node.next_term
+        print(prestring, "".join(x))
 
     def key_escape(self, e, node):
         if node.plain_mode:
@@ -888,7 +899,8 @@ class NodeEditor(QFrame):
         now = self.lines[y].indent_stack
         if before == now:
             # nothing was changed
-            return
+            #return
+            pass # doing this optimisation kills pasting atm
 
         # repair succeeding lines until we reach a line that has equal or smaller indentation
         this_indent = now[-1]
@@ -1170,9 +1182,28 @@ class NodeEditor(QFrame):
         text.append(end.symbol.name[:diff_end])
         QApplication.clipboard().setText("".join(text))
 
-    def pasteSelection(self):
+    def pasteSelection(self, node, inside, x):
         text = QApplication.clipboard().text()
-        self.insertText(text)
+        text = text.replace("\r\n","\r")
+        text = text.replace("\n","\r")
+        #self.insertText(text)
+        if inside:
+            internal_position = len(node.symbol.name) - (x - self.cursor.x)
+            node.insert(text, internal_position)
+        else:
+            #XXX same code as in key_normal
+            pos = 0
+            if isinstance(node, BOS) or node.symbol.name == "\r" or isinstance(node.symbol, MagicTerminal):
+                # insert new node: [bos] [newtext] [next node]
+                old = node
+                node = TextNode(Terminal(""))
+                old.insert_after(node)
+            else:
+                pos = len(node.symbol.name)
+            node.insert(text, pos)
+
+        self.cursor.x += len(text)
+        self.relex(node)
 
     def insertText(self, text):
         self.indentation = False
