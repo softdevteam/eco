@@ -266,7 +266,12 @@ class NodeEditor(QFrame):
         highlighter = self.get_highlighter(node)
         selection_start = min(self.selection_start, self.selection_end)
         selection_end = max(self.selection_start, self.selection_end)
-        draw_lbox = False
+        start_lbox = self.get_languagebox(node)
+        if start_lbox and self.selected_lbox is start_lbox:
+            lbox += 1
+            draw_lbox = True
+        else:
+            draw_lbox = False
         self.lines[line].height = 1 # reset height
         while y < max_y:
 
@@ -288,8 +293,6 @@ class NodeEditor(QFrame):
                     highlighter = self.get_highlighter(node)
                     if self.selected_lbox is lbnode:
                         draw_lbox = False
-                    #else:
-                    #    draw_lbox = False
                     continue
                 else:
                     self.lines[line].width = x / self.fontwt
