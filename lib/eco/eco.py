@@ -301,10 +301,10 @@ class NodeEditor(QFrame):
             # draw language boxes
             if lbox > 0 and draw_lbox:
                 #color = self.nesting_colors[lbox % 5]
-                color = QColor("#dddddd")
+                color = QColor(0,0,0,30)
                 if node.symbol.name != "\r":
                     if not node.image or node.plain_mode:
-                        paint.fillRect(QRectF(x,3 + self.fontht + y*self.fontht, len(node.symbol.name)*self.fontwt, -self.fontht+2), color)
+                        paint.fillRect(QRectF(x,3 + y*self.fontht, len(node.symbol.name)*self.fontwt, self.fontht), color)
 
             # draw node
             dx, dy = self.paint_node(paint, node, x, y, highlighter)
@@ -328,6 +328,10 @@ class NodeEditor(QFrame):
 
             # after we drew a return, update line information
             if node.lookup == "<return>":
+                # draw lbox to end of line
+                if draw_lbox:
+                    paint.fillRect(QRectF(x,3+y*self.fontht, self.geometry().width()-x, self.fontht), color)
+
                 self.lines[line].width = x / self.fontwt
                 x = 0
                 y += self.lines[line].height
@@ -643,7 +647,7 @@ class NodeEditor(QFrame):
         for i in range(new_lines+1):
             self.rescan_indentations(self.changed_line+i)
         self.getWindow().btReparse([])
-        self.repaint() # this recalculates self.max_cols
+        #self.repaint() # this recalculates self.max_cols #XXX deprecated!?
 
         if e.key() == Qt.Key_Return:
             self.cursor_movement(Qt.Key_Down)
