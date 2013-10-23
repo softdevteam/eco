@@ -21,7 +21,7 @@
 
 from __future__ import print_function
 
-import sys
+import subprocess, sys
 from PyQt4 import QtCore
 from PyQt4.QtCore import *
 from PyQt4 import QtGui
@@ -1451,7 +1451,7 @@ class NodeEditor(QFrame):
         os.write(f[0],"".join(output))
         os.close(f[0])
         if os.environ.has_key("UNIPYCATION"):
-            os.system(os.path.join(os.environ["UNIPYCATION"], "pypy/goal/pypy-c") + " " + f[1])
+            subprocess.Popen([os.path.join(os.environ["UNIPYCATION"], "pypy/goal/pypy-c"), f[1]])
         else:
             sys.stderr.write("UNIPYCATION environment not set")
 
