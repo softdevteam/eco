@@ -463,6 +463,9 @@ class NodeEditor(QFrame):
         cur_start = min(self.selection_start, self.selection_end)
         cur_end = max(self.selection_start, self.selection_end)
 
+        if cur_start == cur_end:
+            return
+
         temp = self.cursor
 
         self.cursor = cur_start
