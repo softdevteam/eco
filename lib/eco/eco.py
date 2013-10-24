@@ -281,6 +281,8 @@ class NodeEditor(QFrame):
                 lbnode = node.symbol.ast
                 if self.selected_lbox is node:
                     draw_lbox = True
+                else:
+                    draw_lbox = False
                 node = lbnode.children[0]
                 highlighter = self.get_highlighter(node)
                 continue
@@ -293,6 +295,9 @@ class NodeEditor(QFrame):
                     highlighter = self.get_highlighter(node)
                     if self.selected_lbox is lbnode:
                         draw_lbox = False
+                    lbnode = self.get_languagebox(node)
+                    if lbnode and self.selected_lbox is lbnode:
+                        draw_lbox = True
                     continue
                 else:
                     self.lines[line].width = x / self.fontwt
