@@ -77,6 +77,7 @@ class IncParser(object):
         self.undo = []
         self.last_shift_state = 0
         self.validating = False
+        self.last_status = False
 
         self.previous_version = None
         print("Incemental parser done")
@@ -117,8 +118,10 @@ class IncParser(object):
 
                     result = self.parse_terminal(la, lookup_symbol)
                     if result == "Accept":
+                        self.last_status = True
                         return True
                     elif result == "Error":
+                        self.last_status = False
                         return False
                     elif result != None:
                         la = result
