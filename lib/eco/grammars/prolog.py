@@ -110,6 +110,7 @@ listbody ::= toplevel_op_expr "|" toplevel_op_expr | toplevel_op_expr
 "\\\+":\+
 "\+":+
 "\-":-
+"\=\.\.":=..
 "\=":=
 "\=@\=":=@=
 "\=:\=":=:=
