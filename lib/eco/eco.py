@@ -1237,7 +1237,8 @@ class NodeEditor(QFrame):
 
         text.append(start.symbol.name[diff_start:])
         for node in nodes:
-            text.append(node.symbol.name)
+            if not isinstance(node.symbol, IndentationTerminal):
+                text.append(node.symbol.name)
         text.append(end.symbol.name[:diff_end])
         QApplication.clipboard().setText("".join(text))
 
