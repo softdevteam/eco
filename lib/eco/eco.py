@@ -516,6 +516,9 @@ class NodeEditor(QFrame):
         if end_inbetween:
             diff_end = len(end_node.symbol.name) - (end_x - self.cursor.x)
 
+        if not start_inbetween:
+            start = start_node.next_term
+
         if start_node is end_node:
             return ([start_node], diff_start, diff_end)
 
@@ -523,8 +526,6 @@ class NodeEditor(QFrame):
 
         start = start_node
         end = end_node
-        if not start_inbetween:
-            start = start_node.next_term
 
         if start is None or end is None or isinstance(start, EOS):
             return ([],0,0)
