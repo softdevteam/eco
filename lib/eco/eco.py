@@ -87,6 +87,11 @@ class NodeEditor(QFrame):
         self.fontm = QtGui.QFontMetrics(self.font)
         self.fontht = self.fontm.height() + 3
         self.fontwt = self.fontm.width(" ")
+
+        self.infofont = QtGui.QFont('Courier', 6)
+        self.infofontht = QtGui.QFontMetrics(self.infofont).height() + 3
+        self.infofontwt = QtGui.QFontMetrics(self.infofont).width(" ")
+
         self.cursor = [0,0]
 
         # make cursor blink
@@ -263,6 +268,8 @@ class NodeEditor(QFrame):
 
     #XXX if starting node is inside language box, init lbox with amout of languge boxes
     def paint_nodes(self, paint, node, x, y, line, max_y, lbox=0):
+        selected_language = self.ast.parent
+
         highlighter = self.get_highlighter(node)
         selection_start = min(self.selection_start, self.selection_end)
         selection_end = max(self.selection_start, self.selection_end)
@@ -273,6 +280,7 @@ class NodeEditor(QFrame):
         else:
             draw_lbox = False
         self.lines[line].height = 1 # reset height
+        draw_cursor = True
         while y < max_y:
 
             # if we found a language box, continue drawing inside of it
@@ -281,6 +289,7 @@ class NodeEditor(QFrame):
                 lbnode = node.symbol.ast
                 if self.selected_lbox is node:
                     draw_lbox = True
+                    selected_language = lbnode
                 else:
                     draw_lbox = False
                 node = lbnode.children[0]
@@ -344,11 +353,29 @@ class NodeEditor(QFrame):
                 self.lines[line].height = 1 # reset height
 
             # draw cursor
-            if line == self.cursor.y:
+            if line == self.cursor.y and x/self.fontwt >= self.cursor.x and draw_cursor:
                 draw_cursor_at = QRect(0 + self.cursor.x * self.fontwt, 5 + y * self.fontht, 0, self.fontht - 3)
                 paint.drawRect(draw_cursor_at)
 
+                # set lbox info coordinates
+                infobox_coordinates = (self.cursor.x * self.fontwt, (y+1) * self.fontht)
+                draw_cursor = False
+
             node = node.next_term
+
+        # paint infobox
+        if False:
+            lang_name = self.parser_langs[selected_language]
+            lang_status = self.parsers[selected_language].last_status
+            if lang_status is True:
+                color = QColor(100,255,100)
+            else:
+                color = QColor(255,100,100)
+            paint.setFont(self.infofont)
+            paint.fillRect(QRect(infobox_coordinates[0], 5 + infobox_coordinates[1], len(lang_name)*self.infofontwt, self.infofontht), color)
+            paint.drawText(QtCore.QPointF(infobox_coordinates[0], -3 + self.fontht + infobox_coordinates[1]), lang_name)
+            paint.setFont(self.font)
+
         return x, y, line
 
     def paint_node(self, paint, node, x, y, highlighter):
