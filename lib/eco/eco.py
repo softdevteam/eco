@@ -297,6 +297,7 @@ class NodeEditor(QFrame):
                 continue
 
             if isinstance(node, EOS):
+                self.draw_selection(paint, node, line, selection_start, selection_end, y)
                 lbnode = self.get_languagebox(node)
                 if lbnode:
                     lbox -= 1
@@ -326,19 +327,7 @@ class NodeEditor(QFrame):
             #y += dy
             self.lines[line].height = max(self.lines[line].height, dy)
 
-            # draw selection
-            if node.lookup == "<return>" or node is self.eos:
-                if line >= selection_start.y and line <= selection_end.y:
-                    if line == selection_start.y:
-                        draw_start = selection_start.x
-                    else:
-                        draw_start = 0
-                    if line < selection_end.y:
-                        draw_len = self.lines[line].width - draw_start
-                    else:
-                        draw_len = selection_end.x - draw_start
-                    paint.fillRect(QRectF(draw_start*self.fontwt, 3+y*self.fontht, draw_len*self.fontwt, self.fontht), QColor(0,0,255,100))
-                pass
+            self.draw_selection(paint, node, line, selection_start, selection_end, y)
 
             # after we drew a return, update line information
             if node.lookup == "<return>":
@@ -377,6 +366,20 @@ class NodeEditor(QFrame):
             paint.setFont(self.font)
 
         return x, y, line
+
+    def draw_selection(self, paint, node, line, selection_start, selection_end, y):
+        # draw selection
+        if node.lookup == "<return>" or node is self.eos:
+            if line >= selection_start.y and line <= selection_end.y:
+                if line == selection_start.y:
+                    draw_start = selection_start.x
+                else:
+                    draw_start = 0
+                if line < selection_end.y:
+                    draw_len = self.lines[line].width - draw_start
+                else:
+                    draw_len = selection_end.x - draw_start
+                paint.fillRect(QRectF(draw_start*self.fontwt, 3+y*self.fontht, draw_len*self.fontwt, self.fontht), QColor(0,0,255,100))
 
     def paint_node(self, paint, node, x, y, highlighter):
         dx, dy = (0, 0)
