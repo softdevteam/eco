@@ -482,9 +482,12 @@ class NodeEditor(QFrame):
 
         self.cursor = cur_end
         end_node, end_inbetween, end_x = self.get_nodes_at_position()
-        diff_end = 0
+        diff_end = len(end_node.symbol.name)
         if end_inbetween:
             diff_end = len(end_node.symbol.name) - (end_x - self.cursor.x)
+
+        if start_node is end_node:
+            return ([start_node], diff_start, diff_end)
 
         self.cursor = temp
 
@@ -497,11 +500,10 @@ class NodeEditor(QFrame):
             return ([],0,0)
 
         nodes = []
-        node = start
         if include_start:
             nodes.append(start)
+        node = start.next_terminal()
         while node is not end:
-            node = node.next_terminal()
             # extend search into magic tree
             if isinstance(node.symbol, MagicTerminal):
                 node = node.symbol.parser.children[0]
@@ -514,6 +516,7 @@ class NodeEditor(QFrame):
                     node = magic
                     continue
             nodes.append(node)
+            node = node.next_terminal()
         nodes.append(end)
 
         return (nodes, diff_start, diff_end)
@@ -1182,7 +1185,8 @@ class NodeEditor(QFrame):
     def copySelection(self):
         nodes, diff_start, diff_end = self.get_nodes_from_selection()
         if len(nodes) == 1:
-            QApplication.clipboard().setText(nodes[0].symbol.name[diff_start:])
+            text = nodes[0].symbol.name[diff_start:diff_end]
+            QApplication.clipboard().setText(text)
             return
         text = []
         start = nodes.pop(0)
