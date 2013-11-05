@@ -1170,17 +1170,29 @@ class NodeEditor(QFrame):
     def hasSelection(self):
         return self.selection_start != self.selection_end
 
+    def delete_if_empty(self, node):
+        if node.symbol.name == "":
+            node.parent.remove_child(node)
+
     def deleteSelection(self):
         #XXX simple version: later we might want to modify the nodes directly
         #nodes, diff_start, diff_end = self.get_nodes_from_selection()
-        chars = self.char_difference(self.selection_start, self.selection_end)
-        self.cursor = min(self.selection_start, self.selection_end)
-        self.selection_start = Cursor(0,0)
-        self.selection_end = Cursor(0,0)
-        for i in range(chars):
-            #XXX this draws the AST (if selected) in every iteration
-            event = QKeyEvent(QEvent.KeyPress, Qt.Key_Delete, Qt.NoModifier, "delete")
-            QCoreApplication.postEvent(self, event)
+
+        nodes, diff_start, diff_end = self.get_nodes_from_selection()
+        repair_node = nodes[0].prev_term
+        nodes[0].symbol.name = nodes[0].symbol.name[:diff_start]
+        nodes[-1].symbol.name = nodes[-1].symbol.name[diff_end:]
+        self.delete_if_empty(nodes[0])
+        self.delete_if_empty(nodes[-1])
+        for node in nodes[1:-1]:
+            node.parent.remove_child(node)
+        self.relex(repair_node)
+        cur_start = min(self.selection_start, self.selection_end)
+        cur_end = max(self.selection_start, self.selection_end)
+        self.cursor = cur_start.copy()
+        self.selection_end = cur_start.copy()
+        self.changed_line = cur_start.y
+        del self.lines[cur_start.y+1:cur_end.y+1]
 
     def copySelection(self):
         nodes, diff_start, diff_end = self.get_nodes_from_selection()
