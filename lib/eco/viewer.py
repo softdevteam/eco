@@ -37,7 +37,8 @@ class Viewer(object):
 
     def __del__(self):
         import shutil
-        shutil.rmtree(tempdir)
+        if os.path.isdir(tempdir):
+            shutil.rmtree(tempdir)
 
     def show_ast(self, grammar, _input):
         from incparser import IncParser
