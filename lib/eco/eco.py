@@ -550,7 +550,7 @@ class NodeEditor(QFrame):
                 root = node.get_root()
                 magic = root.get_magicterminal()
                 if magic:
-                    node = magic
+                    node = magic.next_terminal()
                     continue
             nodes.append(node)
             node = node.next_terminal()
