@@ -661,6 +661,11 @@ class NodeEditor(QFrame):
             self.key_backspace(e)
         elif e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             self.key_cursors(e)
+            if e.modifiers() == Qt.ShiftModifier:
+                self.selection_end = self.cursor.copy()
+            else:
+                self.selection_start = self.cursor.copy()
+                self.selection_end = self.cursor.copy()
         elif e.key() == Qt.Key_Home:
             self.cursor.x = 0
         elif e.key() == Qt.Key_End:
