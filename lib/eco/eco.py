@@ -674,6 +674,8 @@ class NodeEditor(QFrame):
         elif e.key() == Qt.Key_C and e.modifiers() == Qt.ControlModifier:
             self.copySelection()
         elif e.key() == Qt.Key_V and e.modifiers() == Qt.ControlModifier:
+            if self.hasSelection():
+                self.deleteSelection()
             self.pasteSelection(selected_node, inbetween, x)
         elif e.key() == Qt.Key_X and e.modifiers() == Qt.ControlModifier:
             if self.hasSelection():
