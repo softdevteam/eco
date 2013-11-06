@@ -508,7 +508,9 @@ class NodeEditor(QFrame):
         diff_start = 0
         if start_inbetween:
             diff_start = len(start_node.symbol.name) - (start_x - self.cursor.x)
-        include_start = True
+            include_start = True
+        else:
+            include_start = False
 
         self.cursor = cur_end
         end_node, end_inbetween, end_x = self.get_nodes_at_position()
@@ -672,7 +674,10 @@ class NodeEditor(QFrame):
                 self.copySelection()
                 self.deleteSelection()
         elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
-            self.key_ctrl_space(e, selected_node, inbetween, x)
+            if self.hasSelection():
+                self.surround_with_lbox(e, selected_node, inbetween, x)
+            else:
+                self.key_ctrl_space(e, selected_node, inbetween, x)
         elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier | Qt.ShiftModifier:
             self.edit_rightnode = True # writes next char into magic ast
             self.get_nodes_at_position()
@@ -721,6 +726,23 @@ class NodeEditor(QFrame):
             node.plain_mode = False
             self.fix_cursor_on_image()
             self.update()
+
+    def surround_with_lbox(self, e, node, inside, x):
+        nodes, _, _ = self.get_nodes_from_selection()
+        appendnode = nodes[0].prev_term
+        self.showSubgrammarMenu()
+        self.edit_rightnode = False
+        if self.sublanguage:
+            # cut text
+            self.copySelection()
+            self.deleteSelection()
+            # create language box
+            lbox = self.add_magic()
+            # insert text
+            newnode = TextNode(Terminal(str(QApplication.clipboard().text())))
+            lbox.symbol.ast.children[0].insert_after(newnode)
+            self.relex(newnode)
+            appendnode.insert_after(lbox)
 
     def key_ctrl_space(self, e, node, inside, x):
         self.showSubgrammarMenu()
@@ -1211,12 +1233,19 @@ class NodeEditor(QFrame):
 
         nodes, diff_start, diff_end = self.get_nodes_from_selection()
         repair_node = nodes[0].prev_term
-        nodes[0].symbol.name = nodes[0].symbol.name[:diff_start]
-        nodes[-1].symbol.name = nodes[-1].symbol.name[diff_end:]
-        self.delete_if_empty(nodes[0])
-        self.delete_if_empty(nodes[-1])
+        if len(nodes) == 1:
+            s = nodes[0].symbol.name
+            s = s[:diff_start] + s[diff_end:]
+            nodes[0].symbol.name = s
+            self.delete_if_empty(nodes[0])
+        else:
+            nodes[0].symbol.name = nodes[0].symbol.name[:diff_start]
+            nodes[-1].symbol.name = nodes[-1].symbol.name[diff_end:]
+            self.delete_if_empty(nodes[0])
+            self.delete_if_empty(nodes[-1])
         for node in nodes[1:-1]:
             node.parent.remove_child(node)
+        repair_node = repair_node.next_term # in case first node was deleted
         self.relex(repair_node)
         cur_start = min(self.selection_start, self.selection_end)
         cur_end = max(self.selection_start, self.selection_end)
