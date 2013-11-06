@@ -32,7 +32,10 @@ try:
 except:
     import pickle
 
-from gui import Ui_MainWindow
+from gui.gui import Ui_MainWindow
+from gui.parsetree import Ui_MainWindow as Ui_ParseTree
+from gui.stateview import Ui_MainWindow as Ui_StateView
+from gui.about import Ui_Dialog as Ui_AboutDialog
 
 from grammar_parser.plexer import PriorityLexer
 from incparser.incparser import IncParser
@@ -1617,36 +1620,116 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
     def decVSlider(self):
         self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() - self.verticalScrollBar().singleStep())
 
+class ParseView(QtGui.QMainWindow):
+    def __init__(self):
+        QtGui.QMainWindow.__init__(self)
+        self.ui = Ui_ParseTree()
+        self.ui.setupUi(self)
+
+        self.connect(self.ui.cb_fit_ast, SIGNAL("clicked()"), self.refresh)
+        self.connect(self.ui.cb_toggle_ast, SIGNAL("clicked()"), self.refresh)
+        self.connect(self.ui.cb_toggle_ws, SIGNAL("clicked()"), self.refresh)
+        self.connect(self.ui.bt_show_sel_ast, SIGNAL("clicked()"), self.showAstSelection)
+
+        self.viewer = Viewer("pydot")
+        self.ui.graphicsView.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform | QPainter.TextAntialiasing)
+
+    def setEditor(self, editor):
+        self.editor = editor
+
+    def refresh(self):
+        whitespaces = self.ui.cb_toggle_ws.isChecked()
+        if self.ui.cb_toggle_ast.isChecked():
+            self.viewer.get_tree_image(self.editor.lrp.previous_version.parent, [], whitespaces)
+            self.showImage(self.ui.graphicsView, self.viewer.image)
+
+    def showImage(self, graphicsview, imagefile):
+        scene = QGraphicsScene()
+        item = QGraphicsPixmapItem(QPixmap(imagefile))
+        scene.addItem(item);
+        graphicsview.setScene(scene)
+        graphicsview.resetMatrix()
+        if self.ui.cb_fit_ast.isChecked():
+            self.fitInView(graphicsview)
+
+    def fitInView(self, graphicsview):
+        graphicsview.fitInView(graphicsview.sceneRect(), Qt.KeepAspectRatio)
+
+    def showAstSelection(self):
+        whitespaces = self.ui.cb_toggle_ws.isChecked()
+        nodes, _, _ = self.editor.get_nodes_from_selection()
+        if len(nodes) == 0:
+            return
+        start = nodes[0]
+        end = nodes[-1]
+        ast = self.editor.lrp.previous_version
+        parent = ast.find_common_parent(start, end)
+        for node in nodes:
+            p = node.get_parent()
+            if p and p is not parent:
+                nodes.append(p)
+        nodes.append(parent)
+        if parent:
+            self.viewer.get_tree_image(parent, [start, end], whitespaces, nodes)
+            self.showImage(self.ui.graphicsView, self.viewer.image)
+
+class StateView(QtGui.QMainWindow):
+    def __init__(self):
+        QtGui.QMainWindow.__init__(self)
+        self.ui = Ui_StateView()
+        self.ui.setupUi(self)
+
+        self.viewer = Viewer("pydot")
+
+        self.connect(self.ui.btShowSingleState, SIGNAL("clicked()"), self.showSingleState)
+        self.connect(self.ui.btShowWholeGraph, SIGNAL("clicked()"), self.showWholeGraph)
+
+    def showWholeGraph(self):
+        self.viewer.create_pydot_graph(self.editor.lrp.graph)
+        self.showImage(self.ui.gvStategraph, self.viewer.image)
+
+    def showSingleState(self):
+        self.viewer.show_single_state(self.editor.lrp.graph, int(self.ui.leSingleState.text()))
+        self.showImage(self.ui.gvStategraph, self.viewer.image)
+
+    def setEditor(self, editor):
+        self.editor = editor
+
+    def showImage(self, graphicsview, imagefile):
+        scene = QGraphicsScene()
+        item = QGraphicsPixmapItem(QPixmap(imagefile))
+        scene.addItem(item);
+        graphicsview.setScene(scene)
+        graphicsview.resetMatrix()
+
+class AboutView(QtGui.QDialog):
+    def __init__(self):
+        QtGui.QDialog.__init__(self)
+        self.ui = Ui_AboutDialog()
+        self.ui.setupUi(self)
+
 class Window(QtGui.QMainWindow):
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        #self.connect(self.ui.pushButton, SIGNAL("clicked()"), self.btReparse)
+        self.parseview = ParseView()
+        self.parseview.setEditor(self.ui.frame)
 
-        # init with a grammar and priorities
-        #self.ui.teGrammar.document().setPlainText(grammar)
-        #self.ui.tePriorities.document().setPlainText(priorities)
-        self.connect(self.ui.btUpdate, SIGNAL("clicked()"), self.btUpdateGrammar)
+        self.stateview = StateView()
+        self.stateview.setEditor(self.ui.frame)
 
-        self.connect(self.ui.cb_toggle_ws, SIGNAL("clicked()"), self.btRefresh)
-        self.connect(self.ui.cb_toggle_ast, SIGNAL("clicked()"), self.btRefresh)
         self.connect(self.ui.cbShowLangBoxes, SIGNAL("clicked()"), self.ui.frame.update)
-        self.connect(self.ui.cb_fit_ast, SIGNAL("clicked()"), self.btRefresh)
-
-        self.connect(self.ui.btShowSingleState, SIGNAL("clicked()"), self.showSingleState)
-        self.connect(self.ui.btShowWholeGraph, SIGNAL("clicked()"), self.showWholeGraph)
-        self.connect(self.ui.bt_show_sel_ast, SIGNAL("clicked()"), self.showAstSelection)
 
         for l in languages:
-            self.ui.listWidget.addItem(str(l))
+            self.ui.list_languages.addItem(str(l))
 
-        self.ui.listWidget.item(0).setSelected(True)
+        self.ui.list_languages.item(0).setSelected(True)
 
-        self.loadLanguage(self.ui.listWidget.item(0))
+        self.loadLanguage(self.ui.list_languages.item(0))
 
-        self.connect(self.ui.listWidget, SIGNAL("itemClicked(QListWidgetItem *)"), self.loadLanguage)
+        self.connect(self.ui.list_languages, SIGNAL("itemClicked(QListWidgetItem *)"), self.loadLanguage)
         self.connect(self.ui.actionImport, SIGNAL("triggered()"), self.importfile)
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
         self.connect(self.ui.actionSave, SIGNAL("triggered()"), self.savefile)
@@ -1654,14 +1737,25 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionSelect_font, SIGNAL("triggered()"), self.change_font)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.ui.frame.export_unipycation)
         self.connect(self.ui.actionUndoRandomDel, SIGNAL("triggered()"), self.ui.frame.undoDeletion)
+        self.connect(self.ui.actionParse_Tree, SIGNAL("triggered()"), self.showParseView)
+        self.connect(self.ui.actionStateGraph, SIGNAL("triggered()"), self.showStateView)
+        self.connect(self.ui.actionAbout, SIGNAL("triggered()"), self.showAboutView)
         self.connect(self.ui.scrollArea.verticalScrollBar(), SIGNAL("valueChanged(int)"), self.ui.frame.sliderChanged)
         self.connect(self.ui.scrollArea.horizontalScrollBar(), SIGNAL("valueChanged(int)"), self.ui.frame.sliderXChanged)
-
-        self.ui.graphicsView.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform | QPainter.TextAntialiasing)
 
         self.ui.frame.setFocus(True)
 
         self.viewer = Viewer("pydot")
+
+    def showAboutView(self):
+        about = AboutView()
+        about.exec_()
+
+    def showStateView(self):
+        self.stateview.show()
+
+    def showParseView(self):
+        self.parseview.show()
 
     def importfile(self):
         filename = QFileDialog.getOpenFileName()#"Open File", "", "Files (*.*)")
@@ -1689,94 +1783,47 @@ class Window(QtGui.QMainWindow):
         self.ui.frame.update()
 
     def loadLanguage(self, item):
-        language = languages[self.ui.listWidget.row(item)]
-        self.ui.teGrammar.document().setPlainText(language.grammar)
-        self.ui.tePriorities.document().setPlainText(language.priorities)
-        self.main_language = language.name
+        self.language = languages[self.ui.list_languages.row(item)]
+        self.main_language = self.language.name
         self.btUpdateGrammar()
         self.ui.frame.setFocus(Qt.OtherFocusReason)
 
     def btUpdateGrammar(self):
-        new_grammar = str(self.ui.teGrammar.document().toPlainText())
-        new_priorities = str(self.ui.tePriorities.document().toPlainText())
+        new_grammar = str(self.language.grammar)
+        new_priorities = str(self.language.priorities)
         whitespaces = self.ui.cb_add_implicit_ws.isChecked()
         self.lrp = IncParser(new_grammar, 1, whitespaces)
         self.lrp.init_ast()
         lexer = IncrementalLexer(new_priorities)
         self.ui.frame.reset()
         self.ui.frame.set_mainlanguage(self.lrp, lexer, self.main_language)
-        self.ui.graphicsView.setScene(QGraphicsScene())
+        self.btReparse([])
 
-    def showWholeGraph(self):
-        self.viewer.create_pydot_graph(self.lrp.graph)
-        self.showImage(self.ui.gvStategraph, self.viewer.image)
-
-    def showSingleState(self):
-        self.viewer.show_single_state(self.lrp.graph, int(self.ui.leSingleState.text()))
-        self.showImage(self.ui.gvStategraph, self.viewer.image)
-
-    def btRefresh(self):
-        whitespaces = self.ui.cb_toggle_ws.isChecked()
-        if self.ui.cb_toggle_ast.isChecked():
-            self.viewer.get_tree_image(self.ui.frame.lrp.previous_version.parent, [], whitespaces)
-            self.showImage(self.ui.graphicsView, self.viewer.image)
+        #self.ui.graphicsView.setScene(QGraphicsScene())
 
     def btReparse(self, selected_node):
-        whitespaces = self.ui.cb_toggle_ws.isChecked()
         results = []
+        self.ui.list_parsingstatus.clear()
         for key in self.ui.frame.parsers:
             lang = self.ui.frame.parser_langs[key]
             #import cProfile
             #cProfile.runctx("status = self.ui.frame.parsers[key].inc_parse()", globals(), locals())
             status = self.ui.frame.parsers[key].inc_parse(self.ui.frame.line_indents)
-            qlabel = QLabel(lang)
             if status:
-                results.append("<span style='background-color: #00ff00'>" + lang + "</span>")
+                qlistitem = QListWidgetItem(QString(lang))
+                qlistitem.setIcon(QIcon("gui/accept.png"))
             else:
-                results.append("<span style='background-color: #ff0000; color: #ffffff;'>" + lang + "</span>")
-        self.ui.te_pstatus.setHtml(" | ".join(results))
+                qlistitem = QListWidgetItem(QString(lang))
+                qlistitem.setIcon(QIcon("gui/cancel.png"))
+            self.ui.list_parsingstatus.addItem(qlistitem)
         self.showAst(selected_node)
 
     def showAst(self, selected_node):
-        whitespaces = self.ui.cb_toggle_ws.isChecked()
-        if self.ui.cb_toggle_ast.isChecked():
-            self.viewer.get_tree_image(self.ui.frame.lrp.previous_version.parent, [selected_node], whitespaces)
-            self.showImage(self.ui.graphicsView, self.viewer.image)
-
-    def showAstSelection(self):
-        whitespaces = self.ui.cb_toggle_ws.isChecked()
-        nodes, _, _ = self.ui.frame.get_nodes_from_selection()
-        if len(nodes) == 0:
-            return
-        start = nodes[0]
-        end = nodes[-1]
-        ast = self.lrp.previous_version
-        parent = ast.find_common_parent(start, end)
-        for node in nodes:
-            p = node.get_parent()
-            if p and p is not parent:
-                nodes.append(p)
-        nodes.append(parent)
-        if parent:
-            self.viewer.get_tree_image(parent, [start, end], whitespaces, nodes)
-            self.showImage(self.ui.graphicsView, self.viewer.image)
-
+        self.parseview.refresh()
 
     def showLookahead(self, lrp=None):
         la = lrp.get_next_symbols_string()
         self.ui.lineEdit.setText(la)
-
-    def showImage(self, graphicsview, imagefile):
-        scene = QGraphicsScene()
-        item = QGraphicsPixmapItem(QPixmap(imagefile))
-        scene.addItem(item);
-        graphicsview.setScene(scene)
-        graphicsview.resetMatrix()
-        if self.ui.cb_fit_ast.isChecked():
-            self.fitInView(graphicsview)
-
-    def fitInView(self, graphicsview):
-        graphicsview.fitInView(graphicsview.sceneRect(), Qt.KeepAspectRatio)
 
 def main():
     app = QtGui.QApplication(sys.argv)
