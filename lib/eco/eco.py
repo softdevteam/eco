@@ -86,6 +86,10 @@ class NodeEditor(QFrame):
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
 
+        self.defaultFont = self.font()
+        self.boldDefaultFont = QFont(self.defaultFont)
+        self.boldDefaultFont.setBold(True)
+
         self.font = QtGui.QFont('Courier', 9)
         self.fontm = QtGui.QFontMetrics(self.font)
         self.fontht = self.fontm.height() + 3
@@ -1361,15 +1365,25 @@ class NodeEditor(QFrame):
 
     def showSubgrammarMenu(self):
         self.sublanguage = None
+        lookaheads = self.getLookaheadList()
         # Create menu
         menu = QtGui.QMenu( self )
         # Create actions
         toolbar = QtGui.QToolBar()
         for l in languages:
             item = toolbar.addAction(str(l), self.createMenuFunction(l))
+            l = "<%s>" % (l)
+            if l in lookaheads:
+                item.setFont(self.boldDefaultFont)
             menu.addAction(item)
         x,y = self.cursor_to_coordinate()
         menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
+
+    def getLookaheadList(self):
+        selected_node, _, _ = self.get_nodes_at_position()
+        root = selected_node.get_root()
+        lrp = self.parsers[root]
+        return lrp.get_next_symbols_list(selected_node.state)
 
     def createMenuFunction(self, l):
         def action():
@@ -1819,11 +1833,8 @@ class Window(QtGui.QMainWindow):
         self.parseview.refresh()
 
     def showLookahead(self):
-        selected_node, _, _ = self.ui.frame.get_nodes_at_position()
-        root = selected_node.get_root()
-        lrp = self.ui.frame.parsers[root]
-        la = lrp.get_next_symbols_string(selected_node.state)
-        self.ui.lineEdit.setText(la)
+        l = self.ui.frame.getLookaheadList()
+        self.ui.lineEdit.setText(", ".join(l))
 
 def main():
     app = QtGui.QApplication(sys.argv)

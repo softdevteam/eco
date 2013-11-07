@@ -327,7 +327,7 @@ class IncParser(object):
 
         return lookahead
 
-    def get_next_symbols_string(self, state = -1):
+    def get_next_symbols_list(self, state = -1):
         if state == -1:
             state = self.last_shift_state
         lookahead = self.get_next_possible_symbols(state)
@@ -335,7 +335,11 @@ class IncParser(object):
         s = []
         for symbol in lookahead:
             s.append(symbol.name)
-        return ", ".join(s)
+        return s
+
+    def get_next_symbols_string(self, state = -1):
+        l = self.get_next_symbols_list(state)
+        return ", ".join(l)
 
     def reset(self):
         self.stack = []
