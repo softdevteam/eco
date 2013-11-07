@@ -1825,7 +1825,7 @@ class Window(QtGui.QMainWindow):
                 qlistitem.setIcon(QIcon("gui/accept.png"))
             else:
                 qlistitem = QListWidgetItem(QString(lang))
-                qlistitem.setIcon(QIcon("gui/cancel.png"))
+                qlistitem.setIcon(QIcon("gui/exclamation.png"))
             self.ui.list_parsingstatus.addItem(qlistitem)
         self.showAst(selected_node)
 
