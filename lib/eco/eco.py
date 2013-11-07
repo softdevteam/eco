@@ -570,11 +570,9 @@ class NodeEditor(QFrame):
             self.selection_end = self.cursor.copy()
 
             selected_node, _, _ = self.get_nodes_at_position()
-            self.getWindow().btReparse(selected_node)
+            self.getWindow().btReparse(selected_node) # needed to highlight selected node in tree (deprecated?)
 
-            root = selected_node.get_root()
-            lrp = self.parsers[root]
-            self.getWindow().showLookahead(lrp)
+            self.getWindow().showLookahead()
             self.update()
 
     def mouseDoubleClickEvent(self, e):
@@ -717,14 +715,7 @@ class NodeEditor(QFrame):
 
         self.fix_cursor_on_image()
 
-        root = selected_node.get_root()
-        if root in self.parsers:
-            lrp = self.parsers[root]
-        else:
-            selected_node = self.get_selected_node()
-            root = selected_node.get_root()
-            lrp = self.parsers[root]
-        self.getWindow().showLookahead(lrp)
+        self.getWindow().showLookahead()
         self.fix_scrollbars()
         self.update()
 
@@ -853,9 +844,7 @@ class NodeEditor(QFrame):
         self.getWindow().showAst(selected_node)
 
         # update lookahead when moving cursors
-        root = selected_node.get_root()
-        lrp = self.parsers[root]
-        self.getWindow().showLookahead(lrp)
+        self.getWindow().showLookahead()
 
     def key_normal(self, e, node, inside, x):
         indentation = 0
@@ -1825,8 +1814,11 @@ class Window(QtGui.QMainWindow):
     def showAst(self, selected_node):
         self.parseview.refresh()
 
-    def showLookahead(self, lrp=None):
-        la = lrp.get_next_symbols_string()
+    def showLookahead(self):
+        selected_node, _, _ = self.ui.frame.get_nodes_at_position()
+        root = selected_node.get_root()
+        lrp = self.ui.frame.parsers[root]
+        la = lrp.get_next_symbols_string(selected_node.state)
         self.ui.lineEdit.setText(la)
 
 def main():

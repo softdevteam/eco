@@ -185,7 +185,9 @@ class IncParser(object):
             return "Accept"
         elif isinstance(element, Shift):
             print("Shift", la)
-            self.undo.append((la, "state", la.state))
+            # removing this makes "Valid tokens" correct, should not be needed
+            # for incremental parser
+            #self.undo.append((la, "state", la.state))
             la.state = element.action
             self.stack.append(la)
             self.current_state = element.action
@@ -325,9 +327,10 @@ class IncParser(object):
 
         return lookahead
 
-    def get_next_symbols_string(self):
-
-        lookahead = self.get_next_possible_symbols(self.last_shift_state)
+    def get_next_symbols_string(self, state = -1):
+        if state == -1:
+            state = self.last_shift_state
+        lookahead = self.get_next_possible_symbols(state)
 
         s = []
         for symbol in lookahead:
