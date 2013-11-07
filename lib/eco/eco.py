@@ -1752,6 +1752,8 @@ class Window(QtGui.QMainWindow):
 
     def importfile(self):
         filename = QFileDialog.getOpenFileName()#"Open File", "", "Files (*.*)")
+        if not filename:
+            return
         text = open(filename, "r").read()
         # for some reason text has an additional newline
         if text[-1] in ["\n", "\r"]:
@@ -1768,12 +1770,14 @@ class Window(QtGui.QMainWindow):
 
     def savefile(self):
         filename = QFileDialog.getSaveFileName()
-        self.ui.frame.saveToJson(filename)
+        if filename:
+            self.ui.frame.saveToJson(filename)
 
     def openfile(self):
         filename = QFileDialog.getOpenFileName()
-        self.ui.frame.loadFromJson(filename)
-        self.ui.frame.update()
+        if filename:
+            self.ui.frame.loadFromJson(filename)
+            self.ui.frame.update()
 
     def loadLanguage(self, item):
         self.language = languages[self.ui.list_languages.row(item)]
