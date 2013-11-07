@@ -20,6 +20,8 @@
 # IN THE SOFTWARE.
 
 from time import time
+from grammar_parser.gparser import Nonterminal
+
 class StateSet(object):
 
     _hashtime = 0
@@ -63,6 +65,16 @@ class StateSet(object):
         symbols = set()
         for state in self.elements:
             symbol = state.next_symbol()
+            if symbol:
+                symbols.add(symbol)
+        return symbols
+
+    def get_next_symbols_no_ws(self):
+        symbols = set()
+        for state in self.elements:
+            if state.p.left == Nonterminal("WS"):
+                continue
+            symbol = state.next_symbol_no_ws()
             if symbol:
                 symbols.add(symbol)
         return symbols
@@ -140,6 +152,16 @@ class State(object):
     def next_symbol(self):
         try:
             return self.p.right[self.d]
+        except IndexError:
+            return None
+
+    def next_symbol_no_ws(self):
+        try:
+            s = self.p.right[self.d]
+            if s == Nonterminal("WS"):
+                #XXX if state of s is nullable, return next symbol as well
+                s = self.p.right[self.d+1]
+            return s
         except IndexError:
             return None
 

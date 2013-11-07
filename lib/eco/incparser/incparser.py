@@ -341,6 +341,15 @@ class IncParser(object):
         l = self.get_next_symbols_list(state)
         return ", ".join(l)
 
+    def get_expected_symbols(self, state_id):
+        #XXX if state of a symbol is nullable, return next symbol as well
+        #XXX if at end of state, find state we came from (reduce, stack) and get next symbols from there
+        if state_id != -1:
+            stateset = self.graph.state_sets[state_id]
+            symbols = stateset.get_next_symbols_no_ws()
+            return symbols
+
+
     def reset(self):
         self.stack = []
         self.ast_stack = []

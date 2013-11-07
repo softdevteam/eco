@@ -1819,13 +1819,20 @@ class Window(QtGui.QMainWindow):
             lang = self.ui.frame.parser_langs[key]
             #import cProfile
             #cProfile.runctx("status = self.ui.frame.parsers[key].inc_parse()", globals(), locals())
-            status = self.ui.frame.parsers[key].inc_parse(self.ui.frame.line_indents)
+            parser = self.ui.frame.parsers[key]
+            status = parser.inc_parse(self.ui.frame.line_indents)
+            qlistitem = QListWidgetItem(QString(lang))
             if status:
-                qlistitem = QListWidgetItem(QString(lang))
                 qlistitem.setIcon(QIcon("gui/accept.png"))
             else:
-                qlistitem = QListWidgetItem(QString(lang))
                 qlistitem.setIcon(QIcon("gui/exclamation.png"))
+                enode = parser.error_node
+                symbols = parser.get_expected_symbols(enode.prev_term.state)
+                l = []
+                for s in symbols:
+                    l.append("'%s'" % (s.name))
+                emsg = "Error: Found \"%s\" expected %s (State: %s)" % (enode.symbol.name, ",".join(l), enode.prev_term.state)
+                qlistitem.setToolTip(emsg)
             self.ui.list_parsingstatus.addItem(qlistitem)
         self.showAst(selected_node)
 
