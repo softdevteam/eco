@@ -1834,6 +1834,10 @@ class Window(QtGui.QMainWindow):
                 emsg = "Error: Found \"%s\" expected %s (State: %s)" % (enode.symbol.name, ",".join(l), enode.prev_term.state)
                 qlistitem.setToolTip(emsg)
             self.ui.list_parsingstatus.addItem(qlistitem)
+            if self.ui.frame.selected_lbox and key is self.ui.frame.selected_lbox.symbol.ast:
+                self.ui.list_parsingstatus.setCurrentItem(qlistitem)
+            if not self.ui.frame.selected_lbox and key is self.ui.frame.ast.parent:
+                self.ui.list_parsingstatus.setCurrentItem(qlistitem)
         self.showAst(selected_node)
 
     def showAst(self, selected_node):
