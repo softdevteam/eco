@@ -1113,44 +1113,6 @@ class NodeEditor(QFrame):
         lexer.relex(startnode)
         return
 
-    def fix_indentation(self, y):
-        line = self.line_info[y]
-        first_token = line[0]
-        last_token = line[-1]
-        last_token.linenr = y
-
-        if first_token.lookup == "<return>":
-            self.line_indents[y] = None
-        elif first_token.lookup == "<ws>":
-            next_token = first_token.next_term
-            if next_token.lookup not in ["<return>","<ws>"]:
-                self.line_indents[y] = len(first_token.symbol.name)
-            else:
-                self.line_indents[y] = None
-        else:
-            self.line_indents[y] = 0
-
-        return
-        # old stuff
-        last_token = self.line_info[y] # is either a newline or eos
-        assert isinstance(last_token, EOS) or last_token.lookup == "<return>"
-
-        if isinstance(last_token, EOS):
-            # dedent everything
-            return
-
-        next_token = last_token.next_term
-        if next_token.lookup == "<ws>" and next_token.next_term.lookup not in ["<ws>", "<return>"]:
-            spaces = len(next_token.symbol.name)
-            indentation = space - sum(last_token.indent_stack)
-            # copy
-        return
-
-        if first_token.lookup == "<ws>":
-            next_token = first_token.next_term
-            if next_token.lookup not in ["<ws>", "<return>"]:
-                first_token.lookup = "INDENT"
-
     def add_magic(self):
         # Create magic token
         magictoken = self.create_node("<%s>" % self.sublanguage.name, magic=True)
