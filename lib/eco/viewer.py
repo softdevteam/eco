@@ -21,7 +21,7 @@
 
 import pydot, os
 
-from grammar_parser.gparser import MagicTerminal
+from grammar_parser.gparser import MagicTerminal, Terminal
 
 tempdir = ".temp/"
 
@@ -75,6 +75,25 @@ class Viewer(object):
         url = "https://chart.googleapis.com/chart?cht=gv&chl=graph{%s}" % (s,)
         temp = urllib.request.urlretrieve(url)
         self.show(temp[0])
+
+    def get_terminal_tree(self, tree):
+        node = tree
+        while not isinstance(node.symbol, Terminal):
+            node = node.children[0]
+
+        graph = pydot.Dot(graph_type='graph')
+        parent = pydot.Node(0, label="root")
+        graph.add_node(parent)
+        while node:
+            dotnode = pydot.Node(id(node), label=" %s " % node.symbol.name)
+            graph.add_node(dotnode)
+            graph.add_edge(pydot.Edge(parent, dotnode))
+            if node.symbol.name == "\r":
+                parent = dotnode
+            node = node.next_term
+
+        graph.write_png(tempdir + 'temp.png')
+        self.image = tempdir + 'temp.png'
 
     def get_tree_image(self, tree, selected_node, whitespaces=True, restrict_nodes=None):
         if self.dot_type == 'google':
