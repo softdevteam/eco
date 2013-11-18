@@ -1039,26 +1039,28 @@ class NodeEditor(QFrame):
         before = self.lines[y].indent
         self.repair_indentation(y)
         after = self.lines[y].indent
+        indent_diff = after - before
 
         #if before == after:
         #    return
 
         now = self.get_indentation(y)
 
-        # repair succeeding lines until we reach a line that has equal or smaller indentation
-        # XXX we don't need to repair more indented lines. only lines that have
-        # the same indentation as the edited line (after editing) + the next
-        # line
         this_indent = now
-        while True:
-            y += 1
-            if y == len(self.lines):
-                break
-            self.repair_indentation(y)
-            indent = self.get_indentation(y)
-            if indent <= this_indent:
-                if self.is_logical_line(y):
-                    break
+        last = 0
+        for i in range(y+1,len(self.lines)):
+            ws = self.get_indentation(i)
+            if ws == now:
+                self.repair_indentation(i)
+                last = i
+            elif ws > now:
+                self.lines[i].indent += indent_diff
+            if self.lines[i].indent == before:
+                self.repair_indentation(i)
+            if self.lines[i].indent < after and self.is_logical_line(i):
+                self.repair_indentation(i)
+                return
+        self.repair_indentation(len(self.lines)-1)
 
     def repair_indentation(self, y):
         if y == 0:
@@ -1088,7 +1090,6 @@ class NodeEditor(QFrame):
             if prev_whitespace == this_whitespace:
                 self.lines[y].indent = self.lines[dy].indent
                 newline.insert_after(TextNode(IndentationTerminal("NEWLINE")))
-                return
             elif prev_whitespace < this_whitespace:
                 self.lines[y].indent = self.lines[dy].indent + 1
                 newline.insert_after(TextNode(IndentationTerminal("INDENT")))
@@ -1124,8 +1125,12 @@ class NodeEditor(QFrame):
         while dy > 0:
             dy = dy - 1
             prev_whitespace = self.get_indentation(dy)
+            if prev_whitespace is None:
+                continue
             if prev_whitespace == this_whitespace:
                 return self.lines[dy].indent
+            if prev_whitespace < this_whitespace:
+                return None
         return None
 
     def remove_indentation_nodes(self, node):
@@ -1775,7 +1780,8 @@ class ParseView(QtGui.QMainWindow):
     def refresh(self):
         whitespaces = self.ui.cb_toggle_ws.isChecked()
         if self.ui.cb_toggle_ast.isChecked():
-            self.viewer.get_tree_image(self.editor.lrp.previous_version.parent, [], whitespaces)
+            #self.viewer.get_tree_image(self.editor.lrp.previous_version.parent, [], whitespaces)
+            self.viewer.get_terminal_tree(self.editor.lrp.previous_version.parent)
             self.showImage(self.ui.graphicsView, self.viewer.image)
 
     def showImage(self, graphicsview, imagefile):
