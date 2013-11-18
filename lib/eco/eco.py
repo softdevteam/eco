@@ -913,7 +913,8 @@ class NodeEditor(QFrame):
                 old = node
                 if old.next_term:
                     # skip over IndentationTerminals
-                    while isinstance(old.next_term.symbol, IndentationTerminal):
+                    old = old.next_term
+                    while isinstance(old.symbol, IndentationTerminal):
                         old = old.next_term
                     old = old.prev_term
                 #self.remove_indentation_nodes(old.next_term)
