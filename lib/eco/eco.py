@@ -75,6 +75,7 @@ class Line(object):
         self.width = 0
         self.indent_stack = None
         self.indentation = 0
+        self.indent = 0
 
     def __repr__(self):
         return "Line(%s, width=%s, height=%s)" % (self.node, self.width, self.height)
@@ -910,6 +911,12 @@ class NodeEditor(QFrame):
             if isinstance(node, BOS) or node.symbol.name == "\r" or isinstance(node.symbol, MagicTerminal):
                 # insert new node: [bos] [newtext] [next node]
                 old = node
+                if old.next_term:
+                    # skip over IndentationTerminals
+                    while isinstance(old.next_term.symbol, IndentationTerminal):
+                        old = old.next_term
+                    old = old.prev_term
+                #self.remove_indentation_nodes(old.next_term)
                 node = TextNode(Terminal(""))
                 old.insert_after(node)
             else:
@@ -1006,9 +1013,9 @@ class NodeEditor(QFrame):
 
         self.lines[y].indentation = indent_level
 
-    def rescan_indentations(self, y):
+    def rescan_indentations_old(self, y):
         before = self.lines[y].indent_stack
-        self.repair_indentation(y)
+        self.repair_indentation_old(y)
         now = self.lines[y].indent_stack
         if before == now:
             # nothing was changed
@@ -1021,14 +1028,130 @@ class NodeEditor(QFrame):
             y += 1
             if y == len(self.lines):
                 break
-            self.repair_indentation(y)
+            self.repair_indentation_old(y)
             indent = self.lines[y].indent_stack[-1]
             if indent == this_indent:
                 if self.is_logical_line(y):
                     break
 
+    def rescan_indentations(self, y):
+        before = self.lines[y].indent
+        self.repair_indentation(y)
+        after = self.lines[y].indent
+
+        #if before == after:
+        #    return
+
+        now = self.get_indentation(y)
+
+        # repair succeeding lines until we reach a line that has equal or smaller indentation
+        # XXX we don't need to repair more indented lines. only lines that have
+        # the same indentation as the edited line (after editing) + the next
+        # line
+        this_indent = now
+        while True:
+            y += 1
+            if y == len(self.lines):
+                break
+            self.repair_indentation(y)
+            indent = self.get_indentation(y)
+            if indent <= this_indent:
+                if self.is_logical_line(y):
+                    break
 
     def repair_indentation(self, y):
+        if y == 0:
+            self.lines[y].indent = 0
+            return
+
+        newline = self.lines[y].node
+
+        # check if language is indentation based
+        root = newline.get_root()
+        lexer = self.lexers[root]
+        if not lexer.is_indentation_based():
+            return
+
+        # remove old indentation nodes
+        node = self.remove_indentation_nodes(newline.next_term)
+
+        # check if line is logical (not comment/whitespace) (exception: last line)
+        if self.is_logical_line(y):
+
+            this_whitespace = self.get_indentation(y)
+            dy = y - 1
+            while not self.is_logical_line(dy):
+                dy -= 1
+            prev_whitespace = self.get_indentation(dy)
+
+            if prev_whitespace == this_whitespace:
+                self.lines[y].indent = self.lines[dy].indent
+                newline.insert_after(TextNode(IndentationTerminal("NEWLINE")))
+                return
+            elif prev_whitespace < this_whitespace:
+                self.lines[y].indent = self.lines[dy].indent + 1
+                newline.insert_after(TextNode(IndentationTerminal("INDENT")))
+                newline.insert_after(TextNode(IndentationTerminal("NEWLINE")))
+            elif prev_whitespace > this_whitespace:
+                this_indent = self.find_indentation(y)
+                if this_indent is None:
+                    newline.insert_after(TextNode(IndentationTerminal("UNBALANCED")))
+                    return
+                self.lines[y].indent = this_indent
+                prev_indent = self.lines[dy].indent
+                indent_diff = prev_indent - this_indent
+                for i in range(indent_diff):
+                    newline.insert_after(TextNode(IndentationTerminal("DEDENT")))
+                newline.insert_after(TextNode(IndentationTerminal("NEWLINE")))
+
+        # generate last lines dedent
+        if y == len(self.lines) - 1:
+            eos = newline.get_root().children[-1]
+            node = eos.prev_term
+            while isinstance(node.symbol, IndentationTerminal):
+                node.parent.remove_child(node)
+                node = node.prev_term
+            this_indent = self.lines[y].indent
+            for i in range(this_indent):
+                node.insert_after(TextNode(IndentationTerminal("DEDENT")))
+            node.insert_after(TextNode(IndentationTerminal("NEWLINE")))
+
+    def find_indentation(self, y):
+        # indentation level
+        this_whitespace = self.get_indentation(y)
+        dy = y
+        while dy > 0:
+            dy = dy - 1
+            prev_whitespace = self.get_indentation(dy)
+            if prev_whitespace == this_whitespace:
+                return self.lines[dy].indent
+        return None
+
+    def remove_indentation_nodes(self, node):
+        if node is None:
+            return
+        while isinstance(node.symbol, IndentationTerminal):
+            node.parent.remove_child(node)
+            node = node.next_term
+        return node
+
+    def get_indentation(self, y):
+        # indentation whitespaces
+        if not self.is_logical_line(y):
+            return None
+
+        newline = self.lines[y].node # get newline node
+        node = newline.next_term     # get first node in line
+
+        while isinstance(node.symbol, IndentationTerminal):
+            node = node.next_term
+
+        if node.lookup == "<ws>":
+            return len(node.symbol.name)
+
+        return 0
+
+    def repair_indentation_old(self, y):
         if y == 0:
             return
 
@@ -1267,14 +1390,19 @@ class NodeEditor(QFrame):
             text = nodes[0].symbol.name[diff_start:diff_end]
             QApplication.clipboard().setText(text)
             return
+        new_nodes = []
+        for node in nodes:
+            if not isinstance(node.symbol, IndentationTerminal):
+                new_nodes.append(node)
+        nodes = new_nodes
+
         text = []
         start = nodes.pop(0)
         end = nodes.pop(-1)
 
         text.append(start.symbol.name[diff_start:])
         for node in nodes:
-            if not isinstance(node.symbol, IndentationTerminal):
-                text.append(node.symbol.name)
+            text.append(node.symbol.name)
         text.append(end.symbol.name[:diff_end])
         QApplication.clipboard().setText("".join(text))
 
@@ -1816,9 +1944,9 @@ class Window(QtGui.QMainWindow):
         self.ui.list_parsingstatus.clear()
         for key in self.ui.frame.parsers:
             lang = self.ui.frame.parser_langs[key]
-            #import cProfile
-            #cProfile.runctx("status = self.ui.frame.parsers[key].inc_parse()", globals(), locals())
             parser = self.ui.frame.parsers[key]
+            #import cProfile
+            #cProfile.runctx("parser.inc_parse(self.ui.frame.line_indents)", globals(), locals())
             status = parser.inc_parse(self.ui.frame.line_indents)
             qlistitem = QListWidgetItem(QString(lang))
             if status:
