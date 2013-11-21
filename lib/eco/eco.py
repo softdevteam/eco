@@ -888,6 +888,7 @@ class NodeEditor(QFrame):
             if node.image and not node.plain_mode:
                 return
             if node.symbol.name == "\r":
+                self.remove_indentation_nodes(node.next_term)
                 self.delete_linebreak(self.changed_line, node)
             self.last_delchar = node.backspace(0)
             repairnode = node
