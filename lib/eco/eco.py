@@ -741,6 +741,7 @@ class NodeEditor(QFrame):
             self.key_escape(e, selected_node)
         elif e.key() == Qt.Key_Backspace:
             self.key_backspace(e)
+            return
         elif e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             self.key_cursors(e)
             if e.modifiers() == Qt.ShiftModifier:
