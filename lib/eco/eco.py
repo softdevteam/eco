@@ -1070,32 +1070,57 @@ class NodeEditor(QFrame):
                 if self.is_logical_line(y):
                     break
 
+    def update_indentation_backwards(self, y):
+        # find out lines indentation by scanning previous lines
+        ws = self.get_indentation(y)
+        dy = y
+        while dy > 0:
+            dy = dy - 1
+            if not self.is_logical_line(dy):
+                continue
+            prev_ws = self.get_indentation(dy)
+            if ws == prev_ws:
+                self.lines[y].indent = self.lines[dy].indent
+                return
+            if ws > prev_ws:
+                self.lines[y].indent = self.lines[dy].indent + 1
+                return
+
     def rescan_indentations(self, y):
+        if not self.is_logical_line(y):
+            return
+
         before = self.lines[y].indent
-        self.repair_indentation(y)
+        self.update_indentation_backwards(y)
         after = self.lines[y].indent
-        indent_diff = after - before
+        if after != before:
+            self.repair_indentation(y)
 
-        #if before == after:
-        #    return
+        search_threshold = min(before, after)
 
-        now = self.get_indentation(y)
-
-        this_indent = now
-        last = 0
+        current_indent = self.lines[y].indent
+        current_ws = self.get_indentation(y)
         for i in range(y+1,len(self.lines)):
             ws = self.get_indentation(i)
-            if ws == now:
-                self.repair_indentation(i)
-                last = i
-            elif ws > now:
-                self.lines[i].indent += indent_diff
-            if self.lines[i].indent == before:
-                self.repair_indentation(i)
-            if self.lines[i].indent < after and self.is_logical_line(i):
-                self.repair_indentation(i)
-                return
-        self.repair_indentation(len(self.lines)-1)
+            if ws is None:
+                continue
+            old = self.lines[i].indent
+            if ws > current_ws:
+                self.lines[i].indent = current_indent + 1
+            if ws == current_ws:
+                self.lines[i].indent = current_indent
+            if ws < current_ws:
+                self.update_indentation_backwards(i)
+
+            self.repair_indentation(i)
+
+            if self.lines[i].indent < search_threshold:
+                # repair everything up to the line that has smaller indentation
+                # than the changed line
+                break
+            current_ws = ws
+            current_indent = self.lines[i].indent
+        return
 
     def repair_indentation(self, y):
         if y == 0:
@@ -1110,11 +1135,11 @@ class NodeEditor(QFrame):
         if not lexer.is_indentation_based():
             return
 
-        # remove old indentation nodes
-        node = self.remove_indentation_nodes(newline.next_term)
+        new_indent_nodes = []
 
         # check if line is logical (not comment/whitespace) (exception: last line)
         if self.is_logical_line(y):
+            # XXX move indentation change check up here using indent values
 
             this_whitespace = self.get_indentation(y)
             dy = y - 1
@@ -1124,22 +1149,32 @@ class NodeEditor(QFrame):
 
             if prev_whitespace == this_whitespace:
                 self.lines[y].indent = self.lines[dy].indent
-                newline.insert_after(TextNode(IndentationTerminal("NEWLINE")))
+                new_indent_nodes.append(TextNode(IndentationTerminal("NEWLINE")))
             elif prev_whitespace < this_whitespace:
                 self.lines[y].indent = self.lines[dy].indent + 1
-                newline.insert_after(TextNode(IndentationTerminal("INDENT")))
-                newline.insert_after(TextNode(IndentationTerminal("NEWLINE")))
+                new_indent_nodes.append(TextNode(IndentationTerminal("INDENT")))
+                new_indent_nodes.append(TextNode(IndentationTerminal("NEWLINE")))
             elif prev_whitespace > this_whitespace:
                 this_indent = self.find_indentation(y)
                 if this_indent is None:
-                    newline.insert_after(TextNode(IndentationTerminal("UNBALANCED")))
-                    return
-                self.lines[y].indent = this_indent
-                prev_indent = self.lines[dy].indent
-                indent_diff = prev_indent - this_indent
-                for i in range(indent_diff):
-                    newline.insert_after(TextNode(IndentationTerminal("DEDENT")))
-                newline.insert_after(TextNode(IndentationTerminal("NEWLINE")))
+                    new_indent_nodes.append(TextNode(IndentationTerminal("UNBALANCED")))
+                else:
+                    self.lines[y].indent = this_indent
+                    prev_indent = self.lines[dy].indent
+                    indent_diff = prev_indent - this_indent
+                    for i in range(indent_diff):
+                        new_indent_nodes.append(TextNode(IndentationTerminal("DEDENT")))
+                    new_indent_nodes.append(TextNode(IndentationTerminal("NEWLINE")))
+
+        # check if indentation nodes have changed
+        # if not keep old ones to avoid unnecessary reparsing
+        as_before = self.indentation_nodes_changed(y, new_indent_nodes)
+        if not as_before:
+
+            # remove old indentation nodes
+            node = self.remove_indentation_nodes(newline.next_term)
+            for node in new_indent_nodes:
+                newline.insert_after(node)
 
         # generate last lines dedent
         if y == len(self.lines) - 1:
@@ -1152,6 +1187,22 @@ class NodeEditor(QFrame):
             for i in range(this_indent):
                 node.insert_after(TextNode(IndentationTerminal("DEDENT")))
             node.insert_after(TextNode(IndentationTerminal("NEWLINE")))
+
+    def indentation_nodes_changed(self, y, nodes):
+        previous_nodes = []
+        newline = self.lines[y].node
+        node = newline.next_term
+        while isinstance(node.symbol, IndentationTerminal):
+            previous_nodes.append(node)
+            node = node.next_term
+
+        previous_nodes.reverse()
+        if len(previous_nodes) != len(nodes):
+            return False
+        for i in range(len(nodes)):
+            if nodes[i].symbol != previous_nodes[i].symbol:
+                return False
+        return True
 
     def find_indentation(self, y):
         # indentation level

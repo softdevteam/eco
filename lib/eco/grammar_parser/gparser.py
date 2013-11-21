@@ -45,6 +45,9 @@ class Symbol(object):
             return False
         return self.name == other.name
 
+    def __ne__(self, other):
+        return not self == other
+
     def __hash__(self):
         #XXX unsafe hashfunction
         return hash(self.__class__.__name__ + self.name)
