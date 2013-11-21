@@ -36,156 +36,185 @@
        <property name="title">
         <string>Input</string>
        </property>
-       <layout class="QVBoxLayout" name="verticalLayout_3">
+       <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
-         <widget class="ScopeScrollArea" name="scrollArea">
-          <property name="frameShape">
-           <enum>QFrame::StyledPanel</enum>
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <property name="spacing">
+           <number>0</number>
           </property>
-          <property name="verticalScrollBarPolicy">
-           <enum>Qt::ScrollBarAlwaysOn</enum>
-          </property>
-          <property name="horizontalScrollBarPolicy">
-           <enum>Qt::ScrollBarAlwaysOn</enum>
-          </property>
-          <property name="widgetResizable">
-           <bool>true</bool>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-          </property>
-          <widget class="QWidget" name="scrollAreaWidgetContents">
-           <property name="geometry">
-            <rect>
-             <x>0</x>
-             <y>0</y>
-             <width>630</width>
-             <height>590</height>
-            </rect>
-           </property>
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="autoFillBackground">
-            <bool>true</bool>
-           </property>
-           <layout class="QVBoxLayout" name="verticalLayout_5">
-            <property name="margin">
-             <number>0</number>
+          <item>
+           <widget class="QFrame" name="fLinenumbers">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
             </property>
-            <item>
-             <widget class="NodeEditor" name="frame">
-              <property name="enabled">
-               <bool>true</bool>
+            <property name="baseSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="ScopeScrollArea" name="scrollArea">
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="verticalScrollBarPolicy">
+             <enum>Qt::ScrollBarAlwaysOn</enum>
+            </property>
+            <property name="horizontalScrollBarPolicy">
+             <enum>Qt::ScrollBarAlwaysOn</enum>
+            </property>
+            <property name="widgetResizable">
+             <bool>true</bool>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
+            <widget class="QWidget" name="scrollAreaWidgetContents">
+             <property name="geometry">
+              <rect>
+               <x>0</x>
+               <y>0</y>
+               <width>628</width>
+               <height>588</height>
+              </rect>
+             </property>
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="autoFillBackground">
+              <bool>true</bool>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_5">
+              <property name="margin">
+               <number>0</number>
               </property>
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="baseSize">
-               <size>
-                <width>0</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="palette">
-               <palette>
-                <active>
-                 <colorrole role="Base">
-                  <brush brushstyle="SolidPattern">
-                   <color alpha="255">
-                    <red>255</red>
-                    <green>255</green>
-                    <blue>255</blue>
-                   </color>
-                  </brush>
-                 </colorrole>
-                 <colorrole role="Window">
-                  <brush brushstyle="SolidPattern">
-                   <color alpha="255">
-                    <red>255</red>
-                    <green>255</green>
-                    <blue>255</blue>
-                   </color>
-                  </brush>
-                 </colorrole>
-                </active>
-                <inactive>
-                 <colorrole role="Base">
-                  <brush brushstyle="SolidPattern">
-                   <color alpha="255">
-                    <red>255</red>
-                    <green>255</green>
-                    <blue>255</blue>
-                   </color>
-                  </brush>
-                 </colorrole>
-                 <colorrole role="Window">
-                  <brush brushstyle="SolidPattern">
-                   <color alpha="255">
-                    <red>255</red>
-                    <green>255</green>
-                    <blue>255</blue>
-                   </color>
-                  </brush>
-                 </colorrole>
-                </inactive>
-                <disabled>
-                 <colorrole role="Base">
-                  <brush brushstyle="SolidPattern">
-                   <color alpha="255">
-                    <red>255</red>
-                    <green>255</green>
-                    <blue>255</blue>
-                   </color>
-                  </brush>
-                 </colorrole>
-                 <colorrole role="Window">
-                  <brush brushstyle="SolidPattern">
-                   <color alpha="255">
-                    <red>255</red>
-                    <green>255</green>
-                    <blue>255</blue>
-                   </color>
-                  </brush>
-                 </colorrole>
-                </disabled>
-               </palette>
-              </property>
-              <property name="cursor">
-               <cursorShape>IBeamCursor</cursorShape>
-              </property>
-              <property name="focusPolicy">
-               <enum>Qt::WheelFocus</enum>
-              </property>
-              <property name="acceptDrops">
-               <bool>false</bool>
-              </property>
-              <property name="autoFillBackground">
-               <bool>false</bool>
-              </property>
-              <property name="frameShape">
-               <enum>QFrame::NoFrame</enum>
-              </property>
-              <property name="frameShadow">
-               <enum>QFrame::Sunken</enum>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </widget>
+              <item>
+               <widget class="NodeEditor" name="frame">
+                <property name="enabled">
+                 <bool>true</bool>
+                </property>
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="baseSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="palette">
+                 <palette>
+                  <active>
+                   <colorrole role="Base">
+                    <brush brushstyle="SolidPattern">
+                     <color alpha="255">
+                      <red>255</red>
+                      <green>255</green>
+                      <blue>255</blue>
+                     </color>
+                    </brush>
+                   </colorrole>
+                   <colorrole role="Window">
+                    <brush brushstyle="SolidPattern">
+                     <color alpha="255">
+                      <red>255</red>
+                      <green>255</green>
+                      <blue>255</blue>
+                     </color>
+                    </brush>
+                   </colorrole>
+                  </active>
+                  <inactive>
+                   <colorrole role="Base">
+                    <brush brushstyle="SolidPattern">
+                     <color alpha="255">
+                      <red>255</red>
+                      <green>255</green>
+                      <blue>255</blue>
+                     </color>
+                    </brush>
+                   </colorrole>
+                   <colorrole role="Window">
+                    <brush brushstyle="SolidPattern">
+                     <color alpha="255">
+                      <red>255</red>
+                      <green>255</green>
+                      <blue>255</blue>
+                     </color>
+                    </brush>
+                   </colorrole>
+                  </inactive>
+                  <disabled>
+                   <colorrole role="Base">
+                    <brush brushstyle="SolidPattern">
+                     <color alpha="255">
+                      <red>255</red>
+                      <green>255</green>
+                      <blue>255</blue>
+                     </color>
+                    </brush>
+                   </colorrole>
+                   <colorrole role="Window">
+                    <brush brushstyle="SolidPattern">
+                     <color alpha="255">
+                      <red>255</red>
+                      <green>255</green>
+                      <blue>255</blue>
+                     </color>
+                    </brush>
+                   </colorrole>
+                  </disabled>
+                 </palette>
+                </property>
+                <property name="cursor">
+                 <cursorShape>IBeamCursor</cursorShape>
+                </property>
+                <property name="focusPolicy">
+                 <enum>Qt::WheelFocus</enum>
+                </property>
+                <property name="acceptDrops">
+                 <bool>false</bool>
+                </property>
+                <property name="autoFillBackground">
+                 <bool>false</bool>
+                </property>
+                <property name="frameShape">
+                 <enum>QFrame::NoFrame</enum>
+                </property>
+                <property name="frameShadow">
+                 <enum>QFrame::Sunken</enum>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout">

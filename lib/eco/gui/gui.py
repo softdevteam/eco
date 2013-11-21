@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'newgui.ui'
 #
-# Created: Wed Nov  6 15:49:28 2013
+# Created: Tue Nov 19 15:05:24 2013
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -46,8 +46,13 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.groupBox_2.sizePolicy().hasHeightForWidth())
         self.groupBox_2.setSizePolicy(sizePolicy)
         self.groupBox_2.setObjectName(_fromUtf8("groupBox_2"))
-        self.verticalLayout_3 = QtGui.QVBoxLayout(self.groupBox_2)
-        self.verticalLayout_3.setObjectName(_fromUtf8("verticalLayout_3"))
+        self.verticalLayout_2 = QtGui.QVBoxLayout(self.groupBox_2)
+        self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
+        self.fLinenumbers = LineNumbers(self.groupBox_2)
+        self.horizontalLayout_4 = QtGui.QHBoxLayout()
+        self.horizontalLayout_4.setSpacing(0)
+        self.horizontalLayout_4.setObjectName(_fromUtf8("horizontalLayout_4"))
+        self.horizontalLayout_4.addWidget(self.fLinenumbers)
         self.scrollArea = ScopeScrollArea(self.groupBox_2)
         self.scrollArea.setFrameShape(QtGui.QFrame.StyledPanel)
         self.scrollArea.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
@@ -56,7 +61,7 @@ class Ui_MainWindow(object):
         self.scrollArea.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.scrollArea.setObjectName(_fromUtf8("scrollArea"))
         self.scrollAreaWidgetContents = QtGui.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 630, 590))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 628, 588))
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -103,9 +108,17 @@ class Ui_MainWindow(object):
         self.frame.setFrameShape(QtGui.QFrame.NoFrame)
         self.frame.setFrameShadow(QtGui.QFrame.Sunken)
         self.frame.setObjectName(_fromUtf8("frame"))
+        self.fLinenumbers.setPalette(palette)
+        self.fLinenumbers.setMinimumSize(QtCore.QSize(0, 0))
+        self.fLinenumbers.setBaseSize(QtCore.QSize(0, 0))
+        self.fLinenumbers.setFrameShape(QtGui.QFrame.NoFrame)
+        self.fLinenumbers.setFrameShadow(QtGui.QFrame.Sunken)
+        self.fLinenumbers.setObjectName(_fromUtf8("fLinenumbers"))
+        self.fLinenumbers.setAutoFillBackground(False)
         self.verticalLayout_5.addWidget(self.frame)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
-        self.verticalLayout_3.addWidget(self.scrollArea)
+        self.horizontalLayout_4.addWidget(self.scrollArea)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_4)
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
         self.cbShowLangBoxes = QtGui.QCheckBox(self.groupBox_2)
@@ -117,7 +130,7 @@ class Ui_MainWindow(object):
         self.lineEdit = QtGui.QLineEdit(self.groupBox_2)
         self.lineEdit.setObjectName(_fromUtf8("lineEdit"))
         self.horizontalLayout.addWidget(self.lineEdit)
-        self.verticalLayout_3.addLayout(self.horizontalLayout)
+        self.verticalLayout_2.addLayout(self.horizontalLayout)
         self.groupBox_3 = QtGui.QGroupBox(self.splitter)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -261,4 +274,4 @@ class Ui_MainWindow(object):
         self.actionAbout.setText(_translate("MainWindow", "About", None))
         self.actionStateGraph.setText(_translate("MainWindow", "StateGraph", None))
 
-from eco import ScopeScrollArea, NodeEditor
+from eco import ScopeScrollArea, NodeEditor, LineNumbers
