@@ -80,6 +80,33 @@ class Line(object):
     def __repr__(self):
         return "Line(%s, width=%s, height=%s)" % (self.node, self.width, self.height)
 
+class LineNumbers(QFrame):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+
+        self.font = QtGui.QFont('Courier', 9)
+        self.fontm = QtGui.QFontMetrics(self.font)
+        self.fontht = self.fontm.height() + 3
+        self.fontwt = self.fontm.width(" ")
+
+        self.info = []
+
+    def paintEvent(self, event):
+        paint = QtGui.QPainter()
+        paint.begin(self)
+        paint.setFont(self.font)
+        for y, line in self.info:
+            x = self.geometry().width() - len(str(line)) * self.fontwt - self.fontwt
+            paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), str(line) +":")
+        paint.end()
+        self.info = []
+
+    def getMaxWidth(self):
+        max_width = 0
+        for _, line in self.info:
+            max_width = max(max_width, self.fontm.width(str(line)+":"))
+        return max_width
+
 class NodeEditor(QFrame):
 
     # ========================== init stuff ========================== #
@@ -238,6 +265,11 @@ class NodeEditor(QFrame):
         self.getWindow().ui.scrollArea.horizontalScrollBar().setMaximum(hmax)
         self.getWindow().ui.scrollArea.horizontalScrollBar().setPageStep(1)
 
+        self.getWindow().ui.fLinenumbers.setMinimumWidth(self.fontm.width("000: "))
+        self.getWindow().ui.fLinenumbers.setMaximumWidth(self.fontm.width("000: "))
+
+        self.getWindow().ui.fLinenumbers.update()
+
     def get_nodesize_in_chars(self, node):
         if node.image:
             w = math.ceil(node.image.width() * 1.0 / self.fontwt)
@@ -342,6 +374,7 @@ class NodeEditor(QFrame):
 
             # after we drew a return, update line information
             if node.lookup == "<return>":
+                self.getWindow().ui.fLinenumbers.info.append((y,line))
                 # draw lbox to end of line
                 if draw_lbox:
                     paint.fillRect(QRectF(x,3+y*self.fontht, self.geometry().width()-x, self.fontht), color)
@@ -374,6 +407,7 @@ class NodeEditor(QFrame):
                 else:
                     self.draw_squiggly_line(paint,x,y,length)
 
+        self.getWindow().ui.fLinenumbers.info.append((y,line))
         # paint infobox
         if False:
             lang_name = self.parser_langs[selected_language]
