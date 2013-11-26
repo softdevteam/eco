@@ -398,6 +398,7 @@ class TreeManager(object):
             if repairnode is not None and not isinstance(repairnode, BOS):
                 self.relex(repairnode)
 
+        self.post_keypress("")
         self.reparse(repairnode)
 
     def key_shift(self):
@@ -488,7 +489,7 @@ class TreeManager(object):
         for i in range(new_lines+1):
             self.rescan_indentations(self.cursor.y+i)
 
-        if text[0] == "\r":
+        if text != "" and text[0] == "\r":
             self.cursor_movement(QtCore.Qt.Key_Down)
             self.cursor.x = len(text)-1
 
