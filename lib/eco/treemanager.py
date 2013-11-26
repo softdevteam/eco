@@ -670,8 +670,8 @@ class TreeManager(object):
         before = self.lines[y].indent
         self.update_indentation_backwards(y)
         after = self.lines[y].indent
-        if after != before:
-            self.repair_indentation(y)
+        #if after != before:
+        self.repair_indentation(y)
 
         search_threshold = min(before, after)
 
