@@ -234,6 +234,20 @@ class TreeManager(object):
 
         return (nodes, diff_start, diff_end)
 
+    def is_logical_line(self, y):
+        newline_node = self.lines[y].node
+        node = newline_node.next_term
+        while True:
+            if isinstance(node, EOS):
+                return False
+            if node.lookup == "<return>": # reached next line
+                return False
+            if node.lookup == "<ws>":
+                node = node.next_term
+                continue
+            # if we are here, we reached a normal node
+            return True
+
     def get_indentation(self, y):
         # indentation whitespaces
         if not self.is_logical_line(y):
@@ -337,6 +351,7 @@ class TreeManager(object):
             internal_position = len(node.symbol.name) - (x - self.cursor.x)
             self.last_delchar = node.backspace(internal_position)
             self.relex(node)
+            repairnode = node
         else: # between two nodes
             node = node.next_terminal() # delete should edit the node to the right from the selected node
             # if lbox is selected, select first node in lbox
@@ -474,9 +489,9 @@ class TreeManager(object):
         #for i in range(new_lines+1):
         #    self.rescan_indentations(self.changed_line+i)
 
-        if text == "\r":
+        if text[0] == "\r":
             self.cursor_movement(QtCore.Qt.Key_Down)
-            #self.cursor.x = indentation
+            self.cursor.x = len(text)-1
 
     def copySelection(self):
         nodes, diff_start, diff_end = self.get_nodes_from_selection()
