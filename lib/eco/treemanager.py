@@ -4,6 +4,13 @@ from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from PyQt4 import QtCore #XXX get rid of all QT references later
 
+import math
+
+class NodeSize(object):
+    def __init__(self, w, h):
+        self.w = w
+        self.h = h
+
 class Line(object):
     def __init__(self, node, height=1):
         self.node = node        # this lines newline node
@@ -65,6 +72,12 @@ class TreeManager(object):
         self.parsers = []           # stores all currently used parsers
         self.edit_rightnode = False # changes which node to select when inbetween two nodes
         self.selected_lbox = None
+
+    def set_font(self, fontm):
+        #XXX obsolete when cursor is relative to nodes
+        self.fontm = fontm
+        self.fontht = self.fontm.height() + 3
+        self.fontwt = self.fontm.width(" ")
 
     def hasSelection(self):
         return self.selection_start != self.selection_end
@@ -237,6 +250,14 @@ class TreeManager(object):
 
         return 0
 
+    def get_nodesize_in_chars(self, node):
+        if node.image:
+            w = math.ceil(node.image.width() * 1.0 / self.fontwt)
+            h = math.ceil(node.image.height() * 1.0 / self.fontht)
+            return NodeSize(w, h)
+        else:
+            return NodeSize(len(node.symbol.name), 1)
+
     def getLookaheadList(self):
         selected_node, _, _ = self.get_node_from_cursor()
         root = selected_node.get_root()
@@ -288,6 +309,7 @@ class TreeManager(object):
         self.cursor.x += len(text)
 
         self.relex(node)
+        self.fix_cursor_on_image()
         self.post_keypress(text)
         self.reparse(node)
         return indentation

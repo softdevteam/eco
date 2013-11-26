@@ -176,9 +176,6 @@ class NodeEditor(QFrame):
 
         self.selected_lbox = None
 
-    def set_treemanager(self, tm):
-        self.tm = tm
-
     def reset(self):
         self.indentations = {}
         self.max_cols = []
@@ -193,6 +190,7 @@ class NodeEditor(QFrame):
     def set_mainlanguage(self, parser, lexer, lang_name):
         self.tm = TreeManager()
         self.tm.add_parser(parser, lexer, lang_name)
+        self.tm.set_font(self.fontm)
         return
 
         self.parsers = {}
@@ -278,13 +276,6 @@ class NodeEditor(QFrame):
 
         self.getWindow().ui.fLinenumbers.update()
 
-    def get_nodesize_in_chars(self, node):
-        if node.image:
-            w = math.ceil(node.image.width() * 1.0 / self.fontwt)
-            h = math.ceil(node.image.height() * 1.0 / self.fontht)
-            return NodeSize(w, h)
-        else:
-            return NodeSize(len(node.symbol.name), 1)
 
     # paint lines using new line manager
     def paintLines(self, paint, startline):
@@ -527,40 +518,37 @@ class NodeEditor(QFrame):
 
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
-            self.cursor = self.coordinate_to_cursor(e.x(), e.y())
-            self.fix_cursor_on_image()
-            self.selection_start = self.cursor.copy()
-            self.selection_end = self.cursor.copy()
-
-            selected_node, _, _ = self.get_nodes_at_position()
-            self.getWindow().btReparse(selected_node) # needed to highlight selected node in tree (deprecated?)
-
+            cursor = self.coordinate_to_cursor(e.x(), e.y())
+            self.tm.cursor = cursor
+            self.tm.selection_start = cursor.copy()
+            self.tm.selection_end = cursor.copy()
+            self.tm.fix_cursor_on_image()
             self.getWindow().showLookahead()
             self.update()
 
     def mouseDoubleClickEvent(self, e):
+        # XXX can be moved to treemanager once cursor.x is relative to nodes
         if e.button() == Qt.LeftButton:
-            self.cursor = self.coordinate_to_cursor(e.x(), e.y())
-            selected_node, _, _ = self.get_nodes_at_position()
+            self.tm.cursor = self.coordinate_to_cursor(e.x(), e.y())
+            selected_node, _, _ = self.tm.get_node_from_cursor()
             if selected_node.image is None:
                 return
 
-            self.fix_cursor_on_image()
+            self.tm.fix_cursor_on_image()
             if selected_node.plain_mode is False:
                 selected_node.plain_mode = True
-                self.cursor.x -= math.ceil(selected_node.image.width() * 1.0 / self.fontwt)
-                self.cursor.x += len(selected_node.symbol.name)
-                self.update()
+                self.tm.cursor.x -= math.ceil(selected_node.image.width() * 1.0 / self.fontwt)
+                self.tm.cursor.x += len(selected_node.symbol.name)
             else:
                 selected_node.plain_mode = False
-                self.fix_cursor_on_image()
-                self.update()
+                self.tm.fix_cursor_on_image()
+            self.update()
 
     def cursor_to_coordinate(self):
         y = 0
-        for l in self.lines[:self.cursor.y]:
+        for l in self.tm.lines[:self.cursor.y]:
             y += l.height * self.fontht
-        x = self.cursor.x * self.fontwt
+        x = self.tm.cursor.x * self.fontwt
         y = y - self.getWindow().ui.scrollArea.verticalScrollBar().value() * self.fontht
         return (x,y)
 
@@ -574,7 +562,7 @@ class NodeEditor(QFrame):
         y = y_offset
         line = first_line
         while line < len(self.lines) - 1:
-            y += self.lines[line].height
+            y += self.tm.lines[line].height
             if y > mouse_y:
                 break
             line += 1
@@ -584,18 +572,17 @@ class NodeEditor(QFrame):
 
         if cursor_x < 0:
             result.x = 0
-        elif cursor_x <= self.lines[result.y].width:
+        elif cursor_x <= self.tm.lines[result.y].width:
             result.x = cursor_x
         else:
-            result.x = self.lines[result.y].width
+            result.x = self.tm.lines[result.y].width
 
         return result
 
     def mouseMoveEvent(self, e):
         # apparaently this is only called when a mouse button is clicked while
         # the mouse is moving
-        self.selection_end = self.coordinate_to_cursor(e.x(), e.y())
-        self.get_nodes_from_selection()
+        self.tm.selection_end = self.coordinate_to_cursor(e.x(), e.y())
         self.update()
 
     def XXXkeyPressEvent(self, e):
@@ -1244,6 +1231,7 @@ class NodeEditor(QFrame):
         self.fontm = QtGui.QFontMetrics(self.font)
         self.fontht = self.fontm.height() + 3
         self.fontwt = self.fontm.width(" ")
+        self.tm.set_font(self.fontm)
 
     def export_unipycation(self):
         node = self.lines[0].node # first node
