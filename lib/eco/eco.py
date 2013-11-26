@@ -55,6 +55,8 @@ import math
 import syntaxhighlighter
 from jsonmanager import JsonManager
 
+from treemanager import TreeManager
+
 def print_var(name, value):
     print("%s: %s" % (name, value))
 
@@ -127,6 +129,10 @@ class NodeEditor(QFrame):
         self.infofontht = QtGui.QFontMetrics(self.infofont).height() + 3
         self.infofontwt = QtGui.QFontMetrics(self.infofont).width(" ")
 
+        self.viewport_y = 0 # top visible line
+
+        return
+
         self.cursor = [0,0]
 
         # make cursor blink
@@ -140,13 +146,11 @@ class NodeEditor(QFrame):
         self.selection_end = Cursor(0,0)
 
         self.viewport_x = 0
-        self.viewport_y = 0
 
         self.changed_line = -1
         self.line_info = []
         self.line_heights = []
         self.line_indents = []
-        self.node_list = []
         self.max_cols = []
 
         self.lines = []
@@ -172,6 +176,9 @@ class NodeEditor(QFrame):
 
         self.selected_lbox = None
 
+    def set_treemanager(self, tm):
+        self.tm = tm
+
     def reset(self):
         self.indentations = {}
         self.max_cols = []
@@ -184,6 +191,10 @@ class NodeEditor(QFrame):
         self.selected_lbox = None
 
     def set_mainlanguage(self, parser, lexer, lang_name):
+        self.tm = TreeManager()
+        self.tm.add_parser(parser, lexer, lang_name)
+        return
+
         self.parsers = {}
         self.lexers = {}
         self.priorities = {}
@@ -194,8 +205,6 @@ class NodeEditor(QFrame):
         self.parser_langs[parser.previous_version.parent] = lang_name
         self.magic_tokens = []
 
-        self.node_list = []
-        self.node_list.append(self.ast.parent.children[0]) # bos is first terminal in first line
 
         self.line_info.append([self.ast.parent.children[0], self.ast.parent.children[1]]) # start with BOS and EOS
         self.line_heights.append(1)
@@ -237,7 +246,6 @@ class NodeEditor(QFrame):
         y = 0
         x = 0
 
-        bos = self.ast.parent.children[0]
         self.indentations = {}
         self.max_cols = []
         self.longest_column = 0
@@ -284,7 +292,7 @@ class NodeEditor(QFrame):
         # find internal line corresponding to visual line
         visual_line = 0
         internal_line = 0
-        for l in self.lines:
+        for l in self.tm.lines:
             if visual_line + l.height > startline:
                 break
             visual_line += l.height
@@ -297,7 +305,7 @@ class NodeEditor(QFrame):
         max_y = self.geometry().height()/self.fontht
 
         line = internal_line
-        node = self.lines[line].node
+        node = self.tm.lines[line].node
         if node.symbol.name == "\r":
             node = node.next_term # ignore \r if it is startnode
 
@@ -308,18 +316,23 @@ class NodeEditor(QFrame):
 
     #XXX if starting node is inside language box, init lbox with amout of languge boxes
     def paint_nodes(self, paint, node, x, y, line, max_y, lbox=0):
-        selected_language = self.ast.parent
-        error_node = self.lrp.error_node
+        selected_language = self.tm.mainroot
+        error_node = self.tm.get_mainparser().error_node
 
         highlighter = self.get_highlighter(node)
-        selection_start = min(self.selection_start, self.selection_end)
-        selection_end = max(self.selection_start, self.selection_end)
+        selection_start = min(self.tm.selection_start, self.tm.selection_end)
+        selection_end = max(self.tm.selection_start, self.tm.selection_end)
         start_lbox = self.get_languagebox(node)
+
+        self.selected_lbox = self.tm.selected_lbox
+
         if start_lbox and self.selected_lbox is start_lbox:
             lbox += 1
             draw_lbox = True
         else:
             draw_lbox = False
+        self.lines = self.tm.lines
+        self.cursor = self.tm.cursor
         self.lines[line].height = 1 # reset height
         draw_cursor = True
         while y < max_y:
@@ -335,7 +348,7 @@ class NodeEditor(QFrame):
                     draw_lbox = False
                 node = lbnode.children[0]
                 highlighter = self.get_highlighter(node)
-                error_node = self.parsers[lbnode].error_node
+                error_node = self.tm.get_parser(lbnode).error_node
                 continue
 
             if isinstance(node, EOS):
@@ -345,7 +358,7 @@ class NodeEditor(QFrame):
                     lbox -= 1
                     node = lbnode.next_term
                     highlighter = self.get_highlighter(node)
-                    error_node = self.parsers[lbnode.symbol.ast].error_node
+                    error_node = self.tm.get_parser(lbnode.symbol.ast).error_node
                     if self.selected_lbox is lbnode:
                         draw_lbox = False
                     lbnode = self.get_languagebox(node)
@@ -448,7 +461,7 @@ class NodeEditor(QFrame):
 
     def draw_selection(self, paint, node, line, selection_start, selection_end, y):
         # draw selection
-        if node.lookup == "<return>" or node is self.eos:
+        if node.lookup == "<return>" or node is self.tm.get_eos():
             if line >= selection_start.y and line <= selection_end.y:
                 if line == selection_start.y:
                     draw_start = selection_start.x
@@ -478,7 +491,7 @@ class NodeEditor(QFrame):
 
     def get_highlighter(self, node):
         root = node.get_root()
-        base = lang_dict[self.parser_langs[root]].base
+        base = lang_dict[self.tm.get_language(root)].base
         return syntaxhighlighter.get_highlighter(base)
 
     def paintSelection(self, paint, offset):
@@ -503,136 +516,10 @@ class NodeEditor(QFrame):
             width = end.x
             paint.fillRect(0 * self.fontwt, 4+end.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
 
-
-    def get_indentation(self, y):
-        node = self.lines[y].node
-        node = node.next_term
-        while isinstance(node.symbol, IndentationTerminal):
-            node = node.next_term
-        if node.lookup == "<ws>":
-            return len(node.symbol.name)
-        return 0
-
-    def document_y(self):
-        return self.cursor.y
-
-    def get_selected_node(self):
-        node, _, _ = self.get_nodes_at_position()
-        return node
-
     def get_languagebox(self, node):
         root = node.get_root()
         lbox = root.get_magicterminal()
         return lbox
-
-    def get_nodes_at_position(self):
-        node = self.lines[self.cursor.y].node
-        x = 0
-        node, x = self.find_node_at_position(x, node)
-
-        if self.edit_rightnode:
-            node = node.next_term
-            # node is last in language box -> select next node outside magic box
-            if isinstance(node, EOS):
-                root = node.get_root()
-                lbox = root.get_magicterminal()
-                if lbox:
-                    node = lbox
-            # node is language box
-            elif isinstance(node.symbol, MagicTerminal):
-                node = node.symbol.ast.children[0]
-        if x == self.cursor.x:
-            inside = False
-        else:
-            inside = True
-
-        # check lbox
-        self.selected_lbox = self.get_languagebox(node)
-
-        return node, inside, x
-
-    def find_node_at_position(self, x, node):
-        while x < self.cursor.x:
-            node = node.next_term
-            if isinstance(node, EOS):
-                root = node.get_root()
-                lbox = root.get_magicterminal()
-                if lbox:
-                    node = lbox
-                    continue
-                else:
-                    return None, x
-            if isinstance(node.symbol, IndentationTerminal):
-                continue
-            if isinstance(node.symbol, MagicTerminal):
-                node = node.symbol.ast.children[0]
-            if node.image is None or node.plain_mode:
-                x += len(node.symbol.name)
-            else:
-                x += math.ceil(node.image.width() * 1.0 / self.fontwt)
-
-        return node, x
-
-    def get_nodes_from_selection(self):
-        cur_start = min(self.selection_start, self.selection_end)
-        cur_end = max(self.selection_start, self.selection_end)
-
-        if cur_start == cur_end:
-            return
-
-        temp = self.cursor
-
-        self.cursor = cur_start
-        start_node, start_inbetween, start_x = self.get_nodes_at_position()
-        diff_start = 0
-        if start_inbetween:
-            diff_start = len(start_node.symbol.name) - (start_x - self.cursor.x)
-            include_start = True
-        else:
-            include_start = False
-
-        self.cursor = cur_end
-        end_node, end_inbetween, end_x = self.get_nodes_at_position()
-        diff_end = len(end_node.symbol.name)
-
-        if end_inbetween:
-            diff_end = len(end_node.symbol.name) - (end_x - self.cursor.x)
-
-        if not start_inbetween:
-            start = start_node.next_term
-
-        self.cursor = temp
-
-        if start_node is end_node:
-            return ([start_node], diff_start, diff_end)
-
-        start = start_node
-        end = end_node
-
-        if start is None or end is None or isinstance(start, EOS):
-            return ([],0,0)
-
-        nodes = []
-        if include_start:
-            nodes.append(start)
-        node = start.next_terminal()
-        while node is not end:
-            # extend search into magic tree
-            if isinstance(node.symbol, MagicTerminal):
-                node = node.symbol.parser.children[0]
-                continue
-            # extend search outside magic tree
-            if isinstance(node, EOS):
-                root = node.get_root()
-                magic = root.get_magicterminal()
-                if magic:
-                    node = magic.next_terminal()
-                    continue
-            nodes.append(node)
-            node = node.next_terminal()
-        nodes.append(end)
-
-        return (nodes, diff_start, diff_end)
 
     def focusNextPrevChild(self, b):
         # don't switch to next widget on TAB
@@ -668,12 +555,6 @@ class NodeEditor(QFrame):
                 selected_node.plain_mode = False
                 self.fix_cursor_on_image()
                 self.update()
-
-
-    def fix_cursor_on_image(self):
-        node, _, x = self.get_nodes_at_position()
-        if node.image and not node.plain_mode:
-            self.cursor.x = x
 
     def cursor_to_coordinate(self):
         y = 0
@@ -725,76 +606,58 @@ class NodeEditor(QFrame):
 
         if e.key() in [Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Control, Qt.Key_Meta, Qt.Key_AltGr]:
             if e.key() == Qt.Key_Shift:
-                # start selection
-                self.selection_start = self.cursor.copy()
-                self.selection_end = self.cursor.copy()
+                self.tm.key_shift()
             return
 
-        selected_node, inbetween, x = self.get_nodes_at_position()
+        #selected_node, inbetween, x = self.tm.get_nodes_from_cursor()
 
         text = e.text()
-        self.changed_line = self.document_y()
 
         self.edit_rightnode = False # has been processes in get_nodes_at_pos -> reset
 
         if e.key() == Qt.Key_Escape:
-            self.key_escape(e, selected_node)
+            self.tm.key_escape()
         elif e.key() == Qt.Key_Backspace:
-            self.key_backspace(e)
-            return
+            self.tm.key_backspace()
         elif e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
-            self.key_cursors(e)
             if e.modifiers() == Qt.ShiftModifier:
-                self.selection_end = self.cursor.copy()
+                self.tm.key_cursors(e.key(), True)
             else:
-                self.selection_start = self.cursor.copy()
-                self.selection_end = self.cursor.copy()
+                self.tm.key_cursors(e.key(), False)
         elif e.key() == Qt.Key_Home:
-            self.cursor.x = 0
+            self.tm.key_home()
         elif e.key() == Qt.Key_End:
-            self.cursor.x = self.lines[self.cursor.y].width
+            self.tm.key_end()
         elif e.key() == Qt.Key_C and e.modifiers() == Qt.ControlModifier:
-            self.copySelection()
+            text = self.tm.copySelection()
+            QApplication.clipboard().setText(text)
         elif e.key() == Qt.Key_V and e.modifiers() == Qt.ControlModifier:
-            if self.hasSelection():
-                self.deleteSelection()
-            self.pasteSelection(selected_node, inbetween, x)
+            text = QApplication.clipboard().text()
+            self.tm.pasteText(text)
         elif e.key() == Qt.Key_X and e.modifiers() == Qt.ControlModifier:
-            if self.hasSelection():
-                self.copySelection()
-                self.deleteSelection()
+            self.tm.cutSelection()
         elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
-            if self.hasSelection():
-                self.surround_with_lbox(e, selected_node, inbetween, x)
-            else:
-                self.key_ctrl_space(e, selected_node, inbetween, x)
+            self.showSubgrammarMenu()
+            if self.sublanguage:
+                if self.tm.hasSelection():
+                    self.tm.surround_with_languagebox(self.sublanguage)
+                else:
+                    self.tm.add_languagebox(self.sublanguage)
         elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier | Qt.ShiftModifier:
-            self.edit_rightnode = True # writes next char into magic ast
-            self.get_nodes_at_position()
-            self.update()
-            return
+            self.tm.leave_languagebox()
         elif e.key() == Qt.Key_Delete:
-            self.key_delete(e, selected_node, inbetween, x)
+            self.tm.key_delete()
         else:
-            indentation = self.key_normal(e, selected_node, inbetween, x)
+            if e.key() == Qt.Key_Tab:
+                text = "    "
+            else:
+                text = e.text()
+            self.tm.key_normal(text)
 
-        lines_before = len(self.lines)
-        self.rescan_linebreaks(self.changed_line)
-        new_lines = len(self.lines) - lines_before
-        for i in range(new_lines+1):
-            self.rescan_indentations(self.changed_line+i)
         self.getWindow().btReparse([])
-        #self.repaint() # this recalculates self.max_cols #XXX deprecated!?
-
-        if e.key() == Qt.Key_Return:
-            self.cursor_movement(Qt.Key_Down)
-            self.cursor.x = indentation
-
-        self.fix_cursor_on_image()
-
-        self.getWindow().showLookahead()
         self.fix_scrollbars()
         self.update()
+        self.getWindow().showLookahead()
 
     def println(self, prestring, y):
         node = self.lines[y].node.next_term
@@ -804,178 +667,6 @@ class NodeEditor(QFrame):
             node = node.next_term
         print(prestring, "".join(x))
 
-    def key_escape(self, e, node):
-        if node.plain_mode:
-            node.plain_mode = False
-            self.fix_cursor_on_image()
-            self.update()
-
-    def surround_with_lbox(self, e, node, inside, x):
-        nodes, _, _ = self.get_nodes_from_selection()
-        appendnode = nodes[0].prev_term
-        self.showSubgrammarMenu()
-        self.edit_rightnode = False
-        if self.sublanguage:
-            # cut text
-            self.copySelection()
-            self.deleteSelection()
-            # create language box
-            lbox = self.add_magic()
-            # insert text
-            newnode = TextNode(Terminal(str(QApplication.clipboard().text())))
-            lbox.symbol.ast.children[0].insert_after(newnode)
-            self.relex(newnode)
-            appendnode.insert_after(lbox)
-
-    def key_ctrl_space(self, e, node, inside, x):
-        self.showSubgrammarMenu()
-        if self.sublanguage:
-            newnode = self.add_magic()
-            self.edit_rightnode = True # writes next char into magic ast
-            if not inside:
-                node.insert_after(newnode)
-            else:
-                node = node
-                internal_position = len(node.symbol.name) - (x - self.cursor.x)
-                text1 = node.symbol.name[:internal_position]
-                text2 = node.symbol.name[internal_position:]
-                node.symbol.name = text1
-                node.insert_after(newnode)
-
-                node2 = TextNode(Terminal(text2))
-                newnode.insert_after(node2)
-
-                self.relex(node)
-                self.relex(node2)
-
-    def key_backspace(self, e):
-        node = self.get_selected_node()
-        if node.image is not None and not node.plain_mode:
-            return
-        if self.document_y() > 0 and self.cursor.x == 0:
-            self.cursor_movement(Qt.Key_Up)
-            self.repaint() # XXX store line width in line_info to avoid unnecessary redrawing
-            self.cursor.x = self.lines[self.cursor.y].width
-        elif self.cursor.x > 0:
-            self.cursor.x -= 1
-        event = QKeyEvent(QEvent.KeyPress, Qt.Key_Delete, e.modifiers(), e.text())
-        self.keyPressEvent(event)
-
-    def key_delete(self, e, node, inside, x):
-        if self.hasSelection():
-            self.deleteSelection()
-            return
-
-        if inside: # cursor inside a node
-            internal_position = len(node.symbol.name) - (x - self.cursor.x)
-            self.last_delchar = node.backspace(internal_position)
-            self.relex(node)
-        else: # between two nodes
-            node = node.next_terminal() # delete should edit the node to the right from the selected node
-            # if lbox is selected, select first node in lbox
-            if isinstance(node, EOS):
-                lbox = self.get_languagebox(node)
-                if lbox:
-                    node = lbox.next_term
-                else:
-                    return
-            while isinstance(node.symbol, IndentationTerminal):
-                node = node.next_term
-            if isinstance(node.symbol, MagicTerminal) or isinstance(node, EOS):
-                bos = node.symbol.ast.children[0]
-                self.key_delete(e, bos, inside, x)
-                return
-            if node.image and not node.plain_mode:
-                return
-            if node.symbol.name == "\r":
-                self.remove_indentation_nodes(node.next_term)
-                self.delete_linebreak(self.changed_line, node)
-            self.last_delchar = node.backspace(0)
-            repairnode = node
-
-            # if node is empty, delete it and repair previous/next node
-            if node.symbol.name == "" and not isinstance(node, BOS):
-                repairnode = node.prev_term
-
-                root = node.get_root()
-                magic = root.get_magicterminal()
-                next_node = node.next_terminal()
-                previous_node = node.previous_terminal()
-                if magic and isinstance(next_node, EOS) and isinstance(previous_node, BOS):
-                    # language box is empty -> delete it and all references
-                    magic.parent.remove_child(magic)
-                    self.magic_tokens.remove(id(magic))
-                    del self.parsers[root]
-                    del self.lexers[root]
-                else:
-                    # normal node is empty -> remove it from AST
-                    node.parent.remove_child(node)
-
-            if repairnode is not None and not isinstance(repairnode, BOS):
-                self.relex(repairnode)
-
-    def key_cursors(self, e):
-        self.edit_rightnode = False
-        self.cursor_movement(e.key())
-        self.update()
-        selected_node, _, _ = self.get_nodes_at_position()
-        self.getWindow().showAst(selected_node)
-
-        # update lookahead when moving cursors
-        self.getWindow().showLookahead()
-
-    def key_normal(self, e, node, inside, x):
-        indentation = 0
-        # modify text
-        if e.key() == Qt.Key_Tab:
-            text = "    "
-        else:
-            text = e.text()
-            if self.hasSelection():
-                self.deleteSelection()
-            if e.key() == Qt.Key_Return:
-                if self.indentation:
-                    indentation = self.get_indentation(self.document_y())
-                    text += " " * indentation
-        # edit node
-        if inside:
-            internal_position = len(node.symbol.name) - (x - self.cursor.x)
-            node.insert(text, internal_position)
-        else:
-            # append to node: [node newtext] [next node]
-            pos = 0
-            if isinstance(node, BOS) or node.symbol.name == "\r" or isinstance(node.symbol, MagicTerminal):
-                # insert new node: [bos] [newtext] [next node]
-                old = node
-                if old.next_term:
-                    # skip over IndentationTerminals
-                    old = old.next_term
-                    while isinstance(old.symbol, IndentationTerminal):
-                        old = old.next_term
-                    old = old.prev_term
-                #self.remove_indentation_nodes(old.next_term)
-                node = TextNode(Terminal(""))
-                old.insert_after(node)
-            else:
-                pos = len(node.symbol.name)
-            node.insert(text, pos)
-
-        if e.key() == Qt.Key_Tab:
-            self.cursor.x += 4
-        else:
-            self.cursor.x += 1
-
-        self.relex(node)
-        return indentation
-
-    def delete_linebreak(self, y, node):
-        current = self.lines[y].node
-        deleted = self.lines[y+1].node
-        assert deleted is node
-        del self.lines[y+1]
-
-        # XXX adjust line_height
-
     def print_line(self, y):
         current = self.lines[y].node
         while True:
@@ -983,32 +674,6 @@ class NodeEditor(QFrame):
             current = current.next_term
             if current is None:
                 return
-
-    def rescan_linebreaks(self, y):
-        """ Scan all nodes between this return node and the next lines return
-        node. All other return nodes you find that are not the next lines
-        return node are new and must be inserted into self.lines """
-
-        current = self.lines[y].node
-        try:
-            next = self.lines[y+1].node #XXX last line has eos -> create line manager class
-        except IndexError:
-            next = self.eos
-
-        current = current.next_term
-        while current is not next:
-            if current.symbol.name == "\r":
-                y += 1
-                self.lines.insert(y, Line(current))
-            if isinstance(current.symbol, MagicTerminal):
-                current = current.symbol.ast.children[0]
-            elif isinstance(current, EOS):
-                root = current.get_root()
-                lbox = root.get_magicterminal()
-                if lbox:
-                    current = lbox.next_term
-            else:
-                current = current.next_term
 
     def rescan_indentations_nostack(self, y):
         if y == 0:
@@ -1320,60 +985,6 @@ class NodeEditor(QFrame):
             # if we are here, we reached a normal node
             return True
 
-    def relex(self, startnode):
-        # XXX when typing to not create new node but insert char into old node
-        #     (saves a few insertions and is easier to lex)
-
-        root = startnode.get_root()
-        lexer = self.lexers[root]
-        lexer.relex(startnode)
-        return
-
-    def add_magic(self):
-        # Create magic token
-        magictoken = self.create_node("<%s>" % self.sublanguage.name, magic=True)
-
-        # Create parser, priorities and lexer
-        parser = IncParser(self.sublanguage.grammar, 1, True)
-        parser.init_ast(magictoken)
-        lexer = IncrementalLexer(self.sublanguage.priorities, self.sublanguage.name)
-        self.magic_tokens.append(id(magictoken))
-        root = parser.previous_version.parent
-        root.magic_backpointer = magictoken
-        self.parsers[root] = parser
-        self.lexers[root] = lexer
-        self.parser_langs[root] = self.sublanguage.name
-
-        magictoken.symbol.parser = root
-        magictoken.symbol.ast = root
-        return magictoken
-
-    def create_node(self, text, magic=False):
-        if magic:
-            symbol = MagicTerminal(text)
-        else:
-            symbol = Terminal(text)
-        node = TextNode(symbol, -1, [], -1)
-        return node
-
-    def add_node(self, previous_node, new_node):
-        previous_node.parent.insert_after_node(previous_node, new_node)
-        if self.cursor.x == 0:
-            line = self.line_info[self.document_y()]
-            if isinstance(line[0], BOS):
-                line.insert(1, new_node)
-            else:
-                line.insert(0, new_node)
-        root = new_node.get_root()
-        if not isinstance(new_node.symbol, MagicTerminal):
-            lexer = self.lexers[root]
-            text = new_node.symbol.name
-            match = lexer.lex(text)[0]
-            new_node.lookup = match[1]
-            #new_node.regex = pl.regex(text)
-            #new_node.priority = pl.priority(text)
-            #new_node.lookup = pl.name(text)
-
     def fix_scrollbars(self):
         x, y = self.cursor_to_coordinate()
 
@@ -1388,40 +999,6 @@ class NodeEditor(QFrame):
             self.getWindow().ui.scrollArea.decHSlider()
         if self.cursor.x > self.parentWidget().geometry().width()/self.fontwt + self.getWindow().ui.scrollArea.horizontalScrollBar().value():
             self.getWindow().ui.scrollArea.incHSlider()
-
-    def cursor_movement(self, key):
-        cur = self.cursor
-
-        if key == QtCore.Qt.Key_Up:
-            if self.cursor.y > 0:
-                self.cursor.y -= 1
-                if self.cursor.x > self.lines[cur.y].width:
-                    self.cursor.x = self.lines[cur.y].width
-            else:
-                self.getWindow().ui.scrollArea.decVSlider()
-        elif key == QtCore.Qt.Key_Down:
-            if self.cursor.y < len(self.lines) - 1:
-                self.cursor.y += 1
-                if self.cursor.x > self.lines[cur.y].width:
-                    self.cursor.x = self.lines[cur.y].width
-            else:
-                self.getWindow().ui.scrollArea.incVSlider()
-        elif key == QtCore.Qt.Key_Left:
-            if self.cursor.x > 0:
-                node = self.get_selected_node()
-                if node.image and not node.plain_mode:
-                    s = self.get_nodesize_in_chars(node)
-                    self.cursor.x -= s.w
-                else:
-                    self.cursor.x -= 1
-        elif key == QtCore.Qt.Key_Right:
-            if self.cursor.x < self.lines[cur.y].width:
-                self.cursor.x += 1
-                node = self.get_selected_node()
-                if node.image and not node.plain_mode:
-                    s = self.get_nodesize_in_chars(node)
-                    self.cursor.x += s.w - 1
-        self.fix_cursor_on_image()
 
     # ========================== AST modification stuff ========================== #
 
@@ -1442,85 +1019,6 @@ class NodeEditor(QFrame):
             chars += 1 # return
 
         return chars
-
-    def hasSelection(self):
-        return self.selection_start != self.selection_end
-
-    def delete_if_empty(self, node):
-        if node.symbol.name == "":
-            node.parent.remove_child(node)
-
-    def deleteSelection(self):
-        #XXX simple version: later we might want to modify the nodes directly
-        #nodes, diff_start, diff_end = self.get_nodes_from_selection()
-
-        nodes, diff_start, diff_end = self.get_nodes_from_selection()
-        repair_node = nodes[0].prev_term
-        if len(nodes) == 1:
-            s = nodes[0].symbol.name
-            s = s[:diff_start] + s[diff_end:]
-            nodes[0].symbol.name = s
-            self.delete_if_empty(nodes[0])
-        else:
-            nodes[0].symbol.name = nodes[0].symbol.name[:diff_start]
-            nodes[-1].symbol.name = nodes[-1].symbol.name[diff_end:]
-            self.delete_if_empty(nodes[0])
-            self.delete_if_empty(nodes[-1])
-        for node in nodes[1:-1]:
-            node.parent.remove_child(node)
-        repair_node = repair_node.next_term # in case first node was deleted
-        self.relex(repair_node)
-        cur_start = min(self.selection_start, self.selection_end)
-        cur_end = max(self.selection_start, self.selection_end)
-        self.cursor = cur_start.copy()
-        self.selection_end = cur_start.copy()
-        self.changed_line = cur_start.y
-        del self.lines[cur_start.y+1:cur_end.y+1]
-
-    def copySelection(self):
-        nodes, diff_start, diff_end = self.get_nodes_from_selection()
-        if len(nodes) == 1:
-            text = nodes[0].symbol.name[diff_start:diff_end]
-            QApplication.clipboard().setText(text)
-            return
-        new_nodes = []
-        for node in nodes:
-            if not isinstance(node.symbol, IndentationTerminal):
-                new_nodes.append(node)
-        nodes = new_nodes
-
-        text = []
-        start = nodes.pop(0)
-        end = nodes.pop(-1)
-
-        text.append(start.symbol.name[diff_start:])
-        for node in nodes:
-            text.append(node.symbol.name)
-        text.append(end.symbol.name[:diff_end])
-        QApplication.clipboard().setText("".join(text))
-
-    def pasteSelection(self, node, inside, x):
-        text = QApplication.clipboard().text()
-        text = text.replace("\r\n","\r")
-        text = text.replace("\n","\r")
-        #self.insertText(text)
-        if inside:
-            internal_position = len(node.symbol.name) - (x - self.cursor.x)
-            node.insert(text, internal_position)
-        else:
-            #XXX same code as in key_normal
-            pos = 0
-            if isinstance(node, BOS) or node.symbol.name == "\r" or isinstance(node.symbol, MagicTerminal):
-                # insert new node: [bos] [newtext] [next node]
-                old = node
-                node = TextNode(Terminal(""))
-                old.insert_after(node)
-            else:
-                pos = len(node.symbol.name)
-            node.insert(text, pos)
-
-        self.cursor.x += len(text)
-        self.relex(node)
 
     def insertText(self, text):
         self.indentation = False
@@ -1585,7 +1083,7 @@ class NodeEditor(QFrame):
 
     def showSubgrammarMenu(self):
         self.sublanguage = None
-        lookaheads = self.getLookaheadList()
+        lookaheads = self.tm.getLookaheadList()
         # Create menu
         menu = QtGui.QMenu( self )
         # Create actions
@@ -2036,15 +1534,13 @@ class Window(QtGui.QMainWindow):
     def btReparse(self, selected_node):
         results = []
         self.ui.list_parsingstatus.clear()
-        for key in self.ui.frame.parsers:
-            lang = self.ui.frame.parser_langs[key]
-            parser = self.ui.frame.parsers[key]
+        for parser, lexer, lang in self.ui.frame.tm.parsers:
             #import cProfile
             #cProfile.runctx("parser.inc_parse(self.ui.frame.line_indents)", globals(), locals())
-            status = parser.inc_parse(self.ui.frame.line_indents)
+            status = parser.last_status #inc_parse(self.ui.frame.line_indents)
             qlistitem = QListWidgetItem(QString(lang))
             if status:
-                qlistitem.setIcon(QIcon("gui/accept.png"))
+                qlistitem.setIcon(QIcon("gui/accept.png")) # XXX create icon only once
             else:
                 qlistitem.setIcon(QIcon("gui/exclamation.png"))
                 enode = parser.error_node
@@ -2055,17 +1551,18 @@ class Window(QtGui.QMainWindow):
                 emsg = "Error: Found \"%s\" expected %s (State: %s)" % (enode.symbol.name, ",".join(l), enode.prev_term.state)
                 qlistitem.setToolTip(emsg)
             self.ui.list_parsingstatus.addItem(qlistitem)
-            if self.ui.frame.selected_lbox and key is self.ui.frame.selected_lbox.symbol.ast:
-                self.ui.list_parsingstatus.setCurrentItem(qlistitem)
-            if not self.ui.frame.selected_lbox and key is self.ui.frame.ast.parent:
-                self.ui.list_parsingstatus.setCurrentItem(qlistitem)
+            # XXX refactor
+            #if self.ui.frame.selected_lbox and key is self.ui.frame.selected_lbox.symbol.ast:
+            #    self.ui.list_parsingstatus.setCurrentItem(qlistitem)
+            #if not self.ui.frame.selected_lbox and key is self.ui.frame.ast.parent:
+            #    self.ui.list_parsingstatus.setCurrentItem(qlistitem)
         self.showAst(selected_node)
 
     def showAst(self, selected_node):
         self.parseview.refresh()
 
     def showLookahead(self):
-        l = self.ui.frame.getLookaheadList()
+        l = self.ui.frame.tm.getLookaheadList()
         self.ui.lineEdit.setText(", ".join(l))
 
 def main():

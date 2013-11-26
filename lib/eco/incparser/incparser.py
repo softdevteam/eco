@@ -78,6 +78,7 @@ class IncParser(object):
         self.last_shift_state = 0
         self.validating = False
         self.last_status = False
+        self.error_node = None
 
         self.previous_version = None
         print("Incemental parser done")
@@ -92,7 +93,7 @@ class IncParser(object):
         root = Node(Nonterminal("Root"), 0, [bos, eos])
         self.previous_version = AST(root)
 
-    def inc_parse(self, line_indents):
+    def inc_parse(self, line_indents=[]):
         print("============ NEW INCREMENTAL PARSE ================= ")
         self.error_node = None
         self.stack = []
@@ -348,6 +349,7 @@ class IncParser(object):
             stateset = self.graph.state_sets[state_id]
             symbols = stateset.get_next_symbols_no_ws()
             return symbols
+        return []
 
 
     def reset(self):
