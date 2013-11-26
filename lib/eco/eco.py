@@ -663,6 +663,7 @@ class NodeEditor(QFrame):
                 return
 
     def fix_scrollbars(self):
+        self.cursor = self.tm.cursor
         x, y = self.cursor_to_coordinate()
 
         # fix vertical bar
