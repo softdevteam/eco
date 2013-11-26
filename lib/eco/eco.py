@@ -808,10 +808,10 @@ class NodeEditor(QFrame):
     def saveToJson(self, filename):
         whitespaces = self.getWindow().ui.cb_add_implicit_ws.isChecked()
 
-        root = self.ast.parent
-        language = self.parser_langs[root]
+        root = self.tm.parsers[0][0].previous_version.parent
+        language = self.tm.parsers[0][2]
         manager = JsonManager()
-        manager.save(self.ast.parent, language, whitespaces, filename)
+        manager.save(root, language, whitespaces, filename)
 
     def loadFromJson(self, filename):
         manager = JsonManager()
@@ -821,31 +821,13 @@ class NodeEditor(QFrame):
         #self.lines[0].node = root.children[0]
         #self.eos = root.children[-1]
 
-        # setup main language
-        root, language, whitespaces = language_boxes[0]
-        grammar = lang_dict[language]
-        incparser = IncParser(grammar.grammar, 1, whitespaces)
-        incparser.init_ast()
-        incparser.previous_version.parent = root
-        inclexer = IncrementalLexer(grammar.priorities)
+        self.tm = TreeManager()
+        self.tm.set_font(self.fontm)
+
+        self.tm.load_file(language_boxes)
         self.reset()
-        self.set_mainlanguage(incparser, inclexer, language)
-
-        # setup language boxes
-        for root, language, whitespaces in language_boxes[1:]:
-            grammar = lang_dict[language]
-            incparser = IncParser(grammar.grammar, 1, whitespaces)
-            incparser.init_ast()
-            incparser.previous_version.parent = root
-            inclexer = IncrementalLexer(grammar.priorities)
-            self.parsers[root] = incparser
-            self.lexers[root] = inclexer
-            self.parser_langs[root] = language
-
-        self.rescan_linebreaks(0)
-        for i in range(len(self.lines)):
-            self.rescan_indentations(i)
         self.getWindow().btReparse([])
+        return
 
     def saveToFile(self, filename):
         f = open(filename, "w")

@@ -4,6 +4,8 @@ from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from PyQt4 import QtCore #XXX get rid of all QT references later
 
+from grammars.grammars import lang_dict
+
 import math
 
 class NodeSize(object):
@@ -827,6 +829,21 @@ class TreeManager(object):
         for y in range(len(self.lines)):
             self.repair_indentation(y)
         return
+
+    def load_file(self, language_boxes):
+
+        # setup language boxes
+        for root, language, whitespaces in language_boxes:
+            grammar = lang_dict[language]
+            incparser = IncParser(grammar.grammar, 1, whitespaces)
+            incparser.init_ast()
+            incparser.previous_version.parent = root
+            inclexer = IncrementalLexer(grammar.priorities)
+            self.add_parser(incparser, inclexer, language)
+
+        self.rescan_linebreaks(0)
+        for i in range(len(self.lines)):
+            self.rescan_indentations(i)
 
     def relex(self, node):
         root = node.get_root()
