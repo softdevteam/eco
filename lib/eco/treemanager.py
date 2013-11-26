@@ -803,6 +803,30 @@ class TreeManager(object):
             node = node.next_term
         return node
 
+
+    # ============================ FILE OPERATIONS ============================= #
+
+    def import_file(self, text):
+        # init
+        self.cursor = Cursor(0,0)
+        for p in self.parsers[1:]:
+            del p
+        # convert linebreaks
+        text = text.replace("\r\n","\r")
+        text = text.replace("\n","\r")
+        parser = self.parsers[0][0]
+        lexer = self.parsers[0][1]
+        # lex text into tokens
+        bos = parser.previous_version.parent.children[0]
+        new = TextNode(Terminal(text))
+        bos.insert_after(new)
+        root = new.get_root()
+        lexer.relex_import(new)
+        self.rescan_linebreaks(0)
+        for y in range(len(self.lines)):
+            self.repair_indentation(y)
+        return
+
     def relex(self, node):
         root = node.get_root()
         lexer = self.get_lexer(root)

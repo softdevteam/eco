@@ -718,32 +718,8 @@ class NodeEditor(QFrame):
         self.indentation = True
 
     def insertTextNoSim(self, text):
-        # init
-        self.line_info = []
-        self.line_heights = []
-        self.cursor = Cursor(0,0)
         self.viewport_y = 0
-        for node in list(self.parsers):
-            if node is not self.ast.parent:
-                del self.parsers[node]
-                del self.lexers[node]
-                del self.parser_langs[node]
-                self.magic_tokens = []
-        # convert linebreaks
-        text = text.replace("\r\n","\r")
-        text = text.replace("\n","\r")
-        parser = list(self.parsers.values())[0]
-        lexer = list(self.lexers.values())[0]
-        # lex text into tokens
-        bos = parser.previous_version.parent.children[0]
-        new = TextNode(Terminal(text))
-        bos.insert_after(new)
-        root = new.get_root()
-        lexer = self.lexers[root]
-        lexer.relex_import(new)
-        self.rescan_linebreaks(0)
-        for y in range(len(self.lines)):
-            self.repair_indentation(y)
+        self.tm.import_file(text)
         return
 
     def getTL(self):
