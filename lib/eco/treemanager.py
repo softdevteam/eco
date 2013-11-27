@@ -253,6 +253,11 @@ class TreeManager(object):
             # if we are here, we reached a normal node
             return True
 
+    def is_same_language(self, node, other):
+        root = node.get_root()
+        other_root = other.get_root()
+        return root is other_root
+
     def get_indentation(self, y):
         # indentation whitespaces
         if not self.is_logical_line(y):
@@ -654,11 +659,15 @@ class TreeManager(object):
 
     def update_indentation_backwards(self, y):
         # find out lines indentation by scanning previous lines
+        root = self.lines[y].node.get_root()
         ws = self.get_indentation(y)
         dy = y
         while dy > 0:
             dy = dy - 1
             if not self.is_logical_line(dy):
+                continue
+            other_root = self.lines[dy].node.get_root()
+            if not self.is_same_language(root, other_root):
                 continue
             prev_ws = self.get_indentation(dy)
             if ws == prev_ws:
@@ -725,8 +734,11 @@ class TreeManager(object):
 
             this_whitespace = self.get_indentation(y)
             dy = y - 1
-            while not self.is_logical_line(dy):
+            root = self.lines[y].node.get_root()
+            other = self.lines[dy].node.get_root()
+            while not self.is_logical_line(dy) or not self.is_same_language(root, other):
                 dy -= 1
+                other = self.lines[dy].node.get_root()
             prev_whitespace = self.get_indentation(dy)
 
             if prev_whitespace == this_whitespace:
