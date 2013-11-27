@@ -304,6 +304,8 @@ class TreeManager(object):
 
         if text == "\r":
             indentation = self.get_indentation(self.cursor.y)
+            if indentation is None:
+                indentation = 0
             text += " " * indentation
 
         node, inside, x = self.get_node_from_cursor()
