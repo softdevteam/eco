@@ -62,7 +62,7 @@ def print_var(name, value):
 
 class LineNumbers(QFrame):
     def __init__(self, parent=None):
-        QtGui.QWidget.__init__(self, parent)
+        QtGui.QFrame.__init__(self, parent)
 
         self.font = QtGui.QFont('Courier', 9)
         self.fontm = QtGui.QFontMetrics(self.font)
@@ -74,6 +74,7 @@ class LineNumbers(QFrame):
     def paintEvent(self, event):
         paint = QtGui.QPainter()
         paint.begin(self)
+        paint.setPen(QColor("grey"))
         paint.setFont(self.font)
         for y, line, indent in self.info:
             text = str(line)# + "|" + str(indent)
