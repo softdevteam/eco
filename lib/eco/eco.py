@@ -60,28 +60,6 @@ from treemanager import TreeManager
 def print_var(name, value):
     print("%s: %s" % (name, value))
 
-class StyleNode(object):
-    def __init__(self, mode, bgcolor):
-        self.mode = mode
-        self.bgcolor = bgcolor
-
-class NodeSize(object):
-    def __init__(self, w, h):
-        self.w = w
-        self.h = h
-
-class Line(object):
-    def __init__(self, node, height=1):
-        self.node = node
-        self.height = height
-        self.width = 0
-        self.indent_stack = None
-        self.indentation = 0
-        self.indent = 0
-
-    def __repr__(self):
-        return "Line(%s, width=%s, height=%s)" % (self.node, self.width, self.height)
-
 class LineNumbers(QFrame):
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
@@ -132,87 +110,13 @@ class NodeEditor(QFrame):
 
         self.viewport_y = 0 # top visible line
 
-        return
-
-        self.cursor = [0,0]
-
-        # make cursor blink
-        self.show_cursor = 1
-        self.ctimer = QtCore.QTimer()
-        #QtCore.QObject.connect(self.ctimer, QtCore.SIGNAL("timeout()"), self.blink)
-        self.ctimer.start(500)
-
-        self.position = 0
-        self.selection_start = Cursor(0,0)
-        self.selection_end = Cursor(0,0)
-
-        self.viewport_x = 0
-
-        self.changed_line = -1
-        self.line_info = []
-        self.line_heights = []
-        self.line_indents = []
-        self.max_cols = []
-
-        self.lines = []
-
-        self.parsers = {}
-        self.lexers = {}
-        self.priorities = {}
-        self.parser_langs = {}
-        self.magic_tokens = []
-
-        self.edit_rightnode = False
-        self.indentation = True
-
-        self.last_delchar = ""
-        self.lbox_nesting = 0
-        self.nesting_colors = {
-            0: QColor("#a4c6cf"), # light blue
-            1: QColor("#dd9d9d"), # light red
-            2: QColor("#caffcc"), # light green
-            3: QColor("#f4e790"), # light yellow
-            4: QColor("#dccee4"), # light purple
-        }
-
-        self.selected_lbox = None
-
     def reset(self):
-        self.indentations = {}
-        self.max_cols = []
-        self.cursor = Cursor(0,0)
         self.update()
-        self.line_info = []
-        self.line_heights = []
-        self.line_indents = []
-        self.lines = []
-        self.selected_lbox = None
 
     def set_mainlanguage(self, parser, lexer, lang_name):
         self.tm = TreeManager()
         self.tm.add_parser(parser, lexer, lang_name)
         self.tm.set_font(self.fontm)
-        return
-
-        self.parsers = {}
-        self.lexers = {}
-        self.priorities = {}
-        self.lrp = parser
-        self.ast = parser.previous_version
-        self.parsers[parser.previous_version.parent] = parser
-        self.lexers[parser.previous_version.parent] = lexer
-        self.parser_langs[parser.previous_version.parent] = lang_name
-        self.magic_tokens = []
-
-
-        self.line_info.append([self.ast.parent.children[0], self.ast.parent.children[1]]) # start with BOS and EOS
-        self.line_heights.append(1)
-        self.line_indents.append(None)
-
-        first_line = Line(self.ast.parent.children[0], 1)
-        first_line.indent_stack = [0]
-        self.lines.append(first_line)
-        self.eos = self.ast.parent.children[-1]
 
     def set_sublanguage(self, language):
         self.sublanguage = language
@@ -245,8 +149,6 @@ class NodeEditor(QFrame):
         y = 0
         x = 0
 
-        self.indentations = {}
-        self.max_cols = []
         self.longest_column = 0
 
         # calculate how many lines we need to show
@@ -304,7 +206,6 @@ class NodeEditor(QFrame):
 
         self.paint_nodes(paint, node, x, y, line, max_y)
 
-        #self.paintSelection(paint, visual_line)
 
     #XXX if starting node is inside language box, init lbox with amout of languge boxes
     def paint_nodes(self, paint, node, x, y, line, max_y, lbox=0):
@@ -486,28 +387,6 @@ class NodeEditor(QFrame):
         base = lang_dict[self.tm.get_language(root)].base
         return syntaxhighlighter.get_highlighter(base)
 
-    def paintSelection(self, paint, offset):
-        start = min(self.selection_start, self.selection_end).copy()
-        end = max(self.selection_start, self.selection_end).copy()
-        start.y -= offset
-        end.y -= offset
-        if start.y == end.y:
-            width = end.x - start.x
-            paint.fillRect(start.x * self.fontwt, 4+start.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
-        else:
-            # paint start to line end
-            width = self.lines[start.y].width - start.x
-            paint.fillRect(start.x * self.fontwt, 4+start.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
-
-            # paint lines in between
-            for y in range(start.y+1, end.y):
-                width = self.lines[y].width
-                paint.fillRect(0 * self.fontwt, 4+y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
-
-            # paint line start to end
-            width = end.x
-            paint.fillRect(0 * self.fontwt, 4+end.y * self.fontht, width * self.fontwt, self.fontht, QColor(0,0,255,100))
-
     def get_languagebox(self, node):
         root = node.get_root()
         lbox = root.get_magicterminal()
@@ -681,44 +560,6 @@ class NodeEditor(QFrame):
 
     # ========================== AST modification stuff ========================== #
 
-    def char_difference(self, cursor1, cursor2):
-        if cursor1.y == cursor2.y:
-            return abs(cursor1.x - cursor2.x)
-
-        start = min(cursor1, cursor2)
-        end = max(cursor1, cursor2)
-
-        chars = 0
-        chars += self.lines[start.y].width - start.x
-        chars += 1 # return
-        chars += end.x
-
-        for y in range(start.y+1, end.y):
-            chars += self.lines[y].width
-            chars += 1 # return
-
-        return chars
-
-    def insertText(self, text):
-        self.indentation = False
-        for c in str(text):
-            if c == "\n" or c == "\r":
-                key = Qt.Key_Return
-                modifier = Qt.NoModifier
-            elif ord(c) in range(97, 122): # a-z
-                key = ord(c) - 32
-                modifier = Qt.NoModifier
-            elif ord(c) in range(65, 90): # A-Z
-                key = ord(c)
-                modifier = Qt.ShiftModifier
-            else:   # !, {, }, ...
-                key = ord(c)
-                modifier = Qt.NoModifier
-            event = QKeyEvent(QEvent.KeyPress, key, modifier, c)
-            #QCoreApplication.postEvent(self, event)
-            self.keyPressEvent(event)
-        self.indentation = True
-
     def insertTextNoSim(self, text):
         self.viewport_y = 0
         self.tm.import_file(text)
@@ -751,12 +592,6 @@ class NodeEditor(QFrame):
             menu.addAction(item)
         x,y = self.cursor_to_coordinate()
         menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
-
-    def getLookaheadList(self):
-        selected_node, _, _ = self.get_nodes_at_position()
-        root = selected_node.get_root()
-        lrp = self.parsers[root]
-        return lrp.get_next_symbols_list(selected_node.state)
 
     def createMenuFunction(self, l):
         def action():
@@ -818,63 +653,12 @@ class NodeEditor(QFrame):
         manager = JsonManager()
         language_boxes = manager.load(filename)
 
-        #self.ast.parent = root
-        #self.lines[0].node = root.children[0]
-        #self.eos = root.children[-1]
-
         self.tm = TreeManager()
         self.tm.set_font(self.fontm)
 
         self.tm.load_file(language_boxes)
         self.reset()
         self.getWindow().btReparse([])
-        return
-
-    def saveToFile(self, filename):
-        f = open(filename, "w")
-
-        # create pickle structure
-        p = {}
-        for node in self.parsers:
-            p[node] = self.parser_langs[node]
-        # remember main language root node
-        main_lang = self.ast.parent
-        pickle.dump((main_lang, p), f)
-
-    def loadFromFile(self, filename):
-        from astree import AST
-        f = open(filename, "r")
-        main_lang, p = pickle.load(f)
-
-        #reset
-        self.parsers = {}
-        self.lexers = {}
-        self.priorities = {}
-        self.lexers = {}
-        self.parser_langs = {}
-        self.reset()
-        self.magic_tokens = []
-
-        for node in p:
-            # load grammar
-            lang_name = p[node]
-            lang = lang_dict[lang_name]
-            # create parser
-            parser = IncParser(lang.grammar, 1, True) #XXX use whitespace checkbox
-            parser.previous_version = AST(node)
-            self.parsers[node] = parser
-            # create tokenlexer
-            lexer = IncrementalLexer(lang.priorities)
-            self.lexers[node] = lexer
-            # load language
-            self.parser_langs[node] = p[node]
-            if node is main_lang:
-                self.ast = parser.previous_version
-            if node.get_magicterminal():
-                self.magic_tokens.append(id(node.get_magicterminal()))
-        node = self.ast.parent
-        self.line_info.append([node.children[0], node.children[-1]])
-        self.line_heights.append(1)
 
     def change_font(self, font):
         self.font = font[0]
