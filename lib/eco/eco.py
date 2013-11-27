@@ -55,7 +55,7 @@ import math
 import syntaxhighlighter
 from jsonmanager import JsonManager
 
-from treemanager import TreeManager
+from treemanager import TreeManager, Cursor
 
 def print_var(name, value):
     print("%s: %s" % (name, value))
@@ -670,47 +670,6 @@ class NodeEditor(QFrame):
 
     def export_unipycation(self):
         self.tm.export_unipycation()
-
-class Cursor(object):
-    def __init__(self, pos, line):
-        self.x = pos
-        self.y = line
-
-    def copy(self):
-        return Cursor(self.x, self.y)
-
-    def __le__(self, other):
-        return self < other or self == other
-
-    def __ge__(self, other):
-        return self > other or self == other
-
-    def __lt__(self, other):
-        if isinstance(other, Cursor):
-            if self.y < other.y:
-                return True
-            elif self.y == other.y and self.x < other.x:
-                return True
-        return False
-
-    def __gt__(self, other):
-        if isinstance(other, Cursor):
-            if self.y > other.y:
-                return True
-            elif self.y == other.y and self.x > other.x:
-                return True
-        return False
-
-    def __eq__(self, other):
-        if isinstance(other, Cursor):
-            return self.x == other.x and self.y == other.y
-        return False
-
-    def __ne__(self, other):
-        return not self == other
-
-    def __repr__(self):
-        return "Cursor(%s, %s)" % (self.x, self.y)
 
 class ScopeScrollArea(QtGui.QAbstractScrollArea):
     def setWidgetResizable(self, b):
