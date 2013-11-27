@@ -97,15 +97,16 @@ class LineNumbers(QFrame):
         paint = QtGui.QPainter()
         paint.begin(self)
         paint.setFont(self.font)
-        for y, line in self.info:
-            x = self.geometry().width() - len(str(line)) * self.fontwt - self.fontwt
-            paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), str(line) +":")
+        for y, line, indent in self.info:
+            text = str(line)# + "|" + str(indent)
+            x = self.geometry().width() - len(text) * self.fontwt - self.fontwt
+            paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text +":")
         paint.end()
         self.info = []
 
     def getMaxWidth(self):
         max_width = 0
-        for _, line in self.info:
+        for _, line, _ in self.info:
             max_width = max(max_width, self.fontm.width(str(line)+":"))
         return max_width
 
@@ -378,7 +379,7 @@ class NodeEditor(QFrame):
 
             # after we drew a return, update line information
             if node.lookup == "<return>":
-                self.getWindow().ui.fLinenumbers.info.append((y,line))
+                self.getWindow().ui.fLinenumbers.info.append((y,line, self.lines[line].indent))
                 # draw lbox to end of line
                 if draw_lbox:
                     paint.fillRect(QRectF(x,3+y*self.fontht, self.geometry().width()-x, self.fontht), color)
@@ -411,7 +412,7 @@ class NodeEditor(QFrame):
                 else:
                     self.draw_squiggly_line(paint,x,y,length)
 
-        self.getWindow().ui.fLinenumbers.info.append((y,line))
+        self.getWindow().ui.fLinenumbers.info.append((y,line, self.lines[line].indent))
         # paint infobox
         if False:
             lang_name = self.parser_langs[selected_language]
