@@ -884,35 +884,7 @@ class NodeEditor(QFrame):
         self.tm.set_font(self.fontm)
 
     def export_unipycation(self):
-        node = self.lines[0].node # first node
-        output = []
-        while True:
-            if isinstance(node.symbol, IndentationTerminal):
-                node = node.next_term
-                continue
-            if isinstance(node.symbol, MagicTerminal):
-                output.append('"""')
-                node = node.symbol.ast.children[0]
-                node = node.next_term
-                continue
-            if isinstance(node, EOS):
-                lbox = self.get_languagebox(node)
-                if lbox:
-                    output.append('"""')
-                    node = lbox.next_term
-                    continue
-                else:
-                    break
-            output.append(node.symbol.name)
-            node = node.next_term
-        import tempfile
-        f = tempfile.mkstemp()
-        os.write(f[0],"".join(output))
-        os.close(f[0])
-        if os.environ.has_key("UNIPYCATION"):
-            subprocess.Popen([os.path.join(os.environ["UNIPYCATION"], "pypy/goal/pypy-c"), f[1]])
-        else:
-            sys.stderr.write("UNIPYCATION environment not set")
+        self.tm.export_unipycation()
 
 class Cursor(object):
     def __init__(self, pos, line):

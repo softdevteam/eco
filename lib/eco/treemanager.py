@@ -860,6 +860,39 @@ class TreeManager(object):
         for i in range(len(self.lines)):
             self.rescan_indentations(i)
 
+    def export_unipycation(self):
+        import subprocess, sys
+        import os
+        import tempfile
+        node = self.lines[0].node # first node
+        output = []
+        while True:
+            if isinstance(node.symbol, IndentationTerminal):
+                node = node.next_term
+                continue
+            if isinstance(node.symbol, MagicTerminal):
+                output.append('"""')
+                node = node.symbol.ast.children[0]
+                node = node.next_term
+                continue
+            if isinstance(node, EOS):
+                lbox = self.get_languagebox(node)
+                if lbox:
+                    output.append('"""')
+                    node = lbox.next_term
+                    continue
+                else:
+                    break
+            output.append(node.symbol.name)
+            node = node.next_term
+        f = tempfile.mkstemp()
+        os.write(f[0],"".join(output))
+        os.close(f[0])
+        if os.environ.has_key("UNIPYCATION"):
+            subprocess.Popen([os.path.join(os.environ["UNIPYCATION"], "pypy/goal/pypy-c"), f[1]])
+        else:
+            sys.stderr.write("UNIPYCATION environment not set")
+
     def relex(self, node):
         root = node.get_root()
         lexer = self.get_lexer(root)
