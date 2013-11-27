@@ -247,6 +247,9 @@ class TreeManager(object):
             if node.lookup == "<ws>":
                 node = node.next_term
                 continue
+            if  isinstance(node.symbol, IndentationTerminal):
+                node = node.next_term
+                continue
             # if we are here, we reached a normal node
             return True
 
