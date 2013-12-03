@@ -401,6 +401,7 @@ class TreeManager(object):
                     old = old.prev_term
                 node = TextNode(Terminal(""))
                 old.insert_after(node)
+                self.cursor.pos = 0
             else:
                 pos = self.cursor.pos#len(node.symbol.name)
             node.insert(text, pos)
