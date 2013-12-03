@@ -24,56 +24,164 @@ class Line(object):
         return "Line(%s, width=%s, height=%s)" % (self.node, self.width, self.height)
 
 class Cursor(object):
-    def __init__(self, pos, line):
-        self.x = pos
-        self.y = line
+    def __init__(self, node, pos, line):
+        self.node = node
+        self.pos = pos
+        self.line = line
 
     def copy(self):
-        return Cursor(self.x, self.y)
+        return Cursor(self.node, self.pos, self.line)
 
-    def __le__(self, other):
-        return self < other or self == other
+    def fix(self):
+        while self.pos > len(self.node.symbol.name):
+            self.pos -= len(self.node.symbol.name)
+            self.node = self.node.next_term
 
-    def __ge__(self, other):
-        return self > other or self == other
+    def left(self):
+        if isinstance(self.node, BOS):
+            root = self.node.get_root()
+            lbox = root.get_magicterminal()
+            if lbox:
+                node = self.prev(lbox)
+                self.pos = len(node.symbol.name)
+                self.node = node
+            else:
+                return
 
-    def __lt__(self, other):
-        if isinstance(other, Cursor):
-            if self.y < other.y:
-                return True
-            elif self.y == other.y and self.x < other.x:
-                return True
-        return False
+        if self.pos > 1:
+            self.pos -= 1
+        else:
+            if self.node.symbol.name == "\r":
+                return
+            node = self.prev(self.node)
+            self.node = node
+            self.pos = len(self.node.symbol.name)
+            if isinstance(self.node.next_term, BOS):
+                self.pos -= 1
 
-    def __gt__(self, other):
-        if isinstance(other, Cursor):
-            if self.y > other.y:
-                return True
-            elif self.y == other.y and self.x > other.x:
-                return True
-        return False
+    def right(self):
+        if isinstance(self.node.symbol, MagicTerminal):
+            self.node = self.next(self.node)
+            self.pos = 1
+            return
+        if self.pos < len(self.node.symbol.name):
+            self.pos += 1
+        else:
+            node = self.next(self.node)
+            if node is self.node or node.symbol.name == "\r":
+                return
+            self.node = node
+            self.pos = 1
+
+    def next(self, startnode): # next visisble node
+        node = startnode.next_term
+        while isinstance(node.symbol, IndentationTerminal):
+            node = node.next_term
+
+        if isinstance(node.symbol, MagicTerminal):
+            node = self.next(node.symbol.ast.children[0])
+
+        if isinstance(node, EOS):
+            root = node.get_root()
+            lbox = root.get_magicterminal()
+            if lbox:
+                node = self.next(lbox)
+            else:
+                return startnode
+
+        # we can have indentation inside and outisde of a language box
+        while isinstance(node.symbol, IndentationTerminal):
+            node = node.next_term
+
+        return node
+
+    def prev(self, node): # previous visible node
+
+        node = node.prev_term
+
+        while isinstance(node.symbol, IndentationTerminal):
+            node = node.prev_term
+
+        if isinstance(node, BOS):
+            root = node.get_root()
+            lbox = root.get_magicterminal()
+            if lbox:
+                node = self.prev(lbox)
+
+        if isinstance(node.symbol, MagicTerminal):
+            node = self.prev(node.symbol.ast.children[-1])
+
+        while isinstance(node.symbol, IndentationTerminal):
+            node = node.prev_term
+
+        return node
+
+    def up(self, lines):
+        if self.line > 0:
+            x = self.get_x()
+            self.line -= 1
+            self.move_to_x(x, lines)
+
+    def down(self, lines):
+        if self.line < len(lines) - 1:
+            x = self.get_x()
+            self.line += 1
+            self.move_to_x(x, lines)
+
+    def move_to_x(self, x, lines):
+        node = lines[self.line].node
+        while x > 0:
+            newnode = self.next(node)
+            if newnode is node:
+                self.node = node
+                self.pos = len(node.symbol.name)
+                return
+            node = newnode
+            x -= len(node.symbol.name)
+            if node.symbol.name == "\r" or isinstance(node, EOS):
+                self.node = self.prev(node)
+                self.pos = len(self.node.symbol.name)
+                return
+        self.pos = len(node.symbol.name) + x
+        self.node = node
+
+    def get_x(self):
+        if self.node.symbol.name == "\r" or isinstance(self.node, BOS):
+            return 0
+
+        x = self.pos
+        node = self.prev(self.node)
+        while node.symbol.name != "\r" and not isinstance(node, BOS):
+            x += len(node.symbol.name)
+            node = self.prev(node)
+        return x
+
+    def inside(self):
+        return self.pos > 0 and self.pos < len(self.node.symbol.name)
+
+    def isend(self):
+        return self.pos == len(self.node.symbol.name)
 
     def __eq__(self, other):
         if isinstance(other, Cursor):
-            return self.x == other.x and self.y == other.y
+            return self.node is other.node and self.pos == other.pos
         return False
 
     def __ne__(self, other):
         return not self == other
 
     def __repr__(self):
-        return "Cursor(%s, %s)" % (self.x, self.y)
+        return "Cursor(%s, %s)" % (self.node, self.pos)
 
 class TreeManager(object):
     def __init__(self):
         self.lines = []             # storage for line objects
         self.mainroot = None        # root node (main language)
-        self.cursor = Cursor(0,0)
-        self.selection_start = Cursor(0,0)
-        self.selection_end = Cursor(0,0)
+        #self.cursor = Cursor(0,0)
+        #self.selection_start = Cursor(0,0)
+        #self.selection_end = Cursor(0,0)
         self.parsers = []           # stores all currently used parsers
         self.edit_rightnode = False # changes which node to select when inbetween two nodes
-        self.selected_lbox = None
 
     def set_font(self, fontm):
         #XXX obsolete when cursor is relative to nodes
@@ -114,6 +222,9 @@ class TreeManager(object):
         if len(self.parsers) == 1:
             self.lines.append(Line(parser.previous_version.parent.children[0]))
             self.mainroot = parser.previous_version.parent
+            self.cursor = Cursor(self.mainroot.children[0], 0, 0)
+            self.selection_start = self.cursor.copy()
+            self.selection_end = self.cursor.copy()
 
     def get_languagebox(self, node):
         root = node.get_root()
@@ -123,57 +234,11 @@ class TreeManager(object):
     # ============================ ANALYSIS ============================= #
 
     def get_node_from_cursor(self):
-        node = self.lines[self.cursor.y].node
-        x = 0
-        node, x = self.find_node_at_position(x, node)
-
-        if self.edit_rightnode:
-            node = node.next_term
-            # node is last in language box -> select next node outside magic box
-            if isinstance(node, EOS):
-                root = node.get_root()
-                lbox = root.get_magicterminal()
-                if lbox:
-                    node = lbox
-            # node is language box
-            elif isinstance(node.symbol, MagicTerminal):
-                node = node.symbol.ast.children[0]
-        if x == self.cursor.x:
-            inside = False
-        else:
-            inside = True
-
-        # check lbox
-        self.selected_lbox = self.get_languagebox(node)
-
-        return node, inside, x
+        return self.cursor.node
 
     def get_selected_node(self):
-        node, _, _ = self.get_node_from_cursor()
+        node = self.get_node_from_cursor()
         return node
-
-    # XXX becomes deprecated once we replace cursor.x by cursor.node
-    def find_node_at_position(self, x, node):
-        while x < self.cursor.x:
-            node = node.next_term
-            if isinstance(node, EOS):
-                root = node.get_root()
-                lbox = root.get_magicterminal()
-                if lbox:
-                    node = lbox
-                    continue
-                else:
-                    return None, x
-            if isinstance(node.symbol, IndentationTerminal):
-                continue
-            if isinstance(node.symbol, MagicTerminal):
-                node = node.symbol.ast.children[0]
-            if node.image is None or node.plain_mode:
-                x += len(node.symbol.name)
-            else:
-                x += math.ceil(node.image.width() * 1.0 / self.fontwt)
-
-        return node, x
 
     def get_nodes_from_selection(self):
         cur_start = min(self.selection_start, self.selection_end)
@@ -283,7 +348,7 @@ class TreeManager(object):
             return NodeSize(len(node.symbol.name), 1)
 
     def getLookaheadList(self):
-        selected_node, _, _ = self.get_node_from_cursor()
+        selected_node = self.get_node_from_cursor()
         root = selected_node.get_root()
         lrp = self.get_parser(root)
         return lrp.get_next_symbols_list(selected_node.state)
@@ -291,10 +356,18 @@ class TreeManager(object):
     # ============================ MODIFICATIONS ============================= #
 
     def key_home(self):
-        self.cursor.x = 0
+        node = self.cursor.node
+        while not (node.symbol.name == "\r" or isinstance(node, BOS)):
+            node = node.prev_term
+        self.cursor.node = node
+        self.cursor.pos = len(node.symbol.name)
 
     def key_end(self):
-        self.cursor.x = self.lines[self.cursor.y].width
+        node = self.cursor.node.next_term
+        while not (node.symbol.name == "\r" or isinstance(node, EOS)):
+            node = node.next_term
+        self.cursor.node = node.prev_term
+        self.cursor.pos = len(self.cursor.node.symbol.name)
 
     def key_normal(self, text):
         indentation = 0
@@ -303,16 +376,16 @@ class TreeManager(object):
             self.deleteSelection()
 
         if text == "\r":
-            indentation = self.get_indentation(self.cursor.y)
+            indentation = self.get_indentation(self.cursor.line)
             if indentation is None:
                 indentation = 0
             text += " " * indentation
 
-        node, inside, x = self.get_node_from_cursor()
+        node = self.get_node_from_cursor()
         self.edit_rightnode = False
         # edit node
-        if inside:
-            internal_position = len(node.symbol.name) - (x - self.cursor.x)
+        if self.cursor.inside():
+            internal_position = self.cursor.pos #len(node.symbol.name) - (x - self.cursor.x)
             node.insert(text, internal_position)
         else:
             # append to node: [node newtext] [next node]
@@ -329,12 +402,13 @@ class TreeManager(object):
                 node = TextNode(Terminal(""))
                 old.insert_after(node)
             else:
-                pos = len(node.symbol.name)
+                pos = self.cursor.pos#len(node.symbol.name)
             node.insert(text, pos)
-
-        self.cursor.x += len(text)
+            self.cursor.node = node
+        self.cursor.pos += len(text)
 
         self.relex(node)
+        self.cursor.fix()
         self.fix_cursor_on_image()
         self.post_keypress(text)
         self.reparse(node)
@@ -344,23 +418,25 @@ class TreeManager(object):
         node = self.get_selected_node()
         if node.image is not None and not node.plain_mode:
             return
-        if self.cursor.y > 0 and self.cursor.x == 0:
-            self.cursor_movement(QtCore.Qt.Key_Up)
-            #self.repaint() # XXX store line width in line_info to avoid unnecessary redrawing
-            self.cursor.x = self.lines[self.cursor.y].width
-        elif self.cursor.x > 0:
-            self.cursor.x -= 1
-        self.key_delete()
+        if self.cursor.node.symbol.name == "\r":
+            #self.cursor.up()
+            #self.key
+            self.cursor.node = self.cursor.prev(self.cursor.node)
+            self.cursor.line -= 1
+        else:
+            self.cursor.left()
+        if not node is self.cursor.node:
+            self.key_delete()
 
     def key_delete(self):
-        node, inside, x = self.get_node_from_cursor()
+        node = self.get_node_from_cursor()
 
         if self.hasSelection():
             self.deleteSelection()
             return
 
-        if inside: # cursor inside a node
-            internal_position = len(node.symbol.name) - (x - self.cursor.x)
+        if self.cursor.inside(): # cursor inside a node
+            internal_position = self.cursor.pos
             self.last_delchar = node.backspace(internal_position)
             self.relex(node)
             repairnode = node
@@ -376,15 +452,14 @@ class TreeManager(object):
             while isinstance(node.symbol, IndentationTerminal):
                 node = node.next_term
             if isinstance(node.symbol, MagicTerminal):
-                self.edit_rightnode = True
+                self.leave_languagebox()
                 self.key_delete()
-                self.edit_rightnode = False
                 return
             if node.image and not node.plain_mode:
                 return
             if node.symbol.name == "\r":
                 self.remove_indentation_nodes(node.next_term)
-                self.delete_linebreak(self.cursor.y, node)
+                self.delete_linebreak(self.cursor.line, node)
             self.last_delchar = node.backspace(0)
             repairnode = node
 
@@ -432,13 +507,13 @@ class TreeManager(object):
             self.selection_end = self.cursor.copy()
 
     def add_languagebox(self, language):
-        node, inside, x = self.get_node_from_cursor()
+        node = self.get_node_from_cursor()
         newnode = self.create_languagebox(language)
-        if not inside:
+        if not self.cursor.inside():
             node.insert_after(newnode)
         else:
             node = node
-            internal_position = len(node.symbol.name) - (x - self.cursor.x)
+            internal_position = self.cursor.pos
             text1 = node.symbol.name[:internal_position]
             text2 = node.symbol.name[internal_position:]
             node.symbol.name = text1
@@ -450,11 +525,19 @@ class TreeManager(object):
             self.relex(node)
             self.relex(node2)
         self.edit_rightnode = True # writes next char into magic ast
+        self.cursor.node = newnode.symbol.ast.children[0]
+        self.cursor.pos = 0
         self.reparse(newnode)
 
     def leave_languagebox(self):
-        self.edit_rightnode = True # writes next char into magic ast
-        self.get_node_from_cursor()
+        if isinstance(self.cursor.node.next_term.symbol, MagicTerminal) and self.cursor.isend():
+            self.cursor.node = self.cursor.node.next_term.symbol.ast.children[0]
+            self.cursor.pos = 0
+        else:
+            lbox = self.get_languagebox(self.cursor.node)
+            if lbox:
+                self.cursor.node = lbox
+                self.cursor.pos = 0
 
     def create_languagebox(self, language):
         lbox = self.create_node("<%s>" % language.name, lbox=True)
@@ -496,14 +579,13 @@ class TreeManager(object):
 
     def post_keypress(self, text):
         lines_before = len(self.lines)
-        self.rescan_linebreaks(self.cursor.y)
+        self.rescan_linebreaks(self.cursor.line)
         new_lines = len(self.lines) - lines_before
         for i in range(new_lines+1):
-            self.rescan_indentations(self.cursor.y+i)
+            self.rescan_indentations(self.cursor.line+i)
 
         if text != "" and text[0] == "\r":
-            self.cursor_movement(QtCore.Qt.Key_Down)
-            self.cursor.x = len(text)-1
+            self.cursor.line += 1
 
     def copySelection(self):
         nodes, diff_start, diff_end = self.get_nodes_from_selection()
@@ -594,33 +676,17 @@ class TreeManager(object):
         cur = self.cursor
 
         if key == QtCore.Qt.Key_Up:
-            if self.cursor.y > 0:
-                self.cursor.y -= 1
-                if self.cursor.x > self.lines[cur.y].width:
-                    self.cursor.x = self.lines[cur.y].width
+            self.cursor.up(self.lines)
         elif key == QtCore.Qt.Key_Down:
-            if self.cursor.y < len(self.lines) - 1:
-                self.cursor.y += 1
-                if self.cursor.x > self.lines[cur.y].width:
-                    self.cursor.x = self.lines[cur.y].width
+            self.cursor.down(self.lines)
         elif key == QtCore.Qt.Key_Left:
-            if self.cursor.x > 0:
-                node = self.get_selected_node()
-                if node.image and not node.plain_mode:
-                    s = self.get_nodesize_in_chars(node)
-                    self.cursor.x -= s.w
-                else:
-                    self.cursor.x -= 1
+            self.cursor.left()
         elif key == QtCore.Qt.Key_Right:
-            if self.cursor.x < self.lines[cur.y].width:
-                self.cursor.x += 1
-                node = self.get_selected_node()
-                if node.image and not node.plain_mode:
-                    s = self.get_nodesize_in_chars(node)
-                    self.cursor.x += s.w - 1
-        self.fix_cursor_on_image() #XXX refactor (obsolete after refactoring cursor)
+            self.cursor.right()
+        #self.fix_cursor_on_image() #XXX refactor (obsolete after refactoring cursor)
 
     def fix_cursor_on_image(self):
+        return
         node, _, x = self.get_node_from_cursor()
         if node.image and not node.plain_mode:
             self.cursor.x = x
@@ -828,7 +894,7 @@ class TreeManager(object):
 
     def import_file(self, text):
         # init
-        self.cursor = Cursor(0,0)
+        self.cursor = Cursor(self.get_bos(),0,0)
         for p in self.parsers[1:]:
             del p
         # convert linebreaks

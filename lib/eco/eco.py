@@ -218,7 +218,7 @@ class NodeEditor(QFrame):
         selection_end = max(self.tm.selection_start, self.tm.selection_end)
         start_lbox = self.get_languagebox(node)
 
-        self.selected_lbox = self.tm.selected_lbox
+        self.selected_lbox = self.tm.get_languagebox(self.tm.cursor.node)
 
         if start_lbox and self.selected_lbox is start_lbox:
             lbox += 1
@@ -248,6 +248,8 @@ class NodeEditor(QFrame):
             if isinstance(node, EOS):
                 self.draw_selection(paint, node, line, selection_start, selection_end, y)
                 lbnode = self.get_languagebox(node)
+                if self.cursor.node is lbnode:
+                    self.draw_cursor(paint, x, 5 + y * self.fontht)
                 if lbnode:
                     lbox -= 1
                     node = lbnode.next_term
@@ -293,7 +295,16 @@ class NodeEditor(QFrame):
                 self.lines[line].height = 1 # reset height
 
             # draw cursor
-            if line == self.cursor.y and x/self.fontwt >= self.cursor.x and draw_cursor:
+            if node is self.cursor.node:
+                draw_x = max(0, x-dx)
+                if node.symbol.name == "\r":
+                    cursor_pos = 0
+                else:
+                    cursor_pos = self.cursor.pos
+                self.draw_cursor(paint, draw_x + cursor_pos * self.fontwt, 5 + y * self.fontht)
+
+
+            if False and line == self.cursor.y and x/self.fontwt >= self.cursor.x and draw_cursor:
                 draw_cursor_at = QRect(0 + self.cursor.x * self.fontwt, 5 + y * self.fontht, 0, self.fontht - 3)
                 paint.drawRect(draw_cursor_at)
 
@@ -330,6 +341,10 @@ class NodeEditor(QFrame):
 
         return x, y, line
 
+    def draw_cursor(self, paint, x, y):
+        draw_cursor_at = QRect(x, y, 0, self.fontht - 3)
+        paint.drawRect(draw_cursor_at)
+
     def draw_vertical_squiggly_line(self, paint, x, y):
         paint.setPen(Qt.CustomDashLine)
         pen = paint.pen()
@@ -354,6 +369,7 @@ class NodeEditor(QFrame):
         paint.setPen(Qt.SolidLine)
 
     def draw_selection(self, paint, node, line, selection_start, selection_end, y):
+        return
         # draw selection
         if node.lookup == "<return>" or node is self.tm.get_eos():
             if line >= selection_start.y and line <= selection_end.y:
@@ -379,6 +395,7 @@ class NodeEditor(QFrame):
             paint.setPen(QPen(QColor(highlighter.get_color(node))))
             text = node.symbol.name
             paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text)
+            #print("drawing node", text, "at", x,y)
             dx = len(text) * self.fontwt
             dy = 0
         return dx, dy
@@ -399,11 +416,11 @@ class NodeEditor(QFrame):
 
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
-            cursor = self.coordinate_to_cursor(e.x(), e.y())
-            self.tm.cursor = cursor
-            self.tm.selection_start = cursor.copy()
-            self.tm.selection_end = cursor.copy()
-            self.tm.fix_cursor_on_image()
+            self.coordinate_to_cursor(e.x(), e.y())
+           # self.tm.cursor = cursor
+            self.tm.selection_start = self.tm.cursor.copy()
+            self.tm.selection_end = self.tm.cursor.copy()
+            #self.tm.fix_cursor_on_image()
             self.getWindow().showLookahead()
             self.update()
 
@@ -427,14 +444,13 @@ class NodeEditor(QFrame):
 
     def cursor_to_coordinate(self):
         y = 0
-        for l in self.tm.lines[:self.cursor.y]:
+        for l in self.tm.lines[:self.cursor.line]:
             y += l.height * self.fontht
-        x = self.tm.cursor.x * self.fontwt
+        x = self.tm.cursor.get_x() * self.fontwt
         y = y - self.getWindow().ui.scrollArea.verticalScrollBar().value() * self.fontht
         return (x,y)
 
     def coordinate_to_cursor(self, x, y):
-        result = Cursor(0,0)
 
         mouse_y = y / self.fontht
         first_line = self.paint_start[0]
@@ -442,23 +458,16 @@ class NodeEditor(QFrame):
 
         y = y_offset
         line = first_line
-        while line < len(self.lines) - 1:
+        while line < len(self.tm.lines) - 1:
             y += self.tm.lines[line].height
             if y > mouse_y:
                 break
             line += 1
-        result.y = line
 
+        self.tm.cursor.line = line
         cursor_x = x / self.fontwt
+        self.tm.cursor.move_to_x(cursor_x, self.tm.lines)
 
-        if cursor_x < 0:
-            result.x = 0
-        elif cursor_x <= self.tm.lines[result.y].width:
-            result.x = cursor_x
-        else:
-            result.x = self.tm.lines[result.y].width
-
-        return result
 
     def mouseMoveEvent(self, e):
         # apparaently this is only called when a mouse button is clicked while
@@ -523,7 +532,7 @@ class NodeEditor(QFrame):
             self.tm.key_normal(text)
 
         self.getWindow().btReparse([])
-        self.fix_scrollbars()
+        #self.fix_scrollbars()
         self.update()
         self.getWindow().showLookahead()
 
