@@ -48,7 +48,7 @@ class Cursor(object):
             else:
                 return
 
-        if self.pos > 1:
+        if self.pos > 1 and not self.node.image and not self.node.plain_mode:
             self.pos -= 1
         else:
             if self.node.symbol.name == "\r":
@@ -71,7 +71,10 @@ class Cursor(object):
             if node is self.node or node.symbol.name == "\r":
                 return
             self.node = node
-            self.pos = 1
+            if node.image and not node.plain_mode:
+                self.pos = len(node.symbol.name)
+            else:
+                self.pos = 1
 
     def next(self, startnode): # next visisble node
         node = startnode.next_term
@@ -382,7 +385,9 @@ class TreeManager(object):
             text += " " * indentation
 
         node = self.get_node_from_cursor()
-        self.edit_rightnode = False
+        if node.image and not node.plain_mode:
+            self.leave_languagebox()
+            node = self.get_node_from_cursor()
         # edit node
         if self.cursor.inside():
             internal_position = self.cursor.pos #len(node.symbol.name) - (x - self.cursor.x)

@@ -297,10 +297,13 @@ class NodeEditor(QFrame):
             # draw cursor
             if node is self.cursor.node:
                 draw_x = max(0, x-dx)
+                cursor_pos = self.cursor.pos
+
                 if node.symbol.name == "\r":
                     cursor_pos = 0
-                else:
-                    cursor_pos = self.cursor.pos
+                if node.image and not node.plain_mode:
+                    draw_x = x
+                    cursor_pos = 0
                 self.draw_cursor(paint, draw_x + cursor_pos * self.fontwt, 5 + y * self.fontht)
 
 
