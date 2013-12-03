@@ -204,6 +204,11 @@ class TreeManager(object):
     def get_mainparser(self):
         return self.parsers[0][0]
 
+    def delete_parser(self, root):
+        for p in self.parsers:
+            if p[0].previous_version.parent is root:
+                self.parsers.remove(p)
+
     def get_parser(self, root):
         for parser, lexer, lang in self.parsers:
             if parser.previous_version.parent is root:
@@ -481,10 +486,11 @@ class TreeManager(object):
                 # XXX add function to tree to ast: is_empty
                 if magic and isinstance(next_node, EOS) and isinstance(previous_node, BOS):
                     # language box is empty -> delete it and all references
+                    self.cursor.node = self.cursor.prev(magic)
+                    self.cursor.pos = len(self.cursor.node.symbol.name)
+                    repairnode = self.cursor.node
                     magic.parent.remove_child(magic)
-                    self.magic_tokens.remove(id(magic))
-                    del self.parsers[root]
-                    del self.lexers[root]
+                    self.delete_parser(root)
                 else:
                     # normal node is empty -> remove it from AST
                     node.parent.remove_child(node)
