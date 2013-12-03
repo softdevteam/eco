@@ -416,6 +416,8 @@ class TreeManager(object):
 
     def key_backspace(self):
         node = self.get_selected_node()
+        if node is self.mainroot.children[0]:
+            return
         if node.image is not None and not node.plain_mode:
             return
         if self.cursor.node.symbol.name == "\r":
@@ -425,8 +427,7 @@ class TreeManager(object):
             self.cursor.line -= 1
         else:
             self.cursor.left()
-        if not node is self.cursor.node:
-            self.key_delete()
+        self.key_delete()
 
     def key_delete(self):
         node = self.get_node_from_cursor()
