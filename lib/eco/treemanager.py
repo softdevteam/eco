@@ -382,17 +382,14 @@ class TreeManager(object):
     # ============================ MODIFICATIONS ============================= #
 
     def key_home(self):
-        node = self.cursor.node
-        while not (node.symbol.name == "\r" or isinstance(node, BOS)):
-            node = node.prev_term
-        self.cursor.node = node
-        self.cursor.pos = len(node.symbol.name)
+        self.cursor.node = self.lines[self.cursor.line].node
+        self.cursor.pos = len(self.cursor.node.symbol.name)
 
     def key_end(self):
-        node = self.cursor.node.next_term
-        while not (node.symbol.name == "\r" or isinstance(node, EOS)):
-            node = node.next_term
-        self.cursor.node = node.prev_term
+        if self.cursor.line < len(self.lines)-1:
+            self.cursor.node = self.cursor.prev(self.lines[self.cursor.line+1].node)
+        else:
+            self.cursor.node = self.cursor.prev(self.mainroot.children[-1])
         self.cursor.pos = len(self.cursor.node.symbol.name)
 
     def key_normal(self, text):
