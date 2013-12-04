@@ -76,10 +76,16 @@ class LineNumbers(QFrame):
         paint.begin(self)
         paint.setPen(QColor("grey"))
         paint.setFont(self.font)
+
+        scrollbar_height = self.window().ui.scrollArea.horizontalScrollBar().geometry().height()
+
         for y, line, indent in self.info:
+            if self.fontht + y*self.fontht > self.geometry().height() - scrollbar_height:
+                break
             text = str(line)# + "|" + str(indent)
             x = self.geometry().width() - len(text) * self.fontwt - self.fontwt
             paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text +":")
+
         paint.end()
         self.info = []
 
