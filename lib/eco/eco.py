@@ -529,7 +529,7 @@ class NodeEditor(QFrame):
             self.tm.key_normal(text)
 
         self.getWindow().btReparse([])
-        #self.fix_scrollbars()
+        self.fix_scrollbars()
         self.update()
         self.getWindow().showLookahead()
 
@@ -555,14 +555,19 @@ class NodeEditor(QFrame):
 
         # fix vertical bar
         if y < 0:
-            self.getWindow().ui.scrollArea.decVSlider()
+            while y < 0:
+                self.getWindow().ui.scrollArea.decVSlider()
+                y += self.fontht
         if y+3 > self.geometry().height(): # the 3 is the padding of the canvas
-            self.getWindow().ui.scrollArea.incVSlider()
+            while y+3 > self.geometry().height():
+                self.getWindow().ui.scrollArea.incVSlider()
+                y -= self.fontht
 
         # fix horizontal bar
-        if self.cursor.x < -1 * self.geometry().x() / self.fontwt:
+        cursor_x = self.cursor.get_x()
+        if cursor_x < -1 * self.geometry().x() / self.fontwt:
             self.getWindow().ui.scrollArea.decHSlider()
-        if self.cursor.x > self.parentWidget().geometry().width()/self.fontwt + self.getWindow().ui.scrollArea.horizontalScrollBar().value():
+        if cursor_x > self.parentWidget().geometry().width()/self.fontwt + self.getWindow().ui.scrollArea.horizontalScrollBar().value():
             self.getWindow().ui.scrollArea.incHSlider()
 
     # ========================== AST modification stuff ========================== #
