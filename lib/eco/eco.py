@@ -201,15 +201,13 @@ class NodeEditor(QFrame):
 
         line = internal_line
         node = self.tm.lines[line].node
-        if node.symbol.name == "\r":
-            node = node.next_term # ignore \r if it is startnode
-
 
         self.paint_nodes(paint, node, x, y, line, max_y)
 
 
     #XXX if starting node is inside language box, init lbox with amout of languge boxes
     def paint_nodes(self, paint, node, x, y, line, max_y, lbox=0):
+        first_node = node
         selected_language = self.tm.mainroot
         error_node = self.tm.get_mainparser().error_node
 
@@ -282,7 +280,7 @@ class NodeEditor(QFrame):
             self.draw_selection(paint, node, line, selection_start, selection_end, y)
 
             # after we drew a return, update line information
-            if node.lookup == "<return>":
+            if node.lookup == "<return>" and not node is first_node:
                 self.getWindow().ui.fLinenumbers.info.append((y,line, self.lines[line].indent))
                 # draw lbox to end of line
                 if draw_lbox:
