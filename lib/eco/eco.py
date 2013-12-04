@@ -197,7 +197,7 @@ class NodeEditor(QFrame):
         y = visual_line - startline # start drawing outside of viewport to display partial images
         self.paint_start = (internal_line, y)
 
-        max_y = self.geometry().height()/self.fontht
+        max_y = self.geometry().height() / self.fontht
 
         line = internal_line
         node = self.tm.lines[line].node
@@ -553,13 +553,15 @@ class NodeEditor(QFrame):
         self.cursor = self.tm.cursor
         x, y = self.cursor_to_coordinate()
 
+        scrollbar_height = self.getWindow().ui.scrollArea.horizontalScrollBar().geometry().height()
+
         # fix vertical bar
         if y < 0:
             while y < 0:
                 self.getWindow().ui.scrollArea.decVSlider()
                 y += self.fontht
-        if y+3 > self.geometry().height(): # the 3 is the padding of the canvas
-            while y+3 > self.geometry().height():
+        if y+3 > self.geometry().height() - scrollbar_height: # the 3 is the padding of the canvas
+            while y+3 > self.geometry().height() - scrollbar_height:
                 self.getWindow().ui.scrollArea.incVSlider()
                 y -= self.fontht
 
