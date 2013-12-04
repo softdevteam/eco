@@ -447,10 +447,9 @@ class TreeManager(object):
         if node.image is not None and not node.plain_mode:
             return
         if self.cursor.node.symbol.name == "\r":
-            #self.cursor.up()
-            #self.key
             self.cursor.node = self.cursor.prev(self.cursor.node)
             self.cursor.line -= 1
+            self.cursor.pos = len(self.cursor.node.symbol.name)
         else:
             self.cursor.left()
         self.key_delete()
