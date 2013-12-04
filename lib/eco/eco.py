@@ -428,21 +428,17 @@ class NodeEditor(QFrame):
             self.update()
 
     def mouseDoubleClickEvent(self, e):
-        # XXX can be moved to treemanager once cursor.x is relative to nodes
         if e.button() == Qt.LeftButton:
-            self.tm.cursor = self.coordinate_to_cursor(e.x(), e.y())
-            selected_node, _, _ = self.tm.get_node_from_cursor()
-            if selected_node.image is None:
+            self.coordinate_to_cursor(e.x(), e.y())
+            node = self.tm.get_node_from_cursor()
+            if node.image is None:
                 return
 
-            self.tm.fix_cursor_on_image()
-            if selected_node.plain_mode is False:
-                selected_node.plain_mode = True
-                self.tm.cursor.x -= math.ceil(selected_node.image.width() * 1.0 / self.fontwt)
-                self.tm.cursor.x += len(selected_node.symbol.name)
+            if node.plain_mode is False:
+                node.plain_mode = True
+                self.tm.cursor.pos = len(node.symbol.name)
             else:
-                selected_node.plain_mode = False
-                self.tm.fix_cursor_on_image()
+                node.plain_mode = False
             self.update()
 
     def cursor_to_coordinate(self):

@@ -8,6 +8,13 @@ from grammars.grammars import lang_dict
 
 import math
 
+class FontManager(object):
+    def __init__(self):
+        self.fontht = 0
+        self.fontwt = 0
+
+fontmanager = FontManager()
+
 class NodeSize(object):
     def __init__(self, w, h):
         self.w = w
@@ -48,7 +55,7 @@ class Cursor(object):
             else:
                 return
 
-        if self.pos > 1 and not self.node.image and not self.node.plain_mode:
+        if self.pos > 1 and (not self.node.image or self.node.plain_mode):
             self.pos -= 1
         else:
             if self.node.symbol.name == "\r":
@@ -140,7 +147,10 @@ class Cursor(object):
                 self.pos = len(node.symbol.name)
                 return
             node = newnode
-            x -= len(node.symbol.name)
+            if node.image and not node.plain_mode:
+                x -= self.get_nodesize_in_chars(node).w
+            else:
+                x -= len(node.symbol.name)
             if node.symbol.name == "\r" or isinstance(node, EOS):
                 self.node = self.prev(node)
                 self.pos = len(self.node.symbol.name)
@@ -152,12 +162,26 @@ class Cursor(object):
         if self.node.symbol.name == "\r" or isinstance(self.node, BOS):
             return 0
 
-        x = self.pos
+        if self.node.image and not self.node.plain_mode:
+            x = self.get_nodesize_in_chars(self.node).w
+        else:
+            x = self.pos
         node = self.prev(self.node)
         while node.symbol.name != "\r" and not isinstance(node, BOS):
-            x += len(node.symbol.name)
+            if node.image and not node.plain_mode:
+                x += self.get_nodesize_in_chars(node).w
+            else:
+                x += len(node.symbol.name)
             node = self.prev(node)
         return x
+
+    def get_nodesize_in_chars(self, node):
+        if node.image:
+            w = math.ceil(node.image.width() * 1.0 / fontmanager.fontwt)
+            h = math.ceil(node.image.height() * 1.0 / fontmanager.fontht)
+            return NodeSize(w, h)
+        else:
+            return NodeSize(len(node.symbol.name), 1)
 
     def inside(self):
         return self.pos > 0 and self.pos < len(self.node.symbol.name)
@@ -191,6 +215,8 @@ class TreeManager(object):
         self.fontm = fontm
         self.fontht = self.fontm.height() + 3
         self.fontwt = self.fontm.width(" ")
+        fontmanager.fontwt = self.fontwt
+        fontmanager.fontht = self.fontht
 
     def hasSelection(self):
         return self.selection_start != self.selection_end
@@ -346,14 +372,6 @@ class TreeManager(object):
             return len(node.symbol.name)
 
         return 0
-
-    def get_nodesize_in_chars(self, node):
-        if node.image:
-            w = math.ceil(node.image.width() * 1.0 / self.fontwt)
-            h = math.ceil(node.image.height() * 1.0 / self.fontht)
-            return NodeSize(w, h)
-        else:
-            return NodeSize(len(node.symbol.name), 1)
 
     def getLookaheadList(self):
         selected_node = self.get_node_from_cursor()
