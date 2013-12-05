@@ -74,7 +74,7 @@ class Cursor(object):
         if self.pos < len(self.node.symbol.name):
             self.pos += 1
         else:
-            node = self.find_next_visible(node.next_term)
+            node = self.find_next_visible(node)
             if node.symbol.name == "\r":
                 return
             if isinstance(node, EOS):
