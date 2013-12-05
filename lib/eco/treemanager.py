@@ -45,43 +45,39 @@ class Cursor(object):
             self.node = self.node.next_term
 
     def left(self):
-        if isinstance(self.node, BOS):
-            root = self.node.get_root()
-            lbox = root.get_magicterminal()
-            if lbox:
-                node = self.prev(lbox)
-                self.pos = len(node.symbol.name)
-                self.node = node
-            else:
-                return
-
-        if self.pos > 1 and (not self.node.image or self.node.plain_mode):
+        node = self.find_previous_visible(self.node)
+        if isinstance(node, BOS):
+            return
+        if not node is self.node:
+            self.node = node
+            self.pos = len(node.symbol.name)
+        if self.pos > 1 and (not node.image or node.plain_mode):
             self.pos -= 1
         else:
-            if self.node.symbol.name == "\r":
-                return
-            node = self.prev(self.node)
+            node = self.find_previous_visible(node.prev_term)
             self.node = node
-            self.pos = len(self.node.symbol.name)
-            if isinstance(self.node.next_term, BOS):
-                self.pos -= 1
+            self.pos = len(node.symbol.name)
 
     def right(self):
         if isinstance(self.node.symbol, MagicTerminal):
-            self.node = self.next(self.node)
-            self.pos = 1
+            node = self.find_next_visible(self.node.next_term)
+        else:
+            node = self.find_next_visible(self.node)
+        if isinstance(node, EOS):
             return
+        if not node is self.node:
+            self.node = node
+            self.pos = 0
         if self.pos < len(self.node.symbol.name):
             self.pos += 1
         else:
-            node = self.next(self.node)
-            if node is self.node or node.symbol.name == "\r":
+            node = self.find_next_visible(node.next_term)
+            if isinstance(node, EOS):
                 return
             self.node = node
+            self.pos = 1
             if node.image and not node.plain_mode:
                 self.pos = len(node.symbol.name)
-            else:
-                self.pos = 1
 
     def next(self, startnode): # next visisble node
         node = startnode.next_term
@@ -125,6 +121,49 @@ class Cursor(object):
             node = node.prev_term
 
         return node
+
+    def find_next_visible(self, node):
+        while not self.is_visible(node):
+            if isinstance(node, EOS):
+                root = node.get_root()
+                lbox = root.get_magicterminal()
+                if lbox:
+                    node = lbox.next_term
+                    continue
+                else:
+                    return node
+            elif isinstance(node.symbol, MagicTerminal):
+                node = node.symbol.ast.children[0]
+                continue
+            node = node.next_term
+        return node
+
+    def find_previous_visible(self, node):
+        while not self.is_visible(node):
+            if isinstance(node, BOS):
+                root = node.get_root()
+                lbox = root.get_magicterminal()
+                if lbox:
+                    node = lbox.prev_term
+                    continue
+                else:
+                    return node
+            elif isinstance(node.symbol, MagicTerminal):
+                node = node.symbol.ast.children[-1]
+                continue
+            node = node.prev_term
+        return node
+
+    def is_visible(self, node):
+        if isinstance(node, IndentationTerminal):
+            return False
+        if isinstance(node, BOS):
+            return False
+        if isinstance(node, EOS):
+            return False
+        if isinstance(node.symbol, MagicTerminal):
+            return False
+        return True
 
     def up(self, lines):
         if self.line > 0:
