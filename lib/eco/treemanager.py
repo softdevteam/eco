@@ -46,6 +46,8 @@ class Cursor(object):
 
     def left(self):
         node = self.find_previous_visible(self.node)
+        if node.symbol.name == "\r":
+            return
         if isinstance(node, BOS):
             return
         if not node is self.node:
@@ -72,6 +74,8 @@ class Cursor(object):
             self.pos += 1
         else:
             node = self.find_next_visible(node.next_term)
+            if node.symbol.name == "\r":
+                return
             if isinstance(node, EOS):
                 return
             self.node = node
