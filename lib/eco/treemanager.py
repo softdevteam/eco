@@ -230,6 +230,8 @@ class Cursor(object):
         return self.pos > 0 and self.pos < len(self.node.symbol.name)
 
     def isend(self):
+        if isinstance(self.node.symbol, MagicTerminal):
+            return True
         return self.pos == len(self.node.symbol.name)
 
     def __eq__(self, other):
