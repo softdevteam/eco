@@ -45,7 +45,9 @@ class Cursor(object):
             self.node = self.node.next_term
 
     def left(self):
-        node = self.find_previous_visible(self.node)
+        node = self.node
+        if not self.is_visible(node):
+            node = self.find_previous_visible(self.node)
         if node.symbol.name == "\r":
             return
         if isinstance(node, BOS):
@@ -56,14 +58,13 @@ class Cursor(object):
         if self.pos > 1 and (not node.image or node.plain_mode):
             self.pos -= 1
         else:
-            node = self.find_previous_visible(node.prev_term)
+            node = self.find_previous_visible(node)
             self.node = node
             self.pos = len(node.symbol.name)
 
     def right(self):
-        if isinstance(self.node.symbol, MagicTerminal):
-            node = self.find_next_visible(self.node.next_term)
-        else:
+        node = self.node
+        if not self.is_visible(node):
             node = self.find_next_visible(self.node)
         if isinstance(node, EOS):
             return
@@ -127,6 +128,8 @@ class Cursor(object):
         return node
 
     def find_next_visible(self, node):
+        if self.is_visible(self.node) or isinstance(node.symbol, MagicTerminal):
+            node = self.node.next_term
         while not self.is_visible(node):
             if isinstance(node, EOS):
                 root = node.get_root()
@@ -143,6 +146,8 @@ class Cursor(object):
         return node
 
     def find_previous_visible(self, node):
+        if self.is_visible(self.node):
+            node = self.node.prev_term
         while not self.is_visible(node):
             if isinstance(node, BOS):
                 root = node.get_root()
