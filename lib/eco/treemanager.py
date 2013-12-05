@@ -84,52 +84,9 @@ class Cursor(object):
             if node.image and not node.plain_mode:
                 self.pos = len(node.symbol.name)
 
-    def next(self, startnode): # next visisble node
-        node = startnode.next_term
-        while isinstance(node.symbol, IndentationTerminal):
-            node = node.next_term
-
-        if isinstance(node.symbol, MagicTerminal):
-            node = self.next(node.symbol.ast.children[0])
-
-        if isinstance(node, EOS):
-            root = node.get_root()
-            lbox = root.get_magicterminal()
-            if lbox:
-                node = self.next(lbox)
-            else:
-                return startnode
-
-        # we can have indentation inside and outisde of a language box
-        while isinstance(node.symbol, IndentationTerminal):
-            node = node.next_term
-
-        return node
-
-    def prev(self, node): # previous visible node
-
-        node = node.prev_term
-
-        while isinstance(node.symbol, IndentationTerminal):
-            node = node.prev_term
-
-        if isinstance(node, BOS):
-            root = node.get_root()
-            lbox = root.get_magicterminal()
-            if lbox:
-                node = self.prev(lbox)
-
-        if isinstance(node.symbol, MagicTerminal):
-            node = self.prev(node.symbol.ast.children[-1])
-
-        while isinstance(node.symbol, IndentationTerminal):
-            node = node.prev_term
-
-        return node
-
     def find_next_visible(self, node):
-        if self.is_visible(self.node) or isinstance(node.symbol, MagicTerminal):
-            node = self.node.next_term
+        if self.is_visible(node) or isinstance(node.symbol, MagicTerminal):
+            node = node.next_term
         while not self.is_visible(node):
             if isinstance(node, EOS):
                 root = node.get_root()
@@ -146,8 +103,8 @@ class Cursor(object):
         return node
 
     def find_previous_visible(self, node):
-        if self.is_visible(self.node):
-            node = self.node.prev_term
+        if self.is_visible(node):
+            node = node.prev_term
         while not self.is_visible(node):
             if isinstance(node, BOS):
                 root = node.get_root()
@@ -189,7 +146,7 @@ class Cursor(object):
     def move_to_x(self, x, lines):
         node = lines[self.line].node
         while x > 0:
-            newnode = self.next(node)
+            newnode = self.find_next_visible(node)
             if newnode is node:
                 self.node = node
                 self.pos = len(node.symbol.name)
@@ -200,7 +157,7 @@ class Cursor(object):
             else:
                 x -= len(node.symbol.name)
             if node.symbol.name == "\r" or isinstance(node, EOS):
-                self.node = self.prev(node)
+                self.node = self.find_previous_visible(node)
                 self.pos = len(self.node.symbol.name)
                 return
         self.pos = len(node.symbol.name) + x
@@ -214,13 +171,13 @@ class Cursor(object):
             x = self.get_nodesize_in_chars(self.node).w
         else:
             x = self.pos
-        node = self.prev(self.node)
+        node = self.find_previous_visible(self.node)
         while node.symbol.name != "\r" and not isinstance(node, BOS):
             if node.image and not node.plain_mode:
                 x += self.get_nodesize_in_chars(node).w
             else:
                 x += len(node.symbol.name)
-            node = self.prev(node)
+            node = self.find_previous_visible(node)
         return x
 
     def get_nodesize_in_chars(self, node):
@@ -437,9 +394,9 @@ class TreeManager(object):
 
     def key_end(self):
         if self.cursor.line < len(self.lines)-1:
-            self.cursor.node = self.cursor.prev(self.lines[self.cursor.line+1].node)
+            self.cursor.node = self.cursor.find_previous_visible(self.lines[self.cursor.line+1].node)
         else:
-            self.cursor.node = self.cursor.prev(self.mainroot.children[-1])
+            self.cursor.node = self.cursor.find_previous_visible(self.mainroot.children[-1])
         self.cursor.pos = len(self.cursor.node.symbol.name)
 
     def key_normal(self, text):
