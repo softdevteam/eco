@@ -596,6 +596,7 @@ class TreeManager(object):
         return lbox
 
     def surround_with_languagebox(self, language):
+        #XXX if partly selected node, need to split it
         nodes, _, _ = self.get_nodes_from_selection()
         appendnode = nodes[0].prev_term
         self.edit_rightnode = False
