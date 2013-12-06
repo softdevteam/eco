@@ -312,7 +312,7 @@ class TreeManager(object):
         diff_end = len(end_node.symbol.name)
 
         if cur_end.inside():
-            diff_end = end_node.pos
+            diff_end = cur_end.pos
 
         if not cur_start.inside():
             start = start_node.next_term
