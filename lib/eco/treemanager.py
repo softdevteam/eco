@@ -204,6 +204,18 @@ class Cursor(object):
     def __ne__(self, other):
         return not self == other
 
+    def __gt__(self, other):
+        if self.line > other.line:
+            return True
+        if self.line < other.line:
+            return False
+        if self.get_x() > other.get_x():
+            return True
+        return False
+
+    def __lt__(self, other):
+        return not (self > other or self == other)
+
     def __repr__(self):
         return "Cursor(%s, %s)" % (self.node, self.pos)
 
