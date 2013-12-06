@@ -704,8 +704,7 @@ class TreeManager(object):
         cur_end = max(self.selection_start, self.selection_end)
         self.cursor = cur_start.copy()
         self.selection_end = cur_start.copy()
-        self.changed_line = cur_start.y
-        del self.lines[cur_start.y+1:cur_end.y+1]
+        del self.lines[cur_start.line+1:cur_end.line+1]
         self.selection_start = self.cursor.copy()
         self.selection_end = self.cursor.copy()
 
