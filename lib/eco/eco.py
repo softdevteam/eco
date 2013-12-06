@@ -250,7 +250,6 @@ class NodeEditor(QFrame):
                 continue
 
             if isinstance(node, EOS):
-                self.draw_selection(paint, node, line, selection_start, selection_end, y)
                 lbnode = self.get_languagebox(node)
                 if self.cursor.node is lbnode:
                     self.draw_cursor(paint, x, 5 + y * self.fontht)
@@ -277,13 +276,18 @@ class NodeEditor(QFrame):
                     if not node.image or node.plain_mode:
                         paint.fillRect(QRectF(x,3 + y*self.fontht, len(node.symbol.name)*self.fontwt, self.fontht), color)
 
+            # prepare selection drawing
+            if node is selection_start.node:
+                draw_selection_start = (x + selection_start.pos * self.fontwt, y, line)
+
+            if node is selection_end.node:
+                draw_selection_end = (x + selection_end.pos * self.fontwt, y, line)
+
             # draw node
             dx, dy = self.paint_node(paint, node, x, y, highlighter)
             x += dx
             #y += dy
             self.lines[line].height = max(self.lines[line].height, dy)
-
-            self.draw_selection(paint, node, line, selection_start, selection_end, y)
 
             # after we drew a return, update line information
             if node.lookup == "<return>" and not node is first_node:
@@ -332,6 +336,8 @@ class NodeEditor(QFrame):
                 else:
                     self.draw_squiggly_line(paint,x,y,length)
 
+        self.draw_selection(paint, draw_selection_start, draw_selection_end)
+
         self.getWindow().ui.fLinenumbers.info.append((y,line, self.lines[line].indent))
         # paint infobox
         if False:
@@ -375,20 +381,18 @@ class NodeEditor(QFrame):
         paint.drawLine(x+2, y+1, x+2+length, y+1)
         paint.setPen(Qt.SolidLine)
 
-    def draw_selection(self, paint, node, line, selection_start, selection_end, y):
-        return
-        # draw selection
-        if node.lookup == "<return>" or node is self.tm.get_eos():
-            if line >= selection_start.y and line <= selection_end.y:
-                if line == selection_start.y:
-                    draw_start = selection_start.x
-                else:
-                    draw_start = 0
-                if line < selection_end.y:
-                    draw_len = self.lines[line].width - draw_start
-                else:
-                    draw_len = selection_end.x - draw_start
-                paint.fillRect(QRectF(draw_start*self.fontwt, 3+y*self.fontht, draw_len*self.fontwt, self.fontht), QColor(0,0,255,100))
+    def draw_selection(self, paint, draw_selection_start, draw_selection_end):
+        x1, y1, line1 = draw_selection_start
+        x2, y2, line2 = draw_selection_end
+        if y1 == y2:
+            paint.fillRect(QRectF(x1, 3 + y1 * self.fontht, x2-x1, self.fontht), QColor(0,0,255,100))
+        else:
+            paint.fillRect(QRectF(x1, 3 + y1 * self.fontht, self.tm.lines[line1].width*self.fontwt - x1, self.fontht), QColor(0,0,255,100))
+            y = y1 + self.tm.lines[line1].height
+            for i in range(line1+1, line2):
+                paint.fillRect(QRectF(0, 3 + y * self.fontht, self.tm.lines[i].width*self.fontwt, self.fontht), QColor(0,0,255,100))
+                y = y + self.tm.lines[i].height
+            paint.fillRect(QRectF(0, 3 + y2 * self.fontht, x2, self.fontht), QColor(0,0,255,100))
 
     def paint_node(self, paint, node, x, y, highlighter):
         dx, dy = (0, 0)
@@ -475,7 +479,8 @@ class NodeEditor(QFrame):
     def mouseMoveEvent(self, e):
         # apparaently this is only called when a mouse button is clicked while
         # the mouse is moving
-        self.tm.selection_end = self.coordinate_to_cursor(e.x(), e.y())
+        self.coordinate_to_cursor(e.x(), e.y())
+        self.tm.selection_end = self.tm.cursor.copy()
         self.update()
 
     def XXXkeyPressEvent(self, e):
