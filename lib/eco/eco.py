@@ -220,6 +220,8 @@ class NodeEditor(QFrame):
         highlighter = self.get_highlighter(node)
         selection_start = min(self.tm.selection_start, self.tm.selection_end)
         selection_end = max(self.tm.selection_start, self.tm.selection_end)
+        draw_selection_start = (0,0,0)
+        draw_selection_end = (0,0,0)
         start_lbox = self.get_languagebox(node)
 
         self.selected_lbox = self.tm.get_languagebox(self.tm.cursor.node)
