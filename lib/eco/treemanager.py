@@ -481,7 +481,7 @@ class TreeManager(object):
             self.relex(node)
             repairnode = node
         else: # between two nodes
-            node = node.next_terminal() # delete should edit the node to the right from the selected node
+            node = self.cursor.find_next_visible(node) # delete should edit the node to the right from the selected node
             # if lbox is selected, select first node in lbox
             if isinstance(node, EOS):
                 lbox = self.get_languagebox(node)
