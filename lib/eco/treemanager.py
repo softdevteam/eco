@@ -788,7 +788,10 @@ class TreeManager(object):
 
     def rescan_indentations(self, y):
         if not self.is_logical_line(y):
-            return
+            self.remove_indentation_nodes(self.lines[y].node.next_term)
+            y += 1
+            while not self.is_logical_line(y):
+                y += 1
 
         before = self.lines[y].indent
         self.update_indentation_backwards(y)
