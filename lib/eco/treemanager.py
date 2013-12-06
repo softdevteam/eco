@@ -121,7 +121,7 @@ class Cursor(object):
         return node
 
     def is_visible(self, node):
-        if isinstance(node, IndentationTerminal):
+        if isinstance(node.symbol, IndentationTerminal):
             return False
         if isinstance(node, BOS):
             return False
