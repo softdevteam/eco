@@ -300,28 +300,23 @@ class TreeManager(object):
         if cur_start == cur_end:
             return
 
-        temp = self.cursor
-
-        self.cursor = cur_start
-        start_node, start_inbetween, start_x = self.get_node_from_cursor()
+        start_node = cur_start.node
         diff_start = 0
-        if start_inbetween:
-            diff_start = len(start_node.symbol.name) - (start_x - self.cursor.x)
+        if cur_start.inside():
+            diff_start = cur_start.pos
             include_start = True
         else:
             include_start = False
 
-        self.cursor = cur_end
-        end_node, end_inbetween, end_x = self.get_node_from_cursor()
+        end_node = cur_end.node
         diff_end = len(end_node.symbol.name)
 
-        if end_inbetween:
-            diff_end = len(end_node.symbol.name) - (end_x - self.cursor.x)
+        if cur_end.inside():
+            diff_end = end_node.pos
 
-        if not start_inbetween:
+        if not cur_start.inside():
             start = start_node.next_term
 
-        self.cursor = temp
 
         if start_node is end_node:
             return ([start_node], diff_start, diff_end)
@@ -637,8 +632,7 @@ class TreeManager(object):
         nodes, diff_start, diff_end = self.get_nodes_from_selection()
         if len(nodes) == 1:
             text = nodes[0].symbol.name[diff_start:diff_end]
-            QApplication.clipboard().setText(text)
-            return
+            return text
         new_nodes = []
         for node in nodes:
             if not isinstance(node.symbol, IndentationTerminal):
@@ -656,7 +650,7 @@ class TreeManager(object):
         return "".join(text)
 
     def pasteText(self, text):
-        node, inside, x = self.get_node_from_cursor()
+        node = self.get_node_from_cursor()
 
         if self.hasSelection():
             self.deleteSelection()
@@ -664,8 +658,8 @@ class TreeManager(object):
         text = text.replace("\r\n","\r")
         text = text.replace("\n","\r")
 
-        if inside:
-            internal_position = len(node.symbol.name) - (x - self.cursor.x)
+        if self.cursor.inside():
+            internal_position = self.cursor.pos
             node.insert(text, internal_position)
         else:
             #XXX same code as in key_normal
@@ -679,7 +673,8 @@ class TreeManager(object):
                 pos = len(node.symbol.name)
             node.insert(text, pos)
 
-        self.cursor.x += len(text)
+        self.cursor.pos += len(text)
+        self.cursor.fix()
         self.relex(node)
 
     def cutSelection(self):
