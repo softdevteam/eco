@@ -505,7 +505,7 @@ class TreeManager(object):
 
             # if node is empty, delete it and repair previous/next node
             if node.symbol.name == "" and not isinstance(node, BOS):
-                repairnode = node.prev_term
+                repairnode = self.cursor.find_previous_visible(node)
 
                 root = node.get_root()
                 magic = root.get_magicterminal()
@@ -514,7 +514,7 @@ class TreeManager(object):
                 # XXX add function to tree to ast: is_empty
                 if magic and isinstance(next_node, EOS) and isinstance(previous_node, BOS):
                     # language box is empty -> delete it and all references
-                    self.cursor.node = self.cursor.prev(magic)
+                    self.cursor.node = self.cursor.find_previous_visible(previous_node)
                     self.cursor.pos = len(self.cursor.node.symbol.name)
                     repairnode = self.cursor.node
                     magic.parent.remove_child(magic)
