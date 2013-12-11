@@ -118,6 +118,8 @@ class NodeEditor(QFrame):
         self.viewport_y = 0 # top visible line
 
     def reset(self):
+        self.getWindow().ui.scrollArea.horizontalScrollBar().setValue(0)
+        self.getWindow().ui.scrollArea.verticalScrollBar().setValue(0)
         self.update()
 
     def set_mainlanguage(self, parser, lexer, lang_name):
