@@ -582,10 +582,12 @@ class NodeEditor(QFrame):
 
         # fix horizontal bar
         cursor_x = self.cursor.get_x()
-        if cursor_x < -1 * self.geometry().x() / self.fontwt:
-            self.getWindow().ui.scrollArea.decHSlider()
-        if cursor_x > self.parentWidget().geometry().width()/self.fontwt + self.getWindow().ui.scrollArea.horizontalScrollBar().value():
+        while cursor_x < self.getWindow().ui.scrollArea.horizontalScrollBar().value():
+             self.getWindow().ui.scrollArea.decHSlider()
+        while cursor_x > self.parentWidget().geometry().width()/self.fontwt + self.getWindow().ui.scrollArea.horizontalScrollBar().value():
             self.getWindow().ui.scrollArea.incHSlider()
+            if self.getWindow().ui.scrollArea.horizontalScrollBar().value() == self.getWindow().ui.scrollArea.horizontalScrollBar().maximum():
+                break
 
     # ========================== AST modification stuff ========================== #
 
