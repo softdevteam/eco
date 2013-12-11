@@ -793,6 +793,9 @@ class TreeManager(object):
             if y < len(self.lines):
                 while not self.is_logical_line(y):
                     y += 1
+                    if y >= len(self.lines):
+                        return
+
             else:
                 return
 
