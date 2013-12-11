@@ -461,7 +461,7 @@ class TreeManager(object):
         if node.image is not None and not node.plain_mode:
             return
         if self.cursor.node.symbol.name == "\r":
-            self.cursor.node = self.cursor.prev(self.cursor.node)
+            self.cursor.node = self.cursor.find_previous_visible(self.cursor.node)
             self.cursor.line -= 1
             self.cursor.pos = len(self.cursor.node.symbol.name)
         else:
