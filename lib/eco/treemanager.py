@@ -237,6 +237,13 @@ class TreeManager(object):
         fontmanager.fontwt = self.fontwt
         fontmanager.fontht = self.fontht
 
+    def set_font_test(self, width, height):
+        # only needed for testing
+        self.fontht = height
+        self.fontwt = width
+        fontmanager.fontwt = self.fontwt
+        fontmanager.fontht = self.fontht
+
     def hasSelection(self):
         return self.selection_start != self.selection_end
 
