@@ -196,6 +196,7 @@ class Node(object):
                 # update terminal pointers
                 child.prev_term.next_term = child.next_term
                 child.next_term.prev_term = child.prev_term
+                self.mark_changed()
                 return
 
     def insert_after(self, node):

@@ -120,3 +120,26 @@ class Test_Indentation:
         node = self.treemanager.lines[4].node
         check_next_nodes(node, ["NEWLINE", "INDENT", "        ", "pass", "NEWLINE", "DEDENT", "DEDENT", "eos"])
 
+class Test_Python:
+
+    def setup_class(cls):
+        cls.lexer = IncrementalLexer(python275.priorities)
+        cls.parser = IncParser(python275.grammar, 1, True)
+        cls.parser.init_ast()
+        cls.ast = cls.parser.previous_version
+        cls.treemanager = TreeManager()
+        cls.treemanager.add_parser(cls.parser, cls.lexer, python275.name)
+
+        cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+    def test_bug_goto(self):
+        inputstring = "class Test:\r    def x():\r    pass\r"
+        for c in inputstring:
+            self.treemanager.key_normal(c)
+        for i in range(4): self.treemanager.key_backspace() # remove whitespace (unindent)
+        inputstring = "def y():"
+        for c in inputstring:
+            self.treemanager.key_normal(c)
+        for i in range(8):
+            self.treemanager.key_backspace() # shouldn't throw AssertionError goto != None
+
