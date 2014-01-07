@@ -155,11 +155,10 @@ class IncParser(object):
                                 la = self.left_breakdown(la)
                     else:
                     # PARSER WITHOUT OPTIMISATION
-                        t = la.next_terminal()
                         if la.lookup != "":
-                            lookup_symbol = Terminal(t.lookup)
+                            lookup_symbol = Terminal(la.lookup)
                         else:
-                            lookup_symbol = t.symbol
+                            lookup_symbol = la.symbol
                         element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
 
                         if self.shiftable(la):
