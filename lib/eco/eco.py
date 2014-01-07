@@ -795,11 +795,11 @@ class StateView(QtGui.QMainWindow):
         self.connect(self.ui.btShowWholeGraph, SIGNAL("clicked()"), self.showWholeGraph)
 
     def showWholeGraph(self):
-        self.viewer.create_pydot_graph(self.editor.lrp.graph)
+        self.viewer.create_pydot_graph(self.editor.tm.get_mainparser().graph)
         self.showImage(self.ui.gvStategraph, self.viewer.image)
 
     def showSingleState(self):
-        self.viewer.show_single_state(self.editor.lrp.graph, int(self.ui.leSingleState.text()))
+        self.viewer.show_single_state(self.editor.tm.get_mainparser().graph, int(self.ui.leSingleState.text()))
         self.showImage(self.ui.gvStategraph, self.viewer.image)
 
     def setEditor(self, editor):
