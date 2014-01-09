@@ -243,3 +243,38 @@ class Test_Indentation(Test_Python):
         assert self.treemanager.cursor.node.next_term.symbol.name == "x"
         for i in range(4): self.treemanager.key_normal(" ")
         assert self.parser.last_status == True
+
+    def test_indentation4(self):
+        self.reset()
+        assert self.parser.last_status == True
+        inputstring = """class Test:
+    def x():
+        x = 1
+        return x
+    def y():
+        y = 2
+        return y
+    def z():
+        z = 3
+        return z"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == True
+        assert isinstance(self.treemanager.cursor.node, BOS)
+
+        # move cursor to 'break'
+        self.move('down', 4)
+        self.move('right', 4)
+
+        # indent 'def y', 'y = 2' and 'return y'
+        assert self.treemanager.cursor.node.next_term.symbol.name == "def"
+        for i in range(4): self.treemanager.key_normal(" ")
+        assert self.parser.last_status == False
+        self.move('down', 1)
+        assert self.treemanager.cursor.node.next_term.symbol.name == "y"
+        for i in range(4): self.treemanager.key_normal(" ")
+        assert self.parser.last_status == True
+        self.move('down', 1)
+        self.move('left', 4)
+        assert self.treemanager.cursor.node.next_term.symbol.name == "return"
+        for i in range(4): self.treemanager.key_normal(" ")
+        assert self.parser.last_status == True
