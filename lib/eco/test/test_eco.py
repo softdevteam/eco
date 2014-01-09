@@ -82,6 +82,16 @@ class Test_Python:
         self.treemanager.add_parser(self.parser, self.lexer, python275.name)
         self.treemanager.set_font_test(7, 17)
 
+    def move(self, direction, times):
+        if direction == "up":
+            for i in range(times): self.treemanager.cursor_movement(QtCore.Qt.Key_Up)
+        if direction == "down":
+            for i in range(times): self.treemanager.cursor_movement(QtCore.Qt.Key_Down)
+        if direction == "left":
+            for i in range(times): self.treemanager.cursor_movement(QtCore.Qt.Key_Left)
+        if direction == "right":
+            for i in range(times): self.treemanager.cursor_movement(QtCore.Qt.Key_Right)
+
 class Test_Bugs(Test_Python):
 
     def test_bug_goto(self):
@@ -175,8 +185,8 @@ class Test_Indentation(Test_Python):
         assert isinstance(self.treemanager.cursor.node, BOS)
 
         # move cursor to 'break'
-        for i in range(9): self.treemanager.cursor_movement(QtCore.Qt.Key_Down)
-        for i in range(16): self.treemanager.cursor_movement(QtCore.Qt.Key_Right)
+        self.move('down', 9)
+        self.move('right', 16)
 
         assert self.treemanager.cursor.node.symbol.name == "                "
         assert self.treemanager.cursor.node.next_term.symbol.name == "break"
@@ -187,6 +197,8 @@ class Test_Indentation(Test_Python):
         # undo
         self.treemanager.key_backspace()
         assert self.parser.last_status == True
+
+        # dedent 'break' 2 times
         # dedent 4 spaces
         self.treemanager.key_backspace()
         self.treemanager.key_backspace()
