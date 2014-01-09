@@ -176,7 +176,7 @@ class Test_Indentation(Test_Python):
 
         # move cursor to 'break'
         for i in range(9): self.treemanager.cursor_movement(QtCore.Qt.Key_Down)
-        for i in range(6): self.treemanager.cursor_movement(QtCore.Qt.Key_Right)
+        for i in range(16): self.treemanager.cursor_movement(QtCore.Qt.Key_Right)
 
         assert self.treemanager.cursor.node.symbol.name == "                "
         assert self.treemanager.cursor.node.next_term.symbol.name == "break"
