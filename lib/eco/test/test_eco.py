@@ -214,3 +214,32 @@ class Test_Indentation(Test_Python):
         self.treemanager.key_backspace()
         assert self.parser.last_status == True
 
+    def test_indentation3(self):
+        self.reset()
+        assert self.parser.last_status == True
+        inputstring = """class Test:
+    def x():
+        return x
+    def y():
+        for i in range(10):
+            x = x + 1
+            if x > 10:
+                print("message")
+    def z():
+        pass"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == True
+        assert isinstance(self.treemanager.cursor.node, BOS)
+
+        # move cursor to 'break'
+        self.move('down', 4)
+        self.move('right', 8)
+
+        # indent 'for' and 'x = x + 1'
+        assert self.treemanager.cursor.node.next_term.symbol.name == "for"
+        for i in range(4): self.treemanager.key_normal(" ")
+        assert self.parser.last_status == False
+        self.move('down', 1)
+        assert self.treemanager.cursor.node.next_term.symbol.name == "x"
+        for i in range(4): self.treemanager.key_normal(" ")
+        assert self.parser.last_status == True
