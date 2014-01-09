@@ -64,7 +64,7 @@ class Test_Typing:
         self.treemanager.key_delete()
         assert self.treemanager.cursor.node.symbol.name == "3"
 
-class Test_Indentation:
+class Test_Python:
 
     def setup_class(cls):
         cls.lexer = IncrementalLexer(python275.priorities)
@@ -75,6 +75,41 @@ class Test_Indentation:
         cls.treemanager.add_parser(cls.parser, cls.lexer, python275.name)
 
         cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+    def reset(self):
+        self.parser.reset()
+        self.treemanager = TreeManager()
+        self.treemanager.add_parser(self.parser, self.lexer, python275.name)
+        self.treemanager.set_font_test(7, 17)
+
+class Test_Bugs(Test_Python):
+
+    def test_bug_goto(self):
+        inputstring = "class Test:\r    def x():\r    pass\r"
+        for c in inputstring:
+            self.treemanager.key_normal(c)
+        for i in range(4): self.treemanager.key_backspace() # remove whitespace (unindent)
+        inputstring = "def y():"
+        for c in inputstring:
+            self.treemanager.key_normal(c)
+        assert self.treemanager.cursor.node.symbol.name == ":"
+        for i in range(8):
+            self.treemanager.key_backspace() # shouldn't throw AssertionError goto != None
+
+    def test_bug_goto2(self):
+        self.reset()
+        inputstring = "class Test:\r    def x():\r    print()\r"
+        for c in inputstring:
+            self.treemanager.key_normal(c)
+        inputstring = "br"
+        for c in inputstring:
+            self.treemanager.key_normal(c)
+        assert self.treemanager.cursor.node.symbol.name == "br"
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace() # shouldn't throw AssertionError goto != None
+
+
+class Test_Indentation(Test_Python):
 
     def test_indentation(self):
         assert self.parser.last_status == True
@@ -120,26 +155,50 @@ class Test_Indentation:
         node = self.treemanager.lines[4].node
         check_next_nodes(node, ["NEWLINE", "INDENT", "        ", "pass", "NEWLINE", "DEDENT", "DEDENT", "eos"])
 
-class Test_Python:
+    def test_indentation2(self):
+        self.reset()
+        assert self.parser.last_status == True
+        inputstring = """class Test:
+    def x():
+        return x
+    def y():
+        execute_something()
+        for i in range(10):
+            x = x + 1
+            if x > 10:
+                print("message")
+                break
+    def z():
+        pass"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == True
+        assert isinstance(self.treemanager.cursor.node, BOS)
 
-    def setup_class(cls):
-        cls.lexer = IncrementalLexer(python275.priorities)
-        cls.parser = IncParser(python275.grammar, 1, True)
-        cls.parser.init_ast()
-        cls.ast = cls.parser.previous_version
-        cls.treemanager = TreeManager()
-        cls.treemanager.add_parser(cls.parser, cls.lexer, python275.name)
+        # move cursor to 'break'
+        for i in range(9): self.treemanager.cursor_movement(QtCore.Qt.Key_Down)
+        for i in range(6): self.treemanager.cursor_movement(QtCore.Qt.Key_Right)
 
-        cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+        assert self.treemanager.cursor.node.symbol.name == "                "
+        assert self.treemanager.cursor.node.next_term.symbol.name == "break"
 
-    def test_bug_goto(self):
-        inputstring = "class Test:\r    def x():\r    pass\r"
-        for c in inputstring:
-            self.treemanager.key_normal(c)
-        for i in range(4): self.treemanager.key_backspace() # remove whitespace (unindent)
-        inputstring = "def y():"
-        for c in inputstring:
-            self.treemanager.key_normal(c)
-        for i in range(8):
-            self.treemanager.key_backspace() # shouldn't throw AssertionError goto != None
+        # add space
+        self.treemanager.key_normal(" ")
+        assert self.parser.last_status == False
+        # undo
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == True
+        # dedent 4 spaces
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == False
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == True
+        # dedent 4 spaces
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == False
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == True
 

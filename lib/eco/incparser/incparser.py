@@ -355,3 +355,10 @@ class IncParser(object):
         self.stack = []
         self.ast_stack = []
         self.all_changes = []
+        self.undo = []
+        self.last_shift_state = 0
+        self.validating = False
+        self.last_status = False
+        self.error_node = None
+        self.previous_version = None
+        self.init_ast()

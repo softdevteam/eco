@@ -197,6 +197,7 @@ class Node(object):
                 child.prev_term.next_term = child.next_term
                 child.next_term.prev_term = child.prev_term
                 self.mark_changed()
+                self.changed = True
                 return
 
     def insert_after(self, node):
