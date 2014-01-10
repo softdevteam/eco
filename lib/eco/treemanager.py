@@ -26,6 +26,7 @@ class Line(object):
         self.height = height    # line height
         self.width = 0          # line width
         self.indent = 0         # line indentation
+        self.ws = 0
 
     def __repr__(self):
         return "Line(%s, width=%s, height=%s)" % (self.node, self.width, self.height)
@@ -802,15 +803,14 @@ class TreeManager(object):
                     y += 1
                     if y >= len(self.lines):
                         return
-
             else:
                 return
 
-        before = self.lines[y].indent
+        before = self.lines[y].ws
         self.update_indentation_backwards(y)
-        after = self.lines[y].indent
         #if after != before:
         self.repair_indentation(y)
+        after = self.lines[y].ws
 
         search_threshold = min(before, after)
 
@@ -830,15 +830,20 @@ class TreeManager(object):
 
             self.repair_indentation(i)
 
-            if self.lines[i].indent < search_threshold:
-                # repair everything up to the line that has smaller indentation
+            if self.lines[i].ws <= search_threshold:
+                # repair everything up to the line that has smaller indentation/whitespace
                 # than the changed line
                 break
+
             current_ws = ws
             current_indent = self.lines[i].indent
         return
 
     def repair_indentation(self, y):
+        # XXX when called by rescan_indentation the indentation leves of all
+        # lines are already correct. Setting the indent attribute of a line in
+        # this method is thus redundant. However this method is also used when
+        # importing a file.
         if y == 0:
             self.lines[y].indent = 0
             return
@@ -858,6 +863,7 @@ class TreeManager(object):
             # XXX move indentation change check up here using indent values
 
             this_whitespace = self.get_indentation(y)
+            self.lines[y].ws = this_whitespace
             dy = y - 1
             root = self.lines[y].node.get_root()
             other = self.lines[dy].node.get_root()
