@@ -734,6 +734,10 @@ class TreeManager(object):
             self.cursor.right()
         #self.fix_cursor_on_image() #XXX refactor (obsolete after refactoring cursor)
 
+    def cursor_reset(self):
+        self.cursor.line = 0
+        self.cursor.move_to_x(0, self.lines)
+
     def fix_cursor_on_image(self):
         return
         node, _, x = self.get_node_from_cursor()
