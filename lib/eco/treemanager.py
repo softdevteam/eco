@@ -779,6 +779,7 @@ class TreeManager(object):
         root = self.lines[y].node.get_root()
         ws = self.get_indentation(y)
         dy = y
+        found_smaller = False
         while dy > 0:
             dy = dy - 1
             if not self.is_logical_line(dy):
@@ -787,11 +788,15 @@ class TreeManager(object):
             if not self.is_same_language(root, other_root):
                 continue
             prev_ws = self.get_indentation(dy)
+            if ws < prev_ws:
+                found_smaller = True
+                continue
             if ws == prev_ws:
                 self.lines[y].indent = self.lines[dy].indent
                 return
             if ws > prev_ws:
-                self.lines[y].indent = self.lines[dy].indent + 1
+                if not found_smaller:
+                    self.lines[y].indent = self.lines[dy].indent + 1
                 return
 
     def rescan_indentations(self, y):
