@@ -61,6 +61,58 @@ calc1 = Language("Basic calculator",
 "[\\n\\r]":<return>
 """)
 
+calc_annotation = Language("Basic calculator (Annotated)",
+"""
+    E ::= T^^
+        | E "+^^" T
+    T ::= P^^
+        | T "*^^" P
+    T^^ ::= P^^
+        | T "*^^" P
+    P^^ ::= "INT^^"
+    P ::= "INT^^"
+""",
+"""
+"[0-9]+":INT
+"\+":+
+"\*":*
+"[ \\t]+":<ws>
+"[\\n\\r]":<return>
+""")
+
+johnstone_grammar = Language("Johnstone grammar",
+"""
+    S ::= "if^^" "(^" B ")^" S "else^" S
+        | "ID" "=^^" E
+    B ::= E "<^^" E
+    E ::= T "+^^" E
+        | T^^
+    T ::= "ID^^" | "INT^^"
+""",
+"""
+"if":if
+"else":else
+"[a-z]+":ID
+"[0-9]+":INT
+"\(":(
+"\)":)
+"\<":<
+"\+":+
+"\=":=
+"[ \\t]+":<ws>
+"[\\n\\r]":<return>
+""")
+
+annot_test = Language("Annotation test grammar",
+"""
+    T ::= "1^^"
+       | "1" "+^^" "1"
+""",
+"""
+"1":1
+"\+":+
+""")
+
 merge1 = Language("Grammar to test merging behaviour",
 """
     S ::= "a" | "ab"
@@ -959,7 +1011,7 @@ python_prolog = gops.add_alt("Python + Prolog", python275, "atom", "<Prolog>")
 #             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
 #             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
 
-languages = [calc1, python275, prolog, python_prolog, lisp, java15, java15_sql, java15_exp, sql, sql_java_exp, chemicals]
+languages = [calc1, calc_annotation, johnstone_grammar, annot_test, python275, prolog, python_prolog, lisp, java15, java15_sql, java15_exp, sql, sql_java_exp, chemicals]
 
 lang_dict = {}
 for l in languages:

@@ -218,7 +218,11 @@ class IncParser(object):
     def reduce(self, element):
         children = []
         for i in range(element.amount()):
-            children.insert(0, self.stack.pop())
+            c = self.stack.pop()
+            # apply folding information from grammar to tree nodes
+            fold = element.action.right[element.amount()-i-1].folding
+            c.symbol.folding = fold
+            children.insert(0, c)
         self.current_state = self.stack[-1].state #XXX
 
         goto = self.syntaxtable.lookup(self.current_state, element.action.left)
@@ -233,6 +237,23 @@ class IncParser(object):
         new_node = Node(element.action.left, goto.action, children)
         self.stack.append(new_node)
         self.current_state = new_node.state
+        self.add_alternate_version(new_node)
+
+    def add_alternate_version(self, node):
+        # add alternate (folded) versions for nodes to the tree
+        alternate = TextNode(node.symbol.__class__(node.symbol.name), node.state, [])
+        alternate.children = []
+        for i in range(len(node.children)):
+            c = node.children[i]
+            if c.symbol.folding == "^^":
+                while c.alternate is not None:
+                    c = c.alternate
+                alternate.symbol = c.symbol
+            elif c.symbol.folding == "^":
+                continue
+            else:
+                alternate.children.append(c)
+        node.alternate = alternate
 
     def left_breakdown(self, la):
         if len(la.children) > 0:

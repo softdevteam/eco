@@ -739,6 +739,9 @@ class ParseView(QtGui.QMainWindow):
         self.connect(self.ui.cb_toggle_ast, SIGNAL("clicked()"), self.refresh)
         self.connect(self.ui.cb_toggle_ws, SIGNAL("clicked()"), self.refresh)
         self.connect(self.ui.bt_show_sel_ast, SIGNAL("clicked()"), self.showAstSelection)
+        self.connect(self.ui.rb_view_parsetree, SIGNAL("clicked()"), self.refresh)
+        self.connect(self.ui.rb_view_linetree, SIGNAL("clicked()"), self.refresh)
+        self.connect(self.ui.rb_view_ast, SIGNAL("clicked()"), self.refresh)
 
         self.viewer = Viewer("pydot")
         self.ui.graphicsView.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform | QPainter.TextAntialiasing)
@@ -749,8 +752,12 @@ class ParseView(QtGui.QMainWindow):
     def refresh(self):
         whitespaces = self.ui.cb_toggle_ws.isChecked()
         if self.ui.cb_toggle_ast.isChecked():
-            self.viewer.get_tree_image(self.editor.tm.get_mainparser().previous_version.parent, [], whitespaces)
-            #self.viewer.get_terminal_tree(self.editor.tm.get_mainparser().previous_version.parent)
+            if self.ui.rb_view_parsetree.isChecked():
+                self.viewer.get_tree_image(self.editor.tm.get_mainparser().previous_version.parent, [], whitespaces)
+            elif self.ui.rb_view_linetree.isChecked():
+                self.viewer.get_terminal_tree(self.editor.tm.get_mainparser().previous_version.parent)
+            elif self.ui.rb_view_ast.isChecked():
+                self.viewer.get_tree_image(self.editor.tm.get_mainparser().previous_version.parent, [], whitespaces, ast=True)
             self.showImage(self.ui.graphicsView, self.viewer.image)
 
     def showImage(self, graphicsview, imagefile):

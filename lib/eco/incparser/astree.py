@@ -355,6 +355,7 @@ class TextNode(Node):
         self.image = None
         self.image_src = None
         self.plain_mode = False
+        self.alternate = None
 
         self.regex = ""
         self.text = ""

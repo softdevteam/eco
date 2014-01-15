@@ -39,6 +39,7 @@ class Rule(object):
 class Symbol(object):
     def __init__(self, name=""):
         self.name = name
+        self.folding = None
 
     def __eq__(self, other):
         if other.__class__ != self.__class__:
@@ -219,9 +220,23 @@ class Parser(object):
         mode = None
         for t in tokenlist:
             if t.name == "Nonterminal":
-                symbols_level[-1].append(Nonterminal(t.value))
+                if t.value.endswith("^^"):
+                    nt = Nonterminal(t.value[:-2])
+                    nt.folding = "^^"
+                else:
+                    nt = Nonterminal(t.value)
+                symbols_level[-1].append(nt)
             elif t.name == "Terminal":
-                symbols_level[-1].append(Terminal(t.value.strip("\"")))
+                stripped = t.value.strip("\"")
+                if stripped.endswith("^^"):
+                    terminal = Terminal(stripped[:-2])
+                    terminal.folding = "^^"
+                elif stripped.endswith("^"):
+                    terminal = Terminal(stripped[:-1])
+                    terminal.folding = "^"
+                else:
+                    terminal = Terminal(stripped)
+                symbols_level[-1].append(terminal)
                 if self.whitespaces:
                     symbols_level[-1].append(Nonterminal("WS"))
             elif t.name == "MagicTerminal":
