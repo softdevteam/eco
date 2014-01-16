@@ -250,6 +250,10 @@ class IncParser(object):
                     c = c.alternate
                 alternate.symbol = c.symbol
             elif c.symbol.folding == "^":
+                while c.alternate is not None:
+                    c = c.alternate
+                if c.children:
+                    alternate.children = c.children[:]
                 continue
             else:
                 alternate.children.append(c)
