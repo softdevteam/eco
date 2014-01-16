@@ -214,7 +214,8 @@ class Node(object):
                 newnode.left = c
                 newnode.right = c.right
                 c.right = newnode
-                newnode.right.left = newnode
+                if newnode.right:
+                    newnode.right.left = newnode
                 # update terminal pointers
                 newnode.prev_term = node
                 node.next_term.prev_term = newnode
