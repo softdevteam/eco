@@ -1,4 +1,4 @@
-from grammars.grammars import calc1, java15, python275
+from grammars.grammars import calc1, java15, python275, calc_annotation
 from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
@@ -67,6 +67,64 @@ class Test_Typing:
     def test_cursor_reset(self):
         self.treemanager.cursor_reset()
         assert isinstance(self.treemanager.cursor.node, BOS)
+
+class Test_AST_Conversion:
+
+    def setup_class(cls):
+        cls.lexer = IncrementalLexer(calc_annotation.priorities)
+        cls.parser = IncParser(calc_annotation.grammar, 1, False)
+        cls.parser.init_ast()
+        cls.ast = cls.parser.previous_version
+        cls.treemanager = TreeManager()
+        cls.treemanager.add_parser(cls.parser, cls.lexer, calc_annotation.name)
+
+        cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+    def test_ast_conversion(self):
+        inputstring = "1+2*3"
+        for c in inputstring:
+            self.treemanager.key_normal(c)
+        parsetree = self.parser.previous_version.parent
+        assert parsetree.symbol.name == "Root"
+        # test normal parse tree
+        E = parsetree.children[1]
+        assert E.symbol.name == "E"
+
+        E2 = E.children[0]
+        plus = E.children[1]
+        T = E.children[2]
+        assert E2.symbol.name == "E"
+        assert plus.symbol.name == "+"
+        assert T.symbol.name == "T"
+
+        assert E2.children[0].symbol.name == "T"
+        assert E2.children[0].children[0].symbol.name == "P"
+        assert E2.children[0].children[0].children[0].symbol.name == "1"
+
+        assert T.children[0].symbol.name == "T"
+        assert T.children[1].symbol.name == "*"
+        assert T.children[2].symbol.name == "P"
+
+        P = T.children[2]
+        T = T.children[0]
+        assert T.children[0].symbol.name == "P"
+        assert T.children[0].children[0].symbol.name == "2"
+        assert P.children[0].symbol.name == "3"
+
+        # test AST
+        plus = E.alternate
+        assert plus.symbol.name == "+"
+        assert plus.children[0].alternate.symbol.name == "1"
+        assert plus.children[1].alternate.symbol.name == "*"
+
+        T = plus.children[1]
+        assert T.alternate.symbol.name == "*"
+        assert T.children[0].alternate.symbol.name == "2"
+        assert T.children[2].alternate.symbol.name == "3"
+        # alternate children can be accessed in two ways
+        times = T.alternate
+        assert times.children[0].alternate.symbol.name == "2"
+        assert times.children[1].alternate.symbol.name == "3"
 
 class Test_Python:
 
