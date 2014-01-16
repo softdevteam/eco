@@ -37,9 +37,9 @@ class Rule(object):
         return "Rule(%s => %s)" % (self.symbol, self.alternatives)
 
 class Symbol(object):
-    def __init__(self, name=""):
+    def __init__(self, name="", folding=None):
         self.name = name
-        self.folding = None
+        self.folding = folding
 
     def __eq__(self, other):
         if other.__class__ != self.__class__:
@@ -120,8 +120,8 @@ class Parser(object):
         if self.whitespaces:
             ws_rule = Rule()
             ws_rule.symbol = Nonterminal("WS")
-            ws_rule.add_alternative([Terminal("<ws>"), Nonterminal("WS")])
-            ws_rule.add_alternative([Terminal("<return>"), Nonterminal("WS")])
+            ws_rule.add_alternative([Terminal("<ws>", "^"), Nonterminal("WS", "^")])
+            ws_rule.add_alternative([Terminal("<return>", "^"), Nonterminal("WS", "^")])
             ws_rule.add_alternative([]) # or empty
             self.rules[ws_rule.symbol] = ws_rule
 
@@ -221,28 +221,27 @@ class Parser(object):
         for t in tokenlist:
             if t.name == "Nonterminal":
                 if t.value.endswith("^^"):
-                    nt = Nonterminal(t.value[:-2])
-                    nt.folding = "^^"
+                    nt = Nonterminal(t.value[:-2], "^^")
+                elif t.value.endswith("^"):
+                    nt = Nonterminal(t.value[:-1], "^")
                 else:
                     nt = Nonterminal(t.value)
                 symbols_level[-1].append(nt)
             elif t.name == "Terminal":
                 stripped = t.value.strip("\"")
                 if stripped.endswith("^^"):
-                    terminal = Terminal(stripped[:-2])
-                    terminal.folding = "^^"
+                    terminal = Terminal(stripped[:-2], "^^")
                 elif stripped.endswith("^"):
-                    terminal = Terminal(stripped[:-1])
-                    terminal.folding = "^"
+                    terminal = Terminal(stripped[:-1], "^")
                 else:
                     terminal = Terminal(stripped)
                 symbols_level[-1].append(terminal)
                 if self.whitespaces:
-                    symbols_level[-1].append(Nonterminal("WS"))
+                    symbols_level[-1].append(Nonterminal("WS", "^"))
             elif t.name == "MagicTerminal":
                 symbols_level[-1].append(MagicTerminal(t.value))
                 if self.whitespaces:
-                    symbols_level[-1].append(Nonterminal("WS"))
+                    symbols_level[-1].append(Nonterminal("WS", "^"))
             elif t.name == "Alternative":
                 if mode == None:
                     rule.add_alternative(symbols_level.pop())

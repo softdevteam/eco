@@ -145,19 +145,19 @@ class Test_AST_Conversion:
         assert startrule.children[1].alternate.symbol.name == "if"
 
         if_node = startrule.children[1].alternate
-        assert if_node.children[2].alternate.symbol.name == "<"
-        assert if_node.children[4].alternate.symbol.name == "="
-        assert if_node.children[6].alternate.symbol.name == "="
+        assert if_node.children[0].alternate.symbol.name == "<"
+        assert if_node.children[1].alternate.symbol.name == "="
+        assert if_node.children[2].alternate.symbol.name == "="
 
-        le = if_node.children[2].alternate
+        le = if_node.children[0].alternate
         assert le.children[0].alternate.symbol.name == "x"
-        assert le.children[2].alternate.symbol.name == "y"
-        eq1 = if_node.children[4].alternate
+        assert le.children[1].alternate.symbol.name == "y"
+        eq1 = if_node.children[1].alternate
         assert eq1.children[0].symbol.name == "a" # 'a' wasn't folded so it doesn't have an alternative
-        assert eq1.children[3].alternate.symbol.name == "b"
-        eq2 = if_node.children[6].alternate
+        assert eq1.children[1].alternate.symbol.name == "b"
+        eq2 = if_node.children[2].alternate
         assert eq2.children[0].symbol.name == "c" # same as 'a'
-        assert eq2.children[3].alternate.symbol.name == "d"
+        assert eq2.children[1].alternate.symbol.name == "d"
 
 class Test_Python:
 
