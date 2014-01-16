@@ -1,4 +1,4 @@
-from grammars.grammars import calc1, java15, python275, calc_annotation
+from grammars.grammars import calc1, java15, python275, calc_annotation, johnstone_grammar
 from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
@@ -70,21 +70,19 @@ class Test_Typing:
 
 class Test_AST_Conversion:
 
-    def setup_class(cls):
-        cls.lexer = IncrementalLexer(calc_annotation.priorities)
-        cls.parser = IncParser(calc_annotation.grammar, 1, False)
-        cls.parser.init_ast()
-        cls.ast = cls.parser.previous_version
-        cls.treemanager = TreeManager()
-        cls.treemanager.add_parser(cls.parser, cls.lexer, calc_annotation.name)
+    def test_calculator(self):
+        lexer = IncrementalLexer(calc_annotation.priorities)
+        parser = IncParser(calc_annotation.grammar, 1, False)
+        parser.init_ast()
+        ast = parser.previous_version
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, calc_annotation.name)
+        treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
 
-        cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
-
-    def test_ast_conversion(self):
         inputstring = "1+2*3"
         for c in inputstring:
-            self.treemanager.key_normal(c)
-        parsetree = self.parser.previous_version.parent
+            treemanager.key_normal(c)
+        parsetree = parser.previous_version.parent
         assert parsetree.symbol.name == "Root"
         # test normal parse tree
         E = parsetree.children[1]
@@ -125,6 +123,41 @@ class Test_AST_Conversion:
         times = T.alternate
         assert times.children[0].alternate.symbol.name == "2"
         assert times.children[1].alternate.symbol.name == "3"
+
+    def test_johnstone_grammar(self):
+        grammar = johnstone_grammar
+        lexer = IncrementalLexer(grammar.priorities)
+        parser = IncParser(grammar.grammar, 1, True)
+        parser.init_ast()
+        ast = parser.previous_version
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, grammar.name)
+        treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+        inputstring = "if(x<y)a=b else c=d"
+        for c in inputstring:
+            treemanager.key_normal(c)
+        parsetree = parser.previous_version.parent
+        assert parsetree.symbol.name == "Root"
+        assert parsetree.children[1].symbol.name == "Startrule"
+        startrule = parsetree.children[1]
+        assert startrule.children[1].symbol.name == "S"
+        assert startrule.children[1].alternate.symbol.name == "if"
+
+        if_node = startrule.children[1].alternate
+        assert if_node.children[2].alternate.symbol.name == "<"
+        assert if_node.children[4].alternate.symbol.name == "="
+        assert if_node.children[6].alternate.symbol.name == "="
+
+        le = if_node.children[2].alternate
+        assert le.children[0].alternate.symbol.name == "x"
+        assert le.children[2].alternate.symbol.name == "y"
+        eq1 = if_node.children[4].alternate
+        assert eq1.children[0].symbol.name == "a" # 'a' wasn't folded so it doesn't have an alternative
+        assert eq1.children[3].alternate.symbol.name == "b"
+        eq2 = if_node.children[6].alternate
+        assert eq2.children[0].symbol.name == "c" # same as 'a'
+        assert eq2.children[3].alternate.symbol.name == "d"
 
 class Test_Python:
 
