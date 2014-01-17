@@ -124,12 +124,12 @@ class Viewer(object):
         if ast:
             if node.alternate:
                 node = node.alternate
-            try:
-                if node.symbol.folding:
-                    addtext = node.symbol.folding
-            except AttributeError:
-                pass
-        dotnode = pydot.Node(id(node), label=" %s " % node.symbol.name)#+addtext)
+        try:
+            if node.symbol.folding:
+                addtext = node.symbol.folding
+        except AttributeError:
+            pass
+        dotnode = pydot.Node(id(node), label=" %s " % node.symbol.name+addtext)
         if node.changed:
             dotnode.set('color','green')
         dotnode.set('fontsize', '10')
