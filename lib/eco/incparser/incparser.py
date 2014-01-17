@@ -249,12 +249,13 @@ class IncParser(object):
                 while c.alternate is not None:
                     c = c.alternate
                 alternate.symbol = c.symbol
+                for child in c.children:
+                    alternate.children.append(child)
             elif c.symbol.folding == "^":
                 while c.alternate is not None:
                     c = c.alternate
-                if c.children:
-                    alternate.children = c.children[:]
-                continue
+                for child in c.children:
+                    alternate.children.append(child)
             else:
                 alternate.children.append(c)
         node.alternate = alternate
