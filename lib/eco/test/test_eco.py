@@ -1,4 +1,4 @@
-from grammars.grammars import calc1, java15, python275, calc_annotation, johnstone_grammar
+from grammars.grammars import calc1, java15, python275, calc_annotation, johnstone_grammar, Language
 from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
@@ -158,6 +158,48 @@ class Test_AST_Conversion:
         eq2 = if_node.children[2].alternate
         assert eq2.children[0].symbol.name == "c" # same as 'a'
         assert eq2.children[1].alternate.symbol.name == "d"
+
+    def test_python_bug(self):
+        grammar = Language("Annotation test grammar",
+"""
+arith_expr ::= term^ arith_expr_loop^^
+arith_expr_loop ::= arith_expr_loop "+^^" term^
+                  | arith_expr_loop "-^^" term^
+                  |
+term ::= "1"
+""",
+"""
+"1":1
+"\+":+
+"\-":-
+""")
+        lexer = IncrementalLexer(grammar.priorities)
+        parser = IncParser(grammar.grammar, 1, True)
+        parser.init_ast()
+        ast = parser.previous_version
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, grammar.name)
+        treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+        inputstring = "1"
+        for c in inputstring:
+            treemanager.key_normal(c)
+
+        state4 = parser.graph.state_sets[4]
+        production = None
+        for element in state4.elements:
+            if element.p.left.name == "arith_expr":
+                production = element.p
+                break
+
+        assert production.right[1].name == "arith_expr_loop"
+        assert production.right[1].folding == "^^"
+        treemanager.key_normal("+")
+        assert production.right[1].name == "arith_expr_loop"
+        assert production.right[1].folding == "^^"
+        treemanager.key_normal("1")
+        assert production.right[1].name == "arith_expr_loop"
+        assert production.right[1].folding == "^^"
 
 class Test_Python:
 

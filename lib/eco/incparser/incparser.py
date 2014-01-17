@@ -234,7 +234,7 @@ class IncParser(object):
             self.undo.append((c, 'left', c.left))
             self.undo.append((c, 'right', c.right))
 
-        new_node = Node(element.action.left, goto.action, children)
+        new_node = Node(element.action.left.copy(), goto.action, children)
         self.stack.append(new_node)
         self.current_state = new_node.state
         self.add_alternate_version(new_node)

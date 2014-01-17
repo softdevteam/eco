@@ -53,6 +53,9 @@ class Symbol(object):
         #XXX unsafe hashfunction
         return hash(self.__class__.__name__ + self.name)
 
+    def copy(self):
+        return self.__class__(self.name, self.folding)
+
 class Terminal(Symbol):
     def __repr__(self):
         return "Terminal('%s')" % (repr(self.name),)
