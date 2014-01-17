@@ -231,12 +231,14 @@ class Parser(object):
                     nt = Nonterminal(t.value)
                 symbols_level[-1].append(nt)
             elif t.name == "Terminal":
-                stripped = t.value.strip("\"")
-                if stripped.endswith("^^"):
-                    terminal = Terminal(stripped[:-2], "^^")
-                elif stripped.endswith("^"):
-                    terminal = Terminal(stripped[:-1], "^")
+                if t.value.endswith("^^"):
+                    stripped = t.value[:-2].strip("\"")
+                    terminal = Terminal(stripped, "^^")
+                elif t.value.endswith("^"):
+                    stripped = t.value[:-1].strip("\"")
+                    terminal = Terminal(stripped, "^")
                 else:
+                    stripped = t.value.strip("\"")
                     terminal = Terminal(stripped)
                 symbols_level[-1].append(terminal)
                 if self.whitespaces:

@@ -26,7 +26,7 @@ whitespace = "( |\n|\r|\t)+"
 nonterminal = "[a-zA-Z_0-9]+(\^\^\^|\^\^|\^)?"  # e.g. E, T, Nonterminal
 magicterminal = "\<[a-zA-Z_0-9 \.]+\>"  # <sql>
 terminal = "\"([0-9]+|[a-zA-Z_]+|\+|-|\*|\/|\&|{|}|\t| |\n|\r|,|;)\""  # e.g. a, b, +, -
-terminal = "\"[^\"]*\""  # everthing except ticks
+terminal = "\"[^\"]*\"(\^\^\^|\^\^|\^)?"  # everthing except ticks
 mapsto = "::="
 alternative = "\|"
 option_start = "\["
