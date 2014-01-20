@@ -26,6 +26,7 @@ class Rule(object):
     def __init__(self):
         self.symbol = None
         self.alternatives = []
+        self.inserts = {}
 
     def add_alternative(self, alternative):
         # create symbol for empty alternative
@@ -221,6 +222,7 @@ class Parser(object):
         # the symbols_level and adding the pipe check to group
         symbols_level.append([]) # first symbols level
         mode = None
+        i = 0
         for t in tokenlist:
             if t.name == "Nonterminal":
                 if t.value.endswith("^^^"):
@@ -229,9 +231,14 @@ class Parser(object):
                     nt = Nonterminal(t.value[:-2], "^^")
                 elif t.value.endswith("^"):
                     nt = Nonterminal(t.value[:-1], "^")
+                elif t.value.endswith("<"):
+                    nt = Nonterminal(t.value[:-1], "<")
+                    rule.inserts[len(rule.alternatives)] = (i, nt)
+                    continue
                 else:
                     nt = Nonterminal(t.value)
                 symbols_level[-1].append(nt)
+                i = i + 1
             elif t.name == "Terminal":
                 if t.value.endswith("^^^"):
                     stripped = t.value[:-3].strip("\"")
@@ -246,16 +253,19 @@ class Parser(object):
                     stripped = t.value.strip("\"")
                     terminal = Terminal(stripped)
                 symbols_level[-1].append(terminal)
+                i = i + 1
                 if self.whitespaces:
                     symbols_level[-1].append(Nonterminal("WS", "^"))
             elif t.name == "MagicTerminal":
                 symbols_level[-1].append(MagicTerminal(t.value))
+                i = i + 1
                 if self.whitespaces:
                     symbols_level[-1].append(Nonterminal("WS", "^"))
             elif t.name == "Alternative":
                 if mode == None:
                     rule.add_alternative(symbols_level.pop())
                     symbols_level.append([])
+                    i = 0
             elif t.name in ["Loop_Start", "Option_Start", "Group_Start"]:
                 symbols_level.append([])
                 if t.name == "Group_Start":

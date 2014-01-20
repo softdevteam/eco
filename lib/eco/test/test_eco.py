@@ -6,6 +6,9 @@ from incparser.astree import BOS, EOS
 
 from PyQt4 import QtCore
 
+import pytest
+slow = pytest.mark.slow
+
 class Test_Typing:
 
     def setup_class(cls):
@@ -240,6 +243,99 @@ D ::= "d"
         assert S.alternate.children[1].symbol.name == "b"
         assert S.alternate.children[2].symbol.name == "D"
 
+    def test_tear_and_insert(self):
+        grammar = Language("Tear/Insert Test",
+"""
+S ::= "a" "b" C^^^ D C< "e"
+C ::= "c"
+D ::= "d"
+""",
+"""
+"a":a
+"b":b
+"c":c
+"d":d
+"e":e
+""")
+        lexer = IncrementalLexer(grammar.priorities)
+        parser = IncParser(grammar.grammar, 1, False)
+        parser.init_ast()
+        ast = parser.previous_version
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, grammar.name)
+        treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+        inputstring = "abcde"
+        for c in inputstring:
+            treemanager.key_normal(c)
+
+        parsetree = parser.previous_version.parent
+        assert parsetree.symbol.name == "Root"
+
+        assert parsetree.children[1].symbol.name == "S"
+        S = parsetree.children[1]
+        assert S.children[0].symbol.name == "a"
+        assert S.children[1].symbol.name == "b"
+        assert S.children[2].symbol.name == "C"
+        assert S.children[3].symbol.name == "D"
+        assert S.children[4].symbol.name == "e"
+
+        assert S.alternate.children[0].symbol.name == "a"
+        assert S.alternate.children[1].symbol.name == "b"
+        assert S.alternate.children[2].symbol.name == "D"
+        assert S.alternate.children[3].symbol.name == "C"
+        assert S.alternate.children[3].children[0].symbol.name == "c"
+        assert S.alternate.children[4].symbol.name == "e"
+
+    def test_tear_and_insert2(self):
+        grammar = Language("Tear/Insert Test",
+"""
+S ::= "a" "b" C^^^ "d" "e" C< "f" "g"
+    | "x" D^^^ "y" D< "z" "a" "b"
+C ::= "c"
+D ::= "d"
+""",
+"""
+"a":a
+"b":b
+"c":c
+"d":d
+"e":e
+"x":x
+"y":y
+"z":z
+""")
+        lexer = IncrementalLexer(grammar.priorities)
+        parser = IncParser(grammar.grammar, 1, False)
+        parser.init_ast()
+        ast = parser.previous_version
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, grammar.name)
+        treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+        inputstring = "xdyzab"
+        for c in inputstring:
+            treemanager.key_normal(c)
+
+        parsetree = parser.previous_version.parent
+        assert parsetree.symbol.name == "Root"
+
+        assert parsetree.children[1].symbol.name == "S"
+        S = parsetree.children[1]
+        assert S.children[0].symbol.name == "x"
+        assert S.children[1].symbol.name == "D"
+        assert S.children[2].symbol.name == "y"
+        assert S.children[3].symbol.name == "z"
+        assert S.children[4].symbol.name == "a"
+        assert S.children[5].symbol.name == "b"
+
+        assert S.alternate.children[0].symbol.name == "x"
+        assert S.alternate.children[1].symbol.name == "y"
+        assert S.alternate.children[2].symbol.name == "D"
+        assert S.alternate.children[3].symbol.name == "z"
+        assert S.alternate.children[4].symbol.name == "a"
+        assert S.alternate.children[5].symbol.name == "b"
+
 class Test_Python:
 
     def setup_class(cls):
@@ -455,6 +551,7 @@ class Test_Indentation(Test_Python):
         for i in range(4): self.treemanager.key_normal(" ")
         assert self.parser.last_status == True
 
+    @slow
     def test_indentation_stresstest(self):
         import random
         self.reset()

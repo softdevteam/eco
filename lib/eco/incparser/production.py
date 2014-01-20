@@ -25,6 +25,7 @@ class Production(object):
         self.left = left
         self.right = right
         self._hash = None
+        self.inserts = {}
 
     def __eq__(self, other):
         return self.left == other.left and self.right == other.right

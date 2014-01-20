@@ -237,15 +237,24 @@ class IncParser(object):
         new_node = Node(element.action.left.copy(), goto.action, children)
         self.stack.append(new_node)
         self.current_state = new_node.state
-        self.add_alternate_version(new_node)
+        self.add_alternate_version(new_node, element.action)
 
-    def add_alternate_version(self, node):
+    def add_alternate_version(self, node, production):
         # add alternate (folded) versions for nodes to the tree
         alternate = TextNode(node.symbol.__class__(node.symbol.name), node.state, [])
         alternate.children = []
+        teared = []
         for i in range(len(node.children)):
+            if production.inserts.has_key(i):
+                # insert teared nodes at right position
+                value = production.inserts[i]
+                for t in teared:
+                    if t.symbol.name == value.name:
+                        alternate.children.append(t)
             c = node.children[i]
             if c.symbol.folding == "^^^":
+                c.symbol.folding = None
+                teared.append(c)
                 continue
             elif c.symbol.folding == "^^":
                 while c.alternate is not None:
