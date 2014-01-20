@@ -201,6 +201,45 @@ term ::= "1"
         assert production.right[1].name == "arith_expr_loop"
         assert production.right[1].folding == "^^"
 
+    def test_tear(self):
+        grammar = Language("Tear Test",
+"""
+S ::= "a" "b" C^^^ D
+C ::= "c"
+D ::= "d"
+""",
+"""
+"a":a
+"b":b
+"c":c
+"d":d
+""")
+        lexer = IncrementalLexer(grammar.priorities)
+        parser = IncParser(grammar.grammar, 1, False)
+        parser.init_ast()
+        ast = parser.previous_version
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, grammar.name)
+        treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+        inputstring = "abcd"
+        for c in inputstring:
+            treemanager.key_normal(c)
+
+        parsetree = parser.previous_version.parent
+        assert parsetree.symbol.name == "Root"
+
+        assert parsetree.children[1].symbol.name == "S"
+        S = parsetree.children[1]
+        assert S.children[0].symbol.name == "a"
+        assert S.children[1].symbol.name == "b"
+        assert S.children[2].symbol.name == "C"
+        assert S.children[3].symbol.name == "D"
+
+        assert S.alternate.children[0].symbol.name == "a"
+        assert S.alternate.children[1].symbol.name == "b"
+        assert S.alternate.children[2].symbol.name == "D"
+
 class Test_Python:
 
     def setup_class(cls):

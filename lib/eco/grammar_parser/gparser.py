@@ -223,7 +223,9 @@ class Parser(object):
         mode = None
         for t in tokenlist:
             if t.name == "Nonterminal":
-                if t.value.endswith("^^"):
+                if t.value.endswith("^^^"):
+                    nt = Nonterminal(t.value[:-3], "^^^")
+                elif t.value.endswith("^^"):
                     nt = Nonterminal(t.value[:-2], "^^")
                 elif t.value.endswith("^"):
                     nt = Nonterminal(t.value[:-1], "^")
@@ -231,7 +233,10 @@ class Parser(object):
                     nt = Nonterminal(t.value)
                 symbols_level[-1].append(nt)
             elif t.name == "Terminal":
-                if t.value.endswith("^^"):
+                if t.value.endswith("^^^"):
+                    stripped = t.value[:-3].strip("\"")
+                    terminal = Terminal(stripped, "^^^")
+                elif t.value.endswith("^^"):
                     stripped = t.value[:-2].strip("\"")
                     terminal = Terminal(stripped, "^^")
                 elif t.value.endswith("^"):

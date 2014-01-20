@@ -245,7 +245,9 @@ class IncParser(object):
         alternate.children = []
         for i in range(len(node.children)):
             c = node.children[i]
-            if c.symbol.folding == "^^":
+            if c.symbol.folding == "^^^":
+                continue
+            elif c.symbol.folding == "^^":
                 while c.alternate is not None:
                     c = c.alternate
                 alternate.symbol = c.symbol
