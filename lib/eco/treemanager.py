@@ -983,6 +983,7 @@ class TreeManager(object):
         self.rescan_linebreaks(0)
         for y in range(len(self.lines)):
             self.repair_indentation(y)
+        self.reparse(bos)
         return
 
     def load_file(self, language_boxes):
