@@ -95,6 +95,12 @@ class LineNumbers(QFrame):
             max_width = max(max_width, self.fontm.width(str(line)+":"))
         return max_width
 
+    def change_font(self, font):
+        self.font = font[0]
+        self.fontm = QtGui.QFontMetrics(self.font)
+        self.fontht = self.fontm.height() + 3
+        self.fontwt = self.fontm.width(" ")
+
 class NodeEditor(QFrame):
 
     # ========================== init stuff ========================== #
@@ -891,6 +897,7 @@ class Window(QtGui.QMainWindow):
     def change_font(self):
         font = QFontDialog.getFont(self.ui.frame.font)
         self.ui.frame.change_font(font)
+        self.ui.fLinenumbers.change_font(font)
 
     def savefile(self):
         filename = QFileDialog.getSaveFileName()
