@@ -69,7 +69,7 @@ small_stmt ::= expr_stmt^^
              | print_stmt
              | del_stmt
              | pass_stmt^^
-             | flow_stmt
+             | flow_stmt^^
              | import_stmt
              | global_stmt
              | exec_stmt
@@ -77,9 +77,11 @@ small_stmt ::= expr_stmt^^
 
 expr_stmt ::= testlist augassign^ yield_expr
            | testlist^ augassign^ testlist^
+           | testlist^
            | expr_assgn^^
 
-expr_assgn ::= testlist^
+expr_assgn ::= testlist^ "=" testlist^
+             | testlist^ "=" yield_expr^
              | expr_assgn^ "=" testlist^
              | expr_assgn^ "=" yield_expr^
 
@@ -100,11 +102,11 @@ print_stmt_loop2 ::=                  "," test
 
 del_stmt ::= "del" exprlist
 pass_stmt ::= "pass"^^
-flow_stmt ::= break_stmt | continue_stmt | return_stmt | raise_stmt | yield_stmt
+flow_stmt ::= break_stmt | continue_stmt | return_stmt^^ | raise_stmt | yield_stmt
 break_stmt ::= "break"
 continue_stmt ::= "continue"
-return_stmt ::= "return"
-              | "return" testlist
+return_stmt ::= "return"^
+              | "return"^ testlist^
 yield_stmt ::= yield_expr
 raise_stmt ::= "raise"
              | "raise" test
@@ -155,8 +157,8 @@ assert_stmt ::= "assert" test
 
 compound_stmt ::= if_stmt | while_stmt | for_stmt | try_stmt | with_stmt | funcdef | classdef | decorated
 
-if_stmt ::= "if" test ":" suite if_stmt_loop1
-          | "if" test ":" suite if_stmt_loop1 "else" ":" suite
+if_stmt ::= "if"^^ test ":"^ suite if_stmt_loop1
+          | "if"^^ test ":"^ suite if_stmt_loop1 "else"^ ":"^ suite
 if_stmt_loop1 ::= if_stmt_loop1 "elif" test ":" suite
                 |
 
@@ -230,31 +232,31 @@ comp_op ::= "<"
           | "is" "not"
 
 expr ::= xor_expr^^
-       | expr^ "|"^^ xor_expr^
+       | expr "|"^^ xor_expr
 
 xor_expr ::= and_expr^^
-           | xor_expr^ "^"^^ and_expr^
+           | xor_expr "^"^^ and_expr
 
 and_expr ::= shift_expr^^
            | shift_expr "&"^^ and_expr
 
 shift_expr ::= arith_expr^^
-             | arith_expr "<<"^^ shift_expr^
-             | arith_expr ">>"^^ shift_expr^
+             | arith_expr "<<"^^ shift_expr
+             | arith_expr ">>"^^ shift_expr
 
 arith_expr ::= term^^
-             | term^ "+"^^ arith_expr
-             | term^ "-"^^ arith_expr
+             | term "+"^^ arith_expr
+             | term "-"^^ arith_expr
 
 term ::= factor^^
-       | factor^ "*"^^ term^
-       | factor^ "/"^^ term^
-       | factor^ "%"^^ term^
-       | factor^ "//"^^ term^
+       | factor "*"^^ term
+       | factor "/"^^ term
+       | factor "%"^^ term
+       | factor "//"^^ term
 
-factor ::= "+" factor^
-         | "-" factor^
-         | "~" factor^
+factor ::= "+" factor
+         | "-" factor
+         | "~" factor
          | power^^
 
 power ::= atom^^ power_loop^
