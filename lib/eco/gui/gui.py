@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'newgui.ui'
 #
-# Created: Wed Nov 27 15:12:54 2013
+# Created: Wed Jan 22 15:02:08 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -280,7 +280,6 @@ class Ui_MainWindow(object):
         self.actionStateGraph.setObjectName(_fromUtf8("actionStateGraph"))
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
-        self.menuFile.addAction(self.actionImport)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionSave)
         self.menuOptions.addAction(self.actionRandomDel)

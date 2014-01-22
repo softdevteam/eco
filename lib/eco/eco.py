@@ -880,19 +880,16 @@ class Window(QtGui.QMainWindow):
     def showParseView(self):
         self.parseview.show()
 
-    def importfile(self):
-        filename = QFileDialog.getOpenFileName()#"Open File", "", "Files (*.*)")
-        if not filename:
-            return
-        text = open(filename, "r").read()
-        # for some reason text has an additional newline
-        if text[-1] in ["\n", "\r"]:
-            text = text[:-1]
-        # key simulated opening
-        #self.ui.frame.insertText(text)
-        self.ui.frame.insertTextNoSim(text)
-        self.btReparse(None)
-        self.ui.frame.update()
+    def importfile(self, filename):
+        if filename:
+            text = open(filename, "r").read()
+            # for some reason text has an additional newline
+            if text[-1] in ["\n", "\r"]:
+                text = text[:-1]
+            # key simulated opening
+            self.ui.frame.insertTextNoSim(text)
+            self.btReparse(None)
+            self.ui.frame.update()
 
     def change_font(self):
         font = QFontDialog.getFont(self.ui.frame.font)
@@ -906,9 +903,11 @@ class Window(QtGui.QMainWindow):
 
     def openfile(self):
         filename = QFileDialog.getOpenFileName()
-        if filename:
+        if filename and filename.endsWith(".eco"):
             self.ui.frame.loadFromJson(filename)
             self.ui.frame.update()
+        else: # import
+            self.importfile(filename)
 
     def loadLanguage(self, item):
         self.language = languages[self.ui.list_languages.row(item)]

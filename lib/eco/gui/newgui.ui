@@ -485,7 +485,6 @@
     </property>
     <addaction name="actionNew"/>
     <addaction name="actionOpen"/>
-    <addaction name="actionImport"/>
     <addaction name="separator"/>
     <addaction name="actionSave"/>
    </widget>
