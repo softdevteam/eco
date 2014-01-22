@@ -24,8 +24,8 @@ from grammars import Language
 python275_annotated = Language("Python 2.7.5 (Annotated)",
 """
 
-file_input ::= file_input "NEWLINE"^
-             | file_input stmt
+file_input ::= file_input^ "NEWLINE"^
+             | file_input^ stmt^
              |
 
 decorator ::= "@" dotted_name "(" [arglist] ")" "NEWLINE"^
@@ -63,25 +63,25 @@ simple_stmt ::=
                 small_stmt simple_stmt_loop1^ ";"^ "NEWLINE"^
               | small_stmt simple_stmt_loop1^     "NEWLINE"^
 
-simple_stmt_loop1 ::= simple_stmt_loop1^ ";"^ small_stmt
+simple_stmt_loop1 ::= simple_stmt_loop1^ ";"^ small_stmt^
                     |
-small_stmt ::= expr_stmt^
-             | print_stmt^
-             | del_stmt^
+small_stmt ::= expr_stmt^^
+             | print_stmt
+             | del_stmt
              | pass_stmt^^
-             | flow_stmt^
-             | import_stmt^
-             | global_stmt^
-             | exec_stmt^
-             | assert_stmt^
+             | flow_stmt
+             | import_stmt
+             | global_stmt
+             | exec_stmt
+             | assert_stmt
 
-expr_stmt ::= testlist augassign yield_expr
-           | testlist augassign testlist
-           | testlist expr_stmt_loop1
+expr_stmt ::= testlist augassign^ yield_expr
+           | testlist^ augassign^ testlist^
+           | expr_assgn^^
 
-expr_stmt_loop1 ::= expr_stmt_loop1 "="            testlist
-                  | expr_stmt_loop1 "=" yield_expr
-                  |
+expr_assgn ::= testlist^
+             | expr_assgn^ "=" testlist^
+             | expr_assgn^ "=" yield_expr^
 
 augassign ::= "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>=" | "**=" | "//="
 
@@ -201,24 +201,22 @@ old_test ::= or_test | old_lambdef
 old_lambdef ::= "lambda"             ":" old_test
               | "lambda" varargslist ":" old_test
 
-test ::= or_test
-       | or_test "if" or_test "else" test
+test ::= or_test^^
+       | or_test^^^ "if"^^ or_test or_test< "else"^ test
        | lambdef
 
-or_test ::= and_test or_test_loop1
-or_test_loop1 ::= or_test_loop1 "or" and_test
-                |
+or_test ::= and_test^^
+          | or_test "or"^^ and_test
 
-and_test ::= not_test and_test_loop1
-and_test_loop1 ::= and_test_loop1 "and" not_test
-                 |
+and_test ::= not_test^^
+           | and_test "and"^^ not_test
 
-not_test ::= "not" not_test
-           | comparison
+not_test ::= "not" not_test^^
+           | comparison^^
 
-comparison ::= expr comparison_loop1
-comparison_loop1 ::= comparison_loop1 comp_op expr
-                   |
+comparison ::= expr^^
+             | comparison comp_op^ expr
+
 comp_op ::= "<"
           | ">"
           | "=="
@@ -231,35 +229,35 @@ comp_op ::= "<"
           | "is"
           | "is" "not"
 
-expr ::= xor_expr^ expr_loop1^^
-expr_loop1 ::= expr_loop1 "|" xor_expr
-             |
-xor_expr ::= and_expr xor_expr_loop^^
-xor_expr_loop ::= xor_expr_loop "^" and_expr
-                |
-and_expr ::= shift_expr and_expr_loop^^
-and_expr_loop ::= and_expr_loop "&"^^ shift_expr
-                |
-shift_expr ::= arith_expr shift_expr_loop^^
-shift_expr_loop ::= shift_expr_loop "<<"^^ arith_expr
-                  | shift_expr_loop ">>"^^ arith_expr
-                  |
-arith_expr ::= term^ arith_expr_loop^^
-arith_expr_loop ::= arith_expr_loop "+"^^ term^
-                  | arith_expr_loop "-"^^ term^
-                  |
-term ::= factor^ term_loop^
-term_loop ::= term_loop "*"^^  factor
-            | term_loop "/"^^  factor
-            | term_loop "%"^^  factor
-            | term_loop "//"^^ factor
-            |
+expr ::= xor_expr^^
+       | expr^ "|"^^ xor_expr^
+
+xor_expr ::= and_expr^^
+           | xor_expr^ "^"^^ and_expr^
+
+and_expr ::= shift_expr^^
+           | shift_expr "&"^^ and_expr
+
+shift_expr ::= arith_expr^^
+             | arith_expr "<<"^^ shift_expr^
+             | arith_expr ">>"^^ shift_expr^
+
+arith_expr ::= term^^
+             | term^ "+"^^ arith_expr
+             | term^ "-"^^ arith_expr
+
+term ::= factor^^
+       | factor^ "*"^^ term^
+       | factor^ "/"^^ term^
+       | factor^ "%"^^ term^
+       | factor^ "//"^^ term^
+
 factor ::= "+" factor^
          | "-" factor^
          | "~" factor^
-         | power^
+         | power^^
 
-power ::= atom^ power_loop^
+power ::= atom^^ power_loop^
         | atom power_loop "**" factor
 power_loop ::= power_loop trailer
              |
@@ -271,8 +269,8 @@ atom ::= "("                ")"
        | "{"                "}"
        | "{" dictorsetmaker "}"
        | "`" testlist1 "`"
-       | "NAME"
-       | "NUMBER"
+       | "NAME"^^
+       | "NUMBER"^^
        | atom_loop
 atom_loop ::= atom_loop "STRING"
             |           "STRING"
@@ -317,10 +315,11 @@ exprlist ::= expr exprlist_loop
 exprlist_loop ::= exprlist_loop "," expr
                 |
 
-testlist ::= test testlist_loop
-           | test testlist_loop ","
-testlist_loop ::= testlist_loop "," test
-                |
+testlist ::= testlist_loop^
+           | testlist_loop^ ","
+
+testlist_loop ::= test
+                | testlist_loop^ "," test
 
 dictorsetmaker ::=
                    test ":" test comp_for
