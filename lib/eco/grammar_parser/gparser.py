@@ -257,6 +257,7 @@ class Parser(object):
                 i = i + 1
                 if self.whitespaces:
                     symbols_level[-1].append(Nonterminal("WS", "^"))
+                    i = i + 1
             elif t.name == "MagicTerminal":
                 symbols_level[-1].append(MagicTerminal(t.value))
                 i = i + 1

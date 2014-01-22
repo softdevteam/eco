@@ -336,6 +336,57 @@ D ::= "d"
         assert S.alternate.children[4].symbol.name == "a"
         assert S.alternate.children[5].symbol.name == "b"
 
+    def test_tear_and_insert_whitespace(self):
+        grammar = Language("Tear/Insert Test",
+"""
+test ::= or_test^^
+       | or_test^^^ "if" or_test or_test< "else"^ test
+
+or_test ::= "1"^^
+          | "2"^^
+          | "3"^^
+          | or_test "or"^^ "False"
+
+""",
+"""
+"[ \\t]+":<ws>
+"if":if
+"else":else
+"1":1
+"2":2
+"3":3
+""")
+        lexer = IncrementalLexer(grammar.priorities)
+        parser = IncParser(grammar.grammar, 1, True)
+        parser.init_ast()
+        ast = parser.previous_version
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, grammar.name)
+        treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+        inputstring = "1 if 2 else 3"
+        for c in inputstring:
+            treemanager.key_normal(c)
+
+        parsetree = parser.previous_version.parent
+        assert parsetree.symbol.name == "Root"
+        assert parsetree.children[1].symbol.name == "Startrule"
+
+        assert parsetree.children[1].children[1].symbol.name == "test"
+        test = parsetree.children[1].children[1]
+        assert test.children[0].symbol.name == "or_test"
+        assert test.children[1].symbol.name == "if"
+        assert test.children[2].symbol.name == "WS"
+        assert test.children[3].symbol.name == "or_test"
+        assert test.children[4].symbol.name == "else"
+        assert test.children[5].symbol.name == "WS"
+        assert test.children[6].symbol.name == "test"
+
+        assert test.alternate.children[0].symbol.name == "if"
+        assert test.alternate.children[1].alternate.symbol.name == "2"
+        assert test.alternate.children[2].alternate.symbol.name == "1"
+        assert test.alternate.children[3].alternate.symbol.name == "3" # test -> or_test -> 3
+
 class Test_Python:
 
     def setup_class(cls):
