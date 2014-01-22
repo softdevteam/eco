@@ -129,10 +129,11 @@ class Parser(object):
             ws_rule.add_alternative([]) # or empty
             self.rules[ws_rule.symbol] = ws_rule
 
+            self.start_symbol.folding = "^^"
             # allow whitespace/comments at beginning of file
             start_rule = Rule()
             start_rule.symbol = Nonterminal("Startrule")
-            start_rule.add_alternative([Nonterminal("WS"), self.start_symbol])
+            start_rule.add_alternative([Nonterminal("WS", "^"), self.start_symbol])
             self.rules[start_rule.symbol] = start_rule
             self.start_symbol = start_rule.symbol
 
