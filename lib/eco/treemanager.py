@@ -853,9 +853,6 @@ class TreeManager(object):
         # lines are already correct. Setting the indent attribute of a line in
         # this method is thus redundant. However this method is also used when
         # importing a file.
-        if y == 0:
-            self.lines[y].indent = 0
-            return
 
         newline = self.lines[y].node
 
@@ -867,38 +864,41 @@ class TreeManager(object):
 
         new_indent_nodes = []
 
-        # check if line is logical (not comment/whitespace) (exception: last line)
-        if self.is_logical_line(y):
-            # XXX move indentation change check up here using indent values
+        if y == 0:
+            self.lines[y].indent = 0
+        else:
+            # check if line is logical (not comment/whitespace) (exception: last line)
+            if self.is_logical_line(y):
+                # XXX move indentation change check up here using indent values
 
-            this_whitespace = self.get_indentation(y)
-            self.lines[y].ws = this_whitespace
-            dy = y - 1
-            root = self.lines[y].node.get_root()
-            other = self.lines[dy].node.get_root()
-            while not self.is_logical_line(dy) or not self.is_same_language(root, other):
-                dy -= 1
+                this_whitespace = self.get_indentation(y)
+                self.lines[y].ws = this_whitespace
+                dy = y - 1
+                root = self.lines[y].node.get_root()
                 other = self.lines[dy].node.get_root()
-            prev_whitespace = self.get_indentation(dy)
+                while not self.is_logical_line(dy) or not self.is_same_language(root, other):
+                    dy -= 1
+                    other = self.lines[dy].node.get_root()
+                prev_whitespace = self.get_indentation(dy)
 
-            if prev_whitespace == this_whitespace:
-                self.lines[y].indent = self.lines[dy].indent
-                new_indent_nodes.append(TextNode(IndentationTerminal("NEWLINE")))
-            elif prev_whitespace < this_whitespace:
-                self.lines[y].indent = self.lines[dy].indent + 1
-                new_indent_nodes.append(TextNode(IndentationTerminal("INDENT")))
-                new_indent_nodes.append(TextNode(IndentationTerminal("NEWLINE")))
-            elif prev_whitespace > this_whitespace:
-                this_indent = self.find_indentation(y)
-                if this_indent is None:
-                    new_indent_nodes.append(TextNode(IndentationTerminal("UNBALANCED")))
-                else:
-                    self.lines[y].indent = this_indent
-                    prev_indent = self.lines[dy].indent
-                    indent_diff = prev_indent - this_indent
-                    for i in range(indent_diff):
-                        new_indent_nodes.append(TextNode(IndentationTerminal("DEDENT")))
+                if prev_whitespace == this_whitespace:
+                    self.lines[y].indent = self.lines[dy].indent
                     new_indent_nodes.append(TextNode(IndentationTerminal("NEWLINE")))
+                elif prev_whitespace < this_whitespace:
+                    self.lines[y].indent = self.lines[dy].indent + 1
+                    new_indent_nodes.append(TextNode(IndentationTerminal("INDENT")))
+                    new_indent_nodes.append(TextNode(IndentationTerminal("NEWLINE")))
+                elif prev_whitespace > this_whitespace:
+                    this_indent = self.find_indentation(y)
+                    if this_indent is None:
+                        new_indent_nodes.append(TextNode(IndentationTerminal("UNBALANCED")))
+                    else:
+                        self.lines[y].indent = this_indent
+                        prev_indent = self.lines[dy].indent
+                        indent_diff = prev_indent - this_indent
+                        for i in range(indent_diff):
+                            new_indent_nodes.append(TextNode(IndentationTerminal("DEDENT")))
+                        new_indent_nodes.append(TextNode(IndentationTerminal("NEWLINE")))
 
         # check if indentation nodes have changed
         # if not keep old ones to avoid unnecessary reparsing

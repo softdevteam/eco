@@ -699,3 +699,22 @@ class Test_Indentation(Test_Python):
             for i in range(del_ws):
                 self.treemanager.key_normal(" ")
         assert self.parser.last_status == True
+
+    def test_single_statement(self):
+        self.reset()
+        assert self.parser.last_status == True
+        inputstring = """x = 12"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == True
+
+    def test_line_becomes_first_line(self):
+        self.reset()
+        assert self.parser.last_status == True
+        inputstring = """class X:\r    pass"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == True
+
+        for i in range(13):
+            self.treemanager.key_delete()
+
+        assert self.parser.last_status == True
