@@ -60,11 +60,14 @@ from treemanager import TreeManager, Cursor
 def print_var(name, value):
     print("%s: %s" % (name, value))
 
+BODY_FONT = "Courier"
+BODY_FONT_SIZE = 9
+
 class LineNumbers(QFrame):
     def __init__(self, parent=None):
         QtGui.QFrame.__init__(self, parent)
 
-        self.font = QtGui.QFont('Courier', 9)
+        self.font = QtGui.QFont(BODY_FONT, BODY_FONT_SIZE)
         self.fontm = QtGui.QFontMetrics(self.font)
         self.fontht = self.fontm.height() + 3
         self.fontwt = self.fontm.width(" ")
@@ -112,7 +115,7 @@ class NodeEditor(QFrame):
         self.boldDefaultFont = QFont(self.defaultFont)
         self.boldDefaultFont.setBold(True)
 
-        self.font = QtGui.QFont('Courier', 9)
+        self.font = QtGui.QFont(BODY_FONT, BODY_FONT_SIZE)
         self.fontm = QtGui.QFontMetrics(self.font)
         self.fontht = self.fontm.height() + 3
         self.fontwt = self.fontm.width(" ")
