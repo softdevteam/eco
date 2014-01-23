@@ -21,6 +21,12 @@ class Test_Typing:
 
         cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
 
+    def reset(self):
+        self.parser.reset()
+        self.treemanager = TreeManager()
+        self.treemanager.add_parser(self.parser, self.lexer, calc1.name)
+        self.treemanager.set_font_test(7, 17)
+
     def test_normaltyping(self):
         assert self.parser.last_status == False
         self.treemanager.key_normal("1")
@@ -70,6 +76,14 @@ class Test_Typing:
     def test_cursor_reset(self):
         self.treemanager.cursor_reset()
         assert isinstance(self.treemanager.cursor.node, BOS)
+
+    def test_paste(self):
+        self.reset()
+        assert self.parser.last_status == False
+        self.treemanager.pasteText("1 + 2\r+4+5\r+6+789")
+        assert self.parser.last_status == True
+        assert self.treemanager.cursor.node.symbol.name == "789"
+        assert self.treemanager.cursor.pos == 3
 
 class Test_AST_Conversion:
 

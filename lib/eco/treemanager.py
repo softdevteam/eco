@@ -660,6 +660,7 @@ class TreeManager(object):
 
     def pasteText(self, text):
         node = self.get_node_from_cursor()
+        next_node = node.next_term
 
         if self.hasSelection():
             self.deleteSelection()
@@ -682,9 +683,13 @@ class TreeManager(object):
                 pos = len(node.symbol.name)
             node.insert(text, pos)
 
-        self.cursor.pos += len(text)
-        self.cursor.fix()
         self.relex(node)
+        self.post_keypress("")
+        self.reparse(node)
+
+        self.cursor.node = next_node.prev_term
+        self.cursor.pos = len(self.cursor.node.symbol.name)
+        self.cursor.fix()
 
     def cutSelection(self):
         if self.hasSelection():
