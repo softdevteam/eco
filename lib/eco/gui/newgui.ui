@@ -586,7 +586,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Parse Tree</string>
+    <string>Tree</string>
    </property>
   </action>
   <action name="actionAbout">

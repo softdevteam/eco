@@ -103,10 +103,10 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(_translate("MainWindow", "Parse Tree", None))
-        self.cb_toggle_ast.setText(_translate("MainWindow", "Show parse tree", None))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Tree viewer", None))
+        self.cb_toggle_ast.setText(_translate("MainWindow", "Show tree", None))
         self.cb_toggle_ws.setText(_translate("MainWindow", "Show whitespace nodes", None))
-        self.cb_fit_ast.setText(_translate("MainWindow", "Fit AST in view", None))
+        self.cb_fit_ast.setText(_translate("MainWindow", "Fit in view", None))
         self.rb_view_parsetree.setText(_translate("MainWindow", "Parse tree", None))
         self.rb_view_ast.setText(_translate("MainWindow", "AST", None))
         self.rb_view_linetree.setText(_translate("MainWindow", "Line based tree", None))

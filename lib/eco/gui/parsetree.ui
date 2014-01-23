@@ -81,7 +81,7 @@
         <item>
          <widget class="QCheckBox" name="cb_toggle_ast">
           <property name="text">
-           <string>Show parse tree</string>
+           <string>Show tree</string>
           </property>
           <property name="checkable">
            <bool>true</bool>
@@ -107,7 +107,7 @@
         <item>
          <widget class="QCheckBox" name="cb_fit_ast">
           <property name="text">
-           <string>Fit AST in view</string>
+           <string>Fit in view</string>
           </property>
          </widget>
         </item>

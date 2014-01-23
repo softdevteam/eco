@@ -319,7 +319,7 @@ class Ui_MainWindow(object):
         self.actionNew.setText(_translate("MainWindow", "New", None))
         self.actionRun.setText(_translate("MainWindow", "Run", None))
         self.actionSelect_font.setText(_translate("MainWindow", "Select font..", None))
-        self.actionParse_Tree.setText(_translate("MainWindow", "Parse Tree", None))
+        self.actionParse_Tree.setText(_translate("MainWindow", "Tree", None))
         self.actionAbout.setText(_translate("MainWindow", "About", None))
         self.actionStateGraph.setText(_translate("MainWindow", "StateGraph", None))
 
