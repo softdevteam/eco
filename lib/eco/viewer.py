@@ -126,7 +126,7 @@ class Viewer(object):
                 node = node.alternate
         try:
             if node.symbol.folding:
-                addtext = node.symbol.folding
+                pass#addtext = node.symbol.folding
         except AttributeError:
             pass
         dotnode = pydot.Node(id(node), label=" %s " % node.symbol.name+addtext)
