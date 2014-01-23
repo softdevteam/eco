@@ -144,7 +144,7 @@ class Viewer(object):
                 graph.add_edge(pydot.Edge(dotnode, c_node))
 
         if isinstance(node.symbol, MagicTerminal):
-            c_node = self.add_node_to_tree(node.symbol.parser, graph, whitespaces, restrict_nodes)
+            c_node = self.add_node_to_tree(node.symbol.parser, graph, whitespaces, restrict_nodes, ast)
             graph.add_edge(pydot.Edge(dotnode, c_node))
 
         return dotnode
