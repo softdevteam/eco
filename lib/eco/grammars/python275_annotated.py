@@ -66,11 +66,11 @@ simple_stmt ::=
 simple_stmt_loop1 ::= simple_stmt_loop1^ ";"^ small_stmt^
                     |
 small_stmt ::= expr_stmt^^
-             | print_stmt
+             | print_stmt^^
              | del_stmt
              | pass_stmt^^
              | flow_stmt^^
-             | import_stmt
+             | import_stmt^^
              | global_stmt
              | exec_stmt
              | assert_stmt
@@ -87,12 +87,12 @@ expr_assgn ::= testlist^ "=" testlist^
 
 augassign ::= "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>=" | "**=" | "//="
 
-print_stmt ::= "print"
-             | "print" test print_stmt_loop1
-             | "print" test print_stmt_loop1 ","
-             | "print" ">>" test
-             | "print" ">>" test print_stmt_loop2
-             | "print" ">>" test print_stmt_loop2 ","
+print_stmt ::= "print"^
+             | "print"^ test print_stmt_loop1^
+             | "print"^ test print_stmt_loop1^ ","^
+             | "print"^ ">>" test
+             | "print"^ ">>" test print_stmt_loop2
+             | "print"^ ">>" test print_stmt_loop2 ","
 
 print_stmt_loop1 ::=  print_stmt_loop1 "," test
                    |
@@ -113,36 +113,36 @@ raise_stmt ::= "raise"
              | "raise" test "," test
              | "raise" test "," test "," test
 
-import_stmt ::= import_name | import_from
-import_name ::= "import" dotted_as_names
+import_stmt ::= import_name^^ | import_from^^
+import_name ::= "import"^ dotted_as_names^
 
-import_from ::= "from" import_option1 "import" import_option2
-import_option1 ::=          dotted_name
-                 | dot_loop dotted_name
-                 | dot_loop
-dot_loop ::= dot_loop "."
+import_from ::= "from"^ import_option1^ "import"^ import_option2^
+import_option1 ::=          dotted_name^
+                 | dot_loop^ dotted_name^
+                 | dot_loop^
+dot_loop ::= dot_loop^ "."
            |           "."
 import_option2 ::= "*"
                  | "(" import_as_names ")"
-                 | import_as_names
+                 | import_as_names^
 
 import_as_name ::= "NAME"
                  | "NAME" "as" "NAME"
 
-dotted_as_name ::= dotted_name
-                 | dotted_name "as" "NAME"
+dotted_as_name ::= dotted_name^
+                 | dotted_name^ "as" "NAME"
 
-import_as_names ::= import_as_name import_as_names_loop1
-                  | import_as_name import_as_names_loop1 ","
-import_as_names_loop1 ::= import_as_names_loop1 "," import_as_name
+import_as_names ::= import_as_name^ import_as_names_loop1^
+                  | import_as_name^ import_as_names_loop1^ ","
+import_as_names_loop1 ::= import_as_names_loop1^ "," import_as_name^
                         |
 
-dotted_as_names ::= dotted_as_name dotted_as_names_loop1
-dotted_as_names_loop1 ::= dotted_as_names_loop1 "," dotted_as_name
+dotted_as_names ::= dotted_as_name^ dotted_as_names_loop1^
+dotted_as_names_loop1 ::= dotted_as_names_loop1^ "," dotted_as_name^
                         |
 
-dotted_name ::= "NAME" dotted_name_loop1
-dotted_name_loop1 ::= dotted_name_loop1 "." "NAME"
+dotted_name ::= "NAME" dotted_name_loop1^
+dotted_name_loop1 ::= dotted_name_loop1^ "." "NAME"
                     |
 global_stmt ::= "global" "NAME" global_stmt_loop1
 global_stmt_loop1 ::= global_stmt_loop1 "," "NAME"
@@ -157,16 +157,16 @@ assert_stmt ::= "assert" test
 
 compound_stmt ::= if_stmt | while_stmt | for_stmt | try_stmt | with_stmt | funcdef | classdef | decorated
 
-if_stmt ::= "if"^^ test ":"^ suite if_stmt_loop1
-          | "if"^^ test ":"^ suite if_stmt_loop1 "else"^ ":"^ suite
-if_stmt_loop1 ::= if_stmt_loop1 "elif" test ":" suite
+if_stmt ::= "if"^^ test ":"^ suite if_stmt_loop1^
+          | "if"^^ test ":"^ suite if_stmt_loop1^ "else"^ ":"^ suite
+if_stmt_loop1 ::= if_stmt_loop1^ "elif"^ test ":"^ suite
                 |
 
 while_stmt ::= "while" test ":" suite
              | "while" test ":" suite "else" ":" suite
 
-for_stmt ::= "for" exprlist "in" testlist ":" suite
-           | "for" exprlist "in" testlist ":" suite "else" ":" suite
+for_stmt ::= "for"^ exprlist^ "in"^ testlist^ ":"^ suite
+           | "for"^ exprlist^ "in"^ testlist^ ":"^ suite "else" ":"^ suite
 
 try_stmt ::= "try" ":" suite "finally" ":" suite
            | "try" ":" suite try_stmt_loop1
@@ -261,7 +261,7 @@ factor ::= "+" factor
 
 power ::= atom^^ power_loop^
         | atom power_loop "**" factor
-power_loop ::= power_loop trailer
+power_loop ::= power_loop^ trailer
              |
 atom ::= "("                ")"
        | "(" yield_expr     ")"
@@ -291,7 +291,7 @@ testlist_comp_loop ::= testlist_comp_loop "," test
 lambdef ::= "lambda"             ":" test
           | "lambda" varargslist ":" test
 trailer ::= "("         ")"
-          | "(" arglist ")"
+          | "("^ arglist^^ ")"^
           | "[" subscriptlist "]"
           | "." "NAME"
 
@@ -312,8 +312,8 @@ subscript ::= "." "." "."
 sliceop ::= ":"
           | ":" test
 
-exprlist ::= expr exprlist_loop
-           | expr exprlist_loop ","
+exprlist ::= expr exprlist_loop^
+           | expr exprlist_loop^ ","^
 exprlist_loop ::= exprlist_loop "," expr
                 |
 
@@ -339,15 +339,15 @@ classdef ::= "class"^ "NAME"                    ":"^ suite
            | "class"^ "NAME" "("^          ")"^ ":"^ suite
            | "class"^ "NAME" "("^ testlist ")"^ ":"^ suite
 
-arglist ::= arglist_loop1 argument
-          | arglist_loop1 argument ","
-          | arglist_loop1 "*" test arglist_loop2
-          | arglist_loop1 "*" test arglist_loop2 "," "**" test
-          | arglist_loop1 "**" test
+arglist ::= arglist_loop1^ argument^
+          | arglist_loop1^ argument^ ","^
+          | arglist_loop1^ "*" test arglist_loop2
+          | arglist_loop1^ "*" test arglist_loop2 "," "**" test
+          | arglist_loop1^ "**" test
 
-arglist_loop1 ::= arglist_loop1 argument ","
+arglist_loop1 ::= arglist_loop1^ argument^ ","^
                 |
-arglist_loop2 ::= arglist_loop2 "," argument
+arglist_loop2 ::= arglist_loop2^ ","^ argument^
                 |
 argument ::= test
            | test comp_for
