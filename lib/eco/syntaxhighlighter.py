@@ -119,6 +119,16 @@ class PrologHighlighter(SyntaxHighlighter):
         "STRING": "cyan",
         "<ws>": "grey",
     }
+
+class GrammarHighlighter(SyntaxHighlighter):
+    keyword_colors = {
+        "::=": "red",
+        "|": "purple",
+        "nonterminal": "cyan",
+        "terminal": "green",
+        "<ws>": "grey",
+    }
+
 def get_highlighter(parent):
     if parent == "Java":
         return JavaHighlighter()
@@ -128,4 +138,6 @@ def get_highlighter(parent):
         return SqlHighlighter()
     if parent == "Prolog":
         return PrologHighlighter()
+    if parent == "Grammar":
+        return GrammarHighlighter()
     return SyntaxHighlighter()
