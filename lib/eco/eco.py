@@ -53,6 +53,7 @@ import os
 import math
 
 import syntaxhighlighter
+import editor
 from jsonmanager import JsonManager
 
 from treemanager import TreeManager, Cursor
@@ -234,6 +235,7 @@ class NodeEditor(QFrame):
         draw_selection_start = (0,0,0)
         draw_selection_end = (0,0,0)
         start_lbox = self.get_languagebox(node)
+        editor = self.get_editor(node)
 
         self.selected_lbox = self.tm.get_languagebox(self.tm.cursor.node)
 
@@ -259,6 +261,7 @@ class NodeEditor(QFrame):
                     draw_lbox = False
                 node = lbnode.children[0]
                 highlighter = self.get_highlighter(node)
+                editor = self.get_editor(node)
                 error_node = self.tm.get_parser(lbnode).error_node
                 continue
 
@@ -270,6 +273,7 @@ class NodeEditor(QFrame):
                     lbox -= 1
                     node = lbnode.next_term
                     highlighter = self.get_highlighter(node)
+                    editor = self.get_editor(node)
                     error_node = self.tm.get_parser(lbnode.symbol.ast).error_node
                     if self.selected_lbox is lbnode:
                         draw_lbox = False
@@ -297,7 +301,7 @@ class NodeEditor(QFrame):
                 draw_selection_end = (x + selection_end.pos * self.fontwt, y, line)
 
             # draw node
-            dx, dy = self.paint_node(paint, node, x, y, highlighter)
+            dx, dy = editor.paint_node(paint, node, x, y, highlighter)
             x += dx
             #y += dy
             self.lines[line].height = max(self.lines[line].height, dy)
@@ -433,6 +437,11 @@ class NodeEditor(QFrame):
         root = node.get_root()
         lbox = root.get_magicterminal()
         return lbox
+
+    def get_editor(self, node):
+        root = node.get_root()
+        base = lang_dict[self.tm.get_language(root)].base
+        return editor.get_editor(base, self.fontwt, self.fontht)
 
     def focusNextPrevChild(self, b):
         # don't switch to next widget on TAB
