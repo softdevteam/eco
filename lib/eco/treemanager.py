@@ -2,7 +2,6 @@ from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
-from PyQt4 import QtCore #XXX get rid of all QT references later
 
 from grammars.grammars import lang_dict
 
@@ -729,13 +728,13 @@ class TreeManager(object):
     def cursor_movement(self, key):
         cur = self.cursor
 
-        if key == QtCore.Qt.Key_Up:
+        if key == "up":
             self.cursor.up(self.lines)
-        elif key == QtCore.Qt.Key_Down:
+        elif key == "down":
             self.cursor.down(self.lines)
-        elif key == QtCore.Qt.Key_Left:
+        elif key == "left":
             self.cursor.left()
-        elif key == QtCore.Qt.Key_Right:
+        elif key == "right":
             self.cursor.right()
         #self.fix_cursor_on_image() #XXX refactor (obsolete after refactoring cursor)
 

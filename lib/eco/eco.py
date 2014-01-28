@@ -509,6 +509,16 @@ class NodeEditor(QFrame):
         import cProfile
         cProfile.runctx("self.linkkeyPressEvent(e)", globals(), locals())
 
+    def key_to_string(self, key):
+        if key == Qt.Key_Up:
+            return "up"
+        if key == Qt.Key_Down:
+            return "down"
+        if key == Qt.Key_Left:
+            return "left"
+        if key == Qt.Key_Right:
+            return "right"
+
     def keyPressEvent(self, e):
 
         if e.key() in [Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Control, Qt.Key_Meta, Qt.Key_AltGr]:
@@ -528,9 +538,9 @@ class NodeEditor(QFrame):
             self.tm.key_backspace()
         elif e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             if e.modifiers() == Qt.ShiftModifier:
-                self.tm.key_cursors(e.key(), True)
+                self.tm.key_cursors(self.key_to_string(e.key()), True)
             else:
-                self.tm.key_cursors(e.key(), False)
+                self.tm.key_cursors(self.key_to_string(e.key()), False)
         elif e.key() == Qt.Key_Home:
             self.tm.key_home()
         elif e.key() == Qt.Key_End:

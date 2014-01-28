@@ -39,7 +39,7 @@ class Test_Typing:
     def test_cursormovement(self):
         self.treemanager.key_home()
         assert isinstance(self.treemanager.cursor.node, BOS)
-        self.treemanager.cursor_movement(QtCore.Qt.Key_Right)
+        self.treemanager.cursor_movement("right")
         assert self.treemanager.cursor.node.symbol.name == "1"
         self.treemanager.key_end()
         assert self.treemanager.cursor.node.symbol.name == "2"
@@ -54,11 +54,11 @@ class Test_Typing:
         assert self.treemanager.cursor.node.symbol.name == "5"
         self.treemanager.key_end()
         assert self.treemanager.cursor.node.symbol.name == "5"
-        self.treemanager.cursor_movement(QtCore.Qt.Key_Up)
+        self.treemanager.cursor_movement("up")
         assert self.treemanager.cursor.node.symbol.name == "2"
-        self.treemanager.cursor_movement(QtCore.Qt.Key_Left)
+        self.treemanager.cursor_movement("left")
         assert self.treemanager.cursor.node.symbol.name == "+"
-        self.treemanager.cursor_movement(QtCore.Qt.Key_Down)
+        self.treemanager.cursor_movement("down")
         assert self.treemanager.cursor.node.symbol.name == "+"
 
     def test_deletion(self):
@@ -69,7 +69,7 @@ class Test_Typing:
         assert self.treemanager.cursor.node.symbol.name == "+"
         self.treemanager.key_delete()
         assert self.treemanager.cursor.node.symbol.name == "+"
-        self.treemanager.cursor_movement(QtCore.Qt.Key_Left)
+        self.treemanager.cursor_movement("left")
         self.treemanager.key_delete()
         assert self.treemanager.cursor.node.symbol.name == "3"
 
@@ -420,14 +420,7 @@ class Test_Python:
         self.treemanager.set_font_test(7, 17)
 
     def move(self, direction, times):
-        if direction == "up":
-            for i in range(times): self.treemanager.cursor_movement(QtCore.Qt.Key_Up)
-        if direction == "down":
-            for i in range(times): self.treemanager.cursor_movement(QtCore.Qt.Key_Down)
-        if direction == "left":
-            for i in range(times): self.treemanager.cursor_movement(QtCore.Qt.Key_Left)
-        if direction == "right":
-            for i in range(times): self.treemanager.cursor_movement(QtCore.Qt.Key_Right)
+        for i in range(times): self.treemanager.cursor_movement(direction)
 
 class Test_Bugs(Test_Python):
 
