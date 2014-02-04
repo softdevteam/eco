@@ -87,7 +87,134 @@ class IncrementalLexer(object):
         else:
             return [(text, '', 0)]
 
-    def relex(self, startnode):
+    def relex(self, node):
+
+        if isinstance(node, BOS):
+            return
+
+        start = node
+        while True:
+            if isinstance(start.symbol, IndentationTerminal):
+                start = start.next_term
+                break
+            if isinstance(start, BOS):
+                start = start.next_term
+                break
+            if start.lookup == "<return>":
+                start = start.next_term
+                break
+            if isinstance(start.symbol, MagicTerminal):
+                start = start.next_term
+                break
+            start = start.prev_term
+
+        # find end node
+        end = node
+        while True:
+            if isinstance(end.symbol, IndentationTerminal):
+                end = end.prev_term
+                break
+            if isinstance(end, EOS):
+                end = end.prev_term
+                break
+            if isinstance(end.symbol, MagicTerminal):
+                end = end.prev_term
+                break
+            if end.lookup == "<return>":
+                end = end.prev_term
+                break
+            end = end.next_term
+
+        token = start
+        relex_string = []
+        if start is end:
+            relex_string = [start.symbol.name]
+        else:
+            while token is not end.next_term:
+                if isinstance(token.symbol, MagicTerminal): # found a language box
+                    # start another relexing process after the box
+                    next_token = token.next_term
+                    self.relex(next_token)
+                    break
+                if isinstance(token, EOS): # reached end of language box
+                    break
+                relex_string.append(token.symbol.name)
+                token = token.next_term
+
+        success = self.lex("".join(relex_string))
+
+        old_node = start
+        old_x = 0
+        new_x = 0
+        after_startnode = False
+        debug_old = []
+        debug_new = []
+        for match in success:
+            if after_startnode:
+                if old_node.symbol.name == match[0] and old_node.lookup == match[1]:
+                    # XXX optimisation only
+                    # from here everything is going to be relexed to the same
+                    # XXX check construction location
+                    break
+
+            # 1) len(relexed) == len(old) => update old with relexed
+            # 2) len(relexed) >  len(old) => update old with relexed and delete following previous until counts <=
+            # 3) len(relexed) <  len(old) => insert token
+
+            if new_x < old_x: # insert
+                if self.language == "Chemicals":
+                    filename = "chemicals/" + node.symbol.name + ".png"
+                    if os.path.isfile(filename):
+                        additional_node = ImageNode(node, 0)
+                        additional_node.image = QImage(filename)
+                        old_node.image_src = filename
+                    else:
+                        additional_node.image = None
+                        old_node.image_src = None
+                else:
+                    additional_node = TextNode(Terminal(match[0]), -1, [], -1)
+                additional_node.lookup = match[1]
+                old_node.prev_term.parent.insert_after_node(old_node.prev_term, additional_node)
+                #self.add_node(old_node.prev_term, additional_node)
+                old_x += 0
+                new_x  += len(match[0])
+                debug_old.append("")
+                debug_new.append(match[0])
+            else: #overwrite
+                old_x += len(old_node.symbol.name)
+                new_x  += len(match[0])
+                debug_old.append(old_node.symbol.name)
+                debug_new.append(match[0])
+                old_node.symbol.name = match[0]
+                old_node.lookup = match[1]
+
+                if self.language == "Chemicals":
+                    filename = "chemicals/" + old_node.symbol.name + ".png"
+                    if os.path.isfile(filename):
+                        old_node.image = QImage(filename)
+                        old_node.image_src = filename
+                    else:
+                        old_node.image = None
+                        old_node.image_src = None
+
+                old_node = old_node.next_term
+
+            # relexed was bigger than old_node => delete as many nodes that fit into len(relexed)
+            while old_x < new_x:
+                if old_x + len(old_node.symbol.name) <= new_x:
+                    old_x += len(old_node.symbol.name)
+                    delete_node = old_node
+                    old_node = delete_node.next_term
+                    delete_node.parent.remove_child(delete_node)
+                else:
+                    break
+
+        if old_x != new_x: # sanity check
+            raise AssertionError("old_x(%s) != new_x(%s) %s => %s" % (old_x, new_x, debug_old, debug_new))
+
+        return
+
+    def relex_from_node(self, startnode):
         # XXX when typing to not create new node but insert char into old node
         #     (saves a few insertions and is easier to lex)
 
@@ -229,3 +356,191 @@ class IncrementalLexer(object):
         last_node.next_term = eos
         eos.left = last_node
         eos.prev_term = last_node
+
+from cflexer.regexparse import parse_regex
+from cflexer.lexer import Lexer
+class IncrementalLexerCF(object):
+    def __init__(self, rules, language=""):
+        self.indentation_based = False
+        self.language = language
+        if rules.startswith("%"):
+            config_line = rules.splitlines()[0]     # get first line
+            self.parse_config(config_line[1:])      # remove %
+            rules = "\n".join(rules.splitlines()[1:]) # remove config line
+        self.createDFA(rules)
+
+    def parse_config(self, config):
+        settings = config.split(",")
+        for s in settings:
+            name, value = s.split("=")
+            if name == "indentation" and value == "true":
+                self.indentation_based = True
+
+    def createDFA(self, rules):
+        # lex lexing rules
+        pl = PriorityLexer(rules)
+        rules = sorted(pl.rules.items(), key=lambda node: node[1][0]) # sort by priority
+
+        # create lexer automaton from rules
+        regexs = []
+        names = []
+        for k, _ in rules:
+            regex = k
+            name = pl.rules[k][1]
+            r = parse_regex(regex)
+            regexs.append(r)
+            names.append(name)
+        self.lexer = Lexer(regexs, names)
+
+    def is_indentation_based(self):
+        return self.indentation_based
+
+    def lex(self, text):
+        tokens = self.lexer.tokenize(text)
+        return self.reformat_tokens(tokens)
+
+    def reformat_tokens(self, tokens):
+        l = []
+        for t in tokens:
+            l.append((t.source, t.name))
+        return l
+
+    def relex_import(self, startnode):
+        success = self.lex(startnode.symbol.name)
+        bos = startnode.prev_term # bos
+        startnode.parent.remove_child(startnode)
+        parent = bos.parent
+        eos = parent.children.pop()
+        last_node = bos
+        for match in success:
+            node = TextNode(Terminal(match[0]))
+            node.lookup = match[1]
+            parent.children.append(node)
+            last_node.next_term = node
+            last_node.right = node
+            node.left = last_node
+            node.prev_term = last_node
+            node.parent = parent
+            last_node = node
+        parent.children.append(eos)
+        last_node.right = eos # link to eos
+        last_node.next_term = eos
+        eos.left = last_node
+        eos.prev_term = last_node
+
+    def relex(self, node):
+        # find farthest node that has lookahead into node
+        # start munching tokens and spit out nodes
+        #     if generated node already exists => stop
+        #     (only if we passed edited node)
+
+        # find node to start relaxing
+        startnode = node
+        nodes = self.find_preceeding_nodes(node)
+        if nodes:
+            node = nodes[0]
+        if node is startnode:
+            past_startnode = True
+        else:
+            past_startnode = False
+
+        # relex
+        read_nodes = []
+        generated_tokens = []
+        pos = 0
+        read = 0
+        current_node = node
+        next_token = self.lexer.get_token_iter(StringWrapper(node))
+        while True:
+            token = next_token()
+            read += len(token.source)
+            generated_tokens.append(token)
+            while read > pos + len(current_node.symbol.name):
+                pos += len(current_node.symbol.name)
+                read_nodes.append(current_node)
+                current_node = current_node.next_term
+                if current_node is startnode:
+                    past_startnode = True
+            if past_startnode and read == pos + len(current_node.symbol.name):
+                read_nodes.append(current_node)
+                break
+
+        # insert new nodes into tree
+        it = iter(read_nodes)
+        for t in generated_tokens:
+            try:
+                node = it.next()
+            except StopIteration:
+                node = TextNode(Terminal(""))
+                last_node.insert_after(node)
+            last_node = node
+            node.symbol.name = t.source
+            node.lookup = t.name
+            node.lookahead = t.lookahead
+        # delete left over nodes
+        while True:
+            try:
+                node = it.next()
+                node.parent.remove_child(node)
+            except StopIteration:
+                break
+
+    def find_preceeding_nodes(self, node):
+        chars = 0
+        nodes = []
+        while True:
+            node = node.prev_term
+            if node.lookahead and node.lookahead > chars:
+                nodes.insert(0, node)
+                chars += len(node.symbol.name)
+            else:
+                break
+        return nodes
+
+IncrementalLexer = IncrementalLexerCF
+import sys
+
+class StringWrapper(object):
+    # XXX This is just a temprary solution. To do this right we have to alter
+    # the lexer to work on (node, index)-tuples
+
+    def __init__(self, startnode):
+        self.node = startnode
+        self.length = sys.maxint
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, index):
+        startindex = index
+        node = self.node
+        while index > len(node.symbol.name) - 1:
+            index -= len(node.symbol.name)
+            node = node.next_term
+            if node is None:
+                raise IndexError
+        if isinstance(node.next_term, EOS) or (node.next_term and isinstance(node.next_term.symbol, IndentationTerminal)):
+            self.length = startindex + len(node.symbol.name[index:])
+        return node.symbol.name[index]
+
+    def __getslice__(self, start, stop):
+        if stop <= start:
+            return ""
+
+        name = self.node.symbol.name
+        if start < len(name) and stop < len(name):
+            return name[start: stop]
+
+        text = []
+        node = self.node
+        i = 0
+        while i < stop:
+            text.append(node.symbol.name)
+            i += len(node.symbol.name)
+            node = node.next_term
+            if isinstance(node, EOS):
+                break
+            if isinstance(node.symbol, IndentationTerminal):
+                break
+
+        return "".join(text)[start:stop]

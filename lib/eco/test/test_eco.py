@@ -1,4 +1,4 @@
-from grammars.grammars import calc1, java15, python275, calc_annotation, johnstone_grammar, Language
+from grammars.grammars import calc1, java15, python275, calc_annotation, johnstone_grammar, Language, sql
 from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
@@ -36,7 +36,7 @@ class Test_Typing:
         self.treemanager.key_normal("2")
         assert self.parser.last_status == True
 
-    def test_cursormovement(self):
+    def test_cursormovement1(self):
         self.treemanager.key_home()
         assert isinstance(self.treemanager.cursor.node, BOS)
         self.treemanager.cursor_movement("right")
@@ -46,11 +46,15 @@ class Test_Typing:
 
     def test_normaltyping2(self):
         self.treemanager.key_normal("\r")
+        assert self.treemanager.cursor.node.symbol.name == "\r"
         self.treemanager.key_normal("3")
+        assert self.treemanager.cursor.node.symbol.name == "3"
         self.treemanager.key_normal("+")
+        assert self.treemanager.cursor.node.symbol.name == "+"
         self.treemanager.key_normal("5")
+        assert self.treemanager.cursor.node.symbol.name == "5"
 
-    def test_cursormovement(self):
+    def test_cursormovement2(self):
         assert self.treemanager.cursor.node.symbol.name == "5"
         self.treemanager.key_end()
         assert self.treemanager.cursor.node.symbol.name == "5"
@@ -84,6 +88,42 @@ class Test_Typing:
         assert self.parser.last_status == True
         assert self.treemanager.cursor.node.symbol.name == "789"
         assert self.treemanager.cursor.pos == 3
+
+    def test_colon_colon_equals(self):
+        # typing colon colon equals makes the cursor disappear
+        grammar = Language("grammar with colon",
+"""
+S ::= "a" "assign" "b"
+""",
+"""
+"a":a
+"b":b
+"::=":assign
+":":colon
+"=":equal
+""")
+        lexer = IncrementalLexer(grammar.priorities)
+        parser = IncParser(grammar.grammar, 1, True)
+        parser.init_ast()
+        ast = parser.previous_version
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, grammar.name)
+        treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+        treemanager.key_normal(":")
+        assert treemanager.cursor.node.lookup == "colon"
+        assert treemanager.cursor.node.symbol.name == ":"
+        assert treemanager.cursor.node.lookahead == 1
+
+        treemanager.key_normal(":")
+        assert treemanager.cursor.node.lookup == "colon"
+        assert treemanager.cursor.node.symbol.name == ":"
+        assert treemanager.cursor.node.lookahead == 1
+
+        treemanager.key_normal("=")
+
+        assert treemanager.cursor.node.lookup == "assign"
+        assert treemanager.cursor.node.symbol.name == "::="
 
 class Test_AST_Conversion:
 
@@ -400,6 +440,23 @@ or_test ::= "1"^^
         assert test.alternate.children[1].alternate.symbol.name == "2"
         assert test.alternate.children[2].alternate.symbol.name == "1"
         assert test.alternate.children[3].alternate.symbol.name == "3" # test -> or_test -> 3
+
+    def test_sql_bug(self):
+        grammar = sql
+
+        lexer = IncrementalLexer(grammar.priorities)
+        parser = IncParser(grammar.grammar, 1, True)
+        parser.init_ast()
+        ast = parser.previous_version
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, grammar.name)
+        treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+        inputstring = "SELECT * FROM test"
+        for c in inputstring:
+            treemanager.key_normal(c)
+
+        assert parser.last_status == True
 
 class Test_Python:
 

@@ -346,7 +346,7 @@ uppercase = set(list(string.ascii_uppercase))
 digits = set(list(string.digits))
 
 class TextNode(Node):
-    def __init__(self, symbol, state=-1, children=[], pos=-1):
+    def __init__(self, symbol, state=-1, children=[], pos=-1, lookahead=0):
         Node.__init__(self, symbol, state, children)
         self.pos = pos
         self.position = 0
@@ -357,6 +357,7 @@ class TextNode(Node):
         self.image_src = None
         self.plain_mode = False
         self.alternate = None
+        self.lookahead = lookahead
 
         self.regex = ""
         self.text = ""

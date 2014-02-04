@@ -40,6 +40,9 @@ class Cursor(object):
         return Cursor(self.node, self.pos, self.line)
 
     def fix(self):
+        while self.node.deleted:
+            self.pos = 0
+            self.left()
         while self.pos > len(self.node.symbol.name):
             self.pos -= len(self.node.symbol.name)
             self.node = self.node.next_term
