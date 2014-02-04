@@ -1,9 +1,9 @@
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from PyQt4 import QtCore
-from PyQt4.QtGui import QPen, QColor
+from PyQt4.QtGui import QPen, QColor, QImage
 
-import math
+import math, os
 
 class Editor(object):
 
@@ -39,6 +39,7 @@ class NormalEditor(Editor):
 class ImageEditor(NormalEditor):
 
     def paint_node(self, paint, node, x, y, highlighter):
+        self.update_image(node)
         dx, dy = (0, 0)
         if node.image is not None and not node.plain_mode:
             paint.drawImage(QtCore.QPoint(x, 3 + y * self.fontht), node.image)
@@ -47,6 +48,17 @@ class ImageEditor(NormalEditor):
         else:
             dx, dy = NormalEditor.paint_node(self, paint, node, x, y, highlighter)
         return dx, dy
+
+    def update_image(self, node):
+        filename = "chemicals/" + node.symbol.name + ".png"
+        if node.image_src == filename:
+            return
+        if os.path.isfile(filename):
+            node.image = QImage(filename)
+            node.image_src = filename
+        else:
+            node.image = None
+            node.image_src = None
 
     def doubleClick(self):
         pass # switch between display modes
