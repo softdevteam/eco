@@ -37,39 +37,41 @@ from astree import AST, TextNode, BOS, EOS
 Node = TextNode
 
 # deactivate parser output for now
-def print(*args, **kwargs):
+def noprint(*args, **kwargs):
     pass
 
 class IncParser(object):
 
-    def __init__(self, grammar, lr_type=LR0, whitespaces=False):
-        print("Parsing Grammar")
-        parser = Parser(grammar, whitespaces)
-        parser.parse()
+    def __init__(self, grammar=None, lr_type=LR0, whitespaces=False, startsymbol=None):
 
-        filename = "".join([os.path.dirname(__file__), "/../pickle/", str(hash(grammar) ^ hash(whitespaces)), ".pcl"])
-        try:
-            print("Try to unpickle former stategraph")
-            f = open(filename, "r")
-            start = time.time()
-            self.graph = pickle.load(f)
-            end = time.time()
-            print("unpickling done in", end-start)
-        except IOError:
-            print("could not unpickle old graph")
-            print("Creating Stategraph")
-            self.graph = StateGraph(parser.start_symbol, parser.rules, lr_type)
-            print("Building Stategraph")
-            self.graph.build()
-            print("Pickling")
-            pickle.dump(self.graph, open(filename, "w"))
+        if grammar:
+            print("Parsing Grammar")
+            parser = Parser(grammar, whitespaces)
+            parser.parse()
 
-        if lr_type == LALR:
-            self.graph.convert_lalr()
+            filename = "".join([os.path.dirname(__file__), "/../pickle/", str(hash(grammar) ^ hash(whitespaces)), ".pcl"])
+            try:
+                print("Try to unpickle former stategraph")
+                f = open(filename, "r")
+                start = time.time()
+                self.graph = pickle.load(f)
+                end = time.time()
+                print("unpickling done in", end-start)
+            except IOError:
+                print("could not unpickle old graph")
+                print("Creating Stategraph")
+                self.graph = StateGraph(parser.start_symbol, parser.rules, lr_type)
+                print("Building Stategraph")
+                self.graph.build()
+                print("Pickling")
+                pickle.dump(self.graph, open(filename, "w"))
 
-        print("Creating Syntaxtable")
-        self.syntaxtable = SyntaxTable(lr_type)
-        self.syntaxtable.build(self.graph)
+            if lr_type == LALR:
+                self.graph.convert_lalr()
+
+            print("Creating Syntaxtable")
+            self.syntaxtable = SyntaxTable(lr_type)
+            self.syntaxtable.build(self.graph)
 
         self.stack = []
         self.ast_stack = []
@@ -82,6 +84,13 @@ class IncParser(object):
 
         self.previous_version = None
         print("Incemental parser done")
+
+    def from_dict(self, rules, startsymbol, lr_type, whitespaces):
+        self.graph = StateGraph(startsymbol, rules, lr_type)
+        self.graph.build()
+
+        self.syntaxtable = SyntaxTable(lr_type)
+        self.syntaxtable.build(self.graph)
 
     def init_ast(self, magic_parent=None):
         bos = BOS(Terminal(""), 0, [])

@@ -23,25 +23,75 @@ from grammars import Language
 
 eco_grammar = Language("Eco Grammar",
 """
-grammar ::= rule
-          | grammar ";" rule
+grammar ::= parser ";" "%%" lexer
 
-rule ::= "nonterminal" "::="^ alternatives
-alternatives ::= right^^
-               | alternatives "|"^^ right
+parser ::= rule
+         | parser ";" rule
 
-right ::= right^ symbol
-        | symbol
-symbol ::= "nonterminal"^^ | "terminal"^^ | "languagebox"^^
+rule ::= "nonterminal" "assign" alternatives
+alternatives ::= right
+               | alternatives "|" right
+
+right ::= symbols
+        | symbols annotations
+        |
+
+annotations ::= "{" a_options "}"
+a_options ::= astnode
+            | expression
+
+astnode ::= "nonterminal" "(" astnode_children ")"
+astnode_children ::= astnode_child
+                   | astnode_children "," astnode_child
+
+astnode_child ::= "nonterminal" "=" expression
+
+expression ::= node
+             | list
+             | expression "+" node
+             | expression "+" list
+
+node ::= "#" "NUMBER"
+list ::= "[" "]"
+       | "[" list_loop "]"
+list_loop ::= astnode
+            | list_loop "," astnode
+            | node
+            | list_loop "," node
+
+symbols ::= symbols symbol
+          | symbol
+symbol ::= "nonterminal" | "terminal" | "languagebox"
+
+lexer ::= lrule
+        | lexer lrule
+
+lrule ::= tokenname ":" "terminal"
+tokenname ::= "nonterminal" | "languagebox"
 """,
 """
 "[ \\t]+":<ws>
 "[\\n\\r]":<return>
-"[a-zA-Z_0-9]+(\^\^\^|\^\^|\^|<)?":nonterminal
+"[0-9]+":NUMBER
+"[a-zA-Z_0-9]+":nonterminal
 "\<[a-zA-Z_0-9 \.]+\>":languagebox
-"\"[^\"]*\"(\^\^\^|\^\^|\^|<)?":terminal
-"::=":::=
+"\\"([^\\"]|\\\\\\")*\\"":terminal
+"::\=":assign
+":"::
+"\=":=
+"\+":+
+"\,":,
+"\#":#
 "\|":|
 ";":;
+"\{":{
+"\}":}
+"\[":[
+"\]":]
+"\(":(
+"\)":)
+"%%":%%
 """,
 "Grammar")
+
+#"\"((?:[^\"\\\]|(\\\\)+\")*)\"":terminal

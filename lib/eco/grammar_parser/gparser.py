@@ -23,16 +23,18 @@ from lexer import Lexer
 
 class Rule(object):
 
-    def __init__(self):
-        self.symbol = None
+    def __init__(self, symbol=None):
+        self.symbol = symbol
         self.alternatives = []
+        self.annotations = []
         self.inserts = {}
 
-    def add_alternative(self, alternative):
+    def add_alternative(self, alternative, annotation=None):
         # create symbol for empty alternative
         #if alternative == []:
         #    alternative = [Epsilon()]
         self.alternatives.append(alternative)
+        self.annotations.append(annotation)
 
     def __repr__(self):
         return "Rule(%s => %s)" % (self.symbol, self.alternatives)

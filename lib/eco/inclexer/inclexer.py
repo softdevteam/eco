@@ -360,14 +360,14 @@ class IncrementalLexer(object):
 from cflexer.regexparse import parse_regex
 from cflexer.lexer import Lexer
 class IncrementalLexerCF(object):
-    def __init__(self, rules, language=""):
+    def __init__(self, rules=None, language=""):
         self.indentation_based = False
-        self.language = language
-        if rules.startswith("%"):
-            config_line = rules.splitlines()[0]     # get first line
-            self.parse_config(config_line[1:])      # remove %
-            rules = "\n".join(rules.splitlines()[1:]) # remove config line
-        self.createDFA(rules)
+        if rules:
+            if rules.startswith("%"):
+                config_line = rules.splitlines()[0]     # get first line
+                self.parse_config(config_line[1:])      # remove %
+                rules = "\n".join(rules.splitlines()[1:]) # remove config line
+            self.createDFA(rules)
 
     def parse_config(self, config):
         settings = config.split(",")
@@ -375,6 +375,13 @@ class IncrementalLexerCF(object):
             name, value = s.split("=")
             if name == "indentation" and value == "true":
                 self.indentation_based = True
+
+    def from_name_and_regex(self, names, regexs):
+        parsed_regexs = []
+        for regex in regexs:
+            r = parse_regex(regex)
+            parsed_regexs.append(r)
+        self.lexer = Lexer(parsed_regexs, names)
 
     def createDFA(self, rules):
         # lex lexing rules
