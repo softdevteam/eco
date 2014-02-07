@@ -1,4 +1,4 @@
-from grammar_parser.bootstrap import BootstrapParser
+from grammar_parser.bootstrap import BootstrapParser, AstNode, LookupExpr, ListExpr, AddExpr
 from grammar_parser.gparser import Nonterminal, Terminal, Epsilon
 
 class Test_Parser(object):
@@ -72,6 +72,39 @@ escaped:"abc\\\"escaped"
         assert bp.lrules[0] == ("numbers", "[0-9]+")
         assert bp.lrules[1] == ("text", "[a-z][a-z]*")
         assert bp.lrules[2] == ("escaped", "abc\\\"escaped")
+
+class Test_Annotations(object):
+
+    def test_annotations(self):
+        grammar = """
+X ::= "x" {Node(child=#0)};
+Y ::= "y" {[#1,#3]};
+Z ::= "z" {#1+#2};
+A ::= "a" {Node2(child=#0, child2=[#1,#3], child3=#3+[#4])};
+
+%%
+
+x:"x"
+"""
+        bp = BootstrapParser()
+        bp.parse(grammar)
+        assert bp.rules[Nonterminal("X")].annotations == [AstNode("Node", {"child":LookupExpr(0)})]
+        assert bp.rules[Nonterminal("Y")].annotations == [ListExpr([LookupExpr(1), LookupExpr(3)])]
+        assert bp.rules[Nonterminal("Z")].annotations == [AddExpr(LookupExpr(1), LookupExpr(2))]
+        assert bp.rules[Nonterminal("A")].annotations == [AstNode("Node2", {'child': LookupExpr(0), 'child2':ListExpr([LookupExpr(1), LookupExpr(3)]), 'child3':AddExpr(LookupExpr(3), ListExpr([LookupExpr(4)]))})]
+
+    def test_alternatives(self):
+        grammar = """
+X ::= "x" {Node(child=#0)}
+    | "y" "z" {#1};
+
+%%
+
+x:"x"
+"""
+        bp = BootstrapParser()
+        bp.parse(grammar)
+        assert bp.rules[Nonterminal("X")].annotations == [AstNode("Node", {"child":LookupExpr(0)}), LookupExpr(1)]
 
 import py
 from treemanager import TreeManager

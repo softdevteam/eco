@@ -72,10 +72,10 @@ class BootstrapParser(object):
     def parse_alternative(self, node):
         if len(node.children) > 0:
             symbols = self.parse_symbols(node.children[0])
-            annotations = None
+            annotation = None
             if len(node.children) > 1:
-                annotations = self.parse_annotations(node.children[1])
-            return (symbols, annotations)
+                annotation = self.parse_annotation(node.children[1])
+            return (symbols, annotation)
         else:
             return ([Epsilon()], None)
 
@@ -95,8 +95,71 @@ class BootstrapParser(object):
         elif node.lookup == "terminal":
             return Terminal(node.symbol.name[1:-1])
 
-    def parse_annotations(self, node):
-        pass
+    def parse_annotation(self, node):
+        a_options = node.children[2]
+        assert a_options.symbol.name == "a_options"
+        if a_options.children[0].symbol.name == "astnode":
+            return self.parse_astnode(a_options.children[0])
+        elif a_options.children[0].symbol.name == "expression":
+            return self.parse_expression(a_options.children[0])
+
+    def parse_astnode(self, node):
+        name = node.children[0].symbol.name
+        children = self.parse_astnode_children(node.children[4])
+        d = {}
+        for n, expr in children:
+            d[n] = expr
+        return AstNode(name, d)
+
+    def parse_astnode_children(self, node):
+        assert node.symbol.name == "astnode_children"
+        if node.children[0].symbol.name == "astnode_child":
+            return [self.parse_astnode_child(node.children[0])]
+        elif node.children[0].symbol.name == "astnode_children":
+            children = self.parse_astnode_children(node.children[0])
+            child = self.parse_astnode_child(node.children[3])
+            children.append(child)
+            return children
+
+    def parse_astnode_child(self, node):
+        assert node.symbol.name == "astnode_child"
+        name = node.children[0].symbol.name
+        expr = self.parse_expression(node.children[4])
+        return (name, expr)
+
+    def parse_expression(self, node):
+        if node.children[0].symbol.name == "node":
+            return self.parse_node(node.children[0])
+        elif node.children[0].symbol.name == "list":
+            return self.parse_list(node.children[0])
+        else:
+            expr1 = self.parse_expression(node.children[0])
+            if node.children[3].symbol.name == "node":
+                expr2 = self.parse_node(node.children[3])
+            else:
+                expr2 = self.parse_list(node.children[3])
+            return AddExpr(expr1, expr2)
+
+    def parse_node(self, node):
+        return LookupExpr(int(node.children[2].symbol.name))
+
+    def parse_list(self, node):
+        return ListExpr(self.parse_listloop(node.children[2]))
+
+    def parse_listloop(self, node):
+        if node.children[0].symbol.name == "list_loop":
+            l = self.parse_listloop(node.children[0])
+            element = self.parse_unknown(node.children[3])
+            l.append(element)
+            return l
+        else:
+            return [self.parse_unknown(node.children[0])]
+
+    def parse_unknown(self, node):
+        if node.symbol.name == "node":
+            return self.parse_node(node)
+        elif node.symbol.name == "astnode":
+            return self.parse_astnode(node)
 
     def create_lexer(self):
         startrule = self.parser.previous_version.parent.children[1] # startrule
@@ -124,3 +187,36 @@ class BootstrapParser(object):
         name = lrule.children[0].children[0].symbol.name
         regex = lrule.children[3].symbol.name[1:-1]
         self.lrules.append((name, regex))
+
+class AstNode(object):
+    def __init__(self, name, children):
+        self.name = name
+        self.children = children
+
+    def __eq__(self, other):
+        return self.name == other.name and self.children == other.children
+
+class Expr(object):
+    pass
+
+class LookupExpr(Expr):
+    def __init__(self, number):
+        self.number = number
+
+    def __eq__(self, other):
+        return self.number == other.number
+
+class AddExpr(Expr):
+    def __init__(self, expr1, expr2):
+        self.expr1 = expr1
+        self.expr2 = expr2
+
+    def __eq__(self, other):
+        return self.expr1 == other.expr1 and self.expr2 == other.expr2
+
+class ListExpr(Expr):
+    def __init__(self, l):
+        self.elements = l
+
+    def __eq__(self, other):
+        return self.elements == other.elements
