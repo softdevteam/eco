@@ -41,6 +41,9 @@ class Test_CalcLexer(Test_IncrementalLexer):
         expected.append(("2", "INT"))
         assert tokens == expected
 
+    def test_lex_no_valid_token(self):
+        tokens = self.lex("abc") # shouldn't loop forever
+
     def test_relex(self):
         ast = AST()
         ast.init()

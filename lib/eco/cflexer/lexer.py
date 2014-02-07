@@ -134,6 +134,7 @@ class AbstractLexingDFARunner(deterministic.DFARunner):
                 if start == stop:
                     source = self.text[start:]
                     result = self.make_token(start, self.last_matched_state, source, lookahead = i - stop)
+                    self.last_matched_index = start + len(source)
                     return result
                     #source_pos = SourcePos(i - 1, self.lineno, self.columnno)
                     #raise deterministic.LexerError(self.text, self.state,
@@ -154,6 +155,7 @@ class AbstractLexingDFARunner(deterministic.DFARunner):
                         break
                 source = self.text[start: ]
                 result = self.make_token(start, self.last_matched_state, source, lookahead = lookahead)
+                self.last_matched_index = start + len(source)
                 self.adjust_position(source)
                 if self.ignore_token(self.last_matched_state):
                     if self.eof:
