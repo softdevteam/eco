@@ -78,7 +78,7 @@ class Test_Annotations(object):
     def test_annotations(self):
         grammar = """
 X ::= "x" {Node(child=#0)};
-Y ::= "y" {[#1,#3]};
+Y ::= "y" {[#0,#3]};
 Z ::= "z" {#1+#2};
 A ::= "a" {Node2(child=#0, child2=[#1,#3], child3=#3+[#4])};
 
@@ -89,7 +89,7 @@ x:"x"
         bp = BootstrapParser()
         bp.parse(grammar)
         assert bp.rules[Nonterminal("X")].annotations == [AstNode("Node", {"child":LookupExpr(0)})]
-        assert bp.rules[Nonterminal("Y")].annotations == [ListExpr([LookupExpr(1), LookupExpr(3)])]
+        assert bp.rules[Nonterminal("Y")].annotations == [ListExpr([LookupExpr(0), LookupExpr(3)])]
         assert bp.rules[Nonterminal("Z")].annotations == [AddExpr(LookupExpr(1), LookupExpr(2))]
         assert bp.rules[Nonterminal("A")].annotations == [AstNode("Node2", {'child': LookupExpr(0), 'child2':ListExpr([LookupExpr(1), LookupExpr(3)]), 'child3':AddExpr(LookupExpr(3), ListExpr([LookupExpr(4)]))})]
 
@@ -137,11 +137,14 @@ class Test_Bootstrapping(object):
 
     def test_calculator(self):
         calc = """
-            E ::= T
-                | E "plus" T;
-            T ::= P
-                | T "mul" P;
-            P ::= "INT";
+            E ::= T             {#0}
+                | E "plus" T    {Plus(arg1=#0,arg2=#2)}
+                ;
+            T ::= P             {#0}
+                | T "mul" P     {Mul(arg1=#0,arg2=#2)}
+                ;
+            P ::= "INT"         {#0}
+                ;
         %%
 
             INT:"[0-9]+"
@@ -165,4 +168,20 @@ class Test_Bootstrapping(object):
         assert bootstrap.incparser.last_status == False
         self.treemanager.key_normal("3")
         assert bootstrap.incparser.last_status == True
+
+        # test ast generation
+        root = bootstrap.incparser.previous_version.parent
+        assert root.symbol.name == "Root"
+        assert root.children[1].symbol.name == "E"
+        E = root.children[1]
+        assert isinstance(E.alternate, AstNode)
+        assert E.alternate.name == "Plus"
+        plus = E.alternate
+        assert plus.children['arg1'].symbol.name == "1"
+        mul = plus.children['arg2']
+        assert isinstance(mul, AstNode)
+        assert mul.name == "Mul"
+        assert mul.children['arg1'].symbol.name == "2"
+        assert mul.children['arg2'].symbol.name == "3"
+
 

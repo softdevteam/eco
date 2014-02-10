@@ -246,7 +246,14 @@ class IncParser(object):
         new_node = Node(element.action.left.copy(), goto.action, children)
         self.stack.append(new_node)
         self.current_state = new_node.state
-        self.add_alternate_version(new_node, element.action)
+        self.interpret_annotation(new_node, element.action)
+        #self.add_alternate_version(new_node, element.action)
+
+    def interpret_annotation(self, node, production):
+        annotation = production.annotation
+        if annotation:
+            astnode = annotation.interpret(node)
+            node.alternate = astnode
 
     def add_alternate_version(self, node, production):
         # add alternate (folded) versions for nodes to the tree

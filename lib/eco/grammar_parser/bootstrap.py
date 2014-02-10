@@ -196,6 +196,15 @@ class AstNode(object):
     def __eq__(self, other):
         return self.name == other.name and self.children == other.children
 
+    def interpret(self, node):
+        d = {}
+        for c in self.children:
+            d[c] = self.children[c].interpret(node)
+        return AstNode(self.name, d)
+
+    def __repr__(self):
+        return "AstNode(%s, %s)" % (self.name, self.children)
+
 class Expr(object):
     pass
 
@@ -206,6 +215,15 @@ class LookupExpr(Expr):
     def __eq__(self, other):
         return self.number == other.number
 
+    def interpret(self, node):
+        n = node.children[self.number]
+        if n.alternate:
+            n = n.alternate
+        return n
+
+    def __repr__(self):
+        return "LookupExpr(%s)" % (self.number)
+
 class AddExpr(Expr):
     def __init__(self, expr1, expr2):
         self.expr1 = expr1
@@ -214,9 +232,28 @@ class AddExpr(Expr):
     def __eq__(self, other):
         return self.expr1 == other.expr1 and self.expr2 == other.expr2
 
+    def interpret(self, node):
+        expr1 = expr1.interpret(node)
+        expr2 = expr2.interpret(node)
+        assert isinstance(expr1, list)
+        assert isinstance(expr2, list)
+        return expr1 + expr2
+
+    def __repr__(self):
+        return "AddExpr(%s, %s)" % (self.expr1, self.expr2)
+
 class ListExpr(Expr):
     def __init__(self, l):
         self.elements = l
 
     def __eq__(self, other):
         return self.elements == other.elements
+
+    def __repr__(self):
+        return "ListExpr(%s)" % (self.elements)
+
+    def interpret(self, node):
+        l = []
+        for e in self.elements:
+            l.append(e.interpret(node))
+        return l

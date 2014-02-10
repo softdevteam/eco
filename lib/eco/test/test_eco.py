@@ -125,7 +125,9 @@ S ::= "a" "assign" "b"
         assert treemanager.cursor.node.lookup == "assign"
         assert treemanager.cursor.node.symbol.name == "::="
 
-class Test_AST_Conversion:
+class Test_AST_Conversion(object):
+    def setup_class(cls):
+        pytest.skip("Skipped until new AST conversion is merged into Eco")
 
     def test_calculator(self):
         lexer = IncrementalLexer(calc_annotation.priorities)
