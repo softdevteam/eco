@@ -495,6 +495,8 @@ class IncrementalLexerCF(object):
     def find_preceeding_nodes(self, node):
         chars = 0
         nodes = []
+        if node.symbol.name == "\r": # if at line beginning there are no previous nodes to consider
+            return nodes
         while True:
             node = node.prev_term
             if node.lookahead and node.lookahead > chars:

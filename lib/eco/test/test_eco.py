@@ -784,3 +784,45 @@ class Test_Indentation(Test_Python):
             self.treemanager.key_delete()
 
         assert self.parser.last_status == True
+
+from grammars.grammars import lang_dict, python_prolog
+class Test_Languageboxes(Test_Python):
+
+    def setup_class(cls):
+        cls.lexer = IncrementalLexer(python_prolog.priorities)
+        cls.parser = IncParser(python_prolog.grammar, 1, True)
+        cls.parser.init_ast()
+        cls.ast = cls.parser.previous_version
+        cls.treemanager = TreeManager()
+        cls.treemanager.add_parser(cls.parser, cls.lexer, python_prolog.name)
+
+        cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+    def test_simple(self):
+        assert self.parser.last_status == True
+        inputstring = "class Test:\r    def x():\r    return x"
+        for c in inputstring:
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == True
+        self.treemanager.add_languagebox(lang_dict["Prolog"])
+        assert self.parser.last_status == True
+        assert self.treemanager.parsers[1][2] == "Prolog"
+        assert self.treemanager.parsers[1][0].last_status == False
+        self.treemanager.key_normal("x")
+        assert self.treemanager.parsers[1][0].last_status == False
+        self.treemanager.key_normal(".")
+        assert self.treemanager.parsers[1][0].last_status == True
+
+    def test_backspace_return_in_box(self):
+        self.reset()
+        inputstring = "class Test:\r    def x():\r    return x"
+        for c in inputstring:
+            self.treemanager.key_normal(c)
+        self.treemanager.key_backspace()
+        self.treemanager.add_languagebox(lang_dict["Prolog"])
+        self.treemanager.key_normal("x")
+        self.treemanager.key_normal("\r")
+        for i in range(8):
+            self.treemanager.key_backspace()
