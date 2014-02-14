@@ -37,7 +37,7 @@ from astree import AST, TextNode, BOS, EOS
 Node = TextNode
 
 # deactivate parser output for now
-def noprint(*args, **kwargs):
+def print(*args, **kwargs):
     pass
 
 class IncParser(object):

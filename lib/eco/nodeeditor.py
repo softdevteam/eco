@@ -77,11 +77,9 @@ class NodeEditor(QFrame):
         self.update()
 
     def paintEvent(self, event):
-        print("paintEVEMT")
         QtGui.QFrame.paintEvent(self, event)
         paint = QtGui.QPainter()
         if self.imagemode:
-            print("draw stuff in image")
             self.image = QImage()
             paint.begin(self.image)
         else:
