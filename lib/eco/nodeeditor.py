@@ -10,6 +10,7 @@ from treemanager import TreeManager, Cursor
 from grammars.grammars import languages, lang_dict
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
+from jsonmanager import JsonManager
 
 import syntaxhighlighter
 import editor
