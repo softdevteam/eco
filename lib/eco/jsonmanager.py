@@ -68,7 +68,7 @@ class JsonManager(object):
         node_symbol = eval(jsnode["symbol"])
 
         symbol = node_symbol()
-        symbol.name = jsnode["text"]
+        symbol.name = jsnode["text"].encode("utf-8")
         node = node_class(symbol)
         assert node.symbol is symbol
         node.lookup = jsnode["lookup"]
