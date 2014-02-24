@@ -46,7 +46,9 @@ from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal,
 
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 
-from grammars.grammars import languages, lang_dict
+from grammars.grammars import languages, lang_dict, Language, EcoGrammar
+
+from grammar_parser.bootstrap import BootstrapParser
 
 from time import time
 import os
@@ -316,14 +318,19 @@ class Window(QtGui.QMainWindow):
         self.ui.frame.setFocus(Qt.OtherFocusReason)
 
     def btUpdateGrammar(self):
-        new_grammar = str(self.language.grammar)
-        new_priorities = str(self.language.priorities)
         whitespaces = self.ui.cb_add_implicit_ws.isChecked()
-        self.lrp = IncParser(new_grammar, 1, whitespaces)
-        self.lrp.init_ast()
-        lexer = IncrementalLexer(new_priorities)
-        self.ui.frame.reset()
-        self.ui.frame.set_mainlanguage(self.lrp, lexer, self.main_language)
+        if isinstance(self.language, Language):
+            new_grammar = str(self.language.grammar)
+            new_priorities = str(self.language.priorities)
+            self.lrp = IncParser(new_grammar, 1, whitespaces)
+            self.lrp.init_ast()
+            lexer = IncrementalLexer(new_priorities)
+            self.ui.frame.reset()
+            self.ui.frame.set_mainlanguage(self.lrp, lexer, self.main_language)
+        elif isinstance(self.language, EcoGrammar):
+            bootstrap = BootstrapParser(lr_type=1, whitespaces=whitespaces)
+            bootstrap.parse(self.language.grammar)
+            self.ui.frame.set_mainlanguage(bootstrap.incparser, bootstrap.inclexer, self.language.name)
         self.btReparse([])
 
         #self.ui.graphicsView.setScene(QGraphicsScene())

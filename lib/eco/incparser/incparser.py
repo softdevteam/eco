@@ -246,8 +246,13 @@ class IncParser(object):
         new_node = Node(element.action.left.copy(), goto.action, children)
         self.stack.append(new_node)
         self.current_state = new_node.state
-        self.interpret_annotation(new_node, element.action)
-        #self.add_alternate_version(new_node, element.action)
+        try:
+            # eco grammar annotations
+            element.action.annotation.interpret
+            self.interpret_annotation(new_node, element.action)
+        except AttributeError:
+            # johnstone annotations
+            self.add_alternate_version(new_node, element.action)
 
     def interpret_annotation(self, node, production):
         annotation = production.annotation

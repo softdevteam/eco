@@ -205,6 +205,13 @@ class AstNode(object):
     def __repr__(self):
         return "AstNode(%s, %s)" % (self.name, self.children)
 
+    def __getattribute__(self, name):
+        if name == "symbol":
+            return self
+        if name == "changed":
+            return False
+        return object.__getattribute__(self, name)
+
 class Expr(object):
     pass
 

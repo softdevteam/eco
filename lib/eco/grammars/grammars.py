@@ -30,6 +30,16 @@ class Language(object):
     def __str__(self):
         return self.name
 
+class EcoGrammar(object):
+
+    def __init__(self, name, grammar, base=""):
+        self.name = name
+        self.grammar = grammar
+        self.base = base
+
+    def __str__(self):
+        return self.name
+
 super_simple = Language("Shifting optimisation",
 """
     S ::= X | Y
@@ -1005,6 +1015,7 @@ from python275 import python275
 from python275_annotated import python275_annotated
 from prolog import prolog
 from eco_grammar import eco_grammar
+from calc_eco import calc_eco
 
 import gops
 java15_chem = gops.add_alt("Java 1.5 + chemical", java15, "unary_expression", "<Chemicals>")
@@ -1017,7 +1028,7 @@ python_prolog = gops.add_alt("Python + Prolog", python275, "atom", "<Prolog>")
 #             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
 #             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
 
-languages = [calc1, calc_annotation, eco_grammar, johnstone_grammar, annot_test, python275, python275_annotated, prolog, python_prolog, lisp, java15, java15_sql, java15_exp, sql, sql_java_exp, chemicals]
+languages = [calc1, calc_eco, calc_annotation, eco_grammar, johnstone_grammar, annot_test, python275, python275_annotated, prolog, python_prolog, lisp, java15, java15_sql, java15_exp, sql, sql_java_exp, chemicals]
 
 lang_dict = {}
 for l in languages:

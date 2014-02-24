@@ -22,6 +22,7 @@
 import pydot, os
 
 from grammar_parser.gparser import MagicTerminal, Terminal
+from grammar_parser.bootstrap import AstNode
 
 tempdir = ".temp/"
 
@@ -122,7 +123,7 @@ class Viewer(object):
 
         addtext = ""
         if ast:
-            if node.alternate:
+            if not isinstance(node, AstNode) and node.alternate:
                 node = node.alternate
         try:
             if node.symbol.folding:
@@ -136,12 +137,18 @@ class Viewer(object):
         graph.add_node(dotnode)
 
         for c in node.children:
+            key = ""
+            if isinstance(node, AstNode):
+                key = c
+                c = node.children[c]
             if not whitespaces and c.symbol.name == "WS":
                 continue
             c_node = self.add_node_to_tree(c, graph, whitespaces, restrict_nodes, ast)
             if c_node is not None:
-                c.seen += 1
-                graph.add_edge(pydot.Edge(dotnode, c_node))
+                if key != "":
+                    graph.add_edge(pydot.Edge(dotnode, c_node, label=key, fontsize="10"))
+                else:
+                    graph.add_edge(pydot.Edge(dotnode, c_node))
 
         if isinstance(node.symbol, MagicTerminal):
             c_node = self.add_node_to_tree(node.symbol.parser, graph, whitespaces, restrict_nodes, ast)
