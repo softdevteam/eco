@@ -439,7 +439,12 @@ class TreeManager(object):
         else:
             # append to node: [node newtext] [next node]
             pos = 0
-            if isinstance(node, BOS) or node.symbol.name == "\r" or isinstance(node.symbol, MagicTerminal):
+            if str(text).startswith("\r"):
+                newnode = TextNode(Terminal(""))
+                node.insert_after(newnode)
+                node = newnode
+                self.cursor.pos = 0
+            elif isinstance(node, BOS) or node.symbol.name == "\r" or isinstance(node.symbol, MagicTerminal):
                 # insert new node: [bos] [newtext] [next node]
                 old = node
                 if old.next_term:
