@@ -499,6 +499,8 @@ class NodeEditor(QFrame):
             self.tm.leave_languagebox()
         elif e.key() == Qt.Key_Delete:
             self.tm.key_delete()
+        elif e.key() == Qt.Key_Z and e.modifiers() == Qt.ControlModifier:
+            self.tm.key_ctrl_z()
         else:
             if e.key() == Qt.Key_Tab:
                 text = "    "
