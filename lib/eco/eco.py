@@ -239,6 +239,8 @@ class Window(QtGui.QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
+        self.filename = None
+
         self.parseview = ParseView()
         self.parseview.setEditor(self.ui.frame)
 
@@ -258,6 +260,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionImport, SIGNAL("triggered()"), self.importfile)
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
         self.connect(self.ui.actionSave, SIGNAL("triggered()"), self.savefile)
+        self.connect(self.ui.actionSave_as, SIGNAL("triggered()"), self.savefileAs)
         self.connect(self.ui.actionRandomDel, SIGNAL("triggered()"), self.ui.frame.randomDeletion)
         self.connect(self.ui.actionSelect_font, SIGNAL("triggered()"), self.change_font)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.ui.frame.export_unipycation)
@@ -334,15 +337,23 @@ class Window(QtGui.QMainWindow):
         self.ui.fLinenumbers.change_font(font)
 
     def savefile(self):
+        if self.filename:
+            self.ui.frame.saveToJson(self.filename)
+        else:
+            self.savefileAs()
+
+    def savefileAs(self):
         filename = QFileDialog.getSaveFileName()
         if filename:
             self.ui.frame.saveToJson(filename)
+            self.filename = filename
 
     def openfile(self):
         filename = QFileDialog.getOpenFileName()
         if filename and filename.endsWith(".eco"):
             self.ui.frame.loadFromJson(filename)
             self.ui.frame.update()
+            self.filename = filename
         else: # import
             self.importfile(filename)
 
