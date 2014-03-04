@@ -480,27 +480,8 @@ class NodeEditor(QFrame):
             self.tm.key_home()
         elif e.key() == Qt.Key_End:
             self.tm.key_end()
-        elif e.key() == Qt.Key_C and e.modifiers() == Qt.ControlModifier:
-            text = self.tm.copySelection()
-            QApplication.clipboard().setText(text)
-        elif e.key() == Qt.Key_V and e.modifiers() == Qt.ControlModifier:
-            text = QApplication.clipboard().text()
-            self.tm.pasteText(text)
-        elif e.key() == Qt.Key_X and e.modifiers() == Qt.ControlModifier:
-            self.tm.cutSelection()
-        elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier:
-            self.showSubgrammarMenu()
-            if self.sublanguage:
-                if self.tm.hasSelection():
-                    self.tm.surround_with_languagebox(self.sublanguage)
-                else:
-                    self.tm.add_languagebox(self.sublanguage)
-        elif e.key() == Qt.Key_Space and e.modifiers() == Qt.ControlModifier | Qt.ShiftModifier:
-            self.tm.leave_languagebox()
         elif e.key() == Qt.Key_Delete:
             self.tm.key_delete()
-        elif e.key() == Qt.Key_Z and e.modifiers() == Qt.ControlModifier:
-            self.tm.key_ctrl_z()
         else:
             if e.key() == Qt.Key_Tab:
                 text = "    "
@@ -512,6 +493,14 @@ class NodeEditor(QFrame):
         self.fix_scrollbars()
         self.update()
         self.getWindow().showLookahead()
+
+    def showLanuageBoxMenu(self):
+        self.showSubgrammarMenu()
+        if self.sublanguage:
+            if self.tm.hasSelection():
+                self.tm.surround_with_languagebox(self.sublanguage)
+            else:
+                self.tm.add_languagebox(self.sublanguage)
 
     def println(self, prestring, y):
         node = self.lines[y].node.next_term
@@ -582,6 +571,7 @@ class NodeEditor(QFrame):
         toolbar = QtGui.QToolBar()
         for l in languages:
             item = toolbar.addAction(str(l), self.createMenuFunction(l))
+            item.setIcon(QIcon.fromTheme("text-x-" + l.base.lower()))
             l = "<%s>" % (l)
             if l in lookaheads:
                 item.setFont(self.boldDefaultFont)

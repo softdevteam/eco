@@ -267,10 +267,45 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionAbout, SIGNAL("triggered()"), self.showAboutView)
         self.connect(self.ui.scrollArea.verticalScrollBar(), SIGNAL("valueChanged(int)"), self.ui.frame.sliderChanged)
         self.connect(self.ui.scrollArea.horizontalScrollBar(), SIGNAL("valueChanged(int)"), self.ui.frame.sliderXChanged)
+        self.connect(self.ui.actionUndo, SIGNAL("triggered()"), self.undo)
+        self.connect(self.ui.actionCopy, SIGNAL("triggered()"), self.copy)
+        self.connect(self.ui.actionCut, SIGNAL("triggered()"), self.cut)
+        self.connect(self.ui.actionPaste, SIGNAL("triggered()"), self.paste)
+        self.connect(self.ui.actionAdd_language_box, SIGNAL("triggered()"), self.show_lbox_menu)
+        self.connect(self.ui.actionSelect_next_language_box, SIGNAL("triggered()"), self.select_next_lbox)
 
         self.ui.frame.setFocus(True)
 
         self.viewer = Viewer("pydot")
+
+    def select_next_lbox(self):
+        self.ui.frame.tm.leave_languagebox()
+        self.ui.frame.update()
+
+    def show_lbox_menu(self):
+        self.ui.frame.showLanuageBoxMenu()
+        self.ui.frame.update()
+
+    def undo(self):
+        self.ui.frame.tm.key_ctrl_z()
+        self.ui.frame.update()
+        self.btReparse([])
+
+    def cut(self):
+        text = self.ui.frame.tm.cutSelection()
+        QApplication.clipboard().setText(text)
+        self.ui.frame.update()
+
+    def copy(self):
+        text = self.ui.frame.tm.copySelection()
+        if text:
+            QApplication.clipboard().setText(text)
+            self.ui.frame.update()
+
+    def paste(self):
+        text = QApplication.clipboard().text()
+        self.ui.frame.tm.pasteText(text)
+        self.ui.frame.update()
 
     def showAboutView(self):
         about = AboutView()
