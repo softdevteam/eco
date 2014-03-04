@@ -65,7 +65,7 @@ from nodeeditor import NodeEditor
 def print_var(name, value):
     print("%s: %s" % (name, value))
 
-BODY_FONT = "Courier"
+BODY_FONT = "Monospace"
 BODY_FONT_SIZE = 9
 
 class LineNumbers(QFrame):

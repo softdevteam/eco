@@ -3,7 +3,7 @@ from PyQt4.QtCore import *
 from PyQt4 import QtGui
 from PyQt4.QtGui import *
 
-BODY_FONT = "Courier"
+BODY_FONT = "Monospace"
 BODY_FONT_SIZE = 9
 
 from treemanager import TreeManager, Cursor
