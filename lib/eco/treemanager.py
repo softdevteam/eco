@@ -692,7 +692,11 @@ class TreeManager(object):
             self.cursor.line += 1
 
     def copySelection(self):
-        nodes, diff_start, diff_end = self.get_nodes_from_selection()
+        result = self.get_nodes_from_selection()
+        if not result:
+            return None
+
+        nodes, diff_start, diff_end = result
         if len(nodes) == 1:
             text = nodes[0].symbol.name[diff_start:diff_end]
             return text
@@ -747,8 +751,9 @@ class TreeManager(object):
 
     def cutSelection(self):
         if self.hasSelection():
-            self.copySelection()
+            text = self.copySelection()
             self.deleteSelection()
+            return text
 
     def deleteSelection(self):
         #XXX simple version: later we might want to modify the nodes directly
