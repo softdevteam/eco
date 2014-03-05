@@ -571,7 +571,10 @@ class NodeEditor(QFrame):
         toolbar = QtGui.QToolBar()
         for l in languages:
             item = toolbar.addAction(str(l), self.createMenuFunction(l))
-            item.setIcon(QIcon.fromTheme("text-x-" + l.base.lower()))
+            icon = QIcon.fromTheme("text-x-" + l.base.lower())
+            if icon.isNull():
+                icon = QIcon.fromTheme("text-x-source")
+            item.setIcon(icon)
             l = "<%s>" % (l)
             if l in lookaheads:
                 item.setFont(self.boldDefaultFont)
