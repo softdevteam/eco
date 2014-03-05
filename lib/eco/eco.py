@@ -276,6 +276,11 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionPaste, SIGNAL("triggered()"), self.paste)
         self.connect(self.ui.actionAdd_language_box, SIGNAL("triggered()"), self.show_lbox_menu)
         self.connect(self.ui.actionSelect_next_language_box, SIGNAL("triggered()"), self.select_next_lbox)
+        self.connect(self.ui.actionNew, SIGNAL("triggered()"), self.newfile)
+        self.connect(self.ui.actionExit, SIGNAL("triggered()"), QApplication.quit)
+
+        self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
+        self.ui.menuWindow.addAction(self.ui.dockWidget_3.toggleViewAction())
 
         self.ui.frame.setFocus(True)
 
@@ -335,6 +340,10 @@ class Window(QtGui.QMainWindow):
         font = QFontDialog.getFont(self.ui.frame.font)
         self.ui.frame.change_font(font)
         self.ui.fLinenumbers.change_font(font)
+
+    def newfile(self):
+        self.filename = None
+        self.loadLanguage(self.ui.list_languages.currentItem())
 
     def savefile(self):
         if self.filename:
