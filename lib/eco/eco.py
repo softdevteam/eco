@@ -36,6 +36,7 @@ from gui.gui import Ui_MainWindow
 from gui.parsetree import Ui_MainWindow as Ui_ParseTree
 from gui.stateview import Ui_MainWindow as Ui_StateView
 from gui.about import Ui_Dialog as Ui_AboutDialog
+from gui.languagedialog import Ui_Dialog as Ui_LanguageDialog
 
 from grammar_parser.plexer import PriorityLexer
 from incparser.incparser import IncParser
@@ -233,6 +234,25 @@ class AboutView(QtGui.QDialog):
         self.ui = Ui_AboutDialog()
         self.ui.setupUi(self)
 
+class LanguageView(QtGui.QDialog):
+    def __init__(self, languages):
+        QtGui.QDialog.__init__(self)
+        self.ui = Ui_LanguageDialog()
+        self.ui.setupUi(self)
+
+        for l in languages:
+            item = QListWidgetItem(self.ui.listWidget)
+            item.setText(str(l))
+            icon = QIcon.fromTheme("text-x-" + l.base.lower())
+            if icon.isNull():
+                icon = QIcon.fromTheme("text-x-source")
+            item.setIcon(icon)
+
+        self.ui.listWidget.item(0).setSelected(True)
+
+    def getLanguage(self):
+        return self.ui.listWidget.currentRow()
+
 class Window(QtGui.QMainWindow):
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
@@ -254,7 +274,7 @@ class Window(QtGui.QMainWindow):
 
         self.ui.list_languages.item(0).setSelected(True)
 
-        self.loadLanguage(self.ui.list_languages.item(0))
+        self.loadLanguage(0)
 
         self.connect(self.ui.list_languages, SIGNAL("itemClicked(QListWidgetItem *)"), self.loadLanguage)
         self.connect(self.ui.actionImport, SIGNAL("triggered()"), self.importfile)
@@ -348,8 +368,11 @@ class Window(QtGui.QMainWindow):
         self.ui.fLinenumbers.change_font(font)
 
     def newfile(self):
-        self.filename = None
-        self.loadLanguage(self.ui.list_languages.currentItem())
+        lview = LanguageView(languages)
+        result = lview.exec_()
+        if result:
+            self.filename = None
+            self.loadLanguage(lview.getLanguage())
 
     def savefile(self):
         if self.filename:
@@ -372,8 +395,8 @@ class Window(QtGui.QMainWindow):
         else: # import
             self.importfile(filename)
 
-    def loadLanguage(self, item):
-        self.language = languages[self.ui.list_languages.row(item)]
+    def loadLanguage(self, index):
+        self.language = languages[index]
         self.main_language = self.language.name
         self.btUpdateGrammar()
         self.ui.frame.setFocus(Qt.OtherFocusReason)
