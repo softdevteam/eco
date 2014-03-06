@@ -253,6 +253,9 @@ class LanguageView(QtGui.QDialog):
     def getLanguage(self):
         return self.ui.listWidget.currentRow()
 
+    def getWhitespace(self):
+        return self.ui.cb_add_implicit_ws.isChecked()
+
 class Window(QtGui.QMainWindow):
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
@@ -269,21 +272,15 @@ class Window(QtGui.QMainWindow):
 
         self.connect(self.ui.cbShowLangBoxes, SIGNAL("clicked()"), self.ui.frame.update)
 
-        for l in languages:
-            self.ui.list_languages.addItem(str(l))
+        self.loadLanguage(0, True)
 
-        self.ui.list_languages.item(0).setSelected(True)
-
-        self.loadLanguage(0)
-
-        self.connect(self.ui.list_languages, SIGNAL("itemClicked(QListWidgetItem *)"), self.loadLanguage)
         self.connect(self.ui.actionImport, SIGNAL("triggered()"), self.importfile)
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
         self.connect(self.ui.actionSave, SIGNAL("triggered()"), self.savefile)
         self.connect(self.ui.actionSave_as, SIGNAL("triggered()"), self.savefileAs)
         self.connect(self.ui.actionRandomDel, SIGNAL("triggered()"), self.ui.frame.randomDeletion)
         self.connect(self.ui.actionSelect_font, SIGNAL("triggered()"), self.change_font)
-        self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.ui.frame.export_unipycation)
+        self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
         self.connect(self.ui.actionUndoRandomDel, SIGNAL("triggered()"), self.ui.frame.undoDeletion)
         self.connect(self.ui.actionParse_Tree, SIGNAL("triggered()"), self.showParseView)
         self.connect(self.ui.actionStateGraph, SIGNAL("triggered()"), self.showStateView)
@@ -300,12 +297,20 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionNew, SIGNAL("triggered()"), self.newfile)
         self.connect(self.ui.actionExit, SIGNAL("triggered()"), QApplication.quit)
 
+
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
-        self.ui.menuWindow.addAction(self.ui.dockWidget_3.toggleViewAction())
+        self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
 
         self.ui.frame.setFocus(True)
 
         self.viewer = Viewer("pydot")
+
+    def run_subprocess(self):
+        self.ui.teConsole.clear()
+        self.thread.start()
+
+    def show_output(self, string):
+        self.ui.teConsole.append(string)
 
     def select_next_lbox(self):
         self.ui.frame.tm.leave_languagebox()
@@ -372,7 +377,7 @@ class Window(QtGui.QMainWindow):
         result = lview.exec_()
         if result:
             self.filename = None
-            self.loadLanguage(lview.getLanguage())
+            self.loadLanguage(lview.getLanguage(), lview.getWhitespace())
 
     def savefile(self):
         if self.filename:
@@ -395,14 +400,13 @@ class Window(QtGui.QMainWindow):
         else: # import
             self.importfile(filename)
 
-    def loadLanguage(self, index):
+    def loadLanguage(self, index, whitespaces):
         self.language = languages[index]
         self.main_language = self.language.name
-        self.btUpdateGrammar()
+        self.btUpdateGrammar(whitespaces)
         self.ui.frame.setFocus(Qt.OtherFocusReason)
 
-    def btUpdateGrammar(self):
-        whitespaces = self.ui.cb_add_implicit_ws.isChecked()
+    def btUpdateGrammar(self, whitespaces):
         if isinstance(self.language, Language):
             new_grammar = str(self.language.grammar)
             new_priorities = str(self.language.priorities)
@@ -457,9 +461,24 @@ def main():
     app = QtGui.QApplication(sys.argv)
     app.setStyle('gtk')
     window=Window()
+    t = SubProcessThread(window.ui, app)
+    window.thread = t
+    window.connect(window.thread, t.signal, window.show_output)
 
     window.show()
+    t.wait()
     sys.exit(app.exec_())
+
+class SubProcessThread(QThread):
+    def __init__(self, ui, parent):
+        QThread.__init__(self, parent=parent)
+        self.ui = ui
+        self.signal = QtCore.SIGNAL("output")
+
+    def run(self):
+        p = self.ui.frame.export_unipycation()
+        for line in iter(p.stdout.readline, b''):
+            self.emit(self.signal, line.rstrip())
 
 if __name__ == "__main__":
     main()

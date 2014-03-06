@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui/newgui.ui'
 #
-# Created: Wed Mar  5 11:58:53 2014
+# Created: Thu Mar  6 14:18:02 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -224,26 +224,18 @@ class Ui_MainWindow(object):
         self.horizontalLayout_5.addWidget(self.list_parsingstatus)
         self.dockWidget_2.setWidget(self.dockWidgetContents_2)
         MainWindow.addDockWidget(QtCore.Qt.DockWidgetArea(2), self.dockWidget_2)
-        self.dockWidget_3 = QtGui.QDockWidget(MainWindow)
-        self.dockWidget_3.setObjectName(_fromUtf8("dockWidget_3"))
-        self.dockWidgetContents_3 = QtGui.QWidget()
-        self.dockWidgetContents_3.setObjectName(_fromUtf8("dockWidgetContents_3"))
-        self.verticalLayout_3 = QtGui.QVBoxLayout(self.dockWidgetContents_3)
-        self.verticalLayout_3.setObjectName(_fromUtf8("verticalLayout_3"))
-        self.list_languages = QtGui.QListWidget(self.dockWidgetContents_3)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.list_languages.sizePolicy().hasHeightForWidth())
-        self.list_languages.setSizePolicy(sizePolicy)
-        self.list_languages.setObjectName(_fromUtf8("list_languages"))
-        self.verticalLayout_3.addWidget(self.list_languages)
-        self.cb_add_implicit_ws = QtGui.QCheckBox(self.dockWidgetContents_3)
-        self.cb_add_implicit_ws.setChecked(True)
-        self.cb_add_implicit_ws.setObjectName(_fromUtf8("cb_add_implicit_ws"))
-        self.verticalLayout_3.addWidget(self.cb_add_implicit_ws)
-        self.dockWidget_3.setWidget(self.dockWidgetContents_3)
-        MainWindow.addDockWidget(QtCore.Qt.DockWidgetArea(2), self.dockWidget_3)
+        self.dockWidget = QtGui.QDockWidget(MainWindow)
+        self.dockWidget.setObjectName(_fromUtf8("dockWidget"))
+        self.dockWidgetContents = QtGui.QWidget()
+        self.dockWidgetContents.setObjectName(_fromUtf8("dockWidgetContents"))
+        self.verticalLayout = QtGui.QVBoxLayout(self.dockWidgetContents)
+        self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
+        self.teConsole = QtGui.QTextEdit(self.dockWidgetContents)
+        self.teConsole.setReadOnly(True)
+        self.teConsole.setObjectName(_fromUtf8("teConsole"))
+        self.verticalLayout.addWidget(self.teConsole)
+        self.dockWidget.setWidget(self.dockWidgetContents)
+        MainWindow.addDockWidget(QtCore.Qt.DockWidgetArea(2), self.dockWidget)
         self.actionImport = QtGui.QAction(MainWindow)
         icon = QtGui.QIcon.fromTheme(_fromUtf8("document-import"))
         self.actionImport.setIcon(icon)
@@ -381,8 +373,7 @@ class Ui_MainWindow(object):
         self.menuWindow.setTitle(_translate("MainWindow", "Window", None))
         self.toolBar.setWindowTitle(_translate("MainWindow", "toolBar", None))
         self.dockWidget_2.setWindowTitle(_translate("MainWindow", "Parsing Status", None))
-        self.dockWidget_3.setWindowTitle(_translate("MainWindow", "Languages", None))
-        self.cb_add_implicit_ws.setText(_translate("MainWindow", "Add implicit whitespaces", None))
+        self.dockWidget.setWindowTitle(_translate("MainWindow", "Console", None))
         self.actionImport.setText(_translate("MainWindow", "Import...", None))
         self.actionRandomDel.setText(_translate("MainWindow", "Delete random chars", None))
         self.actionUndoRandomDel.setText(_translate("MainWindow", "Undo random deletion", None))

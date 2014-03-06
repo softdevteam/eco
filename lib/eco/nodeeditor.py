@@ -657,4 +657,4 @@ class NodeEditor(QFrame):
         self.tm.set_font(self.fontm)
 
     def export_unipycation(self):
-        self.tm.export_unipycation()
+        return self.tm.export_unipycation()

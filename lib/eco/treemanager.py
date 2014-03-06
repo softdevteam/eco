@@ -1137,7 +1137,7 @@ class TreeManager(object):
         os.write(f[0],"".join(output))
         os.close(f[0])
         if os.environ.has_key("UNIPYCATION"):
-            subprocess.Popen([os.path.join(os.environ["UNIPYCATION"], "pypy/goal/pypy-c"), f[1]])
+            return subprocess.Popen([os.path.join(os.environ["UNIPYCATION"], "pypy/goal/pypy-c"), f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
         else:
             sys.stderr.write("UNIPYCATION environment not set")
 

@@ -533,31 +533,18 @@
     </layout>
    </widget>
   </widget>
-  <widget class="QDockWidget" name="dockWidget_3">
+  <widget class="QDockWidget" name="dockWidget">
    <property name="windowTitle">
-    <string>Languages</string>
+    <string>Console</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>2</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents_3">
-    <layout class="QVBoxLayout" name="verticalLayout_3">
+   <widget class="QWidget" name="dockWidgetContents">
+    <layout class="QVBoxLayout" name="verticalLayout">
      <item>
-      <widget class="QListWidget" name="list_languages">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="cb_add_implicit_ws">
-       <property name="text">
-        <string>Add implicit whitespaces</string>
-       </property>
-       <property name="checked">
+      <widget class="QTextEdit" name="teConsole">
+       <property name="readOnly">
         <bool>true</bool>
        </property>
       </widget>
