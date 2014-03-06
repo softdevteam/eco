@@ -222,43 +222,83 @@ class Cursor(object):
     def __repr__(self):
         return "Cursor(%s, %s)" % (self.node, self.pos)
 
+class UndoObject(object):
+    def __init__(self, cmd, text, x, line):
+        self.cmd = cmd
+        self.text = text
+        self.x1 = x
+        self.line1 = line
+        self.x2 = None
+        self.line2 = None
+
+    def __repr__(self):
+        return "UndoObject(%s, %s, %s, %s, %s, %s)" % (self.cmd, self.text, self.x1, self.line1, self.x2, self.line2)
+
 class UndoManager(object):
     def __init__(self):
         self.stack = []
-        self.pos = (0,0)
+        self.pos = -1
         self.mode = "new"
 
     def add(self, cmd, text, cursor):
         if text == " " or str(text).startswith("\r"):
             self.mode = "new"
         if self.mode != cmd:
-            self.stack.append((cmd, text, (cursor.get_x(), cursor.line)))
+            del self.stack[self.pos+1:]
+            if cmd == "insert":
+                x = cursor.get_x() - len(text)
+            elif cmd == "delete":
+                x = cursor.get_x() + len(text)
+            self.stack.append(UndoObject(cmd, text, x, cursor.line))
+            self.pos += 1
             self.mode = cmd
         else:
-            cmd, oldtext, _ = self.stack[-1]
-            self.stack[-1] = (cmd, oldtext + text, (cursor.get_x(), cursor.line))
-        if len(self.stack) > 10: # keep stack small
+            uo = self.stack[-1]
+            uo.text += text
+            uo.x2 = cursor.get_x()
+            uo.line2 = cursor.line
+        if len(self.stack) > 100: # keep stack small
             del self.stack[0]
+            self.pos -= 1
 
     def finish(self):
         self.mode = "new"
 
     def undo(self, tm):
-        if len(self.stack) > 0:
-            cmd, text, cursor = self.stack.pop()
-            f = self.__getattribute__("cmd_" + cmd)
-            tm.cursor.line = cursor[1]
-            tm.cursor.move_to_x(cursor[0], tm.lines)
-            f(tm, text)
+        if len(self.stack) > 0 and self.pos > -1:
+            uo = self.stack[self.pos]
+            f = self.__getattribute__("undo_" + uo.cmd)
+            tm.cursor.line = uo.line2
+            tm.cursor.move_to_x(uo.x2, tm.lines)
+            f(tm, uo.text)
+            self.pos -= 1
         self.mode = "new"
 
-    def cmd_insert(self, tm, text):
+    def redo(self, tm):
+        if len(self.stack) > 0 and self.pos+1 < len(self.stack):
+            self.pos += 1
+            uo = self.stack[self.pos]
+            f = self.__getattribute__("redo_" + uo.cmd)
+            f(tm, uo)
+
+    def undo_insert(self, tm, text):
         for i in text:
             tm.key_backspace(False)
 
-    def cmd_delete(self, tm, text):
+    def redo_insert(self, tm, uo):
+        tm.cursor.line = uo.line1
+        tm.cursor.move_to_x(uo.x1, tm.lines)
+        for c in uo.text:
+            tm.key_normal(c, False)
+
+    def undo_delete(self, tm, text):
         for c in text[::-1]:
             tm.key_normal(c, False)
+
+    def redo_delete(self, tm, uo):
+        tm.cursor.line = uo.line1
+        tm.cursor.move_to_x(uo.x1, tm.lines)
+        self.undo_insert(tm, uo.text)
 
 class TreeManager(object):
     def __init__(self):
@@ -443,6 +483,9 @@ class TreeManager(object):
         return lrp.get_next_symbols_list(selected_node.state)
 
     # ============================ MODIFICATIONS ============================= #
+
+    def key_shift_ctrl_z(self):
+        self.undomanager.redo(self)
 
     def key_ctrl_z(self):
         self.undomanager.undo(self)

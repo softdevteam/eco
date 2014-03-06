@@ -271,6 +271,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.scrollArea.verticalScrollBar(), SIGNAL("valueChanged(int)"), self.ui.frame.sliderChanged)
         self.connect(self.ui.scrollArea.horizontalScrollBar(), SIGNAL("valueChanged(int)"), self.ui.frame.sliderXChanged)
         self.connect(self.ui.actionUndo, SIGNAL("triggered()"), self.undo)
+        self.connect(self.ui.actionRedo, SIGNAL("triggered()"), self.redo)
         self.connect(self.ui.actionCopy, SIGNAL("triggered()"), self.copy)
         self.connect(self.ui.actionCut, SIGNAL("triggered()"), self.cut)
         self.connect(self.ui.actionPaste, SIGNAL("triggered()"), self.paste)
@@ -293,6 +294,11 @@ class Window(QtGui.QMainWindow):
     def show_lbox_menu(self):
         self.ui.frame.showLanuageBoxMenu()
         self.ui.frame.update()
+
+    def redo(self):
+        self.ui.frame.tm.key_shift_ctrl_z()
+        self.ui.frame.update()
+        self.btReparse([])
 
     def undo(self):
         self.ui.frame.tm.key_ctrl_z()
