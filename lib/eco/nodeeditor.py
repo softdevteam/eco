@@ -617,8 +617,7 @@ class NodeEditor(QFrame):
         self.indentation = True
 
     def saveToJson(self, filename):
-        whitespaces = self.getWindow().ui.cb_add_implicit_ws.isChecked()
-
+        whitespaces = self.tm.get_mainparser().whitespaces
         root = self.tm.parsers[0][0].previous_version.parent
         language = self.tm.parsers[0][2]
         manager = JsonManager()

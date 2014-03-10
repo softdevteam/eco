@@ -81,6 +81,7 @@ class IncParser(object):
         self.validating = False
         self.last_status = False
         self.error_node = None
+        self.whitespaces = whitespaces
 
         self.previous_version = None
         print("Incemental parser done")
@@ -91,6 +92,7 @@ class IncParser(object):
 
         self.syntaxtable = SyntaxTable(lr_type)
         self.syntaxtable.build(self.graph)
+        self.whitespaces = whitespaces
 
     def init_ast(self, magic_parent=None):
         bos = BOS(Terminal(""), 0, [])
