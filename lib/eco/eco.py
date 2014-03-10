@@ -140,7 +140,7 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
         self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() - self.verticalScrollBar().singleStep())
 
 class ParseView(QtGui.QMainWindow):
-    def __init__(self):
+    def __init__(self, window):
         QtGui.QMainWindow.__init__(self)
         self.ui = Ui_ParseTree()
         self.ui.setupUi(self)
@@ -156,18 +156,18 @@ class ParseView(QtGui.QMainWindow):
         self.viewer = Viewer("pydot")
         self.ui.graphicsView.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform | QPainter.TextAntialiasing)
 
-    def setEditor(self, editor):
-        self.editor = editor
+        self.window = window
 
     def refresh(self):
+        editor = self.window.getEditor()
         whitespaces = self.ui.cb_toggle_ws.isChecked()
         if self.ui.cb_toggle_ast.isChecked():
             if self.ui.rb_view_parsetree.isChecked():
-                self.viewer.get_tree_image(self.editor.tm.get_mainparser().previous_version.parent, [], whitespaces)
+                self.viewer.get_tree_image(editor.tm.get_mainparser().previous_version.parent, [], whitespaces)
             elif self.ui.rb_view_linetree.isChecked():
-                self.viewer.get_terminal_tree(self.editor.tm.get_mainparser().previous_version.parent)
+                self.viewer.get_terminal_tree(editor.tm.get_mainparser().previous_version.parent)
             elif self.ui.rb_view_ast.isChecked():
-                self.viewer.get_tree_image(self.editor.tm.get_mainparser().previous_version.parent, [], whitespaces, ast=True)
+                self.viewer.get_tree_image(editor.tm.get_mainparser().previous_version.parent, [], whitespaces, ast=True)
             self.showImage(self.ui.graphicsView, self.viewer.image)
 
     def showImage(self, graphicsview, imagefile):
@@ -183,13 +183,14 @@ class ParseView(QtGui.QMainWindow):
         graphicsview.fitInView(graphicsview.sceneRect(), Qt.KeepAspectRatio)
 
     def showAstSelection(self):
+        editor = self.window.getEditor()
         whitespaces = self.ui.cb_toggle_ws.isChecked()
-        nodes, _, _ = self.editor.get_nodes_from_selection()
+        nodes, _, _ = editor.get_nodes_from_selection()
         if len(nodes) == 0:
             return
         start = nodes[0]
         end = nodes[-1]
-        ast = self.editor.lrp.previous_version
+        ast = editor.lrp.previous_version
         parent = ast.find_common_parent(start, end)
         for node in nodes:
             p = node.get_parent()
@@ -201,7 +202,7 @@ class ParseView(QtGui.QMainWindow):
             self.showImage(self.ui.graphicsView, self.viewer.image)
 
 class StateView(QtGui.QMainWindow):
-    def __init__(self):
+    def __init__(self, window):
         QtGui.QMainWindow.__init__(self)
         self.ui = Ui_StateView()
         self.ui.setupUi(self)
@@ -211,16 +212,17 @@ class StateView(QtGui.QMainWindow):
         self.connect(self.ui.btShowSingleState, SIGNAL("clicked()"), self.showSingleState)
         self.connect(self.ui.btShowWholeGraph, SIGNAL("clicked()"), self.showWholeGraph)
 
+        self.window = window
+
     def showWholeGraph(self):
-        self.viewer.create_pydot_graph(self.editor.tm.get_mainparser().graph)
+        editor = self.window.getEditor()
+        self.viewer.create_pydot_graph(editor.tm.get_mainparser().graph)
         self.showImage(self.ui.gvStategraph, self.viewer.image)
 
     def showSingleState(self):
-        self.viewer.show_single_state(self.editor.tm.get_mainparser().graph, int(self.ui.leSingleState.text()))
+        editor = self.window.getEditor()
+        self.viewer.show_single_state(editor.tm.get_mainparser().graph, int(self.ui.leSingleState.text()))
         self.showImage(self.ui.gvStategraph, self.viewer.image)
-
-    def setEditor(self, editor):
-        self.editor = editor
 
     def showImage(self, graphicsview, imagefile):
         scene = QGraphicsScene()
@@ -266,11 +268,9 @@ class Window(QtGui.QMainWindow):
         self.filename = None
 
         # XXX show current file in views
-        self.parseview = ParseView()
-        #self.parseview.setEditor(self.ui.frame)
+        self.parseview = ParseView(self)
 
-        self.stateview = StateView()
-        #self.stateview.setEditor(self.ui.frame)
+        self.stateview = StateView(self)
 
         self.connect(self.ui.actionImport, SIGNAL("triggered()"), self.importfile)
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
@@ -295,8 +295,6 @@ class Window(QtGui.QMainWindow):
 
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
-
-       #self.ui.frame.setFocus(True)
 
         self.viewer = Viewer("pydot")
 
