@@ -289,7 +289,8 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionAdd_language_box, SIGNAL("triggered()"), self.show_lbox_menu)
         self.connect(self.ui.actionSelect_next_language_box, SIGNAL("triggered()"), self.select_next_lbox)
         self.connect(self.ui.actionNew, SIGNAL("triggered()"), self.newfile)
-        self.connect(self.ui.actionExit, SIGNAL("triggered()"), QApplication.quit)
+        self.connect(self.ui.actionExit, SIGNAL("triggered()"), self.quit)
+        self.connect(self.ui.tabWidget, SIGNAL("tabCloseRequested(int)"), self.closeTab)
 
 
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
@@ -406,6 +407,31 @@ class Window(QtGui.QMainWindow):
             else: # import
                 self.newfile()
                 self.importfile(filename)
+
+    def closeTab(self, index):
+        etab = self.ui.tabWidget.widget(index)
+        mbox = QMessageBox()
+        mbox.setText("Save changes?")
+        mbox.setInformativeText("Do you want to save your changes?")
+        mbox.setStandardButtons(QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)
+        mbox.setDefaultButton(QMessageBox.Save)
+        ret = mbox.exec_()
+        if(ret == QMessageBox.Save):
+            self.savefile()
+            self.ui.tabWidget.removeTab(index)
+        elif(ret == QMessageBox.Discard):
+            self.ui.tabWidget.removeTab(index)
+
+    def closeEvent(self, event):
+        self.quit()
+        event.ignore()
+
+    def quit(self):
+        for i in range(self.ui.tabWidget.count()):
+            self.ui.tabWidget.setCurrentIndex(i)
+            self.closeTab(i)
+        if self.ui.tabWidget.count() == 0:
+            QApplication.quit()
 
     def newEditor(self, languageindex, whitespaces):
         lang = languages[languageindex]
