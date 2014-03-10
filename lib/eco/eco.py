@@ -62,6 +62,7 @@ from jsonmanager import JsonManager
 from treemanager import TreeManager, Cursor
 
 from nodeeditor import NodeEditor
+from editortab import EditorTab
 
 def print_var(name, value):
     print("%s: %s" % (name, value))
@@ -264,29 +265,22 @@ class Window(QtGui.QMainWindow):
 
         self.filename = None
 
+        # XXX show current file in views
         self.parseview = ParseView()
-        self.parseview.setEditor(self.ui.frame)
+        #self.parseview.setEditor(self.ui.frame)
 
         self.stateview = StateView()
-        self.stateview.setEditor(self.ui.frame)
-
-        self.connect(self.ui.cbShowLangBoxes, SIGNAL("clicked()"), self.ui.frame.update)
-
-        self.loadLanguage(0, True)
+        #self.stateview.setEditor(self.ui.frame)
 
         self.connect(self.ui.actionImport, SIGNAL("triggered()"), self.importfile)
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
         self.connect(self.ui.actionSave, SIGNAL("triggered()"), self.savefile)
         self.connect(self.ui.actionSave_as, SIGNAL("triggered()"), self.savefileAs)
-        self.connect(self.ui.actionRandomDel, SIGNAL("triggered()"), self.ui.frame.randomDeletion)
         self.connect(self.ui.actionSelect_font, SIGNAL("triggered()"), self.change_font)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
-        self.connect(self.ui.actionUndoRandomDel, SIGNAL("triggered()"), self.ui.frame.undoDeletion)
         self.connect(self.ui.actionParse_Tree, SIGNAL("triggered()"), self.showParseView)
         self.connect(self.ui.actionStateGraph, SIGNAL("triggered()"), self.showStateView)
         self.connect(self.ui.actionAbout, SIGNAL("triggered()"), self.showAboutView)
-        self.connect(self.ui.scrollArea.verticalScrollBar(), SIGNAL("valueChanged(int)"), self.ui.frame.sliderChanged)
-        self.connect(self.ui.scrollArea.horizontalScrollBar(), SIGNAL("valueChanged(int)"), self.ui.frame.sliderXChanged)
         self.connect(self.ui.actionUndo, SIGNAL("triggered()"), self.undo)
         self.connect(self.ui.actionRedo, SIGNAL("triggered()"), self.redo)
         self.connect(self.ui.actionCopy, SIGNAL("triggered()"), self.copy)
@@ -301,7 +295,7 @@ class Window(QtGui.QMainWindow):
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
 
-        self.ui.frame.setFocus(True)
+       #self.ui.frame.setFocus(True)
 
         self.viewer = Viewer("pydot")
 
@@ -313,38 +307,38 @@ class Window(QtGui.QMainWindow):
         self.ui.teConsole.append(string)
 
     def select_next_lbox(self):
-        self.ui.frame.tm.leave_languagebox()
-        self.ui.frame.update()
+        self.getEditor().tm.leave_languagebox()
+        self.getEditor().update()
 
     def show_lbox_menu(self):
-        self.ui.frame.showLanuageBoxMenu()
-        self.ui.frame.update()
+        self.getEditor().showLanuageBoxMenu()
+        self.getEditor().update()
 
     def redo(self):
-        self.ui.frame.tm.key_shift_ctrl_z()
-        self.ui.frame.update()
+        self.getEditor().tm.key_shift_ctrl_z()
+        self.getEditor().update()
         self.btReparse([])
 
     def undo(self):
-        self.ui.frame.tm.key_ctrl_z()
-        self.ui.frame.update()
+        self.getEditor().tm.key_ctrl_z()
+        self.getEditor().update()
         self.btReparse([])
 
     def cut(self):
-        text = self.ui.frame.tm.cutSelection()
+        text = self.getEditor().tm.cutSelection()
         QApplication.clipboard().setText(text)
-        self.ui.frame.update()
+        self.getEditor().update()
 
     def copy(self):
-        text = self.ui.frame.tm.copySelection()
+        text = self.getEditor().tm.copySelection()
         if text:
             QApplication.clipboard().setText(text)
-            self.ui.frame.update()
+            self.getEditor().update()
 
     def paste(self):
         text = QApplication.clipboard().text()
-        self.ui.frame.tm.pasteText(text)
-        self.ui.frame.update()
+        self.getEditor().tm.pasteText(text)
+        self.getEditor().update()
 
     def showAboutView(self):
         about = AboutView()
@@ -363,70 +357,85 @@ class Window(QtGui.QMainWindow):
             if text[-1] in ["\n", "\r"]:
                 text = text[:-1]
             # key simulated opening
-            self.ui.frame.insertTextNoSim(text)
+            self.getEditor().insertTextNoSim(text)
             self.btReparse(None)
-            self.ui.frame.update()
+            self.getEditor().update()
 
     def change_font(self):
+        # XXX change font globally
         font = QFontDialog.getFont(self.ui.frame.font)
         self.ui.frame.change_font(font)
         self.ui.fLinenumbers.change_font(font)
 
     def newfile(self):
+        # create new nodeeditor
         lview = LanguageView(languages)
         result = lview.exec_()
         if result:
-            self.filename = None
-            self.loadLanguage(lview.getLanguage(), lview.getWhitespace())
+            etab = EditorTab()
+            lang = languages[lview.getLanguage()]
+            etab.set_language(lang, lview.getWhitespace())
+            self.ui.tabWidget.addTab(etab, "[No name]")
+            self.ui.tabWidget.setCurrentWidget(etab)
+            etab.editor.setFocus(Qt.OtherFocusReason)
 
     def savefile(self):
-        if self.filename:
-            self.ui.frame.saveToJson(self.filename)
+        if self.getEditorTab().filename:
+            self.getEditor().saveToJson(self.getEditorTab().filename)
         else:
             self.savefileAs()
 
     def savefileAs(self):
         filename = QFileDialog.getSaveFileName()
         if filename:
-            self.ui.frame.saveToJson(filename)
-            self.filename = filename
+            self.getEditor().saveToJson(filename)
+            self.getEditorTab().filename = filename
 
     def openfile(self):
         filename = QFileDialog.getOpenFileName()
-        if filename and filename.endsWith(".eco"):
-            self.ui.frame.loadFromJson(filename)
-            self.ui.frame.update()
-            self.filename = filename
-        else: # import
-            self.importfile(filename)
+        if filename:
+            if filename.endsWith(".eco"):
+                etab = EditorTab()
+                self.ui.tabWidget.addTab(etab, os.path.basename(str(filename)))
+                self.ui.tabWidget.setCurrentWidget(etab)
+                etab.editor.setFocus(Qt.OtherFocusReason)
 
-    def loadLanguage(self, index, whitespaces):
-        self.language = languages[index]
-        self.main_language = self.language.name
-        self.btUpdateGrammar(whitespaces)
-        self.ui.frame.setFocus(Qt.OtherFocusReason)
+                self.getEditor().loadFromJson(filename)
+                self.getEditor().update()
+                etab.filename = filename
+            else: # import
+                self.newfile()
+                self.importfile(filename)
 
-    def btUpdateGrammar(self, whitespaces):
-        if isinstance(self.language, Language):
-            new_grammar = str(self.language.grammar)
+    def newEditor(self, languageindex, whitespaces):
+        lang = languages[languageindex]
+        ne = NodeEditor()
+        if isinstance(lang, Language):
+            grammar = str(lang.grammar)
             new_priorities = str(self.language.priorities)
-            self.lrp = IncParser(new_grammar, 1, whitespaces)
-            self.lrp.init_ast()
-            lexer = IncrementalLexer(new_priorities)
-            self.ui.frame.reset()
-            self.ui.frame.set_mainlanguage(self.lrp, lexer, self.main_language)
-        elif isinstance(self.language, EcoGrammar):
+            lrp = IncParser(str(lang.grammar), 1, whitespaces)
+            lrp.init_ast()
+            lexer = IncrementalLexer(str(lang.priorities))
+            ne.set_mainlanguage(lrp, lexer, lang.name)
+        elif isinstance(lang, EcoGrammar):
             bootstrap = BootstrapParser(lr_type=1, whitespaces=whitespaces)
-            bootstrap.parse(self.language.grammar)
-            self.ui.frame.set_mainlanguage(bootstrap.incparser, bootstrap.inclexer, self.language.name)
-        self.btReparse([])
+            bootstrap.parse(lang.grammar)
+            ne.set_mainlanguage(bootstrap.incparser, bootstrap.inclexer, lang.name)
+        ne.setFocusPolicy(QtCore.Qt.WheelFocus)
+        return ne
 
-        #self.ui.graphicsView.setScene(QGraphicsScene())
+    def getEditor(self):
+        etab = self.ui.tabWidget.currentWidget()
+        return etab.editor
+
+    def getEditorTab(self):
+        return self.ui.tabWidget.currentWidget()
 
     def btReparse(self, selected_node):
         results = []
         self.ui.list_parsingstatus.clear()
-        for parser, lexer, lang in self.ui.frame.tm.parsers:
+        editor = self.getEditor()
+        for parser, lexer, lang in editor.tm.parsers:
             #import cProfile
             #cProfile.runctx("parser.inc_parse(self.ui.frame.line_indents)", globals(), locals())
             status = parser.last_status #inc_parse(self.ui.frame.line_indents)
@@ -443,19 +452,15 @@ class Window(QtGui.QMainWindow):
                 emsg = "Error: Found \"%s\" expected %s (State: %s)" % (enode.symbol.name, ",".join(l), enode.prev_term.state)
                 qlistitem.setToolTip(emsg)
             self.ui.list_parsingstatus.addItem(qlistitem)
-            # XXX refactor
-            #if self.ui.frame.selected_lbox and key is self.ui.frame.selected_lbox.symbol.ast:
-            #    self.ui.list_parsingstatus.setCurrentItem(qlistitem)
-            #if not self.ui.frame.selected_lbox and key is self.ui.frame.ast.parent:
-            #    self.ui.list_parsingstatus.setCurrentItem(qlistitem)
         self.showAst(selected_node)
 
     def showAst(self, selected_node):
         self.parseview.refresh()
 
     def showLookahead(self):
-        l = self.ui.frame.tm.getLookaheadList()
-        self.ui.lineEdit.setText(", ".join(l))
+        #l = self.ui.frame.tm.getLookaheadList()
+        #self.ui.lineEdit.setText(", ".join(l))
+        pass
 
 def main():
     app = QtGui.QApplication(sys.argv)

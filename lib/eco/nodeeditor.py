@@ -39,6 +39,9 @@ class NodeEditor(QFrame):
         self.imagemode = False
         self.image = None
 
+        self.scroll_height = 0
+        self.scroll_width = 0
+
     def setImageMode(self, boolean):
         self.imagemode = boolean
 
@@ -46,8 +49,8 @@ class NodeEditor(QFrame):
         self.tm = tm
 
     def reset(self):
-        self.getWindow().ui.scrollArea.horizontalScrollBar().setValue(0)
-        self.getWindow().ui.scrollArea.verticalScrollBar().setValue(0)
+        #self.getWindow().ui.scrollArea.horizontalScrollBar().setValue(0)
+        #self.getWindow().ui.scrollArea.verticalScrollBar().setValue(0)
         self.update()
 
     def set_mainlanguage(self, parser, lexer, lang_name):
@@ -77,6 +80,18 @@ class NodeEditor(QFrame):
         self.resize(self.parentWidget().geometry().width() + value*self.fontwt, self.geometry().height())
         self.update()
 
+    def getScrollSizes(self):
+        total_lines = 0
+        max_width = 0
+        for l in self.lines:
+            total_lines += l.height
+            max_width = max(max_width, l.width)
+        max_visible_lines = self.geometry().height() / self.fontht
+        self.scroll_height = max(0, total_lines - max_visible_lines)
+
+        current_width = self.parentWidget().geometry().width() / self.fontwt
+        self.scroll_width = max(0, max_width - current_width)
+
     def paintEvent(self, event):
         QtGui.QFrame.paintEvent(self, event)
         paint = QtGui.QPainter()
@@ -99,27 +114,19 @@ class NodeEditor(QFrame):
 
         paint.end()
 
-        self.getWindow().ui.scrollArea.verticalScrollBar().setMinimum(0)
         total_lines = 0
         max_width = 0
         for l in self.lines:
             total_lines += l.height
             max_width = max(max_width, l.width)
         max_visible_lines = self.geometry().height() / self.fontht
-        vmax = max(0, total_lines - max_visible_lines)
-        self.getWindow().ui.scrollArea.verticalScrollBar().setMaximum(vmax)
-        self.getWindow().ui.scrollArea.verticalScrollBar().setPageStep(1)
+        self.scroll_height = max(0, total_lines - max_visible_lines)
+
 
         current_width = self.parentWidget().geometry().width() / self.fontwt
-        hmax = max(0, max_width - current_width)
-        self.getWindow().ui.scrollArea.horizontalScrollBar().setMaximum(hmax)
-        self.getWindow().ui.scrollArea.horizontalScrollBar().setPageStep(1)
+        self.scroll_width = max(0, max_width - current_width)
 
-        self.getWindow().ui.fLinenumbers.setMinimumWidth(self.fontm.width("000: "))
-        self.getWindow().ui.fLinenumbers.setMaximumWidth(self.fontm.width("000: "))
-
-        self.getWindow().ui.fLinenumbers.update()
-
+        self.emit(SIGNAL("painted()"))
 
     # paint lines using new line manager
     def paintLines(self, paint, startline):
@@ -230,7 +237,6 @@ class NodeEditor(QFrame):
 
             # after we drew a return, update line information
             if node.lookup == "<return>" and not node is first_node:
-                self.getWindow().ui.fLinenumbers.info.append((y,line, self.lines[line].indent))
                 # draw lbox to end of line
                 if draw_lbox:
                     paint.fillRect(QRectF(x,3+y*self.fontht, self.geometry().width()-x, self.fontht), color)
@@ -277,7 +283,6 @@ class NodeEditor(QFrame):
 
         self.draw_selection(paint, draw_selection_start, draw_selection_end)
 
-        self.getWindow().ui.fLinenumbers.info.append((y,line, self.lines[line].indent))
         # paint infobox
         if False:
             lang_name = self.parser_langs[selected_language]
@@ -411,7 +416,7 @@ class NodeEditor(QFrame):
         for l in self.tm.lines[:self.cursor.line]:
             y += l.height * self.fontht
         x = self.tm.cursor.get_x() * self.fontwt
-        y = y - self.getWindow().ui.scrollArea.verticalScrollBar().value() * self.fontht
+        y = y - self.getScrollArea().verticalScrollBar().value() * self.fontht
         return (x,y)
 
     def coordinate_to_cursor(self, x, y):
@@ -490,8 +495,8 @@ class NodeEditor(QFrame):
             self.tm.key_normal(text)
 
         self.getWindow().btReparse([])
-        self.fix_scrollbars()
         self.update()
+        self.emit(SIGNAL("keypress()"))
         self.getWindow().showLookahead()
 
     def showLanuageBoxMenu(self):
@@ -518,31 +523,6 @@ class NodeEditor(QFrame):
             if current is None:
                 return
 
-    def fix_scrollbars(self):
-        self.cursor = self.tm.cursor
-        x, y = self.cursor_to_coordinate()
-
-        scrollbar_height = self.getWindow().ui.scrollArea.horizontalScrollBar().geometry().height()
-
-        # fix vertical bar
-        if y < 0:
-            while y < 0:
-                self.getWindow().ui.scrollArea.decVSlider()
-                y += self.fontht
-        if y+3 > self.geometry().height() - scrollbar_height: # the 3 is the padding of the canvas
-            while y+3 > self.geometry().height() - scrollbar_height:
-                self.getWindow().ui.scrollArea.incVSlider()
-                y -= self.fontht
-
-        # fix horizontal bar
-        cursor_x = self.cursor.get_x()
-        while cursor_x < self.getWindow().ui.scrollArea.horizontalScrollBar().value():
-             self.getWindow().ui.scrollArea.decHSlider()
-        while cursor_x > self.parentWidget().geometry().width()/self.fontwt + self.getWindow().ui.scrollArea.horizontalScrollBar().value():
-            self.getWindow().ui.scrollArea.incHSlider()
-            if self.getWindow().ui.scrollArea.horizontalScrollBar().value() == self.getWindow().ui.scrollArea.horizontalScrollBar().maximum():
-                break
-
     # ========================== AST modification stuff ========================== #
 
     def insertTextNoSim(self, text):
@@ -561,6 +541,12 @@ class NodeEditor(QFrame):
 
     def getWindow(self):
         return self.window()
+
+    def getEditorTab(self):
+        return self.parent().parent().parent()
+
+    def getScrollArea(self):
+        return self.parent().parent()
 
     def showSubgrammarMenu(self):
         self.sublanguage = None
