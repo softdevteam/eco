@@ -85,6 +85,7 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
 
 
     def fix(self):
+        gfont = QApplication.instance().gfont
         cursor = self.parent().editor.tm.cursor
         x, y = self.parent().editor.cursor_to_coordinate()
 
@@ -94,17 +95,17 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
         if y < 0:
             while y < 0:
                 self.decVSlider()
-                y += self.parent().editor.fontht
+                y += gfont.fontht
         if y+3 > self.parent().editor.geometry().height() - scrollbar_height: # the 3 is the padding of the canvas
             while y+3 > self.parent().editor.geometry().height() - scrollbar_height:
                 self.incVSlider()
-                y -= self.parent().editor.fontht
+                y -= gfont.fontht
 
         # fix horizontal bar
         cursor_x = self.parent().editor.cursor.get_x()
         while cursor_x < self.horizontalScrollBar().value():
              self.decHSlider()
-        while cursor_x > ((self.geometry().width() - self.verticalScrollBar().width()) / self.parent().editor.fontwt) + self.horizontalScrollBar().value():
+        while cursor_x > ((self.geometry().width() - self.verticalScrollBar().width()) / gfont.fontwt) + self.horizontalScrollBar().value():
             self.incHSlider()
             if self.horizontalScrollBar().value() == self.horizontalScrollBar().maximum():
                 break
@@ -137,47 +138,35 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
         self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() - self.verticalScrollBar().singleStep())
 
 class LineNumbers(QFrame):
-    def __init__(self, parent=None):
-        QtGui.QFrame.__init__(self, parent)
-
-        self.font = QtGui.QFont(BODY_FONT, BODY_FONT_SIZE)
-        self.fontm = QtGui.QFontMetrics(self.font)
-        self.fontht = self.fontm.height() + 3
-        self.fontwt = self.fontm.width(" ")
-
-        self.setMinimumWidth(self.fontwt * 3)
 
     def paintEvent(self, event):
+        gfont = QApplication.instance().gfont
         paint = QtGui.QPainter()
         paint.begin(self)
         paint.setPen(QColor("grey"))
-        paint.setFont(self.font)
+        paint.setFont(gfont.font)
+
 
         editor = self.parent().editor
         y = editor.paint_start[1]
         start = editor.paint_start[0]
         for i in range(start, len(editor.lines)):
             text = str(i)
-            paint.drawText(QtCore.QPointF(self.geometry().width() - (len(text)+1)*self.fontwt, self.fontht + y*self.fontht), text +":")
+            paint.drawText(QtCore.QPointF(self.geometry().width() - (len(text)+1)*gfont.fontwt, gfont.fontht + y*gfont.fontht), text +":")
             y += editor.lines[i].height
             i += 1
-            if (y+1)*self.fontht >= editor.geometry().height():
+            if (y+1)*gfont.fontht >= editor.geometry().height():
                 break
 
         paint.end()
 
-    def change_font(self, font):
-        self.font = font[0]
-        self.fontm = QtGui.QFontMetrics(self.font)
-        self.fontht = self.fontm.height() + 3
-        self.fontwt = self.fontm.width(" ")
-
     def update(self):
+        gfont = QApplication.instance().gfont
         editor = self.parent().editor
         import math
         if len(editor.lines) <= 10:
             digits = 1
         else:
             digits = int(math.log10(len(editor.lines)-1))+1
-        self.setMinimumWidth(self.fontwt * (digits + 1))
+        self.setMinimumWidth(gfont.fontwt * (digits + 1))
         QFrame.update(self)

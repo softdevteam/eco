@@ -184,9 +184,10 @@ class Cursor(object):
         return x
 
     def get_nodesize_in_chars(self, node):
+        gfont = QApplication.instance().gfont
         if node.image:
-            w = math.ceil(node.image.width() * 1.0 / fontmanager.fontwt)
-            h = math.ceil(node.image.height() * 1.0 / fontmanager.fontht)
+            w = math.ceil(node.image.width() * 1.0 / gfont.fontwt)
+            h = math.ceil(node.image.height() * 1.0 / gfont.fontht)
             return NodeSize(w, h)
         else:
             return NodeSize(len(node.symbol.name), 1)
@@ -311,14 +312,6 @@ class TreeManager(object):
         self.edit_rightnode = False # changes which node to select when inbetween two nodes
         self.undomanager = UndoManager()
         self.changed = False
-
-    def set_font(self, fontm):
-        #XXX obsolete when cursor is relative to nodes
-        self.fontm = fontm
-        self.fontht = self.fontm.height() + 3
-        self.fontwt = self.fontm.width(" ")
-        fontmanager.fontwt = self.fontwt
-        fontmanager.fontht = self.fontht
 
     def set_font_test(self, width, height):
         # only needed for testing

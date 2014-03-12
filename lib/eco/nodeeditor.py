@@ -22,15 +22,6 @@ class NodeEditor(QFrame):
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
 
-        self.defaultFont = self.font()
-        self.boldDefaultFont = QFont(self.defaultFont)
-        self.boldDefaultFont.setBold(True)
-
-        self.font = QtGui.QFont(BODY_FONT, BODY_FONT_SIZE)
-        self.fontm = QtGui.QFontMetrics(self.font)
-        self.fontht = self.fontm.height() + 3
-        self.fontwt = self.fontm.width(" ")
-
         self.infofont = QtGui.QFont('Courier', 6)
         self.infofontht = QtGui.QFontMetrics(self.infofont).height() + 3
         self.infofontwt = QtGui.QFontMetrics(self.infofont).width(" ")
@@ -56,7 +47,6 @@ class NodeEditor(QFrame):
     def set_mainlanguage(self, parser, lexer, lang_name):
         self.tm = TreeManager()
         self.tm.add_parser(parser, lexer, lang_name)
-        self.tm.set_font(self.fontm)
 
     def set_sublanguage(self, language):
         self.sublanguage = language
@@ -93,6 +83,10 @@ class NodeEditor(QFrame):
         self.scroll_width = max(0, max_width - current_width)
 
     def paintEvent(self, event):
+        gfont = QApplication.instance().gfont
+        self.font = gfont.font
+        self.fontwt = gfont.fontwt
+        self.fontht = gfont.fontht
         QtGui.QFrame.paintEvent(self, event)
         paint = QtGui.QPainter()
         if self.imagemode:
@@ -635,13 +629,6 @@ class NodeEditor(QFrame):
         self.tm.load_file(language_boxes)
         self.reset()
         self.getWindow().btReparse([])
-
-    def change_font(self, font):
-        self.font = font[0]
-        self.fontm = QtGui.QFontMetrics(self.font)
-        self.fontht = self.fontm.height() + 3
-        self.fontwt = self.fontm.width(" ")
-        self.tm.set_font(self.fontm)
 
     def export_unipycation(self):
         return self.tm.export_unipycation()

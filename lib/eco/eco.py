@@ -70,6 +70,17 @@ def print_var(name, value):
 BODY_FONT = "Monospace"
 BODY_FONT_SIZE = 9
 
+class GlobalFont(object):
+    def __init__(self, font, size):
+        font = QtGui.QFont(font, size)
+        self.setfont(font)
+
+    def setfont(self, font):
+        self.font = font
+        self.fontm = QtGui.QFontMetrics(self.font)
+        self.fontht = self.fontm.height() + 3
+        self.fontwt = self.fontm.width(" ")
+
 class LineNumbers(QFrame):
     def __init__(self, parent=None):
         QtGui.QFrame.__init__(self, parent)
@@ -260,6 +271,8 @@ class LanguageView(QtGui.QDialog):
         return self.ui.cb_add_implicit_ws.isChecked()
 
 class Window(QtGui.QMainWindow):
+
+
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
         self.ui = Ui_MainWindow()
@@ -362,10 +375,9 @@ class Window(QtGui.QMainWindow):
             self.getEditor().update()
 
     def change_font(self):
-        # XXX change font globally
-        font = QFontDialog.getFont(self.ui.frame.font)
-        self.ui.frame.change_font(font)
-        self.ui.fLinenumbers.change_font(font)
+        gfont = QApplication.instance().gfont
+        font = QFontDialog.getFont(gfont.font)
+        gfont.setfont(font[0])
 
     def newfile(self):
         # create new nodeeditor
@@ -501,6 +513,7 @@ class Window(QtGui.QMainWindow):
 def main():
     app = QtGui.QApplication(sys.argv)
     app.setStyle('gtk')
+    app.gfont = GlobalFont(BODY_FONT, BODY_FONT_SIZE)
     window=Window()
     t = SubProcessThread(window.ui, app)
     window.thread = t
