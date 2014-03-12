@@ -773,6 +773,7 @@ class TreeManager(object):
         if self.cursor.inside():
             internal_position = self.cursor.pos
             node.insert(text, internal_position)
+            self.cursor.pos += len(text)
         else:
             #XXX same code as in key_normal
             pos = 0
@@ -781,19 +782,19 @@ class TreeManager(object):
                 old = node
                 node = TextNode(Terminal(""))
                 old.insert_after(node)
+                self.cursor.pos = len(text)
             else:
                 pos = len(node.symbol.name)
+                self.cursor.pos += len(text)
             node.insert(text, pos)
+            self.cursor.node = node
 
         self.relex(node)
         self.post_keypress("")
         self.reparse(node)
 
-        #self.cursor.node = next_node.prev_term
-        #self.cursor.pos = len(self.cursor.node.symbol.name)
-        #self.cursor.pos += len(text)
-        self.cursor.move_to_x(oldpos + len(text), self.lines)
         self.cursor.fix()
+        self.cursor.line += text.count("\r")
         self.changed = True
 
     def cutSelection(self):
