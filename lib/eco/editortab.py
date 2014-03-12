@@ -29,7 +29,6 @@ class EditorTab(QWidget):
         self.scrollarea.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
 
         self.linenumbers = LineNumbers(self)
-        self.linenumbers.setMinimumWidth(30)
 
         boxlayout.addWidget(self.linenumbers)
         boxlayout.addWidget(self.scrollarea)
@@ -146,7 +145,7 @@ class LineNumbers(QFrame):
         self.fontht = self.fontm.height() + 3
         self.fontwt = self.fontm.width(" ")
 
-        self.info = []
+        self.setMinimumWidth(self.fontwt * 3)
 
     def paintEvent(self, event):
         paint = QtGui.QPainter()
@@ -154,30 +153,31 @@ class LineNumbers(QFrame):
         paint.setPen(QColor("grey"))
         paint.setFont(self.font)
 
-       #scrollbar_height = self.window().ui.scrollArea.horizontalScrollBar().geometry().height()
-
         editor = self.parent().editor
         y = editor.paint_start[1]
         start = editor.paint_start[0]
         for i in range(start, len(editor.lines)):
             text = str(i)
-            paint.drawText(QtCore.QPointF(0, self.fontht + y*self.fontht), text +":")
+            paint.drawText(QtCore.QPointF(self.geometry().width() - (len(text)+1)*self.fontwt, self.fontht + y*self.fontht), text +":")
             y += editor.lines[i].height
             i += 1
             if (y+1)*self.fontht >= editor.geometry().height():
                 break
 
         paint.end()
-        self.info = []
-
-    def getMaxWidth(self):
-        max_width = 0
-        for _, line, _ in self.info:
-            max_width = max(max_width, self.fontm.width(str(line)+":"))
-        return max_width
 
     def change_font(self, font):
         self.font = font[0]
         self.fontm = QtGui.QFontMetrics(self.font)
         self.fontht = self.fontm.height() + 3
         self.fontwt = self.fontm.width(" ")
+
+    def update(self):
+        editor = self.parent().editor
+        import math
+        if len(editor.lines) <= 10:
+            digits = 1
+        else:
+            digits = int(math.log10(len(editor.lines)-1))+1
+        self.setMinimumWidth(self.fontwt * (digits + 1))
+        QFrame.update(self)
