@@ -622,6 +622,8 @@ class NodeEditor(QFrame):
         language = self.tm.parsers[0][2]
         manager = JsonManager()
         manager.save(root, language, whitespaces, filename)
+        self.tm.changed = False
+        self.emit(SIGNAL("painted()"))
 
     def loadFromJson(self, filename):
         manager = JsonManager()

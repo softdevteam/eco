@@ -310,6 +310,7 @@ class TreeManager(object):
         self.parsers = []           # stores all currently used parsers
         self.edit_rightnode = False # changes which node to select when inbetween two nodes
         self.undomanager = UndoManager()
+        self.changed = False
 
     def set_font(self, fontm):
         #XXX obsolete when cursor is relative to nodes
@@ -486,9 +487,11 @@ class TreeManager(object):
 
     def key_shift_ctrl_z(self):
         self.undomanager.redo(self)
+        self.changed = True
 
     def key_ctrl_z(self):
         self.undomanager.undo(self)
+        self.changed = True
 
     def key_home(self):
         self.cursor.node = self.lines[self.cursor.line].node
@@ -554,6 +557,7 @@ class TreeManager(object):
         self.reparse(node)
         if undo_mode:
             self.undomanager.add('insert', text, self.cursor.copy())
+        self.changed = True
         return indentation
 
     def key_backspace(self, undo_mode = True):
@@ -632,6 +636,7 @@ class TreeManager(object):
         self.reparse(repairnode)
         if undo_mode:
             self.undomanager.add("delete", self.last_delchar, self.cursor.copy())
+        self.changed = True
 
     def key_shift(self):
         self.selection_start = self.cursor.copy()
@@ -674,6 +679,7 @@ class TreeManager(object):
         self.cursor.node = newnode.symbol.ast.children[0]
         self.cursor.pos = 0
         self.reparse(newnode)
+        self.changed = True
 
     def leave_languagebox(self):
         if isinstance(self.cursor.node.next_term.symbol, MagicTerminal) and self.cursor.isend():
@@ -715,6 +721,7 @@ class TreeManager(object):
         lbox.symbol.ast.children[0].insert_after(newnode)
         self.relex(newnode)
         appendnode.insert_after(lbox)
+        self.changed = True
 
     def create_node(self, text, lbox=False):
         if lbox:
@@ -760,6 +767,7 @@ class TreeManager(object):
         return "".join(text)
 
     def pasteText(self, text):
+        oldpos = self.cursor.get_x()
         node = self.get_node_from_cursor()
         next_node = node.next_term
 
@@ -788,14 +796,18 @@ class TreeManager(object):
         self.post_keypress("")
         self.reparse(node)
 
-        self.cursor.node = next_node.prev_term
-        self.cursor.pos = len(self.cursor.node.symbol.name)
+        #self.cursor.node = next_node.prev_term
+        #self.cursor.pos = len(self.cursor.node.symbol.name)
+        #self.cursor.pos += len(text)
+        self.cursor.move_to_x(oldpos + len(text), self.lines)
         self.cursor.fix()
+        self.changed = True
 
     def cutSelection(self):
         if self.hasSelection():
             text = self.copySelection()
             self.deleteSelection()
+            self.changed = True
             return text
 
     def deleteSelection(self):
@@ -823,6 +835,7 @@ class TreeManager(object):
         del self.lines[cur_start.line+1:cur_end.line+1]
         self.selection_start = self.cursor.copy()
         self.selection_end = self.cursor.copy()
+        self.changed = True
 
     def delete_if_empty(self, node):
         if node.symbol.name == "":
@@ -1091,6 +1104,7 @@ class TreeManager(object):
         for y in range(len(self.lines)):
             self.repair_indentation(y)
         self.reparse(bos)
+        self.changed = True
         return
 
     def load_file(self, language_boxes):
@@ -1107,6 +1121,7 @@ class TreeManager(object):
         self.rescan_linebreaks(0)
         for i in range(len(self.lines)):
             self.rescan_indentations(i)
+        self.changed = False
 
     def export_unipycation(self):
         import subprocess, sys

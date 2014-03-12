@@ -10,6 +10,8 @@ from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
 from grammar_parser.bootstrap import BootstrapParser
 
+import os
+
 BODY_FONT = "Monospace"
 BODY_FONT_SIZE = 9
 
@@ -39,9 +41,21 @@ class EditorTab(QWidget):
 
         self.filename = None
 
+    def changed(self):
+        return self.editor.tm.changed
+
     def painted(self):
         self.linenumbers.update()
         self.scrollarea.update()
+        if self.filename:
+            filename = os.path.basename(str(self.filename))
+        else:
+            filename = "[No name]"
+        if self.editor.tm.changed:
+            filename += "*"
+        tabwidget = self.parent().parent()
+        index = tabwidget.indexOf(self)
+        tabwidget.setTabText(index, filename)
 
     def keypress(self):
         self.editor.getScrollSizes()
