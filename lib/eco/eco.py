@@ -291,6 +291,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionNew, SIGNAL("triggered()"), self.newfile)
         self.connect(self.ui.actionExit, SIGNAL("triggered()"), self.quit)
         self.connect(self.ui.tabWidget, SIGNAL("tabCloseRequested(int)"), self.closeTab)
+        self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.tabChanged)
 
 
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
@@ -408,6 +409,9 @@ class Window(QtGui.QMainWindow):
 
     def closeTab(self, index):
         etab = self.ui.tabWidget.widget(index)
+        if not etab.changed():
+            self.ui.tabWidget.removeTab(index)
+            return
         mbox = QMessageBox()
         mbox.setText("Save changes?")
         mbox.setInformativeText("Do you want to save your changes?")
@@ -419,6 +423,9 @@ class Window(QtGui.QMainWindow):
             self.ui.tabWidget.removeTab(index)
         elif(ret == QMessageBox.Discard):
             self.ui.tabWidget.removeTab(index)
+
+    def tabChanged(self, index):
+        self.btReparse()
 
     def closeEvent(self, event):
         self.quit()
@@ -450,15 +457,20 @@ class Window(QtGui.QMainWindow):
 
     def getEditor(self):
         etab = self.ui.tabWidget.currentWidget()
-        return etab.editor
+        if etab:
+            return etab.editor
+        else:
+            return None
 
     def getEditorTab(self):
         return self.ui.tabWidget.currentWidget()
 
-    def btReparse(self, selected_node):
+    def btReparse(self, selected_node=[]):
         results = []
         self.ui.list_parsingstatus.clear()
         editor = self.getEditor()
+        if editor is None:
+            return
         for parser, lexer, lang in editor.tm.parsers:
             #import cProfile
             #cProfile.runctx("parser.inc_parse(self.ui.frame.line_indents)", globals(), locals())
