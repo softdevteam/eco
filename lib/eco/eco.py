@@ -515,7 +515,7 @@ def main():
     app.setStyle('gtk')
     app.gfont = GlobalFont(BODY_FONT, BODY_FONT_SIZE)
     window=Window()
-    t = SubProcessThread(window.ui, app)
+    t = SubProcessThread(window, app)
     window.thread = t
     window.connect(window.thread, t.signal, window.show_output)
 
@@ -524,13 +524,13 @@ def main():
     sys.exit(app.exec_())
 
 class SubProcessThread(QThread):
-    def __init__(self, ui, parent):
+    def __init__(self, window, parent):
         QThread.__init__(self, parent=parent)
-        self.ui = ui
+        self.window = window
         self.signal = QtCore.SIGNAL("output")
 
     def run(self):
-        p = self.ui.frame.export_unipycation()
+        p = self.window.getEditor().export_unipycation()
         for line in iter(p.stdout.readline, b''):
             self.emit(self.signal, line.rstrip())
 

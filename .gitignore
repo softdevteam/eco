@@ -1,3 +1,8 @@
 *.pyc
 __pycache__
 *.pcl
+java_examples/
+python_examples/
+prolog_examples/
+save/
+lib/eco/save/
