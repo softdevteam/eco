@@ -921,13 +921,14 @@ class TreeManager(object):
         if not self.is_logical_line(y):
             self.remove_indentation_nodes(self.lines[y].node.next_term)
             y += 1
+            # skip ahead to next logical line
             if y < len(self.lines):
                 while not self.is_logical_line(y):
                     y += 1
                     if y >= len(self.lines):
                         return
             else:
-                return
+                y = len(self.lines)-1 # rescan last line
 
         before = self.lines[y].ws
         self.update_indentation_backwards(y)
@@ -1026,11 +1027,18 @@ class TreeManager(object):
 
         # generate last lines dedent
         if y == len(self.lines) - 1:
+            # clean up indentation nodes
             eos = newline.get_root().children[-1]
             node = eos.prev_term
             while isinstance(node.symbol, IndentationTerminal):
                 node.parent.remove_child(node)
                 node = node.prev_term
+
+            # if line is not logial, find previous logical
+            while not self.is_logical_line(y):
+                y -= 1
+
+            # generate correct amount of dedentation nodes
             this_indent = self.lines[y].indent
             for i in range(this_indent):
                 node.insert_after(TextNode(IndentationTerminal("DEDENT")))

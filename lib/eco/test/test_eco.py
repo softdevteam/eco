@@ -507,6 +507,19 @@ class Test_Bugs(Test_Python):
         self.treemanager.key_backspace()
         self.treemanager.key_backspace() # shouldn't throw AssertionError goto != None
 
+    def test_last_line_nonlogical(self):
+        self.reset()
+        inputstring = "class Test:\r    pass"
+        for c in inputstring:
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
+        self.treemanager.key_normal("\r")
+        assert self.parser.last_status == True
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == True
 
 class Test_Indentation(Test_Python):
 
