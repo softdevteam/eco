@@ -624,11 +624,9 @@ class NodeEditor(QFrame):
         language_boxes = manager.load(filename)
 
         self.tm = TreeManager()
-        self.tm.set_font(self.fontm)
 
         self.tm.load_file(language_boxes)
         self.reset()
-        self.getWindow().btReparse([])
 
     def export_unipycation(self):
         return self.tm.export_unipycation()

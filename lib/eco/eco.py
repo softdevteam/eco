@@ -408,13 +408,14 @@ class Window(QtGui.QMainWindow):
         if filename:
             if filename.endsWith(".eco"):
                 etab = EditorTab()
+
+                etab.editor.loadFromJson(filename)
+                etab.editor.update()
+                etab.filename = filename
+
                 self.ui.tabWidget.addTab(etab, os.path.basename(str(filename)))
                 self.ui.tabWidget.setCurrentWidget(etab)
                 etab.editor.setFocus(Qt.OtherFocusReason)
-
-                self.getEditor().loadFromJson(filename)
-                self.getEditor().update()
-                etab.filename = filename
             else: # import
                 self.newfile()
                 self.importfile(filename)
