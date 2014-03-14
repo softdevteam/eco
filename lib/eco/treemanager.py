@@ -229,11 +229,11 @@ class UndoObject(object):
         self.text = text
         self.x1 = x
         self.line1 = line
-        self.x2 = None
-        self.line2 = None
+        self.x2 = len(text)
+        self.line2 = line
 
     def __repr__(self):
-        return "UndoObject(%s, %s, %s, %s, %s, %s)" % (self.cmd, self.text, self.x1, self.line1, self.x2, self.line2)
+        return "UndoObject(cmd=%s, text=%s, x1=%s, line1=%s, x2=%s, line2=%s)" % (self.cmd, repr(self.text), self.x1, self.line1, self.x2, self.line2)
 
 class UndoManager(object):
     def __init__(self):
