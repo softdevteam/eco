@@ -1035,7 +1035,7 @@ class TreeManager(object):
                 node = node.prev_term
 
             # if line is not logial, find previous logical
-            while not self.is_logical_line(y):
+            while not self.is_logical_line(y) and y > 0:
                 y -= 1
 
             # generate correct amount of dedentation nodes

@@ -521,6 +521,11 @@ class Test_Bugs(Test_Python):
         self.treemanager.key_backspace()
         assert self.parser.last_status == True
 
+    def test_type_and_remove(self):
+        self.reset()
+        self.treemanager.key_normal("c")
+        self.treemanager.key_backspace() # shouldn't throw IndexError in repair_indentations
+
 class Test_Indentation(Test_Python):
 
     def test_indentation(self):
