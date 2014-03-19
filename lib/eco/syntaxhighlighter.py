@@ -127,6 +127,8 @@ class GrammarHighlighter(SyntaxHighlighter):
         "nonterminal": "cyan",
         "terminal": "green",
         "<ws>": "grey",
+        "#": "red",
+        "NUMBER": "red"
     }
 
 def get_highlighter(parent):
