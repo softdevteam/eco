@@ -246,7 +246,15 @@ class LookupExpr(Expr):
         return self.number == other.number
 
     def interpret(self, node):
-        n = node.children[self.number]
+        # skip whitespaces
+        i = 0
+        for c in node.children:
+            if c.symbol.name != "WS":
+                if i == self.number:
+                    n = c
+                    break
+                i += 1
+
         if n.alternate:
             n = n.alternate
         return n
@@ -286,4 +294,22 @@ class ListExpr(Expr):
         l = []
         for e in self.elements:
             l.append(e.interpret(node))
-        return l
+        return ListNode(node.symbol.name, l)
+
+class ListNode(object):
+    def __init__(self, name, l):
+        self.name = name
+        self.children = l
+
+    def __add__(self, other):
+        if isinstance(other, ListNode):
+            l = self.children + other.children
+            return ListNode(self.name, l)
+        raise TypeError("cannot concatenate ListNode and %s" % type(other))
+
+    def __getattribute__(self, name):
+        if name == "symbol":
+            return self
+        if name == "changed":
+            return False
+        return object.__getattribute__(self, name)
