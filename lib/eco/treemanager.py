@@ -495,8 +495,8 @@ class TreeManager(object):
             self.cursor.node = node
             self.cursor.pos = index
             self.selection_start = self.cursor.copy()
+            self.cursor.pos += len(text)
             self.selection_end = self.cursor.copy()
-            self.selection_end.pos += len(text)
 
     # ============================ MODIFICATIONS ============================= #
 
