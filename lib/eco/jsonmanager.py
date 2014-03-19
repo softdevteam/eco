@@ -5,9 +5,10 @@ from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from PyQt4.QtGui import QImage
 
 class JsonManager(object):
-    def __init__(self):
+    def __init__(self, unescape=False):
         self.last_terminal = None
         self.language_boxes = []
+        self.unescape = unescape
 
     def save(self, root, language, whitespaces, filename):
         main = {}
@@ -69,6 +70,8 @@ class JsonManager(object):
 
         symbol = node_symbol()
         symbol.name = jsnode["text"].encode("utf-8")
+        if self.unescape:
+            symbol.name = symbol.name.decode("string-escape")
         node = node_class(symbol)
         assert node.symbol is symbol
         node.lookup = jsnode["lookup"]

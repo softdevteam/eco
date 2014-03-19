@@ -12,12 +12,6 @@ class BootstrapParser(object):
         self.lr_type = lr_type
         self.whitespaces = whitespaces
         # load (old) parser for grammar grammar
-        self.lexer = IncrementalLexer(grammar.priorities)
-        self.parser = IncParser(grammar.grammar, 1, True)
-        self.parser.init_ast()
-        self.ast = self.parser.previous_version
-        self.treemanager = TreeManager()
-        self.treemanager.add_parser(self.parser, self.lexer, grammar.name)
         self.rules = {}
         self.lrules = []
         self.start_symbol = None
@@ -25,20 +19,42 @@ class BootstrapParser(object):
         self.inclexer = None
 
     def parse(self, ecogrammar):
+        self.lexer = IncrementalLexer(grammar.priorities)
+        self.parser = IncParser(grammar.grammar, 1, True)
+        self.parser.init_ast()
+        self.ast = self.parser.previous_version.parent
+        self.treemanager = TreeManager()
+        self.treemanager.add_parser(self.parser, self.lexer, grammar.name)
         self.treemanager.import_file(ecogrammar)
         if self.parser.last_status == False:
             raise Exception("Invalid input grammar")
         self.create_parser()
         self.create_lexer()
 
-    def create_parser(self):
-        startrule = self.parser.previous_version.parent.children[1] # startrule
+    def create_parser(self, pickle_id = None):
+        startrule = self.ast.children[1] # startrule
         grammar = startrule.children[1]
         parser = grammar.children[0]
         assert parser.symbol.name == "parser"
         self.parse_rules(parser)
+
+        if self.whitespaces:
+            ws_rule = Rule()
+            ws_rule.symbol = Nonterminal("WS")
+            ws_rule.add_alternative([Terminal("<ws>"), Nonterminal("WS")])
+            ws_rule.add_alternative([Terminal("<return>"), Nonterminal("WS")])
+            ws_rule.add_alternative([]) # or empty
+            self.rules[ws_rule.symbol] = ws_rule
+
+            # allow whitespace/comments at beginning of file
+            start_rule = Rule()
+            start_rule.symbol = Nonterminal("Startrule")
+            start_rule.add_alternative([Nonterminal("WS"), self.start_symbol])
+            self.rules[start_rule.symbol] = start_rule
+            self.start_symbol = start_rule.symbol
+
         incparser = IncParser()
-        incparser.from_dict(self.rules, self.start_symbol, self.lr_type, self.whitespaces)
+        incparser.from_dict(self.rules, self.start_symbol, self.lr_type, self.whitespaces, pickle_id)
         incparser.init_ast()
         self.incparser = incparser
 
@@ -77,16 +93,23 @@ class BootstrapParser(object):
                 annotation = self.parse_annotation(node.children[1])
             return (symbols, annotation)
         else:
-            return ([Epsilon()], None)
+            return ([], None)
 
     def parse_symbols(self, node):
         if node.children[0].symbol.name == "symbols":
             symbols = self.parse_symbols(node.children[0])
             symbol = self.parse_symbol(node.children[1])
             symbols.append(symbol)
+            if isinstance(symbol, Terminal) and self.whitespaces:
+                symbols.append(Nonterminal("WS"))
             return symbols
         elif node.children[0].symbol.name == "symbol":
-            return [self.parse_symbol(node.children[0])]
+            l = []
+            symbol = self.parse_symbol(node.children[0])
+            l.append(symbol)
+            if isinstance(symbol, Terminal) and self.whitespaces:
+                l.append(Nonterminal("WS"))
+            return l
 
     def parse_symbol(self, node):
         node = node.children[0]
@@ -162,7 +185,7 @@ class BootstrapParser(object):
             return self.parse_astnode(node)
 
     def create_lexer(self):
-        startrule = self.parser.previous_version.parent.children[1] # startrule
+        startrule = self.ast.children[1] # startrule
         grammar = startrule.children[1]
         lexer = grammar.children[5]
         assert lexer.symbol.name == "lexer"

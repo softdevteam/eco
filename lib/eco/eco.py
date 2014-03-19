@@ -451,23 +451,6 @@ class Window(QtGui.QMainWindow):
         if self.ui.tabWidget.count() == 0:
             QApplication.quit()
 
-    def newEditor(self, languageindex, whitespaces):
-        lang = languages[languageindex]
-        ne = NodeEditor()
-        if isinstance(lang, Language):
-            grammar = str(lang.grammar)
-            new_priorities = str(self.language.priorities)
-            lrp = IncParser(str(lang.grammar), 1, whitespaces)
-            lrp.init_ast()
-            lexer = IncrementalLexer(str(lang.priorities))
-            ne.set_mainlanguage(lrp, lexer, lang.name)
-        elif isinstance(lang, EcoGrammar):
-            bootstrap = BootstrapParser(lr_type=1, whitespaces=whitespaces)
-            bootstrap.parse(lang.grammar)
-            ne.set_mainlanguage(bootstrap.incparser, bootstrap.inclexer, lang.name)
-        ne.setFocusPolicy(QtCore.Qt.WheelFocus)
-        return ne
-
     def getEditor(self):
         etab = self.ui.tabWidget.currentWidget()
         if etab:

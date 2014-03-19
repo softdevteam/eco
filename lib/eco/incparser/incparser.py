@@ -86,9 +86,21 @@ class IncParser(object):
         self.previous_version = None
         print("Incemental parser done")
 
-    def from_dict(self, rules, startsymbol, lr_type, whitespaces):
-        self.graph = StateGraph(startsymbol, rules, lr_type)
-        self.graph.build()
+    def from_dict(self, rules, startsymbol, lr_type, whitespaces, pickle_id):
+        if pickle_id:
+            filename = "".join([os.path.dirname(__file__), "/../pickle/", str(pickle_id ^ hash(whitespaces)), ".pcl"])
+            try:
+                print("unpickling")
+                f = open(filename, "r")
+                self.graph = pickle.load(f)
+            except IOError:
+                print("failed")
+                self.graph = None
+        if self.graph is None:
+            print("building graph")
+            self.graph = StateGraph(startsymbol, rules, lr_type)
+            self.graph.build()
+            pickle.dump(self.graph, open(filename, "w"))
 
         self.syntaxtable = SyntaxTable(lr_type)
         self.syntaxtable.build(self.graph)

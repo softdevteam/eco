@@ -40,6 +40,15 @@ class EcoGrammar(object):
     def __str__(self):
         return self.name
 
+class EcoFile(object):
+    def __init__(self, name, filename, base=""):
+        self.name = name
+        self.filename = filename
+        self.base = base
+
+    def __str__(self):
+        return self.name
+
 super_simple = Language("Shifting optimisation",
 """
     S ::= X | Y
