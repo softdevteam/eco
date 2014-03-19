@@ -483,6 +483,7 @@ class TreeManager(object):
         while node != self.cursor.node:
             if isinstance(node, EOS):
                 node = self.get_bos()
+                line = 0
             index = node.symbol.name.find(text)
             if index > -1:
                 break
