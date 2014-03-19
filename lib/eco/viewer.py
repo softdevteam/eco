@@ -130,10 +130,11 @@ class Viewer(object):
                 pass#addtext = node.symbol.folding
         except AttributeError:
             pass
-        dotnode = pydot.Node(id(node), label=" %s " % node.symbol.name+addtext)
+        dotnode = pydot.Node(id(node), label=" %s " % repr(node.symbol.name)[1:-1]+addtext)
         if node.changed:
             dotnode.set('color','green')
         dotnode.set('fontsize', '10')
+        dotnode.set('fontname', 'Arial')
         graph.add_node(dotnode)
 
         for c in node.children:
