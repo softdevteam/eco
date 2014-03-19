@@ -116,6 +116,8 @@
     <addaction name="actionCopy"/>
     <addaction name="actionPaste"/>
     <addaction name="separator"/>
+    <addaction name="actionFind"/>
+    <addaction name="separator"/>
     <addaction name="actionAdd_language_box"/>
     <addaction name="actionSelect_next_language_box"/>
    </widget>
@@ -416,6 +418,17 @@
   <action name="actionExit">
    <property name="text">
     <string>Exit</string>
+   </property>
+  </action>
+  <action name="actionFind">
+   <property name="icon">
+    <iconset theme="find"/>
+   </property>
+   <property name="text">
+    <string>Find...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F</string>
    </property>
   </action>
  </widget>

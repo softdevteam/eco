@@ -476,6 +476,28 @@ class TreeManager(object):
         lrp = self.get_parser(root)
         return lrp.get_next_symbols_list(selected_node.state)
 
+    def find_text(self, text):
+        node = self.cursor.node.next_term
+        line = self.cursor.line
+        index = -1
+        while node != self.cursor.node:
+            if isinstance(node, EOS):
+                node = self.get_bos()
+            index = node.symbol.name.find(text)
+            if index > -1:
+                break
+
+            if node.symbol.name == "\r":
+                line += 1
+            node = node.next_term
+        if index > -1:
+            self.cursor.line = line
+            self.cursor.node = node
+            self.cursor.pos = index
+            self.selection_start = self.cursor.copy()
+            self.selection_end = self.cursor.copy()
+            self.selection_end.pos += len(text)
+
     # ============================ MODIFICATIONS ============================= #
 
     def key_shift_ctrl_z(self):

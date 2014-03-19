@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'gui/newgui.ui'
+# Form implementation generated from reading ui file 'newgui.ui'
 #
-# Created: Mon Mar 10 15:58:12 2014
+# Created: Wed Mar 19 16:03:53 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -179,6 +179,10 @@ class Ui_MainWindow(object):
         self.actionSelect_next_language_box.setObjectName(_fromUtf8("actionSelect_next_language_box"))
         self.actionExit = QtGui.QAction(MainWindow)
         self.actionExit.setObjectName(_fromUtf8("actionExit"))
+        self.actionFind = QtGui.QAction(MainWindow)
+        icon = QtGui.QIcon.fromTheme(_fromUtf8("find"))
+        self.actionFind.setIcon(icon)
+        self.actionFind.setObjectName(_fromUtf8("actionFind"))
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addSeparator()
@@ -199,6 +203,8 @@ class Ui_MainWindow(object):
         self.menuEdit.addAction(self.actionCut)
         self.menuEdit.addAction(self.actionCopy)
         self.menuEdit.addAction(self.actionPaste)
+        self.menuEdit.addSeparator()
+        self.menuEdit.addAction(self.actionFind)
         self.menuEdit.addSeparator()
         self.menuEdit.addAction(self.actionAdd_language_box)
         self.menuEdit.addAction(self.actionSelect_next_language_box)
@@ -276,4 +282,6 @@ class Ui_MainWindow(object):
         self.actionSelect_next_language_box.setText(_translate("MainWindow", "Select next language box", None))
         self.actionSelect_next_language_box.setShortcut(_translate("MainWindow", "Ctrl+Shift+Space", None))
         self.actionExit.setText(_translate("MainWindow", "Exit", None))
+        self.actionFind.setText(_translate("MainWindow", "Find...", None))
+        self.actionFind.setShortcut(_translate("MainWindow", "Ctrl+F", None))
 

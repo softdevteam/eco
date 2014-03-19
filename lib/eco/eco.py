@@ -36,6 +36,7 @@ from gui.gui import Ui_MainWindow
 from gui.parsetree import Ui_MainWindow as Ui_ParseTree
 from gui.stateview import Ui_MainWindow as Ui_StateView
 from gui.about import Ui_Dialog as Ui_AboutDialog
+from gui.finddialog import Ui_Dialog as Ui_FindDialog
 from gui.languagedialog import Ui_Dialog as Ui_LanguageDialog
 
 from grammar_parser.plexer import PriorityLexer
@@ -248,6 +249,21 @@ class AboutView(QtGui.QDialog):
         self.ui = Ui_AboutDialog()
         self.ui.setupUi(self)
 
+class FindDialog(QtGui.QDialog):
+    def __init__(self):
+        QtGui.QDialog.__init__(self)
+        self.ui = Ui_FindDialog()
+        self.ui.setupUi(self)
+        self.ui.buttonBox.button(QDialogButtonBox.Ok).setText("Find")
+        self.ui.buttonBox.button(QDialogButtonBox.Ok).setIcon(QIcon.fromTheme("find"))
+
+    def getText(self):
+        return self.ui.leText.text()
+
+    def focus(self):
+        self.ui.leText.setFocus(True)
+        self.ui.leText.selectAll()
+
 class LanguageView(QtGui.QDialog):
     def __init__(self, languages):
         QtGui.QDialog.__init__(self)
@@ -299,6 +315,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionCopy, SIGNAL("triggered()"), self.copy)
         self.connect(self.ui.actionCut, SIGNAL("triggered()"), self.cut)
         self.connect(self.ui.actionPaste, SIGNAL("triggered()"), self.paste)
+        self.connect(self.ui.actionFind, SIGNAL("triggered()"), self.find)
         self.connect(self.ui.actionAdd_language_box, SIGNAL("triggered()"), self.show_lbox_menu)
         self.connect(self.ui.actionSelect_next_language_box, SIGNAL("triggered()"), self.select_next_lbox)
         self.connect(self.ui.actionNew, SIGNAL("triggered()"), self.newfile)
@@ -311,6 +328,8 @@ class Window(QtGui.QMainWindow):
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
 
         self.viewer = Viewer("pydot")
+
+        self.finddialog = FindDialog()
 
     def run_subprocess(self):
         self.ui.teConsole.clear()
@@ -326,6 +345,16 @@ class Window(QtGui.QMainWindow):
     def show_lbox_menu(self):
         self.getEditor().showLanuageBoxMenu()
         self.getEditor().update()
+
+    def find(self):
+        self.finddialog.focus()
+        result = self.finddialog.exec_()
+        if result:
+            text = self.finddialog.getText()
+            self.getEditor().tm.find_text(text)
+            self.getEditor().update()
+            self.btReparse([])
+            self.getEditorTab().keypress()
 
     def redo(self):
         self.getEditor().tm.key_shift_ctrl_z()
