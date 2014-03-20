@@ -58,10 +58,10 @@ class EditorTab(QWidget):
         index = tabwidget.indexOf(self)
         tabwidget.setTabText(index, filename)
 
-    def keypress(self, e):
-        if(e.key() == Qt.Key_PageUp):
+    def keypress(self, e=None):
+        if(e and e.key() == Qt.Key_PageUp):
             self.scrollarea.decVSlider(True)
-        elif(e.key() == Qt.Key_PageDown):
+        elif(e and e.key() == Qt.Key_PageDown):
             self.scrollarea.incVSlider(True)
         else:
             self.editor.getScrollSizes()
