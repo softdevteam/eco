@@ -509,16 +509,22 @@ class TreeManager(object):
         self.undomanager.undo(self)
         self.changed = True
 
-    def key_home(self):
+    def key_home(self, shift=False):
+        self.unselect()
         self.cursor.node = self.lines[self.cursor.line].node
         self.cursor.pos = len(self.cursor.node.symbol.name)
+        if shift:
+            self.selection_end = self.cursor.copy()
 
-    def key_end(self):
+    def key_end(self, shift=False):
+        self.unselect()
         if self.cursor.line < len(self.lines)-1:
             self.cursor.node = self.cursor.find_previous_visible(self.lines[self.cursor.line+1].node)
         else:
             self.cursor.node = self.cursor.find_previous_visible(self.mainroot.children[-1])
         self.cursor.pos = len(self.cursor.node.symbol.name)
+        if shift:
+            self.selection_end = self.cursor.copy()
 
     def key_normal(self, text, undo_mode = True):
         indentation = 0
@@ -670,6 +676,9 @@ class TreeManager(object):
         if mod_shift:
             self.selection_end = self.cursor.copy()
         else:
+            self.unselect()
+
+    def unselect(self):
             self.selection_start = self.cursor.copy()
             self.selection_end = self.cursor.copy()
 

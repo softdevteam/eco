@@ -476,9 +476,9 @@ class NodeEditor(QFrame):
             else:
                 self.tm.key_cursors(self.key_to_string(e.key()), False)
         elif e.key() == Qt.Key_Home:
-            self.tm.key_home()
+            self.tm.key_home(e.modifiers() == Qt.ShiftModifier)
         elif e.key() == Qt.Key_End:
-            self.tm.key_end()
+            self.tm.key_end(e.modifiers() == Qt.ShiftModifier)
         elif e.key() == Qt.Key_Delete:
             self.tm.key_delete()
         else:
