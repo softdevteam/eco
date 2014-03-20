@@ -38,7 +38,7 @@ class EditorTab(QWidget):
         self.connect(self.scrollarea.verticalScrollBar(), SIGNAL("valueChanged(int)"), self.editor.sliderChanged)
         self.connect(self.scrollarea.horizontalScrollBar(), SIGNAL("valueChanged(int)"), self.editor.sliderXChanged)
         self.connect(self.editor, SIGNAL("painted()"), self.painted)
-        self.connect(self.editor, SIGNAL("keypress()"), self.keypress)
+        self.connect(self.editor, SIGNAL("keypress(QKeyEvent)"), self.keypress)
 
         self.filename = None
 
@@ -58,10 +58,15 @@ class EditorTab(QWidget):
         index = tabwidget.indexOf(self)
         tabwidget.setTabText(index, filename)
 
-    def keypress(self):
-        self.editor.getScrollSizes()
-        self.scrollarea.update()
-        self.scrollarea.fix()
+    def keypress(self, e):
+        if(e.key() == Qt.Key_PageUp):
+            self.scrollarea.decVSlider(True)
+        elif(e.key() == Qt.Key_PageDown):
+            self.scrollarea.incVSlider(True)
+        else:
+            self.editor.getScrollSizes()
+            self.scrollarea.update()
+            self.scrollarea.fix()
 
     def set_language(self, lang, whitespace):
         if isinstance(lang, Language):
@@ -90,9 +95,9 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
     def update(self):
         QWidget.update(self)
         self.verticalScrollBar().setMaximum(self.parent().editor.scroll_height)
-        self.verticalScrollBar().setPageStep(1)
+        self.verticalScrollBar().setPageStep(50)
         self.horizontalScrollBar().setMaximum(self.parent().editor.scroll_width)
-        self.horizontalScrollBar().setPageStep(1)
+        self.horizontalScrollBar().setPageStep(50)
 
 
     def fix(self):
@@ -142,11 +147,19 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
     def decHSlider(self):
         self.horizontalScrollBar().setSliderPosition(self.horizontalScrollBar().sliderPosition() - self.horizontalScrollBar().singleStep())
 
-    def incVSlider(self):
-        self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() + self.verticalScrollBar().singleStep())
+    def incVSlider(self, page=False):
+        if page:
+            step = self.verticalScrollBar().pageStep()
+        else:
+            step = self.verticalScrollBar().singleStep()
+        self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() + step)
 
-    def decVSlider(self):
-        self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() - self.verticalScrollBar().singleStep())
+    def decVSlider(self, page=False):
+        if page:
+            step = self.verticalScrollBar().pageStep()
+        else:
+            step = self.verticalScrollBar().singleStep()
+        self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() - step)
 
 class LineNumbers(QFrame):
 

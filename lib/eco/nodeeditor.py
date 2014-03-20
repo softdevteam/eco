@@ -481,6 +481,8 @@ class NodeEditor(QFrame):
             self.tm.key_end(e.modifiers() == Qt.ShiftModifier)
         elif e.key() == Qt.Key_Delete:
             self.tm.key_delete()
+        elif e.key() in [Qt.Key_PageUp, Qt.Key_PageDown]:
+            pass # ignore those keys
         else:
             if e.key() == Qt.Key_Tab:
                 text = "    "
@@ -490,7 +492,7 @@ class NodeEditor(QFrame):
 
         self.getWindow().btReparse([])
         self.update()
-        self.emit(SIGNAL("keypress()"))
+        self.emit(SIGNAL("keypress(QKeyEvent)"), e)
         self.getWindow().showLookahead()
 
     def showLanuageBoxMenu(self):
