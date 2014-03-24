@@ -481,6 +481,8 @@ class NodeEditor(QFrame):
             self.tm.key_end(e.modifiers() == Qt.ShiftModifier)
         elif e.key() == Qt.Key_Delete:
             self.tm.key_delete()
+        elif e.key() == Qt.Key_F3:
+            self.tm.find_next()
         elif e.key() in [Qt.Key_PageUp, Qt.Key_PageDown]:
             pass # ignore those keys
         else:

@@ -312,6 +312,7 @@ class TreeManager(object):
         self.edit_rightnode = False # changes which node to select when inbetween two nodes
         self.undomanager = UndoManager()
         self.changed = False
+        self.last_search = ""
 
     def set_font_test(self, width, height):
         # only needed for testing
@@ -476,11 +477,15 @@ class TreeManager(object):
         lrp = self.get_parser(root)
         return lrp.get_next_symbols_list(selected_node.state)
 
+    def find_next(self):
+        if self.last_search != "":
+            self.find_text(self.last_search)
+
     def find_text(self, text):
         node = self.cursor.node.next_term
         line = self.cursor.line
         index = -1
-        while node != self.cursor.node:
+        while node is not self.cursor.node:
             if isinstance(node, EOS):
                 node = self.get_bos()
                 line = 0
@@ -498,6 +503,7 @@ class TreeManager(object):
             self.selection_start = self.cursor.copy()
             self.cursor.pos += len(text)
             self.selection_end = self.cursor.copy()
+        self.last_search = text
 
     # ============================ MODIFICATIONS ============================= #
 
