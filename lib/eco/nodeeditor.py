@@ -36,6 +36,15 @@ class NodeEditor(QFrame):
 
         self.analyser = AstAnalyser()
 
+        self.timer = QTimer(self)
+        self.connect(self.timer, SIGNAL("timeout()"), self.test)
+
+    def test(self):
+        if self.tm.parsers[0][0].last_status:
+            self.analyser.analyse(self.tm.get_bos().get_root())
+        self.update()
+        self.timer.stop()
+
     def setImageMode(self, boolean):
         self.imagemode = boolean
 
@@ -108,9 +117,6 @@ class NodeEditor(QFrame):
         self.scroll_width = max(0, max_width - current_width)
 
     def paintEvent(self, event):
-        if self.tm.parsers[0][0].last_status:
-            self.analyser.analyse(self.tm.get_bos().get_root())
-
         gfont = QApplication.instance().gfont
         self.font = gfont.font
         self.fontwt = gfont.fontwt
@@ -489,6 +495,8 @@ class NodeEditor(QFrame):
             return "right"
 
     def keyPressEvent(self, e):
+
+        self.timer.start(500)
 
         if e.key() in [Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Control, Qt.Key_Meta, Qt.Key_AltGr]:
             if e.key() == Qt.Key_Shift:
