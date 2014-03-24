@@ -505,6 +505,12 @@ class TreeManager(object):
             self.selection_end = self.cursor.copy()
         self.last_search = text
 
+    def get_error(self, node):
+        for p in self.parsers:
+            if node is p[0].error_node:
+                return "Syntax error on token '%s'." % (node.symbol.name)
+        return None
+
     # ============================ MODIFICATIONS ============================= #
 
     def key_shift_ctrl_z(self):

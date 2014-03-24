@@ -235,6 +235,10 @@ class AstNode(object):
             return False
         return object.__getattribute__(self, name)
 
+    def get(self, name):
+        if self.children.has_key(name):
+            return self.children[name]
+
 class Expr(object):
     pass
 

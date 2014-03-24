@@ -11,6 +11,7 @@ from grammars.grammars import languages, lang_dict
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from jsonmanager import JsonManager
+from astanalyser import AstAnalyser
 
 import syntaxhighlighter
 import editor
@@ -33,6 +34,8 @@ class NodeEditor(QFrame):
         self.scroll_height = 0
         self.scroll_width = 0
 
+        self.analyser = AstAnalyser()
+
     def setImageMode(self, boolean):
         self.imagemode = boolean
 
@@ -50,6 +53,28 @@ class NodeEditor(QFrame):
 
     def set_sublanguage(self, language):
         self.sublanguage = language
+
+    def event(self, event):
+        if event.type() == QEvent.ToolTip:
+            if QToolTip.isVisible():
+                QToolTip.hideText()
+                event.ignore()
+                return True
+            pos = event.pos()
+            temp_cursor = self.tm.cursor.copy()
+            result = self.coordinate_to_cursor(pos.x(), pos.y())
+            node = self.tm.cursor.node
+            self.tm.cursor = temp_cursor
+            if not result:
+                event.ignore()
+                return True
+            msg = self.tm.get_error(node)
+            if not msg:
+                msg = self.analyser.get_error(node)
+            if msg:
+                QToolTip.showText(event.globalPos(), msg);
+            return True
+        return QFrame.event(self, event)
 
     # ========================== GUI related stuff ========================== #
 
@@ -83,6 +108,9 @@ class NodeEditor(QFrame):
         self.scroll_width = max(0, max_width - current_width)
 
     def paintEvent(self, event):
+        if self.tm.parsers[0][0].last_status:
+            self.analyser.analyse(self.tm.get_bos().get_root())
+
         gfont = QApplication.instance().gfont
         self.font = gfont.font
         self.fontwt = gfont.fontwt
@@ -265,15 +293,19 @@ class NodeEditor(QFrame):
             node = node.next_term
 
             # draw squiggly line
-            if node is error_node:
+            if node is error_node or self.analyser.has_error(node):
                 if isinstance(node, EOS):
                     length = self.fontwt
                 else:
-                    length = len(error_node.symbol.name)*self.fontwt
+                    length = len(node.symbol.name)*self.fontwt
                 if isinstance(node.symbol, MagicTerminal):
                     self.draw_vertical_squiggly_line(paint,x,y)
                 else:
-                    self.draw_squiggly_line(paint,x,y,length)
+                    if self.analyser.has_error(node):
+                        color = "orange"
+                    else:
+                        color = "red"
+                    self.draw_squiggly_line(paint,x,y,length, color)
 
         self.draw_selection(paint, draw_selection_start, draw_selection_end)
 
@@ -307,11 +339,11 @@ class NodeEditor(QFrame):
         paint.drawLine(x, y+2, x, y+self.fontht)
         paint.setPen(Qt.SolidLine)
 
-    def draw_squiggly_line(self, paint, x, y, length):
+    def draw_squiggly_line(self, paint, x, y, length, color):
         paint.setPen(Qt.CustomDashLine)
         pen = paint.pen()
         pen.setDashPattern([2,2])
-        pen.setColor(QColor("red"))
+        pen.setColor(QColor(color))
         paint.setPen(pen)
         #x -= length
         y = (y+1)*self.fontht+1
@@ -431,6 +463,9 @@ class NodeEditor(QFrame):
         cursor_x = x / self.fontwt
         self.tm.cursor.move_to_x(cursor_x, self.tm.lines)
 
+        if mouse_y > y or self.tm.cursor.get_x() != cursor_x:
+            return False
+        return True
 
     def mouseMoveEvent(self, e):
         # apparaently this is only called when a mouse button is clicked while
