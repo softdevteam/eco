@@ -1,4 +1,4 @@
-from grammar_parser.bootstrap import BootstrapParser, AstNode, LookupExpr, ListExpr, AddExpr
+from grammar_parser.bootstrap import BootstrapParser, AstNode, LookupExpr, ListExpr, AddExpr, ListNode, ReferenceExpr, Foreach
 from grammar_parser.gparser import Nonterminal, Terminal, Epsilon
 
 class Test_Parser(object):
@@ -37,7 +37,7 @@ a:"a"
         bp = BootstrapParser()
         bp.parse(grammar)
         assert bp.start_symbol == Nonterminal("A")
-        assert bp.rules[Nonterminal("A")].alternatives == [[Terminal("a")], [Epsilon()]]
+        assert bp.rules[Nonterminal("A")].alternatives == [[Terminal("a")], []]
 
 class Test_Lexer(object):
 
@@ -106,6 +106,19 @@ x:"x"
         bp.parse(grammar)
         assert bp.rules[Nonterminal("X")].annotations == [AstNode("Node", {"child":LookupExpr(0)}), LookupExpr(1)]
 
+    def test_annotations_extension(self):
+        grammar = """
+X ::= "x" {foreach(#2) X(name=item.x)}
+    ;
+
+%%
+
+x:"x"
+"""
+        bp = BootstrapParser()
+        bp.parse(grammar)
+        assert bp.rules[Nonterminal("X")].annotations == [Foreach(LookupExpr(2), AstNode("X", {"name": ReferenceExpr("item", "x")}))]
+
 import py
 from treemanager import TreeManager
 from incparser.incparser import IncParser
@@ -123,7 +136,7 @@ class Test_Bootstrapping(object):
 
     def test_bootstrapping1(self):
         bootstrap = BootstrapParser(lr_type=1, whitespaces=False)
-        test_grammar = """S ::= "abc"; %% abc:\"abc\""""
+        test_grammar = 'S ::= "abc"; %% abc:\"abc\"'
         bootstrap.parse(test_grammar)
         self.treemanager = TreeManager()
         self.treemanager.add_parser(bootstrap.incparser, bootstrap.inclexer, "")
@@ -183,5 +196,51 @@ class Test_Bootstrapping(object):
         assert mul.name == "Mul"
         assert mul.children['arg1'].symbol.name == "2"
         assert mul.children['arg2'].symbol.name == "3"
+
+
+    def test_foreach(self):
+        grammar = """
+X ::= items {foreach(#0) Field(b=item.x)}
+    ;
+
+items ::= items "comma" item    {#0 + [#2]}
+        | item                  {[#0]}
+        ;
+
+item ::= "a" {Var(x=#0)}
+       | "b" {Var(x=#0)}
+        ;
+
+%%
+
+a:"a"
+b:"b"
+comma:","
+
+"""
+        bootstrap = BootstrapParser(lr_type=1, whitespaces=False)
+        bootstrap.parse(grammar)
+        self.treemanager = TreeManager()
+        self.treemanager.add_parser(bootstrap.incparser, bootstrap.inclexer, "")
+        self.treemanager.set_font_test(7, 17)
+        self.treemanager.key_normal("a")
+        assert bootstrap.incparser.last_status == True
+        self.treemanager.key_normal(",")
+        assert bootstrap.incparser.last_status == False
+        self.treemanager.key_normal("b")
+        assert bootstrap.incparser.last_status == True
+
+        # test ast generation
+        root = bootstrap.incparser.previous_version.parent
+        assert root.symbol.name == "Root"
+        assert root.children[1].symbol.name == "X"
+        E = root.children[1]
+        assert isinstance(E.alternate, ListNode)
+        assert isinstance(E.alternate.children[0], AstNode)
+        assert isinstance(E.alternate.children[1], AstNode)
+        assert E.alternate.children[0].name == "Field"
+        assert E.alternate.children[1].name == "Field"
+        assert E.alternate.children[0].children['b'].symbol.name == "a"
+        assert E.alternate.children[1].children['b'].symbol.name == "b"
 
 

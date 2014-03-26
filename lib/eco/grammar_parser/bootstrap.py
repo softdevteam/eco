@@ -27,7 +27,7 @@ class BootstrapParser(object):
         self.treemanager.add_parser(self.parser, self.lexer, grammar.name)
         self.treemanager.import_file(ecogrammar)
         if self.parser.last_status == False:
-            raise Exception("Invalid input grammar")
+            raise Exception("Invalid input grammar: at %s %s" % (self.parser.error_node.prev_term, self.parser.error_node))
         self.create_parser()
         self.create_lexer()
 
@@ -125,6 +125,8 @@ class BootstrapParser(object):
             return self.parse_astnode(a_options.children[0])
         elif a_options.children[0].symbol.name == "expression":
             return self.parse_expression(a_options.children[0])
+        elif a_options.children[0].symbol.name == "foreach":
+            return self.parse_foreach(a_options.children[0])
 
     def parse_astnode(self, node):
         name = node.children[0].symbol.name
@@ -147,7 +149,10 @@ class BootstrapParser(object):
     def parse_astnode_child(self, node):
         assert node.symbol.name == "astnode_child"
         name = node.children[0].symbol.name
-        expr = self.parse_expression(node.children[4])
+        if node.children[4].symbol.name == "expression":
+            expr = self.parse_expression(node.children[4])
+        elif node.children[4].symbol.name == "reference":
+            expr = self.parse_reference(node.children[4])
         return (name, expr)
 
     def parse_expression(self, node):
@@ -163,11 +168,21 @@ class BootstrapParser(object):
                 expr2 = self.parse_list(node.children[3])
             return AddExpr(expr1, expr2)
 
+    def parse_foreach(self, node):
+        item = self.parse_node(node.children[4])
+        expr = self.parse_astnode(node.children[7])
+        return Foreach(node.symbol.name, item, expr)
+
     def parse_node(self, node):
         return LookupExpr(int(node.children[2].symbol.name))
 
     def parse_list(self, node):
         return ListExpr(self.parse_listloop(node.children[2]))
+
+    def parse_reference(self, node):
+        base = node.children[0].symbol.name
+        ref = node.children[4].symbol.name
+        return ReferenceExpr(base, ref)
 
     def parse_listloop(self, node):
         if node.children[0].symbol.name == "list_loop":
@@ -219,10 +234,15 @@ class AstNode(object):
     def __eq__(self, other):
         return self.name == other.name and self.children == other.children
 
-    def interpret(self, node):
+    def interpret(self, node, reference=None):
         d = {}
         for c in self.children:
-            d[c] = self.children[c].interpret(node)
+            if isinstance(self.children[c], ReferenceExpr):
+                ref = self.children[c].interpret(reference)
+                if ref:
+                    d[c] = ref
+            else:
+                d[c] = self.children[c].interpret(node)
         return AstNode(self.name, d)
 
     def __repr__(self):
@@ -241,6 +261,28 @@ class AstNode(object):
 
 class Expr(object):
     pass
+
+class Foreach(object):
+    def __init__(self, name, item, expression):
+        self.name = name
+        self.item = item
+        self.expression = expression
+
+    def interpret(self, node):
+        item = self.item.interpret(node)
+        assert isinstance(item, ListNode)
+        l = []
+        for c in item.children:
+            expr = self.expression.interpret(node, c)
+            l.append(expr)
+        return ListNode(node.symbol.name, l)
+
+
+    def __eq__(self, other):
+        return self.item == other.item and self.expression == other.expression
+
+    def __repr__(self):
+        return "Foreach(%s, %s, %s)" % (self.name, self.item, self.expression)
 
 class LookupExpr(Expr):
     def __init__(self, number):
@@ -266,6 +308,25 @@ class LookupExpr(Expr):
     def __repr__(self):
         return "LookupExpr(%s)" % (self.number)
 
+class ReferenceExpr(Expr):
+    def __init__(self, base, reference):
+        self.base = base
+        self.reference = reference
+
+    def __eq__(self, other):
+        return self.base == other.base and self.reference == other.reference
+
+    def interpret(self, reference):
+        assert isinstance(reference, AstNode)
+        try:
+            x = reference.children[self.reference]
+        except KeyError:
+            x = None
+        return x
+
+    def __repr__(self):
+        return "ReferenceExpr(%s, %s)" % (self.base, self.reference)
+
 class AddExpr(Expr):
     def __init__(self, expr1, expr2):
         self.expr1 = expr1
@@ -275,10 +336,10 @@ class AddExpr(Expr):
         return self.expr1 == other.expr1 and self.expr2 == other.expr2
 
     def interpret(self, node):
-        expr1 = expr1.interpret(node)
-        expr2 = expr2.interpret(node)
-        assert isinstance(expr1, list)
-        assert isinstance(expr2, list)
+        expr1 = self.expr1.interpret(node)
+        expr2 = self.expr2.interpret(node)
+        assert isinstance(expr1, ListNode)
+        assert isinstance(expr2, ListNode)
         return expr1 + expr2
 
     def __repr__(self):
@@ -317,3 +378,6 @@ class ListNode(object):
         if name == "changed":
             return False
         return object.__getattribute__(self, name)
+
+    def __repr__(self):
+        return "ListNode(%s, %s)" % (self.name, self.children)

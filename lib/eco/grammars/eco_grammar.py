@@ -39,17 +39,23 @@ right ::= symbols
 annotations ::= "{" a_options "}"
 a_options ::= astnode
             | expression
+            | foreach
 
 astnode ::= "nonterminal" "(" astnode_children ")"
 astnode_children ::= astnode_child
                    | astnode_children "," astnode_child
 
 astnode_child ::= "nonterminal" "=" expression
+                | "nonterminal" "=" reference
+
+reference ::= "nonterminal" "." "nonterminal"
 
 expression ::= node
              | list
              | expression "+" node
              | expression "+" list
+
+foreach ::= "foreach" "(" node ")" astnode
 
 node ::= "#" "NUMBER"
 list ::= "[" "]"
@@ -70,6 +76,7 @@ lrule ::= tokenname ":" "terminal"
 tokenname ::= "nonterminal" | "languagebox"
 """,
 """
+"foreach":foreach
 "[ \\t]+":<ws>
 "[\\n\\r]":<return>
 "[0-9]+":NUMBER
@@ -90,6 +97,7 @@ tokenname ::= "nonterminal" | "languagebox"
 "\]":]
 "\(":(
 "\)":)
+"\.":.
 "%%":%%
 """,
 "Grammar")

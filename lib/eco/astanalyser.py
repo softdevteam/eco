@@ -57,12 +57,13 @@ class MethodDeclaration(ScopeDeclaration):
 
 
 class FieldDeclaration(Declaration):
-    def __init__(self, name, scope, field_type):
+    def __init__(self, name, scope, field_type, value):
         self.name = name
         self.scope = scope
         self.field_type = field_type
         self.index = -1
         self.kind = "var"
+        self.value = value
 
     def __repr__(self):
         return "FieldDeclaration(%s, %s, %s)" % (self.name.symbol.name, self.scope.name, self.index)
@@ -101,7 +102,10 @@ class AstAnalyser(object):
         if not node:
             return
         if isinstance(node, AstNode):
-            self.__getattribute__("scan" + node.symbol.name)(node, scope)
+            try:
+                self.__getattribute__("scan" + node.symbol.name)(node, scope)
+            except AttributeError:
+                pass
             return
 
         if node.__dict__.has_key('alternate') and node.alternate:
@@ -118,12 +122,15 @@ class AstAnalyser(object):
 
     def scanFieldDecl(self, node, scope):
         field_type = node.get('type')
-        name = node.get('vars').get('name')
-        decl = FieldDeclaration(name, scope, field_type)
-        self.scan(node.get('vars'), scope)
+        name = node.get('name')
+        value = node.get('value')
+        self.scan(value, scope)
+        decl = FieldDeclaration(name, scope, field_type, value)
         scope.add(decl)
 
     def scanLocalVar(self, node, scope):
+        self.scanFieldDecl(node, scope)
+        return
         name = node.get('var').get('name')
         decl = FieldDeclaration(name, scope, None)
         self.scan(node.get('var'), scope)
@@ -153,6 +160,7 @@ class AstAnalyser(object):
         # scan
         self.errors = {}
         main = ScopeDeclaration("program", self)
+        main.kind = main.name
         self.scan(node, main)
         # analyse
         refs = main.get_references()
