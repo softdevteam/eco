@@ -1,95 +1,34 @@
-class Declaration(object):
-    pass
-
-class ScopeDeclaration(Declaration):
-
-    def __init__(self, name, scope):
-        self.name = name
-        self.scope = scope
-        self.declarations = []
-        self.references = []
-        self.index = 0
-
-    def add(self, var):
-        if isinstance(var, VarReference):
-            self.references.append(var)
-        elif isinstance(var, Declaration):
-            self.declarations.append(var)
-        var.index = self.index
-        self.index += 1
-
-    def get_field(self, ref):
-        for d in self.declarations:
-            # a valid reference  has:
-            # - same name
-            # - different scope OR smaller index
-            # - different kind
-            if d.name.symbol.name != ref.name.symbol.name:
-                continue
-            if d.kind != ref.kind: # XXX: doesn't apply for languages like Python
-                continue
-            if d.scope == ref.scope and d.index > ref.index:
-                continue
-            return d
-        return self.scope.get_field(ref)
-
-    def get_references(self):
-        l = list(self.references)
-        for d in self.declarations:
-            l = l + d.get_references()
-        return l
-
-    def has_var(self, name):
-        for d in self.declarations:
-            if d.name.symbol.name == name.symbol.name:
-                return True
-        return self.scope.has_var(name)
-
-class ClassDeclaration(ScopeDeclaration):
-    def __init__(self, name, scope):
-        ScopeDeclaration.__init__(self, name, scope)
-        self.kind = "class"
-
-class MethodDeclaration(ScopeDeclaration):
-    def __init__(self, name, scope):
-        ScopeDeclaration.__init__(self, name, scope)
-        self.kind = "method"
-
-
-class FieldDeclaration(Declaration):
-    def __init__(self, name, scope, field_type, value):
-        self.name = name
-        self.scope = scope
-        self.field_type = field_type
-        self.index = -1
-        self.kind = "var"
-        self.value = value
+class URI(object):
+    def __init__(self):
+        self.kind = ""
+        self.path = []
+        self.name = ""
+        self.ruleid = ""
 
     def __repr__(self):
-        return "FieldDeclaration(%s, %s, %s)" % (self.name.symbol.name, self.scope.name, self.index)
-
-    def get_references(self):
-        return []
-
-class VarReference(object):
-    def __init__(self, name, scope):
-        self.name = name
-        self.scope = scope
-        self.index = -1
-        self.kind = "var"
-
-    def __repr__(self):
-        return "VarReference(%s, %s, %s)" % (self.name.symbol.name, self.scope.name, self.index)
-
-class Value(object):
-    def __init__(self, value_type, value):
-        self.value_type = value_type
-        self.value = value
+        path = []
+        for p in self.path:
+            path.append(p.name)
+        return "%s:%s/%s" % (self.kind, "/".join(path), self.name)
 
 class AstAnalyser(object):
     def __init__(self):
         self.errors = {}
         self.scope = None
+
+        # rules
+        self.rules = {
+            'ClassDecl': {'kind': 'class', 'args': ['name'], 'scopes': ['field','method']},
+            'FieldDecl': {'kind': 'field', 'args': ['name', 'type','value'], 'scopes': [], 'visibility': 'subsequent'},
+            'MethodDecl': {'kind': 'method', 'args': ['name'], 'scopes': ['variable']},
+            'LocalVar': {'kind': 'variable', 'args': ['name', 'type', 'value'], 'scopes': [], 'visibility': 'subsequent'},
+            'id': {'kind': 'varref', 'args': ['name'], 'scopes':[], 'refers':['variable', 'field']},
+        }
+
+        self.d = {}
+
+        self.data = {}
+        self.index = 0
 
     def has_var(self, name):
         return False
@@ -115,60 +54,115 @@ class AstAnalyser(object):
         for c in node.children:
             self.scan(c, scope)
 
-    def scanClassDecl(self, node, scope):
-        decl = ClassDeclaration(node.get('name'), scope)
-        scope.add(decl)
-        self.scan(node.get('body'), decl)
+    def scan(self, node, path):
+        if not node:
+            return
+        if node.__dict__.has_key('alternate') and node.alternate:
+            self.scan(node.alternate, path)
+            return
 
-    def scanFieldDecl(self, node, scope):
-        field_type = node.get('type')
-        name = node.get('name')
-        value = node.get('value')
-        self.scan(value, scope)
-        decl = FieldDeclaration(name, scope, field_type, value)
-        scope.add(decl)
+        from grammar_parser.bootstrap import AstNode
+        if not isinstance(node, AstNode):
+            for c in node.children:
+                self.scan(c, path)
+            return
 
-    def scanLocalVar(self, node, scope):
-        self.scanFieldDecl(node, scope)
-        return
-        name = node.get('var').get('name')
-        decl = FieldDeclaration(name, scope, None)
-        self.scan(node.get('var'), scope)
-        scope.add(decl)
+        try:
+            kind = self.rules[node.symbol.name]['kind']
+            obj = URI()
+            obj.ruleid = node.symbol.name
 
-    def scanint(self, node, scope):
-        decl = Value('int', node.get('value'))
-        return decl
+            obj.node = node.get('name')
+            obj.name = obj.node.symbol.name
+            obj.kind = kind
+            obj.path = list(path)
 
-    def scanid(self, node, scope):
-        varref = VarReference(node.get('name'), scope)
-        scope.add(varref)
+            # if last parent hasn't scope, delete from path
+            if path != [] and not self.scopes(path[-1], obj):
+                obj.path.pop(-1)
 
-    def scanVar(self, node, scope):
-        self.scan(node.get('value'), scope)
+            path = list(path)
+            path.append(obj)
+            for c in node.children:
+                self.scan(node.children[c], path)
 
-    def scanPlus(self, node, scope):
-        pass
+            obj.index = self.index
+            self.data.setdefault(obj.kind, [])
+            self.data[obj.kind].append(obj)
+            self.index += 1
 
-    def scanMethodDecl(self, node, scope):
-        name = node.get('header').get('name')
-        decl = MethodDeclaration(name, scope)
-        scope.add(decl)
-        self.scan(node.get('body'), decl)
+        except KeyError:
+            print("no rule for", node.symbol.name)
+            for c in node.children:
+                self.scan(node.children[c], path)
+            return
 
     def analyse(self, node):
         # scan
         self.errors = {}
-        main = ScopeDeclaration("program", self)
-        main.kind = main.name
-        self.scan(node, main)
-        # analyse
-        refs = main.get_references()
-        for e in refs:
-            if isinstance(e, VarReference):
-                decl = e.scope.get_field(e)
-                if not decl:
-                    self.errors[e.name] = "'%s' cannot be resolved to a variable." % (e.name.symbol.name)
+
+        self.data.clear()
+        self.index = 0
+        self.scan(node, [])
+        self.analyse_refs()
+
+    def find_references(self, parent, refs):
+        for c in parent.children:
+            if self.rules[c.ruleid].has_key('refers'):
+                refs.append(c)
+            self.find_references(c, refs)
+
+    def analyse_refs(self):
+        for key in self.data:
+            ruleid = self.data[key][0].ruleid
+            if self.rules[ruleid].has_key('refers'):
+                obj = self.data[key]
+                for reference in self.data[key]:
+                    self.find_reference(reference)
+
+    def find_reference(self, reference):
+        for refers in self.rules[reference.ruleid]['refers']:
+            path = list(reference.path)
+            while len(path) > 0:
+                x = self.get_reference(refers, path, reference.name)
+                if x:
+                    try:
+                        visibility = self.rules[x.ruleid]['visibility']
+                    except KeyError:
+                        visibility = 'normal'
+                    if visibility == "normal":
+                        return
+                    if visibility == "subsequent" and x.index < reference.index:
+                        return
+                path.pop() # try with prefix of path
+        self.errors[reference.node] = "'%s' cannot be resolved to a variable." % (reference.name)
+
+    def get_reference(self, kind, path, name):
+        if not self.data.has_key(kind):
+            return None
+        for candidate in self.data[kind]:
+            if candidate.name != name:
+                continue
+            if not self.paths_eq(candidate.path, path):
+                continue
+            return candidate
+        return None
+
+    def paths_eq(self, path1, path2):
+        if len(path1) != len(path2):
+            return False
+        for i in range(len(path1)):
+            if path1[i].name != path2[i].name:
+                return False
+            if path1[i].kind != path2[i].kind: #XXX only if types matter (e.g. python doesn't care)
+                return False
+        return True
+
+    def scopes(self, scope, obj):
+        try:
+            return obj.kind in self.rules[scope.ruleid]['scopes']
+        except KeyError:
+            return False
 
     def has_error(self, node):
         return self.errors.has_key(node)
