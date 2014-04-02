@@ -160,6 +160,8 @@ class BootstrapParser(object):
             return self.parse_node(node.children[0])
         elif node.children[0].symbol.name == "list":
             return self.parse_list(node.children[0])
+        elif node.children[0].symbol.name == "node_ref":
+            return self.parse_noderef(node.children[0])
         else:
             expr1 = self.parse_expression(node.children[0])
             if node.children[3].symbol.name == "node":
@@ -172,6 +174,12 @@ class BootstrapParser(object):
         item = self.parse_node(node.children[4])
         expr = self.parse_astnode(node.children[7])
         return Foreach(node.symbol.name, item, expr)
+
+    def parse_noderef(self, node):
+        lookup = self.parse_node(node.children[0])
+        attr = node.children[3]
+        lookup.attribute = attr.symbol.name
+        return lookup
 
     def parse_node(self, node):
         return LookupExpr(int(node.children[2].symbol.name))
@@ -285,11 +293,12 @@ class Foreach(object):
         return "Foreach(%s, %s, %s)" % (self.name, self.item, self.expression)
 
 class LookupExpr(Expr):
-    def __init__(self, number):
+    def __init__(self, number, attribute=None):
         self.number = number
+        self.attribute = attribute
 
     def __eq__(self, other):
-        return self.number == other.number
+        return self.number == other.number and self.attribute == other.attribute
 
     def interpret(self, node):
         # skip whitespaces
@@ -303,10 +312,13 @@ class LookupExpr(Expr):
 
         if n.alternate:
             n = n.alternate
+
+        if self.attribute:
+            return n.get(self.attribute)
         return n
 
     def __repr__(self):
-        return "LookupExpr(%s)" % (self.number)
+        return "LookupExpr(%s, %s)" % (self.number, self.attribute)
 
 class ReferenceExpr(Expr):
     def __init__(self, base, reference):

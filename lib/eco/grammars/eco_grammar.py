@@ -51,6 +51,7 @@ astnode_child ::= "nonterminal" "=" expression
 reference ::= "nonterminal" "." "nonterminal"
 
 expression ::= node
+             | node_ref
              | list
              | expression "+" node
              | expression "+" list
@@ -58,6 +59,8 @@ expression ::= node
 foreach ::= "foreach" "(" node ")" astnode
 
 node ::= "#" "NUMBER"
+node_ref ::= node "." "nonterminal"
+
 list ::= "[" "]"
        | "[" list_loop "]"
 list_loop ::= astnode

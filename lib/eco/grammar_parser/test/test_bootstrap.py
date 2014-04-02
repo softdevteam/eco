@@ -117,7 +117,20 @@ x:"x"
 """
         bp = BootstrapParser()
         bp.parse(grammar)
-        assert bp.rules[Nonterminal("X")].annotations == [Foreach(LookupExpr(2), AstNode("X", {"name": ReferenceExpr("item", "x")}))]
+        assert bp.rules[Nonterminal("X")].annotations == [Foreach("foreach", LookupExpr(2), AstNode("X", {"name": ReferenceExpr("item", "x")}))]
+
+    def test_lookup_reference(self):
+        grammar = """
+X ::= "x" {X(name=#0.x)}
+    ;
+
+%%
+
+x:"x"
+"""
+        bp = BootstrapParser()
+        bp.parse(grammar)
+        assert bp.rules[Nonterminal("X")].annotations == [AstNode("X", {"name": LookupExpr(0, "x")})]
 
 import py
 from treemanager import TreeManager
@@ -243,4 +256,34 @@ comma:","
         assert E.alternate.children[0].children['b'].symbol.name == "a"
         assert E.alternate.children[1].children['b'].symbol.name == "b"
 
+    def test_lookup_reference(self):
+        grammar = """
+X ::= item {#0.x}
+    ;
+
+item ::= "a" {Var(x=#0)}
+       | "b" {Var(x=#0)}
+        ;
+
+%%
+
+a:"a"
+b:"b"
+comma:","
+
+"""
+        bootstrap = BootstrapParser(lr_type=1, whitespaces=False)
+        bootstrap.parse(grammar)
+        self.treemanager = TreeManager()
+        self.treemanager.add_parser(bootstrap.incparser, bootstrap.inclexer, "")
+        self.treemanager.set_font_test(7, 17)
+        self.treemanager.key_normal("a")
+        assert bootstrap.incparser.last_status == True
+
+        # test ast generation
+        root = bootstrap.incparser.previous_version.parent
+        assert root.symbol.name == "Root"
+        assert root.children[1].symbol.name == "X"
+        E = root.children[1]
+        assert E.alternate.symbol.name == "a"
 
