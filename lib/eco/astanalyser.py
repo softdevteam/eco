@@ -8,8 +8,20 @@ class URI(object):
     def __repr__(self):
         path = []
         for p in self.path:
-            path.append(p.name)
-        return "%s:%s/%s" % (self.kind, "/".join(path), self.name)
+            path.append(repr(p))
+        return "URI(%s:%s,\"%s\")" % (self.kind, ",".join(path), self.name)
+
+class Reference(object):
+    def __init__(self, kind, name, ruleid=""):
+        self.kind = kind
+        self.name = name
+        self.ruleid = ruleid
+
+    def __eq__(self, other):
+        return self.kind == other.kind and self.name == other.name
+
+    def __repr__(self):
+        return "Ref(%s/%s)" % (self.kind, self.name)
 
 class AstAnalyser(object):
     def __init__(self):
@@ -18,11 +30,13 @@ class AstAnalyser(object):
 
         # rules
         self.rules = {
-            'ClassDecl': {'kind': 'class', 'args': ['name'], 'scopes': ['field','method']},
+            'CompilationUnit': {'kind': 'compunit', 'args': [], 'scopes':['class']},
+            'ClassDecl': {'kind': 'class', 'args': ['name'], 'scopes': ['field','method', 'class']},
             'FieldDecl': {'kind': 'field', 'args': ['name', 'type','value'], 'scopes': [], 'visibility': 'subsequent'},
             'MethodDecl': {'kind': 'method', 'args': ['name'], 'scopes': ['variable']},
             'LocalVar': {'kind': 'variable', 'args': ['name', 'type', 'value'], 'scopes': [], 'visibility': 'subsequent'},
-            'id': {'kind': 'varref', 'args': ['name'], 'scopes':[], 'refers':['variable', 'field']},
+            'id': {'kind': 'varref', 'args': ['name'], 'scopes':[], 'refers':['variable', 'field', 'class']},
+            'FieldAccess': {'kind': 'fieldaccess', 'args': ['name','base'], 'scopes':[], 'refers':['field', 'class'], 'in':'base'},
         }
 
         self.d = {}
@@ -73,17 +87,29 @@ class AstAnalyser(object):
             obj.ruleid = node.symbol.name
 
             obj.node = node.get('name')
-            obj.name = obj.node.symbol.name
+            if obj.node:
+                obj.name = obj.node.symbol.name
             obj.kind = kind
             obj.path = list(path)
 
             # if last parent hasn't scope, delete from path
-            if path != [] and not self.scopes(path[-1], obj):
+            if path != [] and not self.scopes(path[-1], obj): #XXX should be while?
                 obj.path.pop(-1)
 
-            path = list(path)
-            path.append(obj)
+            if self.rules[node.symbol.name].has_key('in'):
+                where = self.rules[node.symbol.name]['in']
+                base = node.get(where)
+                base_uri = self.scan(base, path)
+                path = [base_uri]
+                obj.path = path
+            else:
+                base = None
+                path = list(path)
+                path.append(Reference(obj.kind, obj.name, obj.ruleid))
+
             for c in node.children:
+                if node.children[c] is base:
+                    continue # don't scan base twice
                 self.scan(node.children[c], path)
 
             obj.index = self.index
@@ -91,8 +117,9 @@ class AstAnalyser(object):
             self.data[obj.kind].append(obj)
             self.index += 1
 
+            return obj
+
         except KeyError:
-            print("no rule for", node.symbol.name)
             for c in node.children:
                 self.scan(node.children[c], path)
             return
@@ -131,10 +158,21 @@ class AstAnalyser(object):
                     except KeyError:
                         visibility = 'normal'
                     if visibility == "normal":
-                        return
+                        return x
                     if visibility == "subsequent" and x.index < reference.index:
-                        return
+                        return x
                 path.pop() # try with prefix of path
+
+        # URI is alias (nested URIs)
+        # evaluate references, then get_reference
+        if len(reference.path) > 0 and isinstance(reference.path[0], URI):
+            x = self.find_reference(reference.path[0])
+            if x:
+                for refers in self.rules[reference.ruleid]['refers']:
+                    z = self.get_reference(refers, x.path + [Reference(x.kind, x.name)], reference.name)
+                    if z:
+                        return z
+
         self.errors[reference.node] = "'%s' cannot be resolved to a variable." % (reference.name)
 
     def get_reference(self, kind, path, name):
