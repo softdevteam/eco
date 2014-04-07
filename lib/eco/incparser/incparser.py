@@ -117,7 +117,10 @@ class IncParser(object):
         root = Node(Nonterminal("Root"), 0, [bos, eos])
         self.previous_version = AST(root)
 
-    def inc_parse(self, line_indents=[]):
+    def reparse(self):
+        self.inc_parse([], True)
+
+    def inc_parse(self, line_indents=[], reparse=False):
         print("============ NEW INCREMENTAL PARSE ================= ")
         self.error_node = None
         self.stack = []
@@ -152,7 +155,7 @@ class IncParser(object):
                         la = result
 
             else: # Nonterminal
-                if la.changed:
+                if la.changed or reparse:
                     la.changed = False
                     self.undo.append((la, 'changed', True))
                     la = self.left_breakdown(la)

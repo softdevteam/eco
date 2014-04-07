@@ -28,7 +28,7 @@ class SyntaxHighlighter(object):
         "cyan": "#2AA198",
         "yellow": "#B58900",
         "purple": "#D33682",
-        "black": "#000000"
+        "default": "#333333"
     }
     keyword_colors = {
     }
@@ -39,7 +39,7 @@ class SyntaxHighlighter(object):
         elif node.lookup in self.keyword_colors:
             color = self.keyword_colors[node.lookup]
         else:
-            color = "black"
+            color = "default"
         hexcode = self.colors[color]
         return hexcode
 class PythonHighlighter(SyntaxHighlighter):
@@ -131,6 +131,17 @@ class GrammarHighlighter(SyntaxHighlighter):
         "NUMBER": "red"
     }
 
+class ScopingrulesHighlighter(SyntaxHighlighter):
+    keyword_colors = {
+        "surrounding": "blue",
+        "subsequent": "blue",
+        "defines": "red",
+        "scopes": "red",
+        "references": "red",
+        "to": "red",
+        "in": "red",
+    }
+
 def get_highlighter(parent):
     if parent == "Java":
         return JavaHighlighter()
@@ -142,4 +153,6 @@ def get_highlighter(parent):
         return PrologHighlighter()
     if parent == "Grammar":
         return GrammarHighlighter()
+    if parent == "Scoping":
+        return ScopingrulesHighlighter()
     return SyntaxHighlighter()

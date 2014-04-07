@@ -3,7 +3,7 @@ from inclexer.inclexer import IncrementalLexer
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 
-from grammars.grammars import lang_dict
+from grammars.grammars import lang_dict, Language, EcoFile
 
 import math
 
@@ -339,22 +339,23 @@ class TreeManager(object):
                 self.parsers.remove(p)
 
     def get_parser(self, root):
-        for parser, lexer, lang in self.parsers:
+        for parser, lexer, lang, _ in self.parsers:
             if parser.previous_version.parent is root:
                 return parser
 
     def get_lexer(self, root):
-        for parser, lexer, lang in self.parsers:
+        for parser, lexer, lang, _ in self.parsers:
             if parser.previous_version.parent is root:
                 return lexer
 
     def get_language(self, root):
-        for parser, lexer, lang in self.parsers:
+        for parser, lexer, lang, _ in self.parsers:
             if parser.previous_version.parent is root:
                 return lang
 
     def add_parser(self, parser, lexer, language):
-        self.parsers.append((parser, lexer, language))
+        analyser = self.load_analyser(language)
+        self.parsers.append((parser, lexer, language, analyser))
         parser.inc_parse()
         if len(self.parsers) == 1:
             self.lines.append(Line(parser.previous_version.parent.children[0]))
@@ -363,10 +364,38 @@ class TreeManager(object):
             self.selection_start = self.cursor.copy()
             self.selection_end = self.cursor.copy()
 
+    def load_analyser(self, language):
+        lang = lang_dict[language]
+        if isinstance(lang, EcoFile):
+            import os
+            filename = os.path.splitext(lang.filename)[0] + ".nb"
+            if os.path.exists(filename):
+                from astanalyser import AstAnalyser
+                return AstAnalyser(filename)
+
     def get_languagebox(self, node):
         root = node.get_root()
         lbox = root.get_magicterminal()
         return lbox
+
+    def has_error(self, node):
+        for p in self.parsers:
+            if p[3] and p[3].has_error(node):
+                return True
+        return False
+
+    def get_error(self, node):
+        for p in self.parsers:
+            if p[3]:
+                error = p[3].get_error(node)
+                if error != "":
+                    return error
+        return ""
+
+    def analyse(self):
+        for p in self.parsers:
+            if p[0].last_status:
+                p[3].analyse(p[0].previous_version.parent)
 
     # ============================ ANALYSIS ============================= #
 
@@ -1154,15 +1183,32 @@ class TreeManager(object):
         return
 
     def load_file(self, language_boxes):
+        from grammar_parser.bootstrap import BootstrapParser
+        from jsonmanager import JsonManager
 
         # setup language boxes
         for root, language, whitespaces in language_boxes:
             grammar = lang_dict[language]
-            incparser = IncParser(grammar.grammar, 1, whitespaces)
-            incparser.init_ast()
-            incparser.previous_version.parent = root
-            inclexer = IncrementalLexer(grammar.priorities)
-            self.add_parser(incparser, inclexer, language)
+            if isinstance(grammar, Language):
+                incparser = IncParser(grammar.grammar, 1, whitespaces)
+                incparser.init_ast()
+                incparser.previous_version.parent = root
+                inclexer = IncrementalLexer(grammar.priorities)
+                self.add_parser(incparser, inclexer, language)
+            elif isinstance(grammar, EcoFile):
+                manager = JsonManager(unescape=True)
+                bsroot, language, whitespaces = manager.load(grammar.filename)[0]
+                pickle_id = hash(open(grammar.filename, "r").read())
+                bootstrap = BootstrapParser(lr_type=1, whitespaces=whitespaces)
+                bootstrap.ast = bsroot
+                bootstrap.create_parser(pickle_id)
+                bootstrap.create_lexer()
+                bootstrap.incparser.previous_version.parent = root
+                self.add_parser(bootstrap.incparser, bootstrap.inclexer, grammar.name)
+                bootstrap.incparser.reparse()
+            else:
+                print("Grammar Error: could not determine grammar type")
+                return
 
         self.rescan_linebreaks(0)
         for i in range(len(self.lines)):

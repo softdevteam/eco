@@ -9,13 +9,13 @@ class URI(object):
         path = []
         for p in self.path:
             path.append(repr(p))
-        return "URI(%s:%s,\"%s\")" % (self.kind, ",".join(path), self.name)
+        return "URI(%s:%s,\"%s\",%s)" % (self.kind, ",".join(path), self.name, self.index)
 
 class Reference(object):
-    def __init__(self, kind, name, ruleid=""):
+    def __init__(self, kind, name, nbrule=None):
         self.kind = kind
         self.name = name
-        self.ruleid = ruleid
+        self.nbrule = nbrule
 
     def __eq__(self, other):
         return self.kind == other.kind and self.name == other.name
@@ -24,7 +24,7 @@ class Reference(object):
         return "Ref(%s/%s)" % (self.kind, self.name)
 
 class AstAnalyser(object):
-    def __init__(self):
+    def __init__(self, filename):
         self.errors = {}
         self.scope = None
 
@@ -44,29 +44,42 @@ class AstAnalyser(object):
         self.data = {}
         self.index = 0
 
+        rootnode = self.load_nb_file(filename)
+        self.definitions = RuleReader().read(rootnode)
+
+    def load_nb_file(self, filename):
+        from jsonmanager import JsonManager
+        from grammar_parser.bootstrap import BootstrapParser
+        from grammars.grammars import lang_dict
+
+        manager = JsonManager(unescape=True)
+
+        # load nb file
+        root, language, whitespaces = manager.load(filename)[0]
+
+        # load scoping grammar
+        grammar = lang_dict[language]
+        bsroot, language, whitespaces = manager.load(grammar.filename)[0]
+        pickle_id = hash(open(grammar.filename, "r").read())
+        #XXX once we store the annotations in the json files invoking bootstrap parser becomes obsolete
+        bootstrap = BootstrapParser(lr_type=1, whitespaces=whitespaces)
+        bootstrap.ast = bsroot
+        bootstrap.create_parser(pickle_id)
+        bootstrap.create_lexer()
+        bootstrap.incparser.previous_version.parent = root
+        bootstrap.incparser.reparse()
+        return bootstrap.incparser.previous_version.parent
+
     def has_var(self, name):
         return False
 
     def get_field(self, ref):
         return None
 
-    def scan(self, node, scope):
-        from grammar_parser.bootstrap import AstNode
-        if not node:
-            return
-        if isinstance(node, AstNode):
-            try:
-                self.__getattribute__("scan" + node.symbol.name)(node, scope)
-            except AttributeError:
-                pass
-            return
-
-        if node.__dict__.has_key('alternate') and node.alternate:
-            self.scan(node.alternate, scope)
-            return
-
-        for c in node.children:
-            self.scan(c, scope)
+    def get_definition(self, nodename):
+        for d in self.definitions:
+            if d.name == nodename:
+                return d
 
     def scan(self, node, path):
         if not node:
@@ -82,30 +95,37 @@ class AstAnalyser(object):
             return
 
         try:
-            kind = self.rules[node.symbol.name]['kind']
+            nbrule = self.get_definition(node.symbol.name)
+            if not nbrule:
+                return
+
+            if nbrule.is_definition():
+                kind = nbrule.get_definition()
+            elif nbrule.is_reference():
+                kind = "reference"
             obj = URI()
-            obj.ruleid = node.symbol.name
+            obj.nbrule = nbrule
+            obj.kind = kind
 
             obj.node = node.get('name')
             if obj.node:
                 obj.name = obj.node.symbol.name
-            obj.kind = kind
             obj.path = list(path)
 
             # if last parent hasn't scope, delete from path
             if path != [] and not self.scopes(path[-1], obj): #XXX should be while?
                 obj.path.pop(-1)
 
-            if self.rules[node.symbol.name].has_key('in'):
-                where = self.rules[node.symbol.name]['in']
-                base = node.get(where)
+            base = nbrule.get_visibility()
+            if base not in ['surrounding', 'subsequent']:
+                base = node.get(base)
                 base_uri = self.scan(base, path)
                 path = [base_uri]
                 obj.path = path
             else:
                 base = None
                 path = list(path)
-                path.append(Reference(obj.kind, obj.name, obj.ruleid))
+                path.append(Reference(obj.kind, obj.name, obj.nbrule))
 
             for c in node.children:
                 if node.children[c] is base:
@@ -133,33 +153,23 @@ class AstAnalyser(object):
         self.scan(node, [])
         self.analyse_refs()
 
-    def find_references(self, parent, refs):
-        for c in parent.children:
-            if self.rules[c.ruleid].has_key('refers'):
-                refs.append(c)
-            self.find_references(c, refs)
-
     def analyse_refs(self):
         for key in self.data:
-            ruleid = self.data[key][0].ruleid
-            if self.rules[ruleid].has_key('refers'):
+            nbrule = self.data[key][0].nbrule
+            if nbrule.is_reference():
                 obj = self.data[key]
                 for reference in self.data[key]:
                     self.find_reference(reference)
 
     def find_reference(self, reference):
-        for refers in self.rules[reference.ruleid]['refers']:
+        for refers in reference.nbrule.get_references():
             path = list(reference.path)
             while len(path) > 0:
                 x = self.get_reference(refers, path, reference.name)
                 if x:
-                    try:
-                        visibility = self.rules[x.ruleid]['visibility']
-                    except KeyError:
-                        visibility = 'normal'
-                    if visibility == "normal":
+                    if x.nbrule.get_visibility() != "subsequent":
                         return x
-                    if visibility == "subsequent" and x.index < reference.index:
+                    if x.nbrule.get_visibility() == "subsequent" and x.index < reference.index:
                         return x
                 path.pop() # try with prefix of path
 
@@ -168,7 +178,7 @@ class AstAnalyser(object):
         if len(reference.path) > 0 and isinstance(reference.path[0], URI):
             x = self.find_reference(reference.path[0])
             if x:
-                for refers in self.rules[reference.ruleid]['refers']:
+                for refers in reference.nbrule.get_references():
                     z = self.get_reference(refers, x.path + [Reference(x.kind, x.name)], reference.name)
                     if z:
                         return z
@@ -197,10 +207,7 @@ class AstAnalyser(object):
         return True
 
     def scopes(self, scope, obj):
-        try:
-            return obj.kind in self.rules[scope.ruleid]['scopes']
-        except KeyError:
-            return False
+        return obj.kind in scope.nbrule.get_scopes()
 
     def has_error(self, node):
         return self.errors.has_key(node)
@@ -210,3 +217,81 @@ class AstAnalyser(object):
             return self.errors[node]
         except KeyError:
             return ""
+
+class RuleReader(object):
+    def read(self, root):
+        l = self.read_definitions(root.children[1].children[1].alternate)
+        return l
+
+    def read_definitions(self, definitions):
+        l = []
+        for definition in definitions.children:
+            name = definition.get("name").symbol.name
+            params = self.read_names(definition.get('args'))
+            options = self.read_options(definition.get('options'))
+            l.append(NBRule(name, params, options))
+        return l
+
+    def read_names(self, node):
+        l = []
+        if node:
+            for n in node.children:
+                l.append(n.symbol.name)
+        return l
+
+    def read_options(self, options):
+        d = {}
+        for option in options.children:
+            if option.symbol.name == "Defines":
+                d['defines'] = option.get('name').symbol.name
+                scope = option.get('scope')
+                if scope:
+                    d['in'] = scope.symbol.name
+            elif option.symbol.name == "Scopes":
+                d['scopes'] = self.read_names(option.get('names'))
+            elif option.symbol.name == "References":
+                d['references'] = self.read_names(option.get('names'))
+                scope = option.get('scope')
+                if scope:
+                    d['in'] = scope.symbol.name
+        return d
+
+class NBRule(object):
+    def __init__(self, name, params, options):
+        self.name = name
+        self.params = params
+        self.options = options
+
+    def is_definition(self):
+        return self.options.has_key('defines')
+
+    def is_reference(self):
+        return self.options.has_key('references')
+
+    def get_scopes(self):
+        if self.options.has_key('scopes'):
+            return self.options['scopes']
+        return []
+
+    def get_references(self):
+        if self.options.has_key('references'):
+            return self.options['references']
+        return []
+
+    def get_definition(self):
+        if self.options.has_key('defines'):
+            return self.options['defines']
+        return None
+
+    def get_visibility(self):
+        if self.options.has_key('in'):
+            return self.options['in']
+        return "surrounding"
+
+    def get_in(self):
+        if self.options.has_key('in'):
+            return self.options['in']
+        return None
+
+    def __repr__(self):
+        return "NBRule(%s, %s, %s)" % (self.name, self.params, self.options)

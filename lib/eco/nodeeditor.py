@@ -34,14 +34,11 @@ class NodeEditor(QFrame):
         self.scroll_height = 0
         self.scroll_width = 0
 
-        self.analyser = AstAnalyser()
-
         self.timer = QTimer(self)
         self.connect(self.timer, SIGNAL("timeout()"), self.test)
 
     def test(self):
-        if self.tm.parsers[0][0].last_status:
-            self.analyser.analyse(self.tm.get_bos().get_root())
+        self.tm.analyse()
         self.update()
         self.timer.stop()
 
@@ -79,7 +76,7 @@ class NodeEditor(QFrame):
                 return True
             msg = self.tm.get_error(node)
             if not msg:
-                msg = self.analyser.get_error(node)
+                msg = self.tm.get_error(node)
             if msg:
                 QToolTip.showText(event.globalPos(), msg);
             return True
@@ -299,7 +296,7 @@ class NodeEditor(QFrame):
             node = node.next_term
 
             # draw squiggly line
-            if node is error_node or self.analyser.has_error(node):
+            if node is error_node or self.tm.has_error(node):
                 if isinstance(node, EOS):
                     length = self.fontwt
                 else:
@@ -307,7 +304,7 @@ class NodeEditor(QFrame):
                 if isinstance(node.symbol, MagicTerminal):
                     self.draw_vertical_squiggly_line(paint,x,y)
                 else:
-                    if self.analyser.has_error(node):
+                    if self.tm.has_error(node):
                         color = "orange"
                     else:
                         color = "red"

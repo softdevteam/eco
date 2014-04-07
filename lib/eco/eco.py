@@ -435,7 +435,7 @@ class Window(QtGui.QMainWindow):
     def openfile(self):
         filename = QFileDialog.getOpenFileName()
         if filename:
-            if filename.endsWith(".eco"):
+            if filename.endsWith(".eco") or filename.endsWith(".nb"):
                 etab = EditorTab()
 
                 etab.editor.loadFromJson(filename)
@@ -496,7 +496,7 @@ class Window(QtGui.QMainWindow):
         editor = self.getEditor()
         if editor is None:
             return
-        for parser, lexer, lang in editor.tm.parsers:
+        for parser, lexer, lang, _ in editor.tm.parsers:
             #import cProfile
             #cProfile.runctx("parser.inc_parse(self.ui.frame.line_indents)", globals(), locals())
             status = parser.last_status #inc_parse(self.ui.frame.line_indents)

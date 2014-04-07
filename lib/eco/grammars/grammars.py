@@ -1034,12 +1034,13 @@ java15_sql = gops.add_alt("Java 1.5 + chemical + SQL", java15_chem,  "unary_expr
 python_prolog = gops.add_alt("Python 2.7.5 + Prolog", python275, "atom", "<Prolog>")
 java_eco = EcoFile("Java 1.5 (Eco/Annotated)", "grammars/java15.eco", "Java")
 basiccalc_eco = EcoFile("Basic Calculator (Ecofile)", "grammars/basiccalc.eco", "Calc")
+scoping_grammar = EcoFile("Scoping Rules (Ecofile)", "grammars/scoping_grammar.eco", "Scoping")
 
 #languages = [java_error, java_error_simplified, super_simple, calc1, merge1, not_in_lr1, not_in_lr1_fixed, mylang, test, smalltalk, smalltalk_ebnf, lisp,
 #             ebnf_loop, bnf_loop, ebnf_loop_nested, ebnf_loop_multiple, ebnf_option, bnf_option, ebnf_option_loop,
 #             ebnf_grouping, bnf_grouping, test, test2, smalltalk_ebnf_nows, java, javav1, javav1_e, java15, pager]
 
-languages = [calc1, basiccalc_eco, python275, python275_annotated, python_prolog, prolog, java_eco, java15, java15_sql, java15_exp, sql, sql_java_exp, chemicals, lisp, eco_grammar]
+languages = [calc1, basiccalc_eco, python275, python275_annotated, python_prolog, prolog, java_eco, java15, java15_sql, java15_exp, sql, sql_java_exp, chemicals, lisp, eco_grammar, scoping_grammar]
 
 lang_dict = {}
 for l in languages:

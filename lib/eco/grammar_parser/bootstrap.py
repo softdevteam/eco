@@ -303,12 +303,16 @@ class LookupExpr(Expr):
     def interpret(self, node):
         # skip whitespaces
         i = 0
+        n = None
         for c in node.children:
             if c.symbol.name != "WS":
                 if i == self.number:
                     n = c
                     break
                 i += 1
+
+        if n is None:
+            return
 
         if n.alternate:
             n = n.alternate
