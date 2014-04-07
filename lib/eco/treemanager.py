@@ -395,7 +395,8 @@ class TreeManager(object):
     def analyse(self):
         for p in self.parsers:
             if p[0].last_status:
-                p[3].analyse(p[0].previous_version.parent)
+                if p[3]:
+                    p[3].analyse(p[0].previous_version.parent)
 
     # ============================ ANALYSIS ============================= #
 
