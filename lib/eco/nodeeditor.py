@@ -601,7 +601,9 @@ class NodeEditor(QFrame):
             item.setIcon(icon)
             l = "<%s>" % (l)
             if l in lookaheads:
-                item.setFont(self.boldDefaultFont)
+                font = QFont()
+                font.setBold(True)
+                item.setFont(font)
             menu.addAction(item)
         x,y = self.cursor_to_coordinate()
         menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))

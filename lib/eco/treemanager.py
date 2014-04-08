@@ -2,7 +2,7 @@ from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
-
+from PyQt4.QtGui import QApplication
 from grammars.grammars import lang_dict, Language, EcoFile
 
 import math
