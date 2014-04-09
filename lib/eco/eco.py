@@ -474,7 +474,7 @@ class Window(QtGui.QMainWindow):
         event.ignore()
 
     def quit(self):
-        for i in range(self.ui.tabWidget.count()):
+        for i in reversed(range(self.ui.tabWidget.count())):
             self.ui.tabWidget.setCurrentIndex(i)
             self.closeTab(i)
         if self.ui.tabWidget.count() == 0:
