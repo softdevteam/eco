@@ -100,14 +100,15 @@ class AstAnalyser(object):
                 return
 
             if nbrule.is_definition():
-                kind = nbrule.get_definition()
+                kind, name = nbrule.get_definition()
             elif nbrule.is_reference():
                 kind = "reference"
+                _, name = nbrule.get_references()
             obj = URI()
             obj.nbrule = nbrule
             obj.kind = kind
 
-            obj.node = node.get('name')
+            obj.node = node.get(name)
             if obj.node:
                 obj.name = obj.node.symbol.name
             obj.path = list(path)
@@ -137,7 +138,7 @@ class AstAnalyser(object):
             self.data[obj.kind].append(obj)
             self.index += 1
 
-            return obj
+            return obj # only needed for base
 
         except KeyError:
             for c in node.children:
@@ -162,7 +163,7 @@ class AstAnalyser(object):
                     self.find_reference(reference)
 
     def find_reference(self, reference):
-        for refers in reference.nbrule.get_references():
+        for refers in reference.nbrule.get_references()[0]:
             path = list(reference.path)
             while len(path) > 0:
                 x = self.get_reference(refers, path, reference.name)
@@ -178,7 +179,7 @@ class AstAnalyser(object):
         if len(reference.path) > 0 and isinstance(reference.path[0], URI):
             x = self.find_reference(reference.path[0])
             if x:
-                for refers in reference.nbrule.get_references():
+                for refers in reference.nbrule.get_references()[0]:
                     z = self.get_reference(refers, x.path + [Reference(x.kind, x.name)], reference.name)
                     if z:
                         return z
@@ -243,14 +244,14 @@ class RuleReader(object):
         d = {}
         for option in options.children:
             if option.symbol.name == "Defines":
-                d['defines'] = option.get('name').symbol.name
+                d['defines'] = (option.get('type').symbol.name, option.get('name').symbol.name)
                 scope = option.get('scope')
                 if scope:
                     d['in'] = scope.symbol.name
             elif option.symbol.name == "Scopes":
-                d['scopes'] = self.read_names(option.get('names'))
+                d['scopes'] = self.read_names(option.get('types'))
             elif option.symbol.name == "References":
-                d['references'] = self.read_names(option.get('names'))
+                d['references'] = (self.read_names(option.get('types')), option.get('name').symbol.name)
                 scope = option.get('scope')
                 if scope:
                     d['in'] = scope.symbol.name
