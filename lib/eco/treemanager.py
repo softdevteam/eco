@@ -386,6 +386,10 @@ class TreeManager(object):
 
     def get_error(self, node):
         for p in self.parsers:
+            # check for syntax error
+            if node is p[0].error_node:
+                return "Syntax error on token '%s'." % (node.symbol.name)
+            # check for namebinding error
             if p[3]:
                 error = p[3].get_error(node)
                 if error != "":
@@ -534,12 +538,6 @@ class TreeManager(object):
             self.cursor.pos += len(text)
             self.selection_end = self.cursor.copy()
         self.last_search = text
-
-    def get_error(self, node):
-        for p in self.parsers:
-            if node is p[0].error_node:
-                return "Syntax error on token '%s'." % (node.symbol.name)
-        return None
 
     # ============================ MODIFICATIONS ============================= #
 
