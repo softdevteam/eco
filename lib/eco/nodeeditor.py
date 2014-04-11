@@ -370,36 +370,6 @@ class NodeEditor(QFrame):
                 y = y + self.tm.lines[i].height
             paint.fillRect(QRectF(0, 3 + y2 * self.fontht, x2, self.fontht), QColor(0,0,255,100))
 
-    def paint_node(self, paint, node, x, y, highlighter):
-        dx, dy = (0, 0)
-        if node.symbol.name == "\r" or isinstance(node, EOS) or isinstance(node.symbol, IndentationTerminal):
-            return dx, dy
-        if node.image is not None and not node.plain_mode:
-            paint.drawImage(QPoint(x, 3 + y * self.fontht), node.image)
-            dx = int(math.ceil(node.image.width() * 1.0 / self.fontwt) * self.fontwt)
-            dy = int(math.ceil(node.image.height() * 1.0 / self.fontht))
-        # comment in to display indentation nodes in the editor
-       #elif isinstance(node.symbol, IndentationTerminal):
-       #    if node.symbol.name == "INDENT":
-       #        text = "{"
-       #    elif node.symbol.name == "DEDENT":
-       #        text = "}"
-       #    elif node.symbol.name == "UNBALANCED":
-       #        text = "[E]"
-       #    else:
-       #        return dx, dy
-
-       #    paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text)
-       #    return dx, dy
-        elif isinstance(node, TextNode):
-            paint.setPen(QPen(QColor(highlighter.get_color(node))))
-            text = node.symbol.name
-            paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text)
-            #print("drawing node", text, "at", x,y)
-            dx = len(text) * self.fontwt
-            dy = 0
-        return dx, dy
-
     def get_highlighter(self, node):
         root = node.get_root()
         base = lang_dict[self.tm.get_language(root)].base
