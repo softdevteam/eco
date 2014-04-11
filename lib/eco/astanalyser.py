@@ -4,6 +4,7 @@ class URI(object):
         self.path = []
         self.name = ""
         self.ruleid = ""
+        self.index = -1
 
     def __repr__(self):
         path = []
@@ -27,17 +28,6 @@ class AstAnalyser(object):
     def __init__(self, filename):
         self.errors = {}
         self.scope = None
-
-        # rules
-        self.rules = {
-            'CompilationUnit': {'kind': 'compunit', 'args': [], 'scopes':['class']},
-            'ClassDecl': {'kind': 'class', 'args': ['name'], 'scopes': ['field','method', 'class']},
-            'FieldDecl': {'kind': 'field', 'args': ['name', 'type','value'], 'scopes': [], 'visibility': 'subsequent'},
-            'MethodDecl': {'kind': 'method', 'args': ['name'], 'scopes': ['variable']},
-            'LocalVar': {'kind': 'variable', 'args': ['name', 'type', 'value'], 'scopes': [], 'visibility': 'subsequent'},
-            'id': {'kind': 'varref', 'args': ['name'], 'scopes':[], 'refers':['variable', 'field', 'class']},
-            'FieldAccess': {'kind': 'fieldaccess', 'args': ['name','base'], 'scopes':[], 'refers':['field', 'class'], 'in':'base'},
-        }
 
         self.d = {}
 
@@ -82,67 +72,76 @@ class AstAnalyser(object):
                 return d
 
     def scan(self, node, path):
-        if not node:
+        if node is None:
             return
+
         if node.__dict__.has_key('alternate') and node.alternate:
-            self.scan(node.alternate, path)
-            return
+            node = node.alternate
 
-        from grammar_parser.bootstrap import AstNode
-        if not isinstance(node, AstNode):
-            for c in node.children:
-                self.scan(c, path)
-            return
+        from grammar_parser.bootstrap import AstNode, ListNode
 
-        try:
+        if isinstance(node, AstNode):
+            base = None
             nbrule = self.get_definition(node.symbol.name)
-            if not nbrule:
-                return
+            uris = []
+            if nbrule:
+                _type = nbrule.get_type() # class, method, reference, etc (as declared in nb-file)
+                name = node.get(nbrule.get_name())
 
-            if nbrule.is_definition():
-                kind, name = nbrule.get_definition()
-            elif nbrule.is_reference():
-                kind = "reference"
-                _, name = nbrule.get_references()
-            obj = URI()
-            obj.nbrule = nbrule
-            obj.kind = kind
+                if isinstance(name, ListNode):
+                    names = name.children
+                else:
+                    names = [name]
 
-            obj.node = node.get(name)
-            if obj.node:
-                obj.name = obj.node.symbol.name
-            obj.path = list(path)
+                scoped_path = list(path)
+                if scoped_path != [] and not self.scopes(scoped_path[-1], _type): #XXX should be while?
+                    # if last parent hasn't scope, delete from path
+                    scoped_path.pop(-1)
 
-            # if last parent hasn't scope, delete from path
-            if path != [] and not self.scopes(path[-1], obj): #XXX should be while?
-                obj.path.pop(-1)
+                for n in names:
+                    uri = URI()
+                    if n is None:
+                        uri.name = None
+                    else:
+                        uri.name = n.symbol.name
+                    uri.kind = _type
+                    uri.path = scoped_path
+                    uri.nbrule = nbrule
+                    uri.node = n
 
-            base = nbrule.get_visibility()
-            if base not in ['surrounding', 'subsequent']:
-                base = node.get(base)
-                base_uri = self.scan(base, path)
-                path = [base_uri]
-                obj.path = path
-            else:
-                base = None
-                path = list(path)
-                path.append(Reference(obj.kind, obj.name, obj.nbrule))
+                    visibility = nbrule.get_visibility()
+                    if visibility not in ['surrounding','subsequent']:
+                        # URI has a base
+                        base = node.get(base)
+                        base_uri = self.scan(base, path)
+                        path = [base_uri]
+                        uri.path = path
 
+                    # add this uri to the path of its children
+                    path = list(path)
+                    path.append(Reference(_type, uri.name, nbrule))
+
+                    uris.append(uri)
+
+            # scan ASTNodes children
             for c in node.children:
                 if node.children[c] is base:
                     continue # don't scan base twice
                 self.scan(node.children[c], path)
 
-            obj.index = self.index
-            self.data.setdefault(obj.kind, [])
-            self.data[obj.kind].append(obj)
-            self.index += 1
+            # set index AFTER children have been scanned: XXX not correct. int x = x needs to be treated extra
+            uri = None
+            for uri in uris:
+                uri.index = self.index
+                self.data.setdefault(uri.kind, [])
+                self.data[uri.kind].append(uri)
+                self.index += 1
 
-            return obj # only needed for base
+            return uri # only needed for base
 
-        except KeyError:
+        else:
             for c in node.children:
-                self.scan(node.children[c], path)
+                self.scan(c, path)
             return
 
     def analyse(self, node):
@@ -164,6 +163,14 @@ class AstAnalyser(object):
 
     def find_reference(self, reference):
         for refers in reference.nbrule.get_references()[0]:
+
+            # global variable
+            if len(reference.path) == 0:
+                x = self.get_reference(refers, reference.path, reference.name)
+                if x:
+                    return x
+
+            # iteratate through path prefixes
             path = list(reference.path)
             while len(path) > 0:
                 x = self.get_reference(refers, path, reference.name)
@@ -207,8 +214,8 @@ class AstAnalyser(object):
                 return False
         return True
 
-    def scopes(self, scope, obj):
-        return obj.kind in scope.nbrule.get_scopes()
+    def scopes(self, scope, _type):
+        return _type in scope.nbrule.get_scopes()
 
     def has_error(self, node):
         return self.errors.has_key(node)
@@ -221,7 +228,8 @@ class AstAnalyser(object):
 
 class RuleReader(object):
     def read(self, root):
-        l = self.read_definitions(root.children[1].children[1].alternate)
+        definitions = root.children[1].children[1].alternate
+        l = self.read_definitions(definitions)
         return l
 
     def read_definitions(self, definitions):
@@ -244,14 +252,14 @@ class RuleReader(object):
         d = {}
         for option in options.children:
             if option.symbol.name == "Defines":
-                d['defines'] = (option.get('type').symbol.name, option.get('name').symbol.name)
+                d['defines'] = (option.get('type').symbol.name, option.get('name').symbol.name) # Class(name): defines class name
                 scope = option.get('scope')
                 if scope:
                     d['in'] = scope.symbol.name
             elif option.symbol.name == "Scopes":
                 d['scopes'] = self.read_names(option.get('types'))
             elif option.symbol.name == "References":
-                d['references'] = (self.read_names(option.get('types')), option.get('name').symbol.name)
+                d['references'] = (self.read_names(option.get('types')), option.get('name').symbol.name) # Lookup(name): references field, variable name
                 scope = option.get('scope')
                 if scope:
                     d['in'] = scope.symbol.name
@@ -292,6 +300,20 @@ class NBRule(object):
     def get_in(self):
         if self.options.has_key('in'):
             return self.options['in']
+        return None
+
+    def get_type(self):
+        if self.is_reference():
+            return "reference"
+        elif self.is_definition():
+            return self.options['defines'][0]
+        return None
+
+    def get_name(self):
+        if self.is_reference():
+            return self.options['references'][1]
+        elif self.is_definition():
+            return self.options['defines'][1]
         return None
 
     def __repr__(self):
