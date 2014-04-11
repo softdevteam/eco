@@ -167,6 +167,8 @@ class ParseView(QtGui.QMainWindow):
 
         self.viewer = Viewer("pydot")
         self.ui.graphicsView.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform | QPainter.TextAntialiasing)
+        self.ui.graphicsView.wheelEvent = self.gvWheelEvent
+        self.zoom = 1.0
 
         self.window = window
 
@@ -190,6 +192,20 @@ class ParseView(QtGui.QMainWindow):
         graphicsview.resetMatrix()
         if self.ui.cb_fit_ast.isChecked():
             self.fitInView(graphicsview)
+
+    def gvWheelEvent(self, event):
+        if event.modifiers() == Qt.ControlModifier:
+            transform = self.ui.graphicsView.transform()
+            if event.delta() > 0:
+                self.zoom /= 0.9
+            else:
+                self.zoom *= 0.9
+            transform.reset()
+            transform.scale(self.zoom, self.zoom)
+            self.ui.graphicsView.setTransform(transform)
+        else:
+            QGraphicsView.wheelEvent(self.ui.graphicsView, event)
+        event.ignore()
 
     def fitInView(self, graphicsview):
         graphicsview.fitInView(graphicsview.sceneRect(), Qt.KeepAspectRatio)
