@@ -760,12 +760,10 @@ class TreeManager(object):
         lbox = self.create_node("<%s>" % language.name, lbox=True)
 
         # Create parser, priorities and lexer
-        parser = IncParser(language.grammar, 1, True)
-        parser.init_ast(lbox)
-        lexer = IncrementalLexer(language.priorities, language.name)
-        root = parser.previous_version.parent
+        incparser, inclexer = self.get_parser_lexer_for_language(language)
+        root = incparser.previous_version.parent
         root.magic_backpointer = lbox
-        self.add_parser(parser, lexer, language.name)
+        self.add_parser(incparser, inclexer, language.name)
 
         lbox.symbol.parser = root
         lbox.symbol.ast = root
@@ -1182,37 +1180,39 @@ class TreeManager(object):
         return
 
     def load_file(self, language_boxes):
-        from grammar_parser.bootstrap import BootstrapParser
-        from jsonmanager import JsonManager
-
         # setup language boxes
         for root, language, whitespaces in language_boxes:
             grammar = lang_dict[language]
-            if isinstance(grammar, Language):
-                incparser = IncParser(grammar.grammar, 1, whitespaces)
-                incparser.init_ast()
-                incparser.previous_version.parent = root
-                inclexer = IncrementalLexer(grammar.priorities)
-                self.add_parser(incparser, inclexer, language)
-            elif isinstance(grammar, EcoFile):
-                manager = JsonManager(unescape=True)
-                bsroot, language, whitespaces = manager.load(grammar.filename)[0]
-                pickle_id = hash(open(grammar.filename, "r").read())
-                bootstrap = BootstrapParser(lr_type=1, whitespaces=whitespaces)
-                bootstrap.ast = bsroot
-                bootstrap.create_parser(pickle_id)
-                bootstrap.create_lexer()
-                bootstrap.incparser.previous_version.parent = root
-                self.add_parser(bootstrap.incparser, bootstrap.inclexer, grammar.name)
-                bootstrap.incparser.reparse()
-            else:
-                print("Grammar Error: could not determine grammar type")
-                return
+            incparser, inclexer = self.get_parser_lexer_for_language(grammar)
+            incparser.previous_version.parent = root
+            self.add_parser(incparser, inclexer, grammar.name)
+            #bootstrap.incparser.reparse()
 
         self.rescan_linebreaks(0)
         for i in range(len(self.lines)):
             self.rescan_indentations(i)
         self.changed = False
+
+    def get_parser_lexer_for_language(self, grammar):
+        from grammar_parser.bootstrap import BootstrapParser
+        from jsonmanager import JsonManager
+        if isinstance(grammar, Language):
+            incparser = IncParser(grammar.grammar, 1, whitespaces)
+            incparser.init_ast()
+            inclexer = IncrementalLexer(grammar.priorities)
+            return incparser, inclexer
+        elif isinstance(grammar, EcoFile):
+            manager = JsonManager(unescape=True)
+            bsroot, language, whitespaces = manager.load(grammar.filename)[0]
+            pickle_id = hash(open(grammar.filename, "r").read())
+            bootstrap = BootstrapParser(lr_type=1, whitespaces=whitespaces)
+            bootstrap.ast = bsroot
+            bootstrap.create_parser(pickle_id)
+            bootstrap.create_lexer()
+            return bootstrap.incparser, bootstrap.inclexer
+        else:
+            print("Grammar Error: could not determine grammar type")
+            return
 
     def export_unipycation(self):
         import subprocess, sys
