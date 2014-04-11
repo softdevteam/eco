@@ -245,6 +245,7 @@ class NodeEditor(QFrame):
             if lbox > 0 and draw_lbox:
                 #color = self.nesting_colors[lbox % 5]
                 color = QColor(0,0,0,30)
+                editor.update_image(node)
                 if node.symbol.name != "\r":
                     if not node.image or node.plain_mode:
                         paint.fillRect(QRectF(x,3 + y*self.fontht, len(node.symbol.name)*self.fontwt, self.fontht), color)

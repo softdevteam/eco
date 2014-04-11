@@ -19,6 +19,9 @@ class Editor(object):
         if isinstance(node, EOS):
             return None
 
+    def update_image(self, node):
+        pass
+
 class NormalEditor(Editor):
     def paint_node(self, paint, node, x, y, highlighter):
         dx, dy = (0, 0)
