@@ -760,7 +760,7 @@ class TreeManager(object):
         lbox = self.create_node("<%s>" % language.name, lbox=True)
 
         # Create parser, priorities and lexer
-        incparser, inclexer = self.get_parser_lexer_for_language(language)
+        incparser, inclexer = self.get_parser_lexer_for_language(language, True)
         root = incparser.previous_version.parent
         root.magic_backpointer = lbox
         self.add_parser(incparser, inclexer, language.name)
@@ -1183,7 +1183,7 @@ class TreeManager(object):
         # setup language boxes
         for root, language, whitespaces in language_boxes:
             grammar = lang_dict[language]
-            incparser, inclexer = self.get_parser_lexer_for_language(grammar)
+            incparser, inclexer = self.get_parser_lexer_for_language(grammar, whitespace)
             incparser.previous_version.parent = root
             self.add_parser(incparser, inclexer, grammar.name)
             #bootstrap.incparser.reparse()
@@ -1193,7 +1193,7 @@ class TreeManager(object):
             self.rescan_indentations(i)
         self.changed = False
 
-    def get_parser_lexer_for_language(self, grammar):
+    def get_parser_lexer_for_language(self, grammar, whitespaces):
         from grammar_parser.bootstrap import BootstrapParser
         from jsonmanager import JsonManager
         if isinstance(grammar, Language):
