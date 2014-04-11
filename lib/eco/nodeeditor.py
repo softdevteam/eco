@@ -228,12 +228,14 @@ class NodeEditor(QFrame):
                     node = lbnode.next_term
                     highlighter = self.get_highlighter(node)
                     editor = self.get_editor(node)
-                    error_node = self.tm.get_parser(lbnode.symbol.ast).error_node
                     if self.selected_lbox is lbnode:
                         draw_lbox = False
                     lbnode = self.get_languagebox(node)
                     if lbnode and self.selected_lbox is lbnode:
                         draw_lbox = True
+                        error_node = self.tm.get_parser(lbnode.symbol.ast).error_node
+                    else:
+                        error_node = self.tm.get_mainparser().error_node
                     continue
                 else:
                     self.lines[line].width = x / self.fontwt
