@@ -1183,7 +1183,7 @@ class TreeManager(object):
         # setup language boxes
         for root, language, whitespaces in language_boxes:
             grammar = lang_dict[language]
-            incparser, inclexer = self.get_parser_lexer_for_language(grammar, whitespace)
+            incparser, inclexer = self.get_parser_lexer_for_language(grammar, whitespaces)
             incparser.previous_version.parent = root
             self.add_parser(incparser, inclexer, grammar.name)
             #bootstrap.incparser.reparse()
