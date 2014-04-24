@@ -112,7 +112,7 @@ class AstAnalyser(object):
                     visibility = nbrule.get_visibility()
                     if visibility not in ['surrounding','subsequent']:
                         # URI has a base
-                        base = node.get(base)
+                        base = node.get(visibility)
                         base_uri = self.scan(base, path)
                         path = [base_uri]
                         uri.path = path
