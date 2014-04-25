@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'newgui.ui'
 #
-# Created: Fri Apr 25 11:02:25 2014
+# Created: Fri Apr 25 14:10:00 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -175,6 +175,8 @@ class Ui_MainWindow(object):
         icon = QtGui.QIcon.fromTheme(_fromUtf8("insert-text"))
         self.actionCode_complete.setIcon(icon)
         self.actionCode_complete.setObjectName(_fromUtf8("actionCode_complete"))
+        self.actionFull_reparse = QtGui.QAction(MainWindow)
+        self.actionFull_reparse.setObjectName(_fromUtf8("actionFull_reparse"))
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addSeparator()
@@ -185,6 +187,7 @@ class Ui_MainWindow(object):
         self.menuOptions.addAction(self.actionRandomDel)
         self.menuOptions.addAction(self.actionUndoRandomDel)
         self.menuOptions.addAction(self.actionSelect_font)
+        self.menuOptions.addAction(self.actionFull_reparse)
         self.menuPoject.addAction(self.actionRun)
         self.menuView.addAction(self.actionParse_Tree)
         self.menuView.addAction(self.actionStateGraph)
@@ -281,4 +284,5 @@ class Ui_MainWindow(object):
         self.actionFind.setShortcut(_translate("MainWindow", "Ctrl+F", None))
         self.actionCode_complete.setText(_translate("MainWindow", "Code complete", None))
         self.actionCode_complete.setShortcut(_translate("MainWindow", "Ctrl+P", None))
+        self.actionFull_reparse.setText(_translate("MainWindow", "Full reparse", None))
 

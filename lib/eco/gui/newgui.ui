@@ -64,6 +64,7 @@
     <addaction name="actionRandomDel"/>
     <addaction name="actionUndoRandomDel"/>
     <addaction name="actionSelect_font"/>
+    <addaction name="actionFull_reparse"/>
    </widget>
    <widget class="QMenu" name="menuPoject">
     <property name="title">
@@ -426,6 +427,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+P</string>
+   </property>
+  </action>
+  <action name="actionFull_reparse">
+   <property name="text">
+    <string>Full reparse</string>
    </property>
   </action>
  </widget>

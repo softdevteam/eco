@@ -339,6 +339,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.tabWidget, SIGNAL("tabCloseRequested(int)"), self.closeTab)
         self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.tabChanged)
         self.connect(self.ui.actionCode_complete, SIGNAL("triggered()"), self.show_code_completion)
+        self.connect(self.ui.actionFull_reparse, SIGNAL("triggered()"), self.full_reparse)
 
 
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
@@ -365,6 +366,9 @@ class Window(QtGui.QMainWindow):
 
     def show_code_completion(self):
         self.getEditor().showCodeCompletion()
+
+    def full_reparse(self):
+        self.getEditor().tm.full_reparse()
 
     def find(self):
         self.finddialog.focus()

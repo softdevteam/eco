@@ -1262,3 +1262,7 @@ class TreeManager(object):
         root = node.get_root()
         parser = self.get_parser(root)
         parser.inc_parse()
+
+    def full_reparse(self):
+        for p in self.parsers:
+            p[0].reparse()
