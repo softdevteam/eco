@@ -22,6 +22,20 @@ class Editor(object):
     def update_image(self, node):
         pass
 
+    def setStyle(self, paint, style):
+        f = paint.font()
+        if style == "italic":
+            f.setItalic(True)
+            f.setBold(False)
+        elif style == "bold":
+            f.setItalic(False)
+            f.setBold(True)
+        else:
+            f.setItalic(False)
+            f.setBold(False)
+
+        paint.setFont(f)
+
 class NormalEditor(Editor):
     def paint_node(self, paint, node, x, y, highlighter):
         dx, dy = (0, 0)
@@ -29,6 +43,7 @@ class NormalEditor(Editor):
             return dx, dy
         if isinstance(node, TextNode):
             paint.setPen(QPen(QColor(highlighter.get_color(node))))
+            self.setStyle(paint, highlighter.get_style(node))
             text = node.symbol.name
             paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text)
             #print("drawing node", text, "at", x,y)

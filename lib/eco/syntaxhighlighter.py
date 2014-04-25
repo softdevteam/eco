@@ -30,8 +30,8 @@ class SyntaxHighlighter(object):
         "purple": "#D33682",
         "default": "#333333"
     }
-    keyword_colors = {
-    }
+    keyword_colors = {}
+    keyword_style = {}
 
     def get_color(self, node):
         if node.symbol.name in self.keyword_colors:
@@ -42,6 +42,14 @@ class SyntaxHighlighter(object):
             color = "default"
         hexcode = self.colors[color]
         return hexcode
+
+    def get_style(self, node):
+        if node.symbol.name in self.keyword_style:
+            return self.keyword_style[node.symbol.name]
+        elif node.lookup in self.keyword_style:
+            return self.keyword_style[node.lookup]
+        return "normal"
+
 class PythonHighlighter(SyntaxHighlighter):
     keyword_colors = {
         "class": "green",
@@ -93,6 +101,11 @@ class JavaHighlighter(SyntaxHighlighter):
         "BOOLEAN_LITERAL": "cyan",
         "STRING_LITERAL": "cyan",
         "INTEGER_LITERAL": "cyan",
+    }
+    keyword_style = {
+        "static": "italic",
+        "void": "bold",
+        "int": "bold"
     }
 
 class SqlHighlighter(SyntaxHighlighter):
