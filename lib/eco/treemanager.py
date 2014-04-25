@@ -406,7 +406,7 @@ class TreeManager(object):
         for p in self.parsers:
             if p[0].last_status:
                 if p[3]:
-                    return p[3].get_completion()
+                    return p[3].get_completion(self.cursor.node)
 
     # ============================ ANALYSIS ============================= #
 

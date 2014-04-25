@@ -108,6 +108,7 @@ class AstAnalyser(object):
                     uri.path = scoped_path
                     uri.nbrule = nbrule
                     uri.node = n
+                    uri.astnode = node
 
                     visibility = nbrule.get_visibility()
                     if visibility not in ['surrounding','subsequent']:
@@ -226,13 +227,34 @@ class AstAnalyser(object):
         except KeyError:
             return ""
 
-    def get_completion(self):
+    def get_completion(self, scope):
+        # find astnode with rule
+        while True:
+            if scope.alternate and self.get_definition(scope.alternate.symbol.name):
+                break
+            scope = scope.parent
+
+        uri = self.find_uri_by_astnode(scope.alternate)
+        if uri:
+            path = uri.path + [uri]
+            return self.get_reachable_names_by_path(path)
+
+    def find_uri_by_astnode(self, node):
+        for key in self.data:
+            for uri in self.data[key]:
+                if uri.astnode == node:
+                    return uri
+        return None
+
+    def get_reachable_names_by_path(self, path):
         names = []
-        for d in self.data:
-            l = self.data[d]
-            for x in l:
-                if x.name:
-                    names.append(x.name)
+        path = list(path)   # copy to not manipulate existing path
+        while path != []:
+            for key in self.data:
+                for uri in self.data[key]:
+                    if uri.path == path:
+                        names.append(uri)
+            path.pop()
         return names
 
 class RuleReader(object):

@@ -591,7 +591,12 @@ class NodeEditor(QFrame):
         # Create actions
         toolbar = QtGui.QToolBar()
         for n in l:
-            item = toolbar.addAction(str(n), self.codecomplete)
+            path = []
+            for p in n.path:
+                if p and p.name:
+                    path.append(p.name)
+            text = "%s - %s (%s)" % (n.name, ".".join(path), n.kind)
+            item = toolbar.addAction(text, self.codecomplete)
             menu.addAction(item)
         x,y = self.cursor_to_coordinate()
         menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
