@@ -34,27 +34,6 @@
       </property>
      </widget>
     </item>
-    <item>
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <item>
-       <widget class="QCheckBox" name="cbShowLangBoxes">
-        <property name="text">
-         <string>Show language boxes</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>Valid tokens:</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLineEdit" name="lineEdit"/>
-      </item>
-     </layout>
-    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -120,6 +99,8 @@
     <addaction name="separator"/>
     <addaction name="actionAdd_language_box"/>
     <addaction name="actionSelect_next_language_box"/>
+    <addaction name="separator"/>
+    <addaction name="actionCode_complete"/>
    </widget>
    <widget class="QMenu" name="menuWindow">
     <property name="title">
@@ -165,9 +146,12 @@
    <addaction name="actionAdd_language_box"/>
    <addaction name="actionSelect_next_language_box"/>
    <addaction name="separator"/>
+   <addaction name="actionCode_complete"/>
+   <addaction name="separator"/>
    <addaction name="actionRun"/>
    <addaction name="separator"/>
    <addaction name="actionSelect_font"/>
+   <addaction name="separator"/>
   </widget>
   <widget class="QDockWidget" name="dockWidget_2">
    <property name="windowTitle">
@@ -391,7 +375,7 @@
   </action>
   <action name="actionAdd_language_box">
    <property name="icon">
-    <iconset theme="insert-text">
+    <iconset theme="insert-object">
      <normaloff/>
     </iconset>
    </property>
@@ -422,13 +406,26 @@
   </action>
   <action name="actionFind">
    <property name="icon">
-    <iconset theme="find"/>
+    <iconset theme="find">
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Find...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+F</string>
+   </property>
+  </action>
+  <action name="actionCode_complete">
+   <property name="icon">
+    <iconset theme="insert-text"/>
+   </property>
+   <property name="text">
+    <string>Code complete</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+P</string>
    </property>
   </action>
  </widget>

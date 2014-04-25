@@ -518,6 +518,11 @@ class NodeEditor(QFrame):
             else:
                 self.tm.add_languagebox(self.sublanguage)
 
+    def showCodeCompletion(self):
+        l = self.tm.getCompletion()
+        if l:
+            self.showCodeCompletionMenu(l)
+
     def println(self, prestring, y):
         node = self.lines[y].node.next_term
         x = []
@@ -581,11 +586,24 @@ class NodeEditor(QFrame):
         x,y = self.cursor_to_coordinate()
         menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
 
+    def showCodeCompletionMenu(self, l):
+        menu = QtGui.QMenu( self )
+        # Create actions
+        toolbar = QtGui.QToolBar()
+        for n in l:
+            item = toolbar.addAction(str(n), self.codecomplete)
+            menu.addAction(item)
+        x,y = self.cursor_to_coordinate()
+        menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
+
     def createMenuFunction(self, l):
         def action():
             self.sublanguage = l
             self.edit_rightnode = True
         return action
+
+    def codecomplete(self, text):
+        pass
 
     def selectSubgrammar(self, item):
         pass

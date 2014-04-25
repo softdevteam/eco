@@ -402,6 +402,12 @@ class TreeManager(object):
                 if p[3]:
                     p[3].analyse(p[0].previous_version.parent)
 
+    def getCompletion(self):
+        for p in self.parsers:
+            if p[0].last_status:
+                if p[3]:
+                    return p[3].get_completion()
+
     # ============================ ANALYSIS ============================= #
 
     def get_node_from_cursor(self):

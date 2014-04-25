@@ -226,6 +226,15 @@ class AstAnalyser(object):
         except KeyError:
             return ""
 
+    def get_completion(self):
+        names = []
+        for d in self.data:
+            l = self.data[d]
+            for x in l:
+                if x.name:
+                    names.append(x.name)
+        return names
+
 class RuleReader(object):
     def read(self, root):
         definitions = root.children[1].children[1].alternate

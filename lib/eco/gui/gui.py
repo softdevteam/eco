@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'newgui.ui'
 #
-# Created: Wed Mar 19 16:03:53 2014
+# Created: Fri Apr 25 11:02:25 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -41,18 +41,6 @@ class Ui_MainWindow(object):
         self.tabWidget.setMovable(True)
         self.tabWidget.setObjectName(_fromUtf8("tabWidget"))
         self.verticalLayout_4.addWidget(self.tabWidget)
-        self.horizontalLayout = QtGui.QHBoxLayout()
-        self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
-        self.cbShowLangBoxes = QtGui.QCheckBox(self.centralwidget)
-        self.cbShowLangBoxes.setObjectName(_fromUtf8("cbShowLangBoxes"))
-        self.horizontalLayout.addWidget(self.cbShowLangBoxes)
-        self.label = QtGui.QLabel(self.centralwidget)
-        self.label.setObjectName(_fromUtf8("label"))
-        self.horizontalLayout.addWidget(self.label)
-        self.lineEdit = QtGui.QLineEdit(self.centralwidget)
-        self.lineEdit.setObjectName(_fromUtf8("lineEdit"))
-        self.horizontalLayout.addWidget(self.lineEdit)
-        self.verticalLayout_4.addLayout(self.horizontalLayout)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 21))
@@ -170,7 +158,7 @@ class Ui_MainWindow(object):
         self.actionSave_as.setIcon(icon)
         self.actionSave_as.setObjectName(_fromUtf8("actionSave_as"))
         self.actionAdd_language_box = QtGui.QAction(MainWindow)
-        icon = QtGui.QIcon.fromTheme(_fromUtf8("insert-text"))
+        icon = QtGui.QIcon.fromTheme(_fromUtf8("insert-object"))
         self.actionAdd_language_box.setIcon(icon)
         self.actionAdd_language_box.setObjectName(_fromUtf8("actionAdd_language_box"))
         self.actionSelect_next_language_box = QtGui.QAction(MainWindow)
@@ -183,6 +171,10 @@ class Ui_MainWindow(object):
         icon = QtGui.QIcon.fromTheme(_fromUtf8("find"))
         self.actionFind.setIcon(icon)
         self.actionFind.setObjectName(_fromUtf8("actionFind"))
+        self.actionCode_complete = QtGui.QAction(MainWindow)
+        icon = QtGui.QIcon.fromTheme(_fromUtf8("insert-text"))
+        self.actionCode_complete.setIcon(icon)
+        self.actionCode_complete.setObjectName(_fromUtf8("actionCode_complete"))
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addSeparator()
@@ -208,6 +200,8 @@ class Ui_MainWindow(object):
         self.menuEdit.addSeparator()
         self.menuEdit.addAction(self.actionAdd_language_box)
         self.menuEdit.addAction(self.actionSelect_next_language_box)
+        self.menuEdit.addSeparator()
+        self.menuEdit.addAction(self.actionCode_complete)
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuEdit.menuAction())
         self.menubar.addAction(self.menuOptions.menuAction())
@@ -229,9 +223,12 @@ class Ui_MainWindow(object):
         self.toolBar.addAction(self.actionAdd_language_box)
         self.toolBar.addAction(self.actionSelect_next_language_box)
         self.toolBar.addSeparator()
+        self.toolBar.addAction(self.actionCode_complete)
+        self.toolBar.addSeparator()
         self.toolBar.addAction(self.actionRun)
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.actionSelect_font)
+        self.toolBar.addSeparator()
 
         self.retranslateUi(MainWindow)
         self.tabWidget.setCurrentIndex(-1)
@@ -239,8 +236,6 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(_translate("MainWindow", "Eco - Editor for language composition", None))
-        self.cbShowLangBoxes.setText(_translate("MainWindow", "Show language boxes", None))
-        self.label.setText(_translate("MainWindow", "Valid tokens:", None))
         self.menuFile.setTitle(_translate("MainWindow", "File", None))
         self.menuOptions.setTitle(_translate("MainWindow", "Options", None))
         self.menuPoject.setTitle(_translate("MainWindow", "Project", None))
@@ -284,4 +279,6 @@ class Ui_MainWindow(object):
         self.actionExit.setText(_translate("MainWindow", "Exit", None))
         self.actionFind.setText(_translate("MainWindow", "Find...", None))
         self.actionFind.setShortcut(_translate("MainWindow", "Ctrl+F", None))
+        self.actionCode_complete.setText(_translate("MainWindow", "Code complete", None))
+        self.actionCode_complete.setShortcut(_translate("MainWindow", "Ctrl+P", None))
 

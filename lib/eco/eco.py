@@ -338,6 +338,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionExit, SIGNAL("triggered()"), self.quit)
         self.connect(self.ui.tabWidget, SIGNAL("tabCloseRequested(int)"), self.closeTab)
         self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.tabChanged)
+        self.connect(self.ui.actionCode_complete, SIGNAL("triggered()"), self.show_code_completion)
 
 
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
@@ -361,6 +362,9 @@ class Window(QtGui.QMainWindow):
     def show_lbox_menu(self):
         self.getEditor().showLanuageBoxMenu()
         self.getEditor().update()
+
+    def show_code_completion(self):
+        self.getEditor().showCodeCompletion()
 
     def find(self):
         self.finddialog.focus()
