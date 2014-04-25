@@ -108,7 +108,6 @@ class AstAnalyser(object):
                     uri.path = scoped_path
                     uri.nbrule = nbrule
                     uri.node = n
-                    uri.astnode = node
 
                     visibility = nbrule.get_visibility()
                     if visibility not in ['surrounding','subsequent']:
@@ -234,7 +233,11 @@ class AstAnalyser(object):
                 break
             scope = scope.parent
 
-        uri = self.find_uri_by_astnode(scope.alternate)
+        astnode = scope.alternate
+        nbrule = self.get_definition(astnode.symbol.name)
+        name = astnode.get(nbrule.get_name())
+
+        uri = self.find_uri_by_astnode(name)
         if uri:
             path = uri.path + [uri]
             return self.get_reachable_names_by_path(path)
@@ -242,7 +245,7 @@ class AstAnalyser(object):
     def find_uri_by_astnode(self, node):
         for key in self.data:
             for uri in self.data[key]:
-                if uri.astnode == node:
+                if uri.node == node:
                     return uri
         return None
 
@@ -251,6 +254,8 @@ class AstAnalyser(object):
         path = list(path)   # copy to not manipulate existing path
         while path != []:
             for key in self.data:
+                if key == "reference": #XXX needs to be supplied by namebinding rules
+                    continue
                 for uri in self.data[key]:
                     if uri.path == path:
                         names.append(uri)
