@@ -597,6 +597,7 @@ class NodeEditor(QFrame):
                     path.append(p.name)
             text = "%s - %s (%s)" % (n.name, ".".join(path), n.kind)
             item = toolbar.addAction(text, self.createCCFunc(n.name))
+            item.setIcon(QIcon("gui/" + n.kind + ".png"))
             menu.addAction(item)
         x,y = self.cursor_to_coordinate()
         menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
