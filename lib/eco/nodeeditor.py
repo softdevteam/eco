@@ -596,7 +596,7 @@ class NodeEditor(QFrame):
                 if p and p.name:
                     path.append(p.name)
             text = "%s - %s (%s)" % (n.name, ".".join(path), n.kind)
-            item = toolbar.addAction(text, self.codecomplete)
+            item = toolbar.addAction(text, self.createCCFunc(n.name))
             menu.addAction(item)
         x,y = self.cursor_to_coordinate()
         menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
@@ -607,8 +607,10 @@ class NodeEditor(QFrame):
             self.edit_rightnode = True
         return action
 
-    def codecomplete(self, text):
-        pass
+    def createCCFunc(self, text):
+        def action():
+            self.tm.pasteText(text)
+        return action
 
     def selectSubgrammar(self, item):
         pass
