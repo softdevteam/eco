@@ -94,9 +94,10 @@ class AstAnalyser(object):
                     names = [name]
 
                 scoped_path = list(path)
-                if scoped_path != [] and not self.scopes(scoped_path[-1], _type): #XXX should be while?
-                    # if last parent hasn't scope, delete from path
-                    scoped_path.pop(-1)
+                if not nbrule.is_reference():
+                    if scoped_path != [] and not self.scopes(scoped_path[-1], _type): #XXX should be while?
+                        # if last parent hasn't scope, delete from path
+                        scoped_path.pop(-1)
 
                 for n in names:
                     uri = URI()
