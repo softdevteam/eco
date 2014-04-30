@@ -109,6 +109,7 @@ class AstAnalyser(object):
                     uri.path = scoped_path
                     uri.nbrule = nbrule
                     uri.node = n
+                    uri.vartype = node.get('type') # XXX needs to be defined by autocomplete rules
 
                     visibility = nbrule.get_visibility()
                     if visibility not in ['surrounding','subsequent']:

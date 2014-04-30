@@ -595,7 +595,13 @@ class NodeEditor(QFrame):
             for p in n.path:
                 if p and p.name:
                     path.append(p.name)
-            text = "%s - %s (%s)" % (n.name, ".".join(path), n.kind)
+            if n.vartype:
+                vartype = n.vartype
+                while vartype.children != []:
+                    vartype = vartype.children[0]
+                text = "%s : %s - %s (%s)" % (n.name, vartype.symbol.name, ".".join(path), n.kind)
+            else:
+                text = "%s - %s (%s)" % (n.name, ".".join(path), n.kind)
             item = toolbar.addAction(text, self.createCCFunc(n.name))
             item.setIcon(QIcon("gui/" + n.kind + ".png"))
             menu.addAction(item)
