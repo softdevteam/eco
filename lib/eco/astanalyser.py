@@ -110,6 +110,7 @@ class AstAnalyser(object):
                     uri.nbrule = nbrule
                     uri.node = n
                     uri.vartype = node.get('type') # XXX needs to be defined by autocomplete rules
+                    uri.astnode = node
 
                     visibility = nbrule.get_visibility()
                     if visibility not in ['surrounding','subsequent']:
@@ -230,12 +231,9 @@ class AstAnalyser(object):
 
     def get_completion(self, scope):
         # find astnode with rule
-        while True:
-            if scope.alternate and self.get_definition(scope.alternate.symbol.name):
-                break
-            scope = scope.parent
-
-        astnode = scope.alternate
+        astnode = self.get_correct_astnode(scope)
+        if not astnode:
+            return []
         nbrule = self.get_definition(astnode.symbol.name)
         name = astnode.get(nbrule.get_name())
 
@@ -243,6 +241,20 @@ class AstAnalyser(object):
         if uri:
             path = uri.path + [uri]
             return self.get_reachable_names_by_path(path)
+
+    def get_correct_astnode(self, scope):
+        # returns the correct astnode for a corresponding scope. Is needed for
+        # nested astnodes that have rules, e.g. blocks inside methods
+        while scope is not None:
+            astnode = scope.alternate
+            if astnode:
+                nbrule = self.get_definition(scope.alternate.symbol.name)
+                # astnode must have a corresponding entry in self.data
+                if nbrule and self.data.has_key(nbrule.get_type()):
+                    for e in self.data[nbrule.get_type()]:
+                        if e.astnode is astnode:
+                            return astnode
+            scope = scope.parent
 
     def find_uri_by_astnode(self, node):
         for key in self.data:
@@ -256,7 +268,7 @@ class AstAnalyser(object):
         path = list(path)   # copy to not manipulate existing path
         while path != []:
             for key in self.data:
-                if key == "reference": #XXX needs to be supplied by namebinding rules
+                if key in ["reference", "block"]: #XXX needs to be supplied by codecompletion rules
                     continue
                 for uri in self.data[key]:
                     if uri.path == path:
