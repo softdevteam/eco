@@ -528,7 +528,7 @@ class StringWrapper(object):
             node = node.next_term
             if node is None:
                 raise IndexError
-        if node.next_term and (isinstance(node.next_term, EOS) or isinstance(node.next_term.symbol, IndentationTerminal) or node.next_term.symbol.name == "\r"):
+        if node.next_term and (isinstance(node.next_term, EOS) or isinstance(node.next_term.symbol, IndentationTerminal) or node.next_term.symbol.name == "\r" or isinstance(node.next_term.symbol, MagicTerminal)):
             self.length = startindex + len(node.symbol.name[index:])
         return node.symbol.name[index]
 
@@ -552,6 +552,8 @@ class StringWrapper(object):
             if isinstance(node.symbol, IndentationTerminal):
                 break
             if node.symbol.name == "\r":
+                break
+            if isinstance(node.symbol, MagicTerminal):
                 break
 
         return "".join(text)[start:stop]
