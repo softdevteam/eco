@@ -544,6 +544,23 @@ class TreeManager(object):
             self.selection_end = self.cursor.copy()
         self.last_search = text
 
+    def jump_to_error(self, index):
+        node = self.parsers[index][0].previous_version.parent.children[0]
+        eos = self.parsers[index][0].previous_version.parent.children[-1]
+        line = 0
+        while node is not eos:
+            if node is self.parsers[index][0].error_node:
+                break
+            if node.symbol.name == "\r":
+                line += 1
+            node = node.next_term
+
+        self.cursor.line = line
+        self.cursor.node = node
+        self.cursor.pos = 0
+        self.selection_start = self.cursor.copy()
+        self.selection_end = self.cursor.copy()
+
     # ============================ MODIFICATIONS ============================= #
 
     def key_shift_ctrl_z(self):

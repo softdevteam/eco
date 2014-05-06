@@ -340,7 +340,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.tabChanged)
         self.connect(self.ui.actionCode_complete, SIGNAL("triggered()"), self.show_code_completion)
         self.connect(self.ui.actionFull_reparse, SIGNAL("triggered()"), self.full_reparse)
-
+        self.connect(self.ui.list_parsingstatus, SIGNAL("itemDoubleClicked(QListWidgetItem *)"), self.click_parsers)
 
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
@@ -379,6 +379,13 @@ class Window(QtGui.QMainWindow):
             self.getEditor().update()
             self.btReparse([])
             self.getEditorTab().keypress()
+
+    def click_parsers(self, item):
+        index = self.ui.list_parsingstatus.currentIndex().row()
+        self.getEditor().tm.jump_to_error(index)
+        self.getEditor().update()
+        self.btReparse([])
+        self.getEditorTab().keypress()
 
     def redo(self):
         self.getEditor().tm.key_shift_ctrl_z()
