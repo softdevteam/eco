@@ -101,7 +101,7 @@ class BootstrapParser(object):
             symbols = self.parse_symbols(node.children[0])
             symbol = self.parse_symbol(node.children[1])
             symbols.append(symbol)
-            if isinstance(symbol, Terminal) and self.whitespaces:
+            if (isinstance(symbol, Terminal) or isinstance(symbol, MagicTerminal)) and self.whitespaces:
                 symbols.append(Nonterminal("WS"))
             return symbols
         elif node.children[0].symbol.name == "symbol":
@@ -119,6 +119,8 @@ class BootstrapParser(object):
         elif node.lookup == "terminal":
             self.terminals.add(node.symbol.name[1:-1])
             return Terminal(node.symbol.name[1:-1])
+        elif node.lookup == "languagebox":
+            return MagicTerminal(node.symbol.name)
 
     def parse_annotation(self, node):
         a_options = node.children[2]
