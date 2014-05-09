@@ -4,7 +4,7 @@ from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer, IncrementalLexerCF
 from incparser.astree import BOS, EOS
 
-from grammar_parser.gparser import Rule, Nonterminal, Terminal, Epsilon
+from grammar_parser.gparser import Rule, Nonterminal, Terminal, Epsilon, MagicTerminal
 
 class BootstrapParser(object):
 
@@ -17,6 +17,7 @@ class BootstrapParser(object):
         self.start_symbol = None
         self.incparser = None
         self.inclexer = None
+        self.terminals = set()
 
     def parse(self, ecogrammar):
         self.lexer = IncrementalLexer(grammar.priorities)
@@ -116,6 +117,7 @@ class BootstrapParser(object):
         if node.lookup == "nonterminal":
             return Nonterminal(node.symbol.name)
         elif node.lookup == "terminal":
+            self.terminals.add(node.symbol.name[1:-1])
             return Terminal(node.symbol.name[1:-1])
 
     def parse_annotation(self, node):
@@ -218,6 +220,12 @@ class BootstrapParser(object):
         for name, regex in self.lrules:
             names.append(name)
             regexs.append(regex)
+        # add so far undefined terminals
+        undefined_terminals = self.terminals.difference(set(names))
+        import re
+        for t in undefined_terminals:
+            names.insert(0, t)
+            regexs.insert(0,re.escape(t))
         self.inclexer = IncrementalLexerCF()
         self.inclexer.from_name_and_regex(names, regexs)
 
