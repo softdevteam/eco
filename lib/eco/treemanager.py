@@ -720,6 +720,7 @@ class TreeManager(object):
                 self.relex(repairnode)
 
         self.post_keypress("")
+        self.cursor.fix()
         self.reparse(repairnode)
         if undo_mode:
             self.undomanager.add("delete", self.last_delchar, self.cursor.copy())

@@ -125,6 +125,35 @@ S ::= "a" "assign" "b"
         assert treemanager.cursor.node.lookup == "assign"
         assert treemanager.cursor.node.symbol.name == "::="
 
+    def test_fix_cursor_bug(self):
+        grammar = Language("bug",
+"""
+S ::= "brack" "htm"
+    | "html"
+""",
+"""
+"<":brack
+"htm":htm
+"<html":html
+""")
+        lexer = IncrementalLexer(grammar.priorities)
+        parser = IncParser(grammar.grammar, 1, True)
+        parser.init_ast()
+        ast = parser.previous_version
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, grammar.name)
+        treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+        treemanager.key_normal("<")
+        treemanager.key_normal("h")
+        treemanager.key_normal("t")
+        treemanager.key_normal("m")
+        assert treemanager.cursor.node.symbol.name == "htm"
+        treemanager.key_normal("l")
+        assert treemanager.cursor.node.symbol.name == "<html"
+        treemanager.key_backspace()
+        assert treemanager.cursor.node.symbol.name == "htm"
+
 class Test_AST_Conversion(object):
     def setup_class(cls):
         pytest.skip("Skipped until new AST conversion is merged into Eco")
