@@ -365,7 +365,10 @@ class TreeManager(object):
             self.selection_end = self.cursor.copy()
 
     def load_analyser(self, language):
-        lang = lang_dict[language]
+        try:
+            lang = lang_dict[language]
+        except KeyError:
+            return
         if isinstance(lang, EcoFile):
             import os
             filename = os.path.splitext(lang.filename)[0] + ".nb"
