@@ -52,6 +52,7 @@ class SyntaxHighlighter(object):
 
 class PythonHighlighter(SyntaxHighlighter):
     keyword_colors = {
+        "import": "red",
         "class": "green",
         "def": "green",
         "for": "green",
@@ -78,6 +79,7 @@ class PythonHighlighter(SyntaxHighlighter):
         "len":"blue",
         "reversed":"blue",
         "isinstance":"blue",
+        "print":"blue",
     }
 
 class JavaHighlighter(SyntaxHighlighter):
@@ -155,6 +157,40 @@ class ScopingrulesHighlighter(SyntaxHighlighter):
         "in": "red",
     }
 
+class HtmlHighlighter(SyntaxHighlighter):
+    keyword_colors = {
+        "<html": "blue",
+        "<head": "blue",
+        "<body": "blue",
+        "<table": "blue",
+        "<tr": "blue",
+        "<td": "blue",
+        "<span": "blue",
+        "<img": "blue",
+        "<a": "blue",
+        "<h1": "blue",
+        "<h2": "blue",
+        "<title": "blue",
+        "<": "blue",
+        ">": "blue",
+        "</html>": "blue",
+        "</head>": "blue",
+        "</body>": "blue",
+        "</table>": "blue",
+        "</tr>": "blue",
+        "</td>": "blue",
+        "</span>": "blue",
+        "</img>": "blue",
+        "</a>": "blue",
+        "</h1>": "blue",
+        "</h2>": "blue",
+        "</title>": "blue",
+        "TEXT": "default",
+        "STRING": "red",
+        "NUMBER": "red",
+        "COMMENT": "grey",
+    }
+
 def get_highlighter(parent):
     if parent == "Java":
         return JavaHighlighter()
@@ -168,4 +204,6 @@ def get_highlighter(parent):
         return GrammarHighlighter()
     if parent == "Scoping":
         return ScopingrulesHighlighter()
+    if parent == "Html":
+        return HtmlHighlighter()
     return SyntaxHighlighter()
