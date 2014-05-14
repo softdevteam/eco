@@ -527,7 +527,7 @@ class Window(QtGui.QMainWindow):
         editor = self.getEditor()
         if editor is None:
             return
-        for parser, lexer, lang, _ in editor.tm.parsers:
+        for parser, lexer, lang, _, _ in editor.tm.parsers:
             #import cProfile
             #cProfile.runctx("parser.inc_parse(self.ui.frame.line_indents)", globals(), locals())
             status = parser.last_status #inc_parse(self.ui.frame.line_indents)

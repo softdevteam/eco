@@ -4,6 +4,7 @@ from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from PyQt4.QtGui import QApplication
 from grammars.grammars import lang_dict, Language, EcoFile
+from indentmanager import IndentationManager
 
 import math
 
@@ -339,23 +340,32 @@ class TreeManager(object):
                 self.parsers.remove(p)
 
     def get_parser(self, root):
-        for parser, lexer, lang, _ in self.parsers:
+        for parser, lexer, lang, _, im in self.parsers:
             if parser.previous_version.parent is root:
                 return parser
 
     def get_lexer(self, root):
-        for parser, lexer, lang, _ in self.parsers:
+        for parser, lexer, lang, _, im in self.parsers:
             if parser.previous_version.parent is root:
                 return lexer
 
     def get_language(self, root):
-        for parser, lexer, lang, _ in self.parsers:
+        for parser, lexer, lang, _, im in self.parsers:
             if parser.previous_version.parent is root:
                 return lang
 
+    def get_indentmanager(self, root):
+        for parser, lexer, lang, _, im in self.parsers:
+            if parser.previous_version.parent is root:
+                return im
+
     def add_parser(self, parser, lexer, language):
         analyser = self.load_analyser(language)
-        self.parsers.append((parser, lexer, language, analyser))
+        if lexer.is_indentation_based():
+            im = IndentationManager(parser.previous_version.parent)
+        else:
+            im = None
+        self.parsers.append((parser, lexer, language, analyser, im))
         parser.inc_parse()
         if len(self.parsers) == 1:
             self.lines.append(Line(parser.previous_version.parent.children[0]))
@@ -598,7 +608,13 @@ class TreeManager(object):
             self.deleteSelection()
 
         if text == "\r":
-            indentation = self.get_indentation(self.cursor.line)
+            root = self.cursor.node.get_root()
+            im = self.get_indentmanager(root)
+            if im:
+                bol = im.get_line_start(self.cursor.node)
+                indentation = im.count_whitespace(bol)
+            else:
+                indentation = self.get_indentation(self.cursor.line)
             if indentation is None:
                 indentation = 0
             text += " " * indentation
@@ -825,7 +841,10 @@ class TreeManager(object):
         self.rescan_linebreaks(self.cursor.line)
         new_lines = len(self.lines) - lines_before
         for i in range(new_lines+1):
-            self.rescan_indentations(self.cursor.line+i)
+            root = self.cursor.node.get_root()
+            im = self.get_indentmanager(root)
+            if im:
+                im.repair(self.cursor.node)
 
         if text != "" and text[0] == "\r":
             self.cursor.line += 1
@@ -988,189 +1007,6 @@ class TreeManager(object):
 
     # ============================ INDENTATIONS ============================= #
 
-    def update_indentation_backwards(self, y):
-        # find out lines indentation by scanning previous lines
-        root = self.lines[y].node.get_root()
-        ws = self.get_indentation(y)
-        dy = y
-        found_smaller = False
-        while dy > 0:
-            dy = dy - 1
-            if not self.is_logical_line(dy):
-                continue
-            other_root = self.lines[dy].node.get_root()
-            if not self.is_same_language(root, other_root):
-                continue
-            prev_ws = self.get_indentation(dy)
-            if ws < prev_ws:
-                found_smaller = True
-                continue
-            if ws == prev_ws:
-                self.lines[y].indent = self.lines[dy].indent
-                return
-            if ws > prev_ws:
-                if not found_smaller:
-                    self.lines[y].indent = self.lines[dy].indent + 1
-                return
-
-    def rescan_indentations(self, y):
-        if not self.is_logical_line(y):
-            self.remove_indentation_nodes(self.lines[y].node.next_term)
-            y += 1
-            # skip ahead to next logical line
-            if y < len(self.lines):
-                while not self.is_logical_line(y):
-                    y += 1
-                    if y >= len(self.lines):
-                        return
-            else:
-                y = len(self.lines)-1 # rescan last line
-
-        before = self.lines[y].ws
-        self.update_indentation_backwards(y)
-        #if after != before:
-        self.repair_indentation(y)
-        after = self.lines[y].ws
-
-        search_threshold = min(before, after)
-
-        current_indent = self.lines[y].indent
-        current_ws = self.get_indentation(y)
-        for i in range(y+1,len(self.lines)):
-            ws = self.get_indentation(i)
-            if ws is None:
-                continue
-            old = self.lines[i].indent
-            if ws > current_ws:
-                self.lines[i].indent = current_indent + 1
-            if ws == current_ws:
-                self.lines[i].indent = current_indent
-            if ws < current_ws:
-                self.update_indentation_backwards(i)
-
-            self.repair_indentation(i)
-
-            if self.lines[i].ws <= search_threshold:
-                # repair everything up to the line that has smaller indentation/whitespace
-                # than the changed line
-                break
-
-            current_ws = ws
-            current_indent = self.lines[i].indent
-        return
-
-    def repair_indentation(self, y):
-        # XXX when called by rescan_indentation the indentation leves of all
-        # lines are already correct. Setting the indent attribute of a line in
-        # this method is thus redundant. However this method is also used when
-        # importing a file.
-
-        newline = self.lines[y].node
-
-        # check if language is indentation based
-        root = newline.get_root()
-        lexer = self.get_lexer(root)
-        if not lexer.is_indentation_based():
-            return
-
-        new_indent_nodes = []
-
-        if y == 0:
-            self.lines[y].indent = 0
-        else:
-            # check if line is logical (not comment/whitespace) (exception: last line)
-            if self.is_logical_line(y):
-                # XXX move indentation change check up here using indent values
-
-                this_whitespace = self.get_indentation(y)
-                self.lines[y].ws = this_whitespace
-                dy = y - 1
-                root = self.lines[y].node.get_root()
-                other = self.lines[dy].node.get_root()
-                while not self.is_logical_line(dy) or not self.is_same_language(root, other):
-                    dy -= 1
-                    other = self.lines[dy].node.get_root()
-                prev_whitespace = self.get_indentation(dy)
-
-                if prev_whitespace == this_whitespace:
-                    self.lines[y].indent = self.lines[dy].indent
-                    new_indent_nodes.append(TextNode(IndentationTerminal("NEWLINE")))
-                elif prev_whitespace < this_whitespace:
-                    self.lines[y].indent = self.lines[dy].indent + 1
-                    new_indent_nodes.append(TextNode(IndentationTerminal("INDENT")))
-                    new_indent_nodes.append(TextNode(IndentationTerminal("NEWLINE")))
-                elif prev_whitespace > this_whitespace:
-                    this_indent = self.find_indentation(y)
-                    if this_indent is None:
-                        new_indent_nodes.append(TextNode(IndentationTerminal("UNBALANCED")))
-                    else:
-                        self.lines[y].indent = this_indent
-                        prev_indent = self.lines[dy].indent
-                        indent_diff = prev_indent - this_indent
-                        for i in range(indent_diff):
-                            new_indent_nodes.append(TextNode(IndentationTerminal("DEDENT")))
-                        new_indent_nodes.append(TextNode(IndentationTerminal("NEWLINE")))
-
-        # check if indentation nodes have changed
-        # if not keep old ones to avoid unnecessary reparsing
-        as_before = self.indentation_nodes_changed(y, new_indent_nodes)
-        if not as_before:
-
-            # remove old indentation nodes
-            node = self.remove_indentation_nodes(newline.next_term)
-            for node in new_indent_nodes:
-                newline.insert_after(node)
-
-        # generate last lines dedent
-        if y == len(self.lines) - 1:
-            # clean up indentation nodes
-            eos = newline.get_root().children[-1]
-            node = eos.prev_term
-            while isinstance(node.symbol, IndentationTerminal):
-                node.parent.remove_child(node)
-                node = node.prev_term
-
-            # if line is not logial, find previous logical
-            while not self.is_logical_line(y) and y > 0:
-                y -= 1
-
-            # generate correct amount of dedentation nodes
-            this_indent = self.lines[y].indent
-            for i in range(this_indent):
-                node.insert_after(TextNode(IndentationTerminal("DEDENT")))
-            node.insert_after(TextNode(IndentationTerminal("NEWLINE")))
-
-    def indentation_nodes_changed(self, y, nodes):
-        previous_nodes = []
-        newline = self.lines[y].node
-        node = newline.next_term
-        while isinstance(node.symbol, IndentationTerminal):
-            previous_nodes.append(node)
-            node = node.next_term
-
-        previous_nodes.reverse()
-        if len(previous_nodes) != len(nodes):
-            return False
-        for i in range(len(nodes)):
-            if nodes[i].symbol != previous_nodes[i].symbol:
-                return False
-        return True
-
-    def find_indentation(self, y):
-        # indentation level
-        this_whitespace = self.get_indentation(y)
-        dy = y
-        while dy > 0:
-            dy = dy - 1
-            prev_whitespace = self.get_indentation(dy)
-            if prev_whitespace is None:
-                continue
-            if prev_whitespace == this_whitespace:
-                return self.lines[dy].indent
-            if prev_whitespace < this_whitespace:
-                return None
-        return None
-
     def remove_indentation_nodes(self, node):
         if node is None:
             return
@@ -1199,8 +1035,9 @@ class TreeManager(object):
         root = new.get_root()
         lexer.relex_import(new)
         self.rescan_linebreaks(0)
-        for y in range(len(self.lines)):
-            self.repair_indentation(y)
+        im = self.parsers[0][4]
+        if im:
+            im.repair_full()
         self.reparse(bos)
         self.changed = True
         return
@@ -1215,8 +1052,11 @@ class TreeManager(object):
             #bootstrap.incparser.reparse()
 
         self.rescan_linebreaks(0)
-        for i in range(len(self.lines)):
-            self.rescan_indentations(i)
+
+        for p in self.parsers:
+            im = p[4]
+            if im:
+                im.repair_full()
         self.changed = False
 
     def get_parser_lexer_for_language(self, grammar, whitespaces):

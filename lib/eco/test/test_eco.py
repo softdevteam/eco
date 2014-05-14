@@ -563,9 +563,6 @@ class Test_Indentation(Test_Python):
         for c in inputstring:
             self.treemanager.key_normal(c)
         assert self.parser.last_status == True
-        assert self.treemanager.lines[0].indent == 0
-        assert self.treemanager.lines[1].indent == 1
-        assert self.treemanager.lines[2].indent == 2
 
         self.treemanager.key_normal("\r")
         assert self.treemanager.cursor.node.symbol.name == "        "
@@ -578,8 +575,6 @@ class Test_Indentation(Test_Python):
             self.treemanager.key_normal(c)
 
         assert self.parser.last_status == True
-        assert self.treemanager.lines[3].indent == 1
-        assert self.treemanager.lines[4].indent == 2
 
     def test_indentation_tokens(self):
         def check_next_nodes(node, l):
@@ -831,6 +826,36 @@ class Test_Indentation(Test_Python):
             self.treemanager.key_delete()
 
         assert self.parser.last_status == True
+
+    def test_not_logical_lines(self):
+        self.reset()
+        inputstring = """class X(object):\r    def test():\r        return asd\r        \r    def relex(self, startnode):\r        pass"""
+
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == True
+
+class Test_NestedLboxWithIndentation():
+    def setup_class(cls):
+        cls.lexer = IncrementalLexer(calc1.priorities)
+        cls.parser = IncParser(calc1.grammar, 1, True)
+        cls.parser.init_ast()
+        cls.ast = cls.parser.previous_version
+        cls.treemanager = TreeManager()
+        cls.treemanager.add_parser(cls.parser, cls.lexer, calc1.name)
+
+        cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+    def test_simple(self):
+        inputstring = "1+"
+        for c in inputstring:
+            self.treemanager.key_normal(c)
+        self.treemanager.add_languagebox(lang_dict["Python 2.7.5"])
+        inputstring = "def x():\r    pass"
+        for c in inputstring:
+            self.treemanager.key_normal(c)
+
+        assert self.treemanager.parsers[1][2] == "Python 2.7.5"
+        assert self.treemanager.parsers[1][0].last_status == True
 
 from grammars.grammars import lang_dict, python_prolog
 class Test_Languageboxes(Test_Python):
