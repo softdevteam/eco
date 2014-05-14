@@ -45,6 +45,10 @@ class EcoFile(object):
         self.name = name
         self.filename = filename
         self.base = base
+        self.alts = {}
+
+    def add_alternative(self, nonterminal, language):
+        self.alts[nonterminal] = language
 
     def __str__(self):
         return self.name

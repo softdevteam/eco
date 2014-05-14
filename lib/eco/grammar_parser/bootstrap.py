@@ -18,6 +18,7 @@ class BootstrapParser(object):
         self.incparser = None
         self.inclexer = None
         self.terminals = set()
+        self.extra_alternatives = {}
 
     def parse(self, ecogrammar):
         self.lexer = IncrementalLexer(grammar.priorities)
@@ -75,6 +76,10 @@ class BootstrapParser(object):
         r = Rule(symbol)
         for a in alternatives:
             r.add_alternative(a[0], a[1])
+        # add additional alternatives to the grammar (e.g. languageboxes)
+        if self.extra_alternatives.has_key(symbol.name):
+            t = self.extra_alternatives[symbol.name]
+            r.add_alternative([MagicTerminal(t), Nonterminal("WS")], None)
         self.rules[symbol] = r
 
     def parse_alternatives(self, node):

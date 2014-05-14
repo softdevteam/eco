@@ -86,6 +86,7 @@ class EditorTab(QWidget):
             pickle_id = hash(open(lang.filename, "r").read())
             bootstrap = BootstrapParser(lr_type=1, whitespaces=whitespaces)
             bootstrap.ast = root
+            bootstrap.extra_alternatives = lang.alts
             bootstrap.create_parser(pickle_id)
             bootstrap.create_lexer()
             self.editor.set_mainlanguage(bootstrap.incparser, bootstrap.inclexer, lang.name)
