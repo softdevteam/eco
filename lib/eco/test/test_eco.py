@@ -898,3 +898,19 @@ class Test_Languageboxes(Test_Python):
         self.treemanager.key_normal("\r")
         for i in range(8):
             self.treemanager.key_backspace()
+
+    def test_lbox_skips_newline(self):
+        # when inserting a languagebox at the line beginning the next token
+        # skips NEWLINE tokens. It should only skip INDENT/DEDENT
+        self.reset()
+        self.treemanager.key_normal("a") # needs to be valid once
+        assert self.treemanager.parsers[0][0].last_status == True
+        self.treemanager.key_backspace()
+        self.treemanager.add_languagebox(lang_dict["Prolog"])
+        self.treemanager.key_normal("a")
+        self.treemanager.key_normal(".")
+        self.treemanager.leave_languagebox()
+        self.treemanager.key_normal(".")
+        self.treemanager.key_normal("x")
+        assert self.treemanager.parsers[0][0].last_status == True
+

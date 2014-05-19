@@ -641,7 +641,7 @@ class TreeManager(object):
                 if old.next_term:
                     # skip over IndentationTerminals
                     old = old.next_term
-                    while isinstance(old.symbol, IndentationTerminal):
+                    while isinstance(old.symbol, IndentationTerminal) and old.symbol.name != "NEWLINE":
                         old = old.next_term
                     old = old.prev_term
                 node = TextNode(Terminal(""))
