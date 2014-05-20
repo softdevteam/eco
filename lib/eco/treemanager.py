@@ -5,6 +5,7 @@ from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal,
 from PyQt4.QtGui import QApplication
 from grammars.grammars import lang_dict, Language, EcoFile
 from indentmanager import IndentationManager
+from export import HtmlPythonSQL
 
 import math
 
@@ -1080,6 +1081,17 @@ class TreeManager(object):
             print("Grammar Error: could not determine grammar type")
             return
 
+    def export(self):
+        for p, _, _, _, _ in self.parsers:
+            if p.last_status == False:
+                print("Cannot export a syntacially incorrect grammar")
+                return
+        lang = self.parsers[0][2]
+        if lang == "Python 2.7.5 + Prolog":
+            self.export_unipycation()
+        elif lang == "HTML + Python 2.7.5 + SQL (Eco)":
+            self.export_html_python_sql()
+
     def export_unipycation(self):
         import subprocess, sys
         import os
@@ -1112,6 +1124,10 @@ class TreeManager(object):
             return subprocess.Popen([os.path.join(os.environ["UNIPYCATION"], "pypy/goal/pypy-c"), f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
         else:
             sys.stderr.write("UNIPYCATION environment not set")
+
+    def export_html_python_sql(self):
+        conv = HtmlPythonSQL()
+        conv.export(self.get_bos(), "exportedhtml.py")
 
     def relex(self, node):
         root = node.get_root()

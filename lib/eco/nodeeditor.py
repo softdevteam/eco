@@ -679,5 +679,5 @@ class NodeEditor(QFrame):
         self.tm.load_file(language_boxes)
         self.reset()
 
-    def export_unipycation(self):
-        return self.tm.export_unipycation()
+    def export(self):
+        return self.tm.export()
