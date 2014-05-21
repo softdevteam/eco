@@ -182,6 +182,7 @@ class NodeEditor(QFrame):
         first_node = node
         selected_language = self.tm.mainroot
         error_node = self.tm.get_mainparser().error_node
+        error_node = self.fix_errornode(error_node)
 
         highlighter = self.get_highlighter(node)
         selection_start = min(self.tm.selection_start, self.tm.selection_end)
@@ -217,6 +218,7 @@ class NodeEditor(QFrame):
                 highlighter = self.get_highlighter(node)
                 editor = self.get_editor(node)
                 error_node = self.tm.get_parser(lbnode).error_node
+                error_node = self.fix_errornode(error_node)
                 continue
 
             if isinstance(node, EOS):
@@ -234,8 +236,10 @@ class NodeEditor(QFrame):
                     if lbnode and self.selected_lbox is lbnode:
                         draw_lbox = True
                         error_node = self.tm.get_parser(lbnode.symbol.ast).error_node
+                        error_node = self.fix_errornode(error_node)
                     else:
                         error_node = self.tm.get_mainparser().error_node
+                        error_node = self.fix_errornode(error_node)
                     continue
                 else:
                     self.lines[line].width = x / self.fontwt
@@ -329,6 +333,13 @@ class NodeEditor(QFrame):
             paint.setFont(self.font)
 
         return x, y, line
+
+    def fix_errornode(self, error_node):
+        if not error_node:
+            return
+        while isinstance(error_node.symbol, IndentationTerminal):
+            error_node = error_node.prev_term
+        return error_node
 
     def draw_cursor(self, paint, x, y):
         draw_cursor_at = QRect(x, y, 0, self.fontht - 3)
