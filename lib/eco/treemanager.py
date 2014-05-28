@@ -47,7 +47,7 @@ class Cursor(object):
             self.left()
         while self.pos > len(self.node.symbol.name):
             self.pos -= len(self.node.symbol.name)
-            self.node = self.node.next_term
+            self.node = self.find_next_visible(self.node)
 
     def left(self):
         node = self.node
@@ -608,6 +608,8 @@ class TreeManager(object):
         if self.hasSelection():
             self.deleteSelection()
 
+        edited_node = self.cursor.node
+
         if text == "\r":
             root = self.cursor.node.get_root()
             im = self.get_indentmanager(root)
@@ -657,7 +659,10 @@ class TreeManager(object):
         self.relex(node)
         self.cursor.fix()
         self.fix_cursor_on_image()
+        temp = self.cursor.node
+        self.cursor.node = edited_node
         self.post_keypress(text)
+        self.cursor.node = temp
         self.reparse(node)
         if undo_mode:
             self.undomanager.add('insert', text, self.cursor.copy())
@@ -841,11 +846,13 @@ class TreeManager(object):
         lines_before = len(self.lines)
         self.rescan_linebreaks(self.cursor.line)
         new_lines = len(self.lines) - lines_before
-        for i in range(new_lines+1):
-            root = self.cursor.node.get_root()
-            im = self.get_indentmanager(root)
-            if im:
-                im.repair(self.cursor.node)
+        node = self.cursor.node
+        root = node.get_root()
+        im = self.get_indentmanager(root)
+        if im:
+            for i in range(new_lines+1):
+                im.repair(node)
+                node = im.next_line(node)
 
         if text != "" and text[0] == "\r":
             self.cursor.line += 1

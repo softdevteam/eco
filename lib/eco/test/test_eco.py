@@ -834,6 +834,24 @@ class Test_Indentation(Test_Python):
         self.treemanager.import_file(inputstring)
         assert self.parser.last_status == True
 
+    def test_paste(self):
+        self.reset()
+        inputstring = """class X(object):\r    pass1\rx"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == True
+        self.treemanager.key_end()
+        assert self.treemanager.cursor.node.symbol.name == ":"
+        self.treemanager.key_normal("\r")
+        assert self.treemanager.cursor.node.symbol.name == "\r"
+        self.treemanager.pasteText("""    if a:
+        pass2
+    pass3
+if b:
+    if c:
+        pass4""")
+        assert self.treemanager.cursor.node.symbol.name == "pass4"
+        assert self.parser.last_status == True
+
 class Test_NestedLboxWithIndentation():
     def setup_class(cls):
         cls.lexer = IncrementalLexer(calc1.priorities)
