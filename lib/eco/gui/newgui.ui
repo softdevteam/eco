@@ -155,6 +155,12 @@
    <addaction name="separator"/>
   </widget>
   <widget class="QDockWidget" name="dockWidget_2">
+   <property name="maximumSize">
+    <size>
+     <width>200</width>
+     <height>524287</height>
+    </size>
+   </property>
    <property name="windowTitle">
     <string>Parsing Status</string>
    </property>
@@ -164,13 +170,36 @@
    <widget class="QWidget" name="dockWidgetContents_2">
     <layout class="QHBoxLayout" name="horizontalLayout_5">
      <item>
-      <widget class="QListWidget" name="list_parsingstatus">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
+      <widget class="QTreeWidget" name="treeWidget">
+       <property name="alternatingRowColors">
+        <bool>false</bool>
        </property>
+       <property name="textElideMode">
+        <enum>Qt::ElideRight</enum>
+       </property>
+       <property name="indentation">
+        <number>20</number>
+       </property>
+       <property name="rootIsDecorated">
+        <bool>false</bool>
+       </property>
+       <property name="uniformRowHeights">
+        <bool>false</bool>
+       </property>
+       <property name="animated">
+        <bool>false</bool>
+       </property>
+       <property name="allColumnsShowFocus">
+        <bool>false</bool>
+       </property>
+       <attribute name="headerVisible">
+        <bool>false</bool>
+       </attribute>
+       <column>
+        <property name="text">
+         <string>1</string>
+        </property>
+       </column>
       </widget>
      </item>
     </layout>
@@ -198,7 +227,7 @@
   <action name="actionImport">
    <property name="icon">
     <iconset theme="document-import">
-     <normaloff>../</normaloff>../</iconset>
+     <normaloff>../../../../../.designer</normaloff>../../../../../.designer</iconset>
    </property>
    <property name="text">
     <string>Import...</string>
@@ -217,7 +246,7 @@
   <action name="actionOpen">
    <property name="icon">
     <iconset theme="document-open">
-     <normaloff>../</normaloff>../</iconset>
+     <normaloff>../../../../../.designer</normaloff>../../../../../.designer</iconset>
    </property>
    <property name="text">
     <string>Open...</string>
@@ -229,7 +258,7 @@
   <action name="actionSave">
    <property name="icon">
     <iconset theme="document-save">
-     <normaloff>../</normaloff>../</iconset>
+     <normaloff>../../../../../.designer</normaloff>../../../../../.designer</iconset>
    </property>
    <property name="text">
     <string>Save</string>
@@ -241,7 +270,7 @@
   <action name="actionNew">
    <property name="icon">
     <iconset theme="document-new">
-     <normaloff>../</normaloff>../</iconset>
+     <normaloff>../../../../../.designer</normaloff>../../../../../.designer</iconset>
    </property>
    <property name="text">
     <string>New</string>
@@ -253,8 +282,7 @@
   <action name="actionRun">
    <property name="icon">
     <iconset theme="system-run">
-     <normaloff/>
-    </iconset>
+     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
    </property>
    <property name="text">
     <string>Run</string>
@@ -263,8 +291,7 @@
   <action name="actionSelect_font">
    <property name="icon">
     <iconset theme="fonts">
-     <normaloff/>
-    </iconset>
+     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
    </property>
    <property name="text">
     <string>Select font..</string>
@@ -284,8 +311,7 @@
   <action name="actionAbout">
    <property name="icon">
     <iconset theme="help-about">
-     <normaloff/>
-    </iconset>
+     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
    </property>
    <property name="text">
     <string>About</string>
@@ -299,8 +325,7 @@
   <action name="actionUndo">
    <property name="icon">
     <iconset theme="undo">
-     <normaloff/>
-    </iconset>
+     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
    </property>
    <property name="text">
     <string>Undo</string>
@@ -312,8 +337,7 @@
   <action name="actionRedo">
    <property name="icon">
     <iconset theme="redo">
-     <normaloff/>
-    </iconset>
+     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
    </property>
    <property name="text">
     <string>Redo</string>
@@ -325,8 +349,7 @@
   <action name="actionCut">
    <property name="icon">
     <iconset theme="editcut">
-     <normaloff/>
-    </iconset>
+     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
    </property>
    <property name="text">
     <string>Cut</string>
@@ -338,8 +361,7 @@
   <action name="actionCopy">
    <property name="icon">
     <iconset theme="editcopy">
-     <normaloff/>
-    </iconset>
+     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
    </property>
    <property name="text">
     <string>Copy</string>
@@ -351,8 +373,7 @@
   <action name="actionPaste">
    <property name="icon">
     <iconset theme="editpaste">
-     <normaloff/>
-    </iconset>
+     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
    </property>
    <property name="text">
     <string>Paste</string>
@@ -364,8 +385,7 @@
   <action name="actionSave_as">
    <property name="icon">
     <iconset theme="document-save-as">
-     <normaloff/>
-    </iconset>
+     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
    </property>
    <property name="text">
     <string>Save as...</string>
@@ -377,8 +397,7 @@
   <action name="actionAdd_language_box">
    <property name="icon">
     <iconset theme="insert-object">
-     <normaloff/>
-    </iconset>
+     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
    </property>
    <property name="text">
     <string>Add language box</string>
@@ -390,8 +409,7 @@
   <action name="actionSelect_next_language_box">
    <property name="icon">
     <iconset theme="forward">
-     <normaloff/>
-    </iconset>
+     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
    </property>
    <property name="text">
     <string>Select next language box</string>
@@ -408,8 +426,7 @@
   <action name="actionFind">
    <property name="icon">
     <iconset theme="find">
-     <normaloff/>
-    </iconset>
+     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
    </property>
    <property name="text">
     <string>Find...</string>
@@ -420,7 +437,8 @@
   </action>
   <action name="actionCode_complete">
    <property name="icon">
-    <iconset theme="insert-text"/>
+    <iconset theme="insert-text">
+     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
    </property>
    <property name="text">
     <string>Code complete</string>

@@ -340,7 +340,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.tabChanged)
         self.connect(self.ui.actionCode_complete, SIGNAL("triggered()"), self.show_code_completion)
         self.connect(self.ui.actionFull_reparse, SIGNAL("triggered()"), self.full_reparse)
-        self.connect(self.ui.list_parsingstatus, SIGNAL("itemDoubleClicked(QListWidgetItem *)"), self.click_parsers)
+        self.connect(self.ui.treeWidget, SIGNAL("itemDoubleClicked(QTreeWidgetItem *, int)"), self.click_parsers)
 
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
@@ -380,9 +380,8 @@ class Window(QtGui.QMainWindow):
             self.btReparse([])
             self.getEditorTab().keypress()
 
-    def click_parsers(self, item):
-        index = self.ui.list_parsingstatus.currentIndex().row()
-        self.getEditor().tm.jump_to_error(index)
+    def click_parsers(self, item, col):
+        self.getEditor().tm.jump_to_error(item.parser)
         self.getEditor().update()
         self.btReparse([])
         self.getEditorTab().keypress()
@@ -523,28 +522,54 @@ class Window(QtGui.QMainWindow):
 
     def btReparse(self, selected_node=[]):
         results = []
-        self.ui.list_parsingstatus.clear()
+        self.ui.treeWidget.clear()
         editor = self.getEditor()
         if editor is None:
             return
+        nested = {}
         for parser, lexer, lang, _, _ in editor.tm.parsers:
             #import cProfile
             #cProfile.runctx("parser.inc_parse(self.ui.frame.line_indents)", globals(), locals())
-            status = parser.last_status #inc_parse(self.ui.frame.line_indents)
-            qlistitem = QListWidgetItem(QString(lang))
-            if status:
-                qlistitem.setIcon(QIcon("gui/accept.png")) # XXX create icon only once
+            root = parser.previous_version.parent
+            lbox_terminal = root.get_magicterminal()
+            if lbox_terminal:
+                try:
+                    l = nested.get(lbox_terminal.parent_lbox, [])
+                    l.append((parser,lexer,lang))
+                    nested[lbox_terminal.parent_lbox] = l
+                except AttributeError,e:
+                    print(e)
+                    return
             else:
-                qlistitem.setIcon(QIcon("gui/exclamation.png"))
+                l = nested.get(None, [])
+                l.append((parser,lexer,lang))
+                nested[None] = l
+
+        self.add_parsingstatus(nested, None, self.ui.treeWidget)
+        self.ui.treeWidget.expandAll()
+
+        self.showAst(selected_node)
+
+    def add_parsingstatus(self, nested, root, parent):
+        if not nested.has_key(root):
+            return
+        for parser, lexer, lang in nested[root]:
+            status = parser.last_status
+            qtreeitem = QTreeWidgetItem(parent)
+            qtreeitem.setText(0, QString(lang))
+            if status:
+                qtreeitem.setIcon(0, QIcon("gui/accept.png"))
+            else:
+                qtreeitem.setIcon(0, QIcon("gui/exclamation.png"))
                 enode = parser.error_node
                 symbols = parser.get_expected_symbols(enode.prev_term.state)
                 l = []
                 for s in symbols:
                     l.append("'%s'" % (s.name))
                 emsg = "Error: Found \"%s\" expected %s (State: %s)" % (enode.symbol.name, ",".join(l), enode.prev_term.state)
-                qlistitem.setToolTip(emsg)
-            self.ui.list_parsingstatus.addItem(qlistitem)
-        self.showAst(selected_node)
+                qtreeitem.setToolTip(0, emsg)
+            qtreeitem.parser = parser
+            self.add_parsingstatus(nested, parser.previous_version.parent, qtreeitem)
 
     def showAst(self, selected_node):
         self.parseview.refresh()

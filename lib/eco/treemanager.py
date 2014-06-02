@@ -558,16 +558,19 @@ class TreeManager(object):
             self.selection_end = self.cursor.copy()
         self.last_search = text
 
-    def jump_to_error(self, index):
-        node = self.parsers[index][0].previous_version.parent.children[0]
-        eos = self.parsers[index][0].previous_version.parent.children[-1]
+    def jump_to_error(self, parser):
+        bos = parser.previous_version.parent.children[0]
+        eos = parser.previous_version.parent.children[-1]
+        node = bos
         line = 0
         while node is not eos:
-            if node is self.parsers[index][0].error_node:
+            if node is parser.error_node:
                 break
             if node.symbol.name == "\r":
                 line += 1
             node = node.next_term
+        if node is eos:
+            node = bos
 
         self.cursor.line = line
         self.cursor.node = node
@@ -773,6 +776,8 @@ class TreeManager(object):
     def add_languagebox(self, language):
         node = self.get_node_from_cursor()
         newnode = self.create_languagebox(language)
+        root = self.cursor.node.get_root()
+        newnode.parent_lbox = root
         if not self.cursor.inside():
             node.insert_after(newnode)
         else:
@@ -1056,6 +1061,12 @@ class TreeManager(object):
             grammar = lang_dict[language]
             incparser, inclexer = self.get_parser_lexer_for_language(grammar, whitespaces)
             incparser.previous_version.parent = root
+            try:
+                lbox = root.magic_backpointer
+                lbox.parent_lbox = lbox.get_root()
+            except:
+                pass # first language doesn't have parent
+
             self.add_parser(incparser, inclexer, grammar.name)
             #bootstrap.incparser.reparse()
 

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'newgui.ui'
+# Form implementation generated from reading ui file 'gui/newgui.ui'
 #
-# Created: Fri Apr 25 14:10:00 2014
+# Created: Mon Jun  2 13:28:39 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -68,19 +68,23 @@ class Ui_MainWindow(object):
         self.toolBar.setObjectName(_fromUtf8("toolBar"))
         MainWindow.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar)
         self.dockWidget_2 = QtGui.QDockWidget(MainWindow)
+        self.dockWidget_2.setMaximumSize(QtCore.QSize(200, 524287))
         self.dockWidget_2.setObjectName(_fromUtf8("dockWidget_2"))
         self.dockWidgetContents_2 = QtGui.QWidget()
         self.dockWidgetContents_2.setObjectName(_fromUtf8("dockWidgetContents_2"))
         self.horizontalLayout_5 = QtGui.QHBoxLayout(self.dockWidgetContents_2)
         self.horizontalLayout_5.setObjectName(_fromUtf8("horizontalLayout_5"))
-        self.list_parsingstatus = QtGui.QListWidget(self.dockWidgetContents_2)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.list_parsingstatus.sizePolicy().hasHeightForWidth())
-        self.list_parsingstatus.setSizePolicy(sizePolicy)
-        self.list_parsingstatus.setObjectName(_fromUtf8("list_parsingstatus"))
-        self.horizontalLayout_5.addWidget(self.list_parsingstatus)
+        self.treeWidget = QtGui.QTreeWidget(self.dockWidgetContents_2)
+        self.treeWidget.setAlternatingRowColors(False)
+        self.treeWidget.setTextElideMode(QtCore.Qt.ElideRight)
+        self.treeWidget.setIndentation(20)
+        self.treeWidget.setRootIsDecorated(False)
+        self.treeWidget.setUniformRowHeights(False)
+        self.treeWidget.setAnimated(False)
+        self.treeWidget.setAllColumnsShowFocus(False)
+        self.treeWidget.setObjectName(_fromUtf8("treeWidget"))
+        self.treeWidget.header().setVisible(False)
+        self.horizontalLayout_5.addWidget(self.treeWidget)
         self.dockWidget_2.setWidget(self.dockWidgetContents_2)
         MainWindow.addDockWidget(QtCore.Qt.DockWidgetArea(2), self.dockWidget_2)
         self.dockWidget = QtGui.QDockWidget(MainWindow)
@@ -248,6 +252,7 @@ class Ui_MainWindow(object):
         self.menuWindow.setTitle(_translate("MainWindow", "Window", None))
         self.toolBar.setWindowTitle(_translate("MainWindow", "toolBar", None))
         self.dockWidget_2.setWindowTitle(_translate("MainWindow", "Parsing Status", None))
+        self.treeWidget.headerItem().setText(0, _translate("MainWindow", "1", None))
         self.dockWidget.setWindowTitle(_translate("MainWindow", "Console", None))
         self.actionImport.setText(_translate("MainWindow", "Import...", None))
         self.actionRandomDel.setText(_translate("MainWindow", "Delete random chars", None))
