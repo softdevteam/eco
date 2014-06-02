@@ -67,8 +67,11 @@ class ImageEditor(NormalEditor):
             dx, dy = NormalEditor.paint_node(self, paint, node, x, y, highlighter)
         return dx, dy
 
+    def get_filename(self, node):
+        return node.symbol.name
+
     def update_image(self, node):
-        filename = "chemicals/" + node.symbol.name + ".png"
+        filename = self.get_filename(node)
         if node.image_src == filename:
             return
         if os.path.isfile(filename):
@@ -81,7 +84,13 @@ class ImageEditor(NormalEditor):
     def doubleClick(self):
         pass # switch between display modes
 
+class ChemicalEditor(ImageEditor):
+    def get_filename(self, node):
+        return "chemicals/" + node.symbol.name + ".png"
+
 def get_editor(parent, fontwt, fontht):
     if parent == "Chemicals":
+        return ChemicalEditor(fontwt, fontht)
+    if parent == "Image":
         return ImageEditor(fontwt, fontht)
     return NormalEditor(fontwt, fontht)
