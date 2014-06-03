@@ -4,5 +4,7 @@ __pycache__
 java_examples/
 python_examples/
 prolog_examples/
+eco_examples/
 save/
 lib/eco/save/
+temp/
