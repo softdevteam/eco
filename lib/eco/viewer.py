@@ -35,6 +35,7 @@ class Viewer(object):
             os.stat(tempdir)
         except:
             os.mkdir(tempdir)
+        self.countnodes = 0
 
     def __del__(self):
         import shutil
@@ -131,6 +132,7 @@ class Viewer(object):
         except AttributeError:
             pass
         dotnode = pydot.Node(id(node), label=" %s " % repr(node.symbol.name)[1:-1]+addtext)
+        self.countnodes += 1
         if node.changed:
             dotnode.set('color','green')
         dotnode.set('fontsize', '10')
