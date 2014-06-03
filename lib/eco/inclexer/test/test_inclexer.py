@@ -94,7 +94,6 @@ class Test_CalcLexer(Test_IncrementalLexer):
         new3 = TextNode(Terminal("6+"))
         new4 = TextNode(Terminal("789")) # this should never be touched
         new5 = TextNode(Terminal("+")) # this should never be touched
-        new4.symbol = None
         bos.insert_after(new1)
         new1.insert_after(new2)
         new2.insert_after(new3)
@@ -108,6 +107,9 @@ class Test_CalcLexer(Test_IncrementalLexer):
         node = node.next_term; assert node.symbol == Terminal("+")
         node = node.next_term; assert node.symbol == Terminal("23456")
         node = node.next_term; assert node.symbol == Terminal("+")
+        # check that 789 hasn't been relexed
+        assert node.next_term is new4
+        assert node.next_term.symbol is new4.symbol
 
     def test_relex_newline(self):
         ast = AST()
