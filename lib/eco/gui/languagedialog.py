@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'gui/languagedialog.ui'
+# Form implementation generated from reading ui file 'languagedialog.ui'
 #
-# Created: Thu Mar  6 11:54:03 2014
+# Created: Fri Jun  6 11:55:26 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -32,10 +32,6 @@ class Ui_Dialog(object):
         self.listWidget = QtGui.QListWidget(Dialog)
         self.listWidget.setObjectName(_fromUtf8("listWidget"))
         self.verticalLayout.addWidget(self.listWidget)
-        self.cb_add_implicit_ws = QtGui.QCheckBox(Dialog)
-        self.cb_add_implicit_ws.setChecked(True)
-        self.cb_add_implicit_ws.setObjectName(_fromUtf8("cb_add_implicit_ws"))
-        self.verticalLayout.addWidget(self.cb_add_implicit_ws)
         self.buttonBox = QtGui.QDialogButtonBox(Dialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
         self.buttonBox.setStandardButtons(QtGui.QDialogButtonBox.Cancel|QtGui.QDialogButtonBox.Ok)
@@ -49,5 +45,4 @@ class Ui_Dialog(object):
 
     def retranslateUi(self, Dialog):
         Dialog.setWindowTitle(_translate("Dialog", "Choose language...", None))
-        self.cb_add_implicit_ws.setText(_translate("Dialog", "Add implicit whitespaces", None))
 

@@ -8,9 +8,6 @@ from grammars.grammars import Language, EcoGrammar, EcoFile
 
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
-from grammar_parser.bootstrap import BootstrapParser
-
-from jsonmanager import JsonManager
 
 import os
 
@@ -81,15 +78,8 @@ class EditorTab(QWidget):
             bootstrap.parse(lang.grammar)
             self.editor.set_mainlanguage(bootstrap.incparser, bootstrap.inclexer, lang.name)
         elif isinstance(lang, EcoFile):
-            manager = JsonManager(unescape=True)
-            root, language, whitespaces = manager.load(lang.filename)[0]
-            pickle_id = hash(open(lang.filename, "r").read())
-            bootstrap = BootstrapParser(lr_type=1, whitespaces=whitespaces)
-            bootstrap.ast = root
-            bootstrap.extra_alternatives = lang.alts
-            bootstrap.create_parser(pickle_id)
-            bootstrap.create_lexer()
-            self.editor.set_mainlanguage(bootstrap.incparser, bootstrap.inclexer, lang.name)
+            incparser, inclexer = lang.load()
+            self.editor.set_mainlanguage(incparser, inclexer, lang.name)
 
 class ScopeScrollArea(QtGui.QAbstractScrollArea):
 

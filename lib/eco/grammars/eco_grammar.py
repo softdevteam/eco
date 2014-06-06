@@ -39,7 +39,7 @@ right ::= symbols
 annotations ::= "{" a_options "}"
 a_options ::= astnode
             | expression
-            | foreach
+            | forloop
 
 astnode ::= "nonterminal" "(" astnode_children ")"
 astnode_children ::= astnode_child
@@ -56,7 +56,7 @@ expression ::= node
              | expression "+" node
              | expression "+" list
 
-foreach ::= "foreach" "(" node ")" astnode
+forloop ::= "foreach" "(" node ")" astnode
 
 node ::= "#" "NUMBER"
 node_ref ::= node "." "nonterminal"

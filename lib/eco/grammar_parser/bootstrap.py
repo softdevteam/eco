@@ -1,4 +1,3 @@
-from grammars.grammars import eco_grammar as grammar
 from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer, IncrementalLexerCF
@@ -19,8 +18,24 @@ class BootstrapParser(object):
         self.inclexer = None
         self.terminals = set()
         self.extra_alternatives = {}
+        self.change_startrule = None
+        self.options = {}
+
+    def implicit_ws(self):
+        if self.options.has_key("implicit_ws"):
+            if self.options["implicit_ws"] == "true":
+                return True
+        return False
+
+    def indentation_based(self):
+        if self.options.has_key("indentation"):
+            if self.options["indentation"] == "true":
+                return True
+        return False
 
     def parse(self, ecogrammar):
+        # this is only called for grammars based on Eco Grammar (not Eco Grammar (Eco))
+        from grammars.eco_grammar import eco_grammar as grammar
         self.lexer = IncrementalLexer(grammar.priorities)
         self.parser = IncParser(grammar.grammar, 1, True)
         self.parser.init_ast()
@@ -30,8 +45,42 @@ class BootstrapParser(object):
         self.treemanager.import_file(ecogrammar)
         if self.parser.last_status == False:
             raise Exception("Invalid input grammar: at %s %s" % (self.parser.error_node.prev_term, self.parser.error_node))
+        self.read_options()
         self.create_parser()
         self.create_lexer()
+
+    def read_options(self):
+        startrule = self.ast.children[1] # startrule
+        assert startrule.symbol.name == "Startrule"
+        grammar = startrule.children[1]
+        assert grammar.symbol.name == "grammar"
+        for element in grammar.children:
+            if element.symbol.name == "options":
+                break
+        if element.symbol.name != "options":
+            # grammar has no options
+            print("warning: grammar has no options")
+            # backwards compatibility
+            if self.whitespaces:
+                self.options["implicit_ws"] = "true"
+            return
+        options = element
+        assert options.symbol.name == "options"
+        self.parse_options(options)
+
+    def parse_options(self, options):
+        if options.children == []:
+            return
+        if len(options.children) == 2:
+            more = options.children[0]
+            self.parse_options(more)
+            option = options.children[1]
+        else:
+            option = options.children[0]
+        name = option.children[2].symbol.name
+        choice = option.children[6]
+        assert choice.symbol.name == "choice"
+        self.options[name] = choice.children[0].symbol.name
 
     def create_parser(self, pickle_id = None):
         startrule = self.ast.children[1] # startrule
@@ -40,7 +89,7 @@ class BootstrapParser(object):
         assert parser.symbol.name == "parser"
         self.parse_rules(parser)
 
-        if self.whitespaces:
+        if self.implicit_ws():
             ws_rule = Rule()
             ws_rule.symbol = Nonterminal("WS")
             ws_rule.add_alternative([Terminal("<ws>"), Nonterminal("WS")])
@@ -56,7 +105,7 @@ class BootstrapParser(object):
             self.start_symbol = start_rule.symbol
 
         incparser = IncParser()
-        incparser.from_dict(self.rules, self.start_symbol, self.lr_type, self.whitespaces, pickle_id)
+        incparser.from_dict(self.rules, self.start_symbol, self.lr_type, self.implicit_ws(), pickle_id)
         incparser.init_ast()
         self.incparser = incparser
 
@@ -72,6 +121,8 @@ class BootstrapParser(object):
         alternatives = self.parse_alternatives(node.children[4])
         symbol = Nonterminal(name)
         if self.start_symbol is None:
+            self.start_symbol = symbol
+        if self.change_startrule and symbol.name == self.change_startrule:
             self.start_symbol = symbol
         r = Rule(symbol)
         for a in alternatives:
@@ -95,6 +146,7 @@ class BootstrapParser(object):
         if len(node.children) > 0:
             symbols = self.parse_symbols(node.children[0])
             annotation = None
+
             if len(node.children) > 1:
                 annotation = self.parse_annotation(node.children[1])
             return (symbols, annotation)
@@ -106,14 +158,14 @@ class BootstrapParser(object):
             symbols = self.parse_symbols(node.children[0])
             symbol = self.parse_symbol(node.children[1])
             symbols.append(symbol)
-            if (isinstance(symbol, Terminal) or isinstance(symbol, MagicTerminal)) and self.whitespaces:
+            if (isinstance(symbol, Terminal) or isinstance(symbol, MagicTerminal)) and self.implicit_ws():
                 symbols.append(Nonterminal("WS"))
             return symbols
         elif node.children[0].symbol.name == "symbol":
             l = []
             symbol = self.parse_symbol(node.children[0])
             l.append(symbol)
-            if isinstance(symbol, Terminal) and self.whitespaces:
+            if isinstance(symbol, Terminal) and self.implicit_ws():
                 l.append(Nonterminal("WS"))
             return l
 
@@ -134,7 +186,7 @@ class BootstrapParser(object):
             return self.parse_astnode(a_options.children[0])
         elif a_options.children[0].symbol.name == "expression":
             return self.parse_expression(a_options.children[0])
-        elif a_options.children[0].symbol.name == "foreach":
+        elif a_options.children[0].symbol.name == "forloop":
             return self.parse_foreach(a_options.children[0])
 
     def parse_astnode(self, node):
@@ -219,7 +271,10 @@ class BootstrapParser(object):
     def create_lexer(self):
         startrule = self.ast.children[1] # startrule
         grammar = startrule.children[1]
-        lexer = grammar.children[5]
+        for element in grammar.children:
+            if element.symbol.name == "lexer":
+                break
+        lexer = element
         assert lexer.symbol.name == "lexer"
         self.parse_lexer(lexer)
         names = []
@@ -235,6 +290,8 @@ class BootstrapParser(object):
             regexs.insert(0,re.escape(t))
         self.inclexer = IncrementalLexerCF()
         self.inclexer.from_name_and_regex(names, regexs)
+        if self.indentation_based():
+            self.inclexer.indentation_based = True
 
     def parse_lexer(self, lexer):
         if lexer.children[0].symbol.name == "lrule":
@@ -333,6 +390,7 @@ class LookupExpr(Expr):
             n = n.alternate
 
         if self.attribute:
+            #XXX if token
             return n.get(self.attribute)
         return n
 

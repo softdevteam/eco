@@ -143,7 +143,10 @@ class GrammarHighlighter(SyntaxHighlighter):
         "terminal": "green",
         "<ws>": "grey",
         "#": "red",
-        "NUMBER": "red"
+        "NUMBER": "red",
+        "%": "red",
+        "true":"blue",
+        "false":"blue"
     }
 
 class ScopingrulesHighlighter(SyntaxHighlighter):

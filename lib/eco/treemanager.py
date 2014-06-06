@@ -402,7 +402,7 @@ class TreeManager(object):
         for p in self.parsers:
             # check for syntax error
             if node is p[0].error_node:
-                return "Syntax error on token '%s'." % (node.symbol.name)
+                return "Syntax error on token '%s' (%s)." % (node.symbol.name, node.lookup)
             # check for namebinding error
             if p[3]:
                 error = p[3].get_error(node)
@@ -1087,14 +1087,8 @@ class TreeManager(object):
             inclexer = IncrementalLexer(grammar.priorities)
             return incparser, inclexer
         elif isinstance(grammar, EcoFile):
-            manager = JsonManager(unescape=True)
-            bsroot, language, whitespaces = manager.load(grammar.filename)[0]
-            pickle_id = hash(open(grammar.filename, "r").read())
-            bootstrap = BootstrapParser(lr_type=1, whitespaces=whitespaces)
-            bootstrap.ast = bsroot
-            bootstrap.create_parser(pickle_id)
-            bootstrap.create_lexer()
-            return bootstrap.incparser, bootstrap.inclexer
+            incparser, inclexer = grammar.load()
+            return incparser, inclexer
         else:
             print("Grammar Error: could not determine grammar type")
             return
@@ -1105,10 +1099,12 @@ class TreeManager(object):
                 print("Cannot export a syntacially incorrect grammar")
                 return
         lang = self.parsers[0][2]
-        if lang == "Python 2.7.5 + Prolog":
+        if lang == "Python + Prolog":
             self.export_unipycation()
         elif lang == "HTML + Python 2.7.5 + SQL (Eco)":
             self.export_html_python_sql()
+        else:
+            self.export_as_text()
 
     def export_unipycation(self):
         import subprocess, sys
@@ -1146,6 +1142,18 @@ class TreeManager(object):
     def export_html_python_sql(self):
         conv = HtmlPythonSQL()
         conv.export(self.get_bos(), "exportedhtml.py")
+
+    def export_as_text(self):
+        node = self.lines[0].node # first node
+        text = []
+        while True:
+            node = node.next_term
+            text.append(node.symbol.name)
+            if isinstance(node, EOS):
+                break
+        f = open("export.txt","w")
+        f.write("".join(text))
+        f.close()
 
     def relex(self, node):
         root = node.get_root()

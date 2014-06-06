@@ -1,4 +1,4 @@
-from grammars.grammars import calc1, java15, python275, calc_annotation, johnstone_grammar, Language, sql
+from grammars.grammars import calc, java, python, Language, sql, pythonprolog, lang_dict
 from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
@@ -12,19 +12,20 @@ slow = pytest.mark.slow
 class Test_Typing:
 
     def setup_class(cls):
-        cls.lexer = IncrementalLexer(calc1.priorities)
-        cls.parser = IncParser(calc1.grammar, 1, True)
+        parser, lexer = calc.load()
+        cls.lexer = lexer
+        cls.parser = parser
         cls.parser.init_ast()
         cls.ast = cls.parser.previous_version
         cls.treemanager = TreeManager()
-        cls.treemanager.add_parser(cls.parser, cls.lexer, calc1.name)
+        cls.treemanager.add_parser(cls.parser, cls.lexer, calc.name)
 
         cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
 
     def reset(self):
         self.parser.reset()
         self.treemanager = TreeManager()
-        self.treemanager.add_parser(self.parser, self.lexer, calc1.name)
+        self.treemanager.add_parser(self.parser, self.lexer, calc.name)
         self.treemanager.set_font_test(7, 17)
 
     def test_normaltyping(self):
@@ -490,21 +491,21 @@ or_test ::= "1"^^
         assert parser.last_status == True
 
 class Test_Python:
-
     def setup_class(cls):
-        cls.lexer = IncrementalLexer(python275.priorities)
-        cls.parser = IncParser(python275.grammar, 1, True)
+        parser, lexer = python.load()
+        cls.lexer = lexer
+        cls.parser = parser
         cls.parser.init_ast()
         cls.ast = cls.parser.previous_version
         cls.treemanager = TreeManager()
-        cls.treemanager.add_parser(cls.parser, cls.lexer, python275.name)
+        cls.treemanager.add_parser(cls.parser, cls.lexer, python.name)
 
         cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
 
     def reset(self):
         self.parser.reset()
         self.treemanager = TreeManager()
-        self.treemanager.add_parser(self.parser, self.lexer, python275.name)
+        self.treemanager.add_parser(self.parser, self.lexer, python.name)
         self.treemanager.set_font_test(7, 17)
 
     def move(self, direction, times):
@@ -854,12 +855,13 @@ if b:
 
 class Test_NestedLboxWithIndentation():
     def setup_class(cls):
-        cls.lexer = IncrementalLexer(calc1.priorities)
-        cls.parser = IncParser(calc1.grammar, 1, True)
+        parser, lexer = calc.load()
+        cls.lexer = lexer
+        cls.parser = parser
         cls.parser.init_ast()
         cls.ast = cls.parser.previous_version
         cls.treemanager = TreeManager()
-        cls.treemanager.add_parser(cls.parser, cls.lexer, calc1.name)
+        cls.treemanager.add_parser(cls.parser, cls.lexer, calc.name)
 
         cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
 
@@ -875,16 +877,17 @@ class Test_NestedLboxWithIndentation():
         assert self.treemanager.parsers[1][2] == "Python 2.7.5"
         assert self.treemanager.parsers[1][0].last_status == True
 
-from grammars.grammars import lang_dict, python_prolog
+#from grammars.grammars import lang_dict, python_prolog
 class Test_Languageboxes(Test_Python):
 
     def setup_class(cls):
-        cls.lexer = IncrementalLexer(python_prolog.priorities)
-        cls.parser = IncParser(python_prolog.grammar, 1, True)
+        parser, lexer = pythonprolog.load()
+        cls.lexer = lexer
+        cls.parser = parser
         cls.parser.init_ast()
         cls.ast = cls.parser.previous_version
         cls.treemanager = TreeManager()
-        cls.treemanager.add_parser(cls.parser, cls.lexer, python_prolog.name)
+        cls.treemanager.add_parser(cls.parser, cls.lexer, pythonprolog.name)
 
         cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
 

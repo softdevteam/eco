@@ -50,15 +50,12 @@ from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 
 from grammars.grammars import languages, lang_dict, Language, EcoGrammar
 
-from grammar_parser.bootstrap import BootstrapParser
-
 from time import time
 import os
 import math
 
 import syntaxhighlighter
 import editor
-from jsonmanager import JsonManager
 
 from treemanager import TreeManager, Cursor
 
@@ -300,7 +297,7 @@ class LanguageView(QtGui.QDialog):
         return self.ui.listWidget.currentRow()
 
     def getWhitespace(self):
-        return self.ui.cb_add_implicit_ws.isChecked()
+        return True
 
 class Window(QtGui.QMainWindow):
 

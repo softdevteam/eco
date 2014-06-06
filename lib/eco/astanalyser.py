@@ -49,16 +49,10 @@ class AstAnalyser(object):
 
         # load scoping grammar
         grammar = lang_dict[language]
-        bsroot, language, whitespaces = manager.load(grammar.filename)[0]
-        pickle_id = hash(open(grammar.filename, "r").read())
-        #XXX once we store the annotations in the json files invoking bootstrap parser becomes obsolete
-        bootstrap = BootstrapParser(lr_type=1, whitespaces=whitespaces)
-        bootstrap.ast = bsroot
-        bootstrap.create_parser(pickle_id)
-        bootstrap.create_lexer()
-        bootstrap.incparser.previous_version.parent = root
-        bootstrap.incparser.reparse()
-        return bootstrap.incparser.previous_version.parent
+        parser, lexer = grammar.load()
+        parser.previous_version.parent = root
+        parser.reparse()
+        return parser.previous_version.parent
 
     def has_var(self, name):
         return False
