@@ -131,7 +131,16 @@ class Viewer(object):
                 pass#addtext = node.symbol.folding
         except AttributeError:
             pass
-        dotnode = pydot.Node(id(node), label=" %s " % repr(node.symbol.name)[1:-1]+addtext)
+        label = []
+        label.append(repr(node.symbol.name)[1:-1])
+        label.append(addtext)
+        if isinstance(node.symbol, Terminal):
+            label.append("\n")
+            try:
+                label.append(repr(node.lookup))
+            except AttributeError:
+                pass
+        dotnode = pydot.Node(id(node), label="%s" % "".join(label))
         self.countnodes += 1
         if node.changed:
             dotnode.set('color','green')
