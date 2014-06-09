@@ -234,7 +234,14 @@ class AstAnalyser(object):
         uri = self.find_uri_by_astnode(name)
         if uri:
             path = uri.path + [uri]
-            return self.get_reachable_names_by_path(path)
+            names = self.get_reachable_names_by_path(path)
+            if scope.lookup in ["NAME","nonterminal","IDENTIFIER"]: #XXX this needs to be provided by the grammar
+                filtered_names = []
+                for uri in names:
+                    if uri.name.startswith(scope.symbol.name):
+                        filtered_names.append(uri)
+                return filtered_names
+            return names
 
     def get_correct_astnode(self, scope):
         # returns the correct astnode for a corresponding scope. Is needed for

@@ -902,6 +902,14 @@ class TreeManager(object):
         text.append(end.symbol.name[:diff_end])
         return "".join(text)
 
+    def pasteCompletion(self, text):
+        node = self.cursor.node
+        if text.startswith(node.symbol.name):
+            node.symbol.name = text
+            self.cursor.pos = len(text)
+        else:
+            self.pasteText(text)
+
     def pasteText(self, text):
         oldpos = self.cursor.get_x()
         node = self.get_node_from_cursor()
