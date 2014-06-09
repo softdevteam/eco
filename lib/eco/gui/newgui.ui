@@ -403,7 +403,7 @@
     <string>Add language box</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Space</string>
+    <string>Ctrl+L</string>
    </property>
   </action>
   <action name="actionSelect_next_language_box">
@@ -415,7 +415,7 @@
     <string>Select next language box</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Shift+Space</string>
+    <string>Ctrl+Shift+L</string>
    </property>
   </action>
   <action name="actionExit">
@@ -444,7 +444,7 @@
     <string>Code complete</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+P</string>
+    <string>Ctrl+Space</string>
    </property>
   </action>
   <action name="actionFull_reparse">

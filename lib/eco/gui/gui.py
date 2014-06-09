@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'gui/newgui.ui'
+# Form implementation generated from reading ui file 'newgui.ui'
 #
-# Created: Mon Jun  2 13:28:39 2014
+# Created: Mon Jun  9 16:58:31 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -281,13 +281,13 @@ class Ui_MainWindow(object):
         self.actionSave_as.setText(_translate("MainWindow", "Save as...", None))
         self.actionSave_as.setShortcut(_translate("MainWindow", "Ctrl+Shift+S", None))
         self.actionAdd_language_box.setText(_translate("MainWindow", "Add language box", None))
-        self.actionAdd_language_box.setShortcut(_translate("MainWindow", "Ctrl+Space", None))
+        self.actionAdd_language_box.setShortcut(_translate("MainWindow", "Ctrl+L", None))
         self.actionSelect_next_language_box.setText(_translate("MainWindow", "Select next language box", None))
-        self.actionSelect_next_language_box.setShortcut(_translate("MainWindow", "Ctrl+Shift+Space", None))
+        self.actionSelect_next_language_box.setShortcut(_translate("MainWindow", "Ctrl+Shift+L", None))
         self.actionExit.setText(_translate("MainWindow", "Exit", None))
         self.actionFind.setText(_translate("MainWindow", "Find...", None))
         self.actionFind.setShortcut(_translate("MainWindow", "Ctrl+F", None))
         self.actionCode_complete.setText(_translate("MainWindow", "Code complete", None))
-        self.actionCode_complete.setShortcut(_translate("MainWindow", "Ctrl+P", None))
+        self.actionCode_complete.setShortcut(_translate("MainWindow", "Ctrl+Space", None))
         self.actionFull_reparse.setText(_translate("MainWindow", "Full reparse", None))
 
