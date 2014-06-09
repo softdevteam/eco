@@ -853,6 +853,16 @@ if b:
         assert self.treemanager.cursor.node.symbol.name == "pass4"
         assert self.parser.last_status == True
 
+    def test_bug(self):
+        self.reset()
+        inputstring = """class X(object):\rpass"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == False
+        self.treemanager.cursor_movement("down")
+        self.treemanager.key_home()
+        self.treemanager.key_normal(" ")
+        assert self.parser.last_status == True
+
 class Test_NestedLboxWithIndentation():
     def setup_class(cls):
         parser, lexer = calc.load()

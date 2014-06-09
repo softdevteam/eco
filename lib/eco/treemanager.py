@@ -641,15 +641,20 @@ class TreeManager(object):
                 node.insert_after(newnode)
                 node = newnode
                 self.cursor.pos = 0
-            elif isinstance(node, BOS) or node.symbol.name == "\r" or isinstance(node.symbol, MagicTerminal):
+            elif isinstance(node, BOS) or node.symbol.name == "\r":
                 # insert new node: [bos] [newtext] [next node]
                 old = node
                 if old.next_term:
                     # skip over IndentationTerminals
                     old = old.next_term
-                    while isinstance(old.symbol, IndentationTerminal) and old.symbol.name != "NEWLINE":
+                    while isinstance(old.symbol, IndentationTerminal):
                         old = old.next_term
                     old = old.prev_term
+                node = TextNode(Terminal(""))
+                old.insert_after(node)
+                self.cursor.pos = 0
+            elif isinstance(node.symbol, MagicTerminal):
+                old = node
                 node = TextNode(Terminal(""))
                 old.insert_after(node)
                 self.cursor.pos = 0
