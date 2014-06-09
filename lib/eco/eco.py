@@ -174,11 +174,11 @@ class ParseView(QtGui.QMainWindow):
         whitespaces = self.ui.cb_toggle_ws.isChecked()
         if self.ui.cb_toggle_ast.isChecked():
             if self.ui.rb_view_parsetree.isChecked():
-                self.viewer.get_tree_image(editor.tm.get_mainparser().previous_version.parent, [], whitespaces)
+                self.viewer.get_tree_image(editor.tm.main_lbox, [], whitespaces)
             elif self.ui.rb_view_linetree.isChecked():
-                self.viewer.get_terminal_tree(editor.tm.get_mainparser().previous_version.parent)
+                self.viewer.get_terminal_tree(editor.tm.main_lbox)
             elif self.ui.rb_view_ast.isChecked():
-                self.viewer.get_tree_image(editor.tm.get_mainparser().previous_version.parent, [], whitespaces, ast=True)
+                self.viewer.get_tree_image(editor.tm.main_lbox, [], whitespaces, ast=True)
             self.showImage(self.ui.graphicsView, self.viewer.image)
 
     def showImage(self, graphicsview, imagefile):

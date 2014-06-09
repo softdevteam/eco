@@ -374,6 +374,12 @@ class TreeManager(object):
             self.cursor = Cursor(self.mainroot.children[0], 0, 0)
             self.selection_start = self.cursor.copy()
             self.selection_end = self.cursor.copy()
+            lboxnode = self.create_node("<%s>" % language, lbox=True)
+            lboxnode.parent_lbox = None
+            #self.mainroot.magic_backpointer = lboxnode
+            lboxnode.symbol.parser = self.mainroot
+            lboxnode.symbol.ast = self.mainroot
+            self.main_lbox = lboxnode
 
     def load_analyser(self, language):
         try:

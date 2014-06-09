@@ -132,15 +132,14 @@ class Viewer(object):
         except AttributeError:
             pass
         label = []
-        label.append(repr(node.symbol.name)[1:-1])
+        label.append(node.symbol.name)
         label.append(addtext)
-        if isinstance(node.symbol, Terminal):
+        if isinstance(node.symbol, Terminal) and node.lookup != "":
             label.append("\n")
-            try:
-                label.append(repr(node.lookup))
-            except AttributeError:
-                pass
-        dotnode = pydot.Node(id(node), label="%s" % "".join(label))
+            label.append(str(node.lookup))
+        label = "%s" % ("".join(label))
+        label = label.replace("\"", "\\\"")
+        dotnode = pydot.Node("\"%s\"" % id(node), label='"%s"' % label)
         self.countnodes += 1
         if node.changed:
             dotnode.set('color','green')
