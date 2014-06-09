@@ -659,14 +659,14 @@ class TreeManager(object):
             self.cursor.node = node
         self.cursor.pos += len(text)
 
-        self.relex(node)
+        need_reparse = self.relex(node)
         self.cursor.fix()
         self.fix_cursor_on_image()
         temp = self.cursor.node
         self.cursor.node = edited_node
-        self.post_keypress(text)
+        need_reparse |= self.post_keypress(text)
         self.cursor.node = temp
-        self.reparse(node)
+        self.reparse(node, need_reparse)
         if undo_mode:
             self.undomanager.add('insert', text, self.cursor.copy())
         self.changed = True
@@ -696,9 +696,10 @@ class TreeManager(object):
         if self.cursor.inside(): # cursor inside a node
             internal_position = self.cursor.pos
             self.last_delchar = node.backspace(internal_position)
-            self.relex(node)
+            need_reparse = self.relex(node)
             repairnode = node
         else: # between two nodes
+            need_reparse = False
             node = self.cursor.find_next_visible(node) # delete should edit the node to the right from the selected node
             # if lbox is selected, select first node in lbox
             if isinstance(node, EOS):
@@ -740,13 +741,14 @@ class TreeManager(object):
                 else:
                     # normal node is empty -> remove it from AST
                     node.parent.remove_child(node)
+                    need_reparse = True
 
             if repairnode is not None and not isinstance(repairnode, BOS):
-                self.relex(repairnode)
+                need_reparse |= self.relex(repairnode)
 
-        self.post_keypress("")
+        need_reparse |= self.post_keypress("")
         self.cursor.fix()
-        self.reparse(repairnode)
+        self.reparse(repairnode, need_reparse)
         if undo_mode:
             self.undomanager.add("delete", self.last_delchar, self.cursor.copy())
         self.changed = True
@@ -853,14 +855,16 @@ class TreeManager(object):
         new_lines = len(self.lines) - lines_before
         node = self.cursor.node
         root = node.get_root()
+        changed = False
         im = self.get_indentmanager(root)
         if im:
             for i in range(new_lines+1):
-                im.repair(node)
+                changed |= im.repair(node)
                 node = im.next_line(node)
 
         if text != "" and text[0] == "\r":
             self.cursor.line += 1
+        return changed
 
     def copySelection(self):
         result = self.get_nodes_from_selection()
@@ -1158,13 +1162,13 @@ class TreeManager(object):
     def relex(self, node):
         root = node.get_root()
         lexer = self.get_lexer(root)
-        lexer.relex(node)
-        return
+        return lexer.relex(node)
 
-    def reparse(self, node):
-        root = node.get_root()
-        parser = self.get_parser(root)
-        parser.inc_parse()
+    def reparse(self, node, changed=True):
+        if changed:
+            root = node.get_root()
+            parser = self.get_parser(root)
+            parser.inc_parse()
 
     def full_reparse(self):
         for p in self.parsers:

@@ -8,8 +8,10 @@ class IndentationManager:
         self.eos = root.children[-1]
         self.whitespaces = {}
         self.indentation = {}
+        self.changed = False
 
     def repair(self, node):
+        self.changed = False
         """Repair indentation in the line given by node."""
         bol = self.get_line_start(node)
         # if line is not logical, skip ahead to next logical line
@@ -61,7 +63,7 @@ class IndentationManager:
             current_ws = ws
             current_indent = self.get_indentation(bol)
             bol = self.next_line(bol)
-        return
+        return self.changed
 
     def repair_full(self):
         self.whitespaces = {}
@@ -136,8 +138,10 @@ class IndentationManager:
         # test if indent nodes have changed
         changed = self.indentation_nodes_changed(bol, new)
         if changed:
+            self.changed = True
             # remove old indentation nodes
             self.remove_indentation_nodes(bol)
+            # and insert new ones
             for node in new:
                 bol.insert_after(node)
 
@@ -145,7 +149,6 @@ class IndentationManager:
         if self.next_line(bol) is None: # this is the last line
             node = self.eos.prev_term
             while isinstance(node.symbol, IndentationTerminal):
-                node.parent.remove_child(node)
                 node = node.prev_term
 
             # if line is not logical, find previous logical
@@ -154,9 +157,19 @@ class IndentationManager:
 
             # generate correct amount of dedentation nodes
             this_indent = self.get_indentation(bol)
+            new = []
             for i in range(this_indent):
-                node.insert_after(self.create_token("dedent"))
-            node.insert_after(self.create_token("newline"))
+                new.append(self.create_token("dedent"))
+            new.append(self.create_token("newline"))
+
+            changed = self.indentation_nodes_changed(node, new)
+            if changed:
+                self.changed = True
+                # remove old indentation nodes
+                self.remove_indentation_nodes(node)
+                # and insert new ones
+                for n in new:
+                    node.insert_after(n)
 
     def indentation_nodes_changed(self, bol, nodes):
         """Compares indentation tokens in a line with new tokens to find out

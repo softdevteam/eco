@@ -472,6 +472,7 @@ class IncrementalLexerCF(object):
                 read_nodes.append(current_node)
                 break
 
+        any_changes = False
         # insert new nodes into tree
         it = iter(read_nodes)
         for t in generated_tokens:
@@ -480,8 +481,11 @@ class IncrementalLexerCF(object):
             except StopIteration:
                 node = TextNode(Terminal(""))
                 last_node.insert_after(node)
+                any_changes = True
             last_node = node
             node.symbol.name = t.source
+            if node.lookup != t.name:
+                any_changes = True
             node.lookup = t.name
             node.lookahead = t.lookahead
         # delete left over nodes
@@ -489,8 +493,10 @@ class IncrementalLexerCF(object):
             try:
                 node = it.next()
                 node.parent.remove_child(node)
+                any_changes = True
             except StopIteration:
                 break
+        return any_changes
 
     def find_preceeding_nodes(self, node):
         chars = 0
