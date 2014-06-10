@@ -196,6 +196,8 @@ class Node(object):
                 # update terminal pointers
                 child.prev_term.next_term = child.next_term
                 child.next_term.prev_term = child.prev_term
+                self.mark_changed()
+                self.changed = True
                 return
 
     def insert_after(self, node):
@@ -212,7 +214,8 @@ class Node(object):
                 newnode.left = c
                 newnode.right = c.right
                 c.right = newnode
-                newnode.right.left = newnode
+                if newnode.right:
+                    newnode.right.left = newnode
                 # update terminal pointers
                 newnode.prev_term = node
                 node.next_term.prev_term = newnode
@@ -343,7 +346,7 @@ uppercase = set(list(string.ascii_uppercase))
 digits = set(list(string.digits))
 
 class TextNode(Node):
-    def __init__(self, symbol, state=-1, children=[], pos=-1):
+    def __init__(self, symbol, state=-1, children=[], pos=-1, lookahead=0):
         Node.__init__(self, symbol, state, children)
         self.pos = pos
         self.position = 0
@@ -353,6 +356,8 @@ class TextNode(Node):
         self.image = None
         self.image_src = None
         self.plain_mode = False
+        self.alternate = None
+        self.lookahead = lookahead
 
         self.regex = ""
         self.text = ""

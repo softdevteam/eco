@@ -28,10 +28,10 @@ class SyntaxHighlighter(object):
         "cyan": "#2AA198",
         "yellow": "#B58900",
         "purple": "#D33682",
-        "black": "#000000"
+        "default": "#333333"
     }
-    keyword_colors = {
-    }
+    keyword_colors = {}
+    keyword_style = {}
 
     def get_color(self, node):
         if node.symbol.name in self.keyword_colors:
@@ -39,11 +39,20 @@ class SyntaxHighlighter(object):
         elif node.lookup in self.keyword_colors:
             color = self.keyword_colors[node.lookup]
         else:
-            color = "black"
+            color = "default"
         hexcode = self.colors[color]
         return hexcode
+
+    def get_style(self, node):
+        if node.symbol.name in self.keyword_style:
+            return self.keyword_style[node.symbol.name]
+        elif node.lookup in self.keyword_style:
+            return self.keyword_style[node.lookup]
+        return "normal"
+
 class PythonHighlighter(SyntaxHighlighter):
     keyword_colors = {
+        "import": "red",
         "class": "green",
         "def": "green",
         "for": "green",
@@ -70,6 +79,7 @@ class PythonHighlighter(SyntaxHighlighter):
         "len":"blue",
         "reversed":"blue",
         "isinstance":"blue",
+        "print":"blue",
     }
 
 class JavaHighlighter(SyntaxHighlighter):
@@ -93,6 +103,11 @@ class JavaHighlighter(SyntaxHighlighter):
         "BOOLEAN_LITERAL": "cyan",
         "STRING_LITERAL": "cyan",
         "INTEGER_LITERAL": "cyan",
+    }
+    keyword_style = {
+        "static": "italic",
+        "void": "bold",
+        "int": "bold"
     }
 
 class SqlHighlighter(SyntaxHighlighter):
@@ -119,6 +134,66 @@ class PrologHighlighter(SyntaxHighlighter):
         "STRING": "cyan",
         "<ws>": "grey",
     }
+
+class GrammarHighlighter(SyntaxHighlighter):
+    keyword_colors = {
+        "::=": "red",
+        "|": "purple",
+        "nonterminal": "cyan",
+        "terminal": "green",
+        "<ws>": "grey",
+        "#": "red",
+        "NUMBER": "red",
+        "%": "red",
+        "true":"blue",
+        "false":"blue"
+    }
+
+class ScopingrulesHighlighter(SyntaxHighlighter):
+    keyword_colors = {
+        "surrounding": "blue",
+        "subsequent": "blue",
+        "defines": "red",
+        "scopes": "red",
+        "references": "red",
+        "to": "red",
+        "in": "red",
+    }
+
+class HtmlHighlighter(SyntaxHighlighter):
+    keyword_colors = {
+        "<html": "blue",
+        "<head": "blue",
+        "<body": "blue",
+        "<table": "blue",
+        "<tr": "blue",
+        "<td": "blue",
+        "<span": "blue",
+        "<img": "blue",
+        "<a": "blue",
+        "<h1": "blue",
+        "<h2": "blue",
+        "<title": "blue",
+        "<": "blue",
+        ">": "blue",
+        "</html>": "blue",
+        "</head>": "blue",
+        "</body>": "blue",
+        "</table>": "blue",
+        "</tr>": "blue",
+        "</td>": "blue",
+        "</span>": "blue",
+        "</img>": "blue",
+        "</a>": "blue",
+        "</h1>": "blue",
+        "</h2>": "blue",
+        "</title>": "blue",
+        "TEXT": "default",
+        "STRING": "red",
+        "NUMBER": "red",
+        "COMMENT": "grey",
+    }
+
 def get_highlighter(parent):
     if parent == "Java":
         return JavaHighlighter()
@@ -128,4 +203,10 @@ def get_highlighter(parent):
         return SqlHighlighter()
     if parent == "Prolog":
         return PrologHighlighter()
+    if parent == "Grammar":
+        return GrammarHighlighter()
+    if parent == "Scoping":
+        return ScopingrulesHighlighter()
+    if parent == "Html":
+        return HtmlHighlighter()
     return SyntaxHighlighter()

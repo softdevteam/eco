@@ -22,6 +22,7 @@
 import pydot, os
 
 from grammar_parser.gparser import MagicTerminal, Terminal
+from grammar_parser.bootstrap import AstNode, ListNode
 
 tempdir = ".temp/"
 
@@ -34,6 +35,7 @@ class Viewer(object):
             os.stat(tempdir)
         except:
             os.mkdir(tempdir)
+        self.countnodes = 0
 
     def __del__(self):
         import shutil
@@ -95,7 +97,7 @@ class Viewer(object):
         graph.write_png(tempdir + 'temp.png')
         self.image = tempdir + 'temp.png'
 
-    def get_tree_image(self, tree, selected_node, whitespaces=True, restrict_nodes=None):
+    def get_tree_image(self, tree, selected_node, whitespaces=True, restrict_nodes=None, ast=False):
         if self.dot_type == 'google':
             import urllib.request
             s = self.create_ast_string(tree)
@@ -104,7 +106,7 @@ class Viewer(object):
             return temp[0]
         elif self.dot_type == 'pydot':
             graph = pydot.Dot(graph_type='graph')
-            self.add_node_to_tree(tree, graph, whitespaces, restrict_nodes)
+            self.add_node_to_tree(tree, graph, whitespaces, restrict_nodes, ast)
 
             # mark currently selected node as red
             for node in selected_node:
@@ -115,27 +117,52 @@ class Viewer(object):
             graph.write_png(tempdir + 'temp.png')
             self.image = tempdir + 'temp.png'
 
-    def add_node_to_tree(self, node, graph, whitespaces, restrict_nodes):
+    def add_node_to_tree(self, node, graph, whitespaces, restrict_nodes, ast):
 
         if restrict_nodes and node not in restrict_nodes:
             return None
 
-        dotnode = pydot.Node(id(node), label=" %s " % node.symbol.name)
+        addtext = ""
+        if ast:
+            if not isinstance(node, AstNode) and not isinstance(node, ListNode) and node.alternate:
+                node = node.alternate
+        try:
+            if node.symbol.folding:
+                pass#addtext = node.symbol.folding
+        except AttributeError:
+            pass
+        label = []
+        label.append(node.symbol.name)
+        label.append(addtext)
+        if isinstance(node.symbol, Terminal) and node.lookup != "":
+            label.append("\n")
+            label.append(str(node.lookup))
+        label = "%s" % ("".join(label))
+        label = label.replace("\"", "\\\"")
+        dotnode = pydot.Node("\"%s\"" % id(node), label='"%s"' % label)
+        self.countnodes += 1
         if node.changed:
             dotnode.set('color','green')
         dotnode.set('fontsize', '10')
+        dotnode.set('fontname', 'Arial')
         graph.add_node(dotnode)
 
         for c in node.children:
+            key = ""
+            if isinstance(node, AstNode):
+                key = c
+                c = node.children[c]
             if not whitespaces and c.symbol.name == "WS":
                 continue
-            c_node = self.add_node_to_tree(c, graph, whitespaces, restrict_nodes)
+            c_node = self.add_node_to_tree(c, graph, whitespaces, restrict_nodes, ast)
             if c_node is not None:
-                c.seen += 1
-                graph.add_edge(pydot.Edge(dotnode, c_node))
+                if key != "":
+                    graph.add_edge(pydot.Edge(dotnode, c_node, label=key, fontsize="10", fontname="Arial"))
+                else:
+                    graph.add_edge(pydot.Edge(dotnode, c_node))
 
         if isinstance(node.symbol, MagicTerminal):
-            c_node = self.add_node_to_tree(node.symbol.parser, graph, whitespaces, restrict_nodes)
+            c_node = self.add_node_to_tree(node.symbol.parser, graph, whitespaces, restrict_nodes, ast)
             graph.add_edge(pydot.Edge(dotnode, c_node))
 
         return dotnode

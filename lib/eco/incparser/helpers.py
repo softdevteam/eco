@@ -197,11 +197,16 @@ class Helper(object):
                         betaL.append(l)
                         f |= self.first(betaL)
                     alternatives = self.grammar[symbol].alternatives
+                    i = -1
                     for a in alternatives:
+                        i = i + 1
                         # create epsilon symbol if alternative is empty
                         if a == []:
                             a = [Epsilon()]
-                        p = Production(symbol, a)
+                        p = Production(symbol, a, self.grammar[symbol].annotations[i])
+                        if self.grammar[symbol].inserts.has_key(i):
+                            insert = self.grammar[symbol].inserts[i]
+                            p.inserts[insert[0]] = insert[1]
                         s = LR0Element(p, 0)
                         if a == [epsilon]:
                             s.d = 1

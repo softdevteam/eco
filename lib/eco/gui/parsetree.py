@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'parsetree.ui'
 #
-# Created: Wed Nov  6 14:07:55 2013
+# Created: Wed Jan 15 17:00:13 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -52,19 +52,41 @@ class Ui_MainWindow(object):
         self.graphicsView.setDragMode(QtGui.QGraphicsView.ScrollHandDrag)
         self.graphicsView.setObjectName(_fromUtf8("graphicsView"))
         self.verticalLayout.addWidget(self.graphicsView)
-        self.cb_toggle_ws = QtGui.QCheckBox(self.centralwidget)
-        self.cb_toggle_ws.setEnabled(True)
-        self.cb_toggle_ws.setChecked(False)
-        self.cb_toggle_ws.setObjectName(_fromUtf8("cb_toggle_ws"))
-        self.verticalLayout.addWidget(self.cb_toggle_ws)
+        self.horizontalLayout = QtGui.QHBoxLayout()
+        self.horizontalLayout.setContentsMargins(-1, 0, -1, -1)
+        self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
+        self.verticalLayout_3 = QtGui.QVBoxLayout()
+        self.verticalLayout_3.setContentsMargins(-1, 0, -1, -1)
+        self.verticalLayout_3.setObjectName(_fromUtf8("verticalLayout_3"))
         self.cb_toggle_ast = QtGui.QCheckBox(self.centralwidget)
         self.cb_toggle_ast.setCheckable(True)
         self.cb_toggle_ast.setChecked(False)
         self.cb_toggle_ast.setObjectName(_fromUtf8("cb_toggle_ast"))
-        self.verticalLayout.addWidget(self.cb_toggle_ast)
+        self.verticalLayout_3.addWidget(self.cb_toggle_ast)
+        self.cb_toggle_ws = QtGui.QCheckBox(self.centralwidget)
+        self.cb_toggle_ws.setEnabled(True)
+        self.cb_toggle_ws.setChecked(False)
+        self.cb_toggle_ws.setObjectName(_fromUtf8("cb_toggle_ws"))
+        self.verticalLayout_3.addWidget(self.cb_toggle_ws)
         self.cb_fit_ast = QtGui.QCheckBox(self.centralwidget)
         self.cb_fit_ast.setObjectName(_fromUtf8("cb_fit_ast"))
-        self.verticalLayout.addWidget(self.cb_fit_ast)
+        self.verticalLayout_3.addWidget(self.cb_fit_ast)
+        self.horizontalLayout.addLayout(self.verticalLayout_3)
+        self.verticalLayout_2 = QtGui.QVBoxLayout()
+        self.verticalLayout_2.setContentsMargins(-1, 0, -1, -1)
+        self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
+        self.rb_view_parsetree = QtGui.QRadioButton(self.centralwidget)
+        self.rb_view_parsetree.setChecked(True)
+        self.rb_view_parsetree.setObjectName(_fromUtf8("rb_view_parsetree"))
+        self.verticalLayout_2.addWidget(self.rb_view_parsetree)
+        self.rb_view_ast = QtGui.QRadioButton(self.centralwidget)
+        self.rb_view_ast.setObjectName(_fromUtf8("rb_view_ast"))
+        self.verticalLayout_2.addWidget(self.rb_view_ast)
+        self.rb_view_linetree = QtGui.QRadioButton(self.centralwidget)
+        self.rb_view_linetree.setObjectName(_fromUtf8("rb_view_linetree"))
+        self.verticalLayout_2.addWidget(self.rb_view_linetree)
+        self.horizontalLayout.addLayout(self.verticalLayout_2)
+        self.verticalLayout.addLayout(self.horizontalLayout)
         self.bt_show_sel_ast = QtGui.QPushButton(self.centralwidget)
         self.bt_show_sel_ast.setObjectName(_fromUtf8("bt_show_sel_ast"))
         self.verticalLayout.addWidget(self.bt_show_sel_ast)
@@ -81,9 +103,12 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(_translate("MainWindow", "Parse Tree", None))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Tree viewer", None))
+        self.cb_toggle_ast.setText(_translate("MainWindow", "Show tree", None))
         self.cb_toggle_ws.setText(_translate("MainWindow", "Show whitespace nodes", None))
-        self.cb_toggle_ast.setText(_translate("MainWindow", "Show parse tree", None))
-        self.cb_fit_ast.setText(_translate("MainWindow", "Fit AST in view", None))
+        self.cb_fit_ast.setText(_translate("MainWindow", "Fit in view", None))
+        self.rb_view_parsetree.setText(_translate("MainWindow", "Parse tree", None))
+        self.rb_view_ast.setText(_translate("MainWindow", "AST", None))
+        self.rb_view_linetree.setText(_translate("MainWindow", "Line based tree", None))
         self.bt_show_sel_ast.setText(_translate("MainWindow", "Show selected text parse tree", None))
 

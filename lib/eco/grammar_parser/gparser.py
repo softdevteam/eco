@@ -23,22 +23,26 @@ from lexer import Lexer
 
 class Rule(object):
 
-    def __init__(self):
-        self.symbol = None
+    def __init__(self, symbol=None):
+        self.symbol = symbol
         self.alternatives = []
+        self.annotations = []
+        self.inserts = {}
 
-    def add_alternative(self, alternative):
+    def add_alternative(self, alternative, annotation=None):
         # create symbol for empty alternative
         #if alternative == []:
         #    alternative = [Epsilon()]
         self.alternatives.append(alternative)
+        self.annotations.append(annotation)
 
     def __repr__(self):
         return "Rule(%s => %s)" % (self.symbol, self.alternatives)
 
 class Symbol(object):
-    def __init__(self, name=""):
+    def __init__(self, name="", folding=None):
         self.name = name
+        self.folding = folding
 
     def __eq__(self, other):
         if other.__class__ != self.__class__:
@@ -51,6 +55,9 @@ class Symbol(object):
     def __hash__(self):
         #XXX unsafe hashfunction
         return hash(self.__class__.__name__ + self.name)
+
+    def copy(self):
+        return self.__class__(self.name, self.folding)
 
 class Terminal(Symbol):
     def __repr__(self):
@@ -119,15 +126,16 @@ class Parser(object):
         if self.whitespaces:
             ws_rule = Rule()
             ws_rule.symbol = Nonterminal("WS")
-            ws_rule.add_alternative([Terminal("<ws>"), Nonterminal("WS")])
-            ws_rule.add_alternative([Terminal("<return>"), Nonterminal("WS")])
+            ws_rule.add_alternative([Terminal("<ws>", "^"), Nonterminal("WS", "^")])
+            ws_rule.add_alternative([Terminal("<return>", "^"), Nonterminal("WS", "^")])
             ws_rule.add_alternative([]) # or empty
             self.rules[ws_rule.symbol] = ws_rule
 
+            self.start_symbol.folding = "^^"
             # allow whitespace/comments at beginning of file
             start_rule = Rule()
             start_rule.symbol = Nonterminal("Startrule")
-            start_rule.add_alternative([Nonterminal("WS"), self.start_symbol])
+            start_rule.add_alternative([Nonterminal("WS", "^"), self.start_symbol])
             self.rules[start_rule.symbol] = start_rule
             self.start_symbol = start_rule.symbol
 
@@ -217,21 +225,51 @@ class Parser(object):
         # the symbols_level and adding the pipe check to group
         symbols_level.append([]) # first symbols level
         mode = None
+        i = 0
         for t in tokenlist:
             if t.name == "Nonterminal":
-                symbols_level[-1].append(Nonterminal(t.value))
+                if t.value.endswith("^^^"):
+                    nt = Nonterminal(t.value[:-3], "^^^")
+                elif t.value.endswith("^^"):
+                    nt = Nonterminal(t.value[:-2], "^^")
+                elif t.value.endswith("^"):
+                    nt = Nonterminal(t.value[:-1], "^")
+                elif t.value.endswith("<"):
+                    nt = Nonterminal(t.value[:-1], "<")
+                    rule.inserts[len(rule.alternatives)] = (i, nt)
+                    continue
+                else:
+                    nt = Nonterminal(t.value)
+                symbols_level[-1].append(nt)
+                i = i + 1
             elif t.name == "Terminal":
-                symbols_level[-1].append(Terminal(t.value.strip("\"")))
+                if t.value.endswith("^^^"):
+                    stripped = t.value[:-3].strip("\"")
+                    terminal = Terminal(stripped, "^^^")
+                elif t.value.endswith("^^"):
+                    stripped = t.value[:-2].strip("\"")
+                    terminal = Terminal(stripped, "^^")
+                elif t.value.endswith("^"):
+                    stripped = t.value[:-1].strip("\"")
+                    terminal = Terminal(stripped, "^")
+                else:
+                    stripped = t.value.strip("\"")
+                    terminal = Terminal(stripped)
+                symbols_level[-1].append(terminal)
+                i = i + 1
                 if self.whitespaces:
-                    symbols_level[-1].append(Nonterminal("WS"))
+                    symbols_level[-1].append(Nonterminal("WS", "^"))
+                    i = i + 1
             elif t.name == "MagicTerminal":
                 symbols_level[-1].append(MagicTerminal(t.value))
+                i = i + 1
                 if self.whitespaces:
-                    symbols_level[-1].append(Nonterminal("WS"))
+                    symbols_level[-1].append(Nonterminal("WS", "^"))
             elif t.name == "Alternative":
                 if mode == None:
                     rule.add_alternative(symbols_level.pop())
                     symbols_level.append([])
+                    i = 0
             elif t.name in ["Loop_Start", "Option_Start", "Group_Start"]:
                 symbols_level.append([])
                 if t.name == "Group_Start":

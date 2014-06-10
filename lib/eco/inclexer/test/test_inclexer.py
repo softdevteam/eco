@@ -1,4 +1,4 @@
-from inclexer.inclexer import IncrementalLexer
+from inclexer.inclexer import IncrementalLexer, StringWrapper
 from incparser.astree import AST
 from grammars.grammars import calc1
 from incparser.astree import TextNode, BOS, EOS
@@ -41,6 +41,9 @@ class Test_CalcLexer(Test_IncrementalLexer):
         expected.append(("2", "INT"))
         assert tokens == expected
 
+    def test_lex_no_valid_token(self):
+        tokens = self.lex("abc") # shouldn't loop forever
+
     def test_relex(self):
         ast = AST()
         ast.init()
@@ -82,6 +85,50 @@ class Test_CalcLexer(Test_IncrementalLexer):
         node = node.next_term; assert node.symbol == Terminal("+")
         node = node.next_term; assert node.symbol == Terminal("2")
 
+    def test_relex3(self):
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        new1 = TextNode(Terminal("1+2"))
+        new2 = TextNode(Terminal("345"))
+        new3 = TextNode(Terminal("6+"))
+        new4 = TextNode(Terminal("789")) # this should never be touched
+        new5 = TextNode(Terminal("+")) # this should never be touched
+        bos.insert_after(new1)
+        new1.insert_after(new2)
+        new2.insert_after(new3)
+        new3.insert_after(new4)
+        new4.insert_after(new5)
+        self.relex(new1)
+        assert ast.parent.symbol == Nonterminal("Root")
+        assert isinstance(ast.parent.children[0], BOS)
+        assert isinstance(ast.parent.children[-1], EOS)
+        node = bos.next_term; assert node.symbol == Terminal("1")
+        node = node.next_term; assert node.symbol == Terminal("+")
+        node = node.next_term; assert node.symbol == Terminal("23456")
+        node = node.next_term; assert node.symbol == Terminal("+")
+        # check that 789 hasn't been relexed
+        assert node.next_term is new4
+        assert node.next_term.symbol is new4.symbol
+
+    def test_relex_newline(self):
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        new1 = TextNode(Terminal("1+2\r3+4"))
+        bos.insert_after(new1)
+        self.relex(new1)
+        assert ast.parent.symbol == Nonterminal("Root")
+        assert isinstance(ast.parent.children[0], BOS)
+        assert isinstance(ast.parent.children[-1], EOS)
+        node = bos.next_term; assert node.symbol == Terminal("1")
+        node = node.next_term; assert node.symbol == Terminal("+")
+        node = node.next_term; assert node.symbol == Terminal("2")
+        node = node.next_term; assert node.symbol == Terminal("\r")
+        node = node.next_term; assert node.symbol == Terminal("3")
+        node = node.next_term; assert node.symbol == Terminal("+")
+        node = node.next_term; assert node.symbol == Terminal("4")
+
     def test_relex_return(self):
         ast = AST()
         ast.init()
@@ -104,4 +151,93 @@ class Test_CalcLexer(Test_IncrementalLexer):
         self.relex(new)
         assert new.symbol == Terminal("\r")
         assert new.lookup == "<return>"
+
+    def test_backwards_lexing(self):
+        lexer = IncrementalLexer("""
+"::=":doublecolon
+"=":equal
+":":singlecolon
+        """)
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        eos = ast.parent.children[1]
+        text = TextNode(Terminal(":"))
+        bos.insert_after(text)
+        lexer.relex(text)
+
+        assert bos.next_term.symbol.name == ":"
+        assert bos.next_term.lookup == "singlecolon"
+        assert text.lookahead == 1
+
+        text2 = TextNode(Terminal(":"))
+        text.insert_after(text2)
+        lexer.relex(text2)
+        assert text2.lookahead == 1
+
+        assert bos.next_term.symbol.name == ":"
+        assert bos.next_term.next_term.symbol.name == ":"
+
+        text3 = TextNode(Terminal("="))
+        text2.insert_after(text3)
+        lexer.relex(text3)
+
+        assert bos.next_term.symbol.name == "::="
+        assert isinstance(bos.next_term.next_term, EOS)
+
+    def test_lookahead(self):
+        lexer = IncrementalLexer("""
+"aaa":aaa
+"a":a
+"b":b
+        """)
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        eos = ast.parent.children[1]
+        text = TextNode(Terminal("baab"))
+        bos.insert_after(text)
+        lexer.relex(text)
+        assert ast.parent.children[1].symbol.name == "b"
+        assert ast.parent.children[2].symbol.name == "a"
+        assert ast.parent.children[3].symbol.name == "a"
+        assert ast.parent.children[4].symbol.name == "b"
+        ast.parent.children[1].symbol = None
+        ast.parent.children[3].symbol.name = "aa"
+        lexer.relex(ast.parent.children[3])
+
+        assert ast.parent.children[2].symbol.name == "aaa"
+        assert ast.parent.children[3].symbol.name == "b"
+
+    def test_stringwrapper(self):
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        eos = ast.parent.children[1]
+        text1 = TextNode(Terminal("abc"))
+        text2 = TextNode(Terminal("+"))
+        text3 = TextNode(Terminal("1"))
+        text4 = TextNode(Terminal("*"))
+        text5 = TextNode(Terminal("3456"))
+        bos.insert_after(text1)
+        text1.insert_after(text2)
+        text2.insert_after(text3)
+        text3.insert_after(text4)
+        text4.insert_after(text5)
+
+        wrapper = StringWrapper(text1)
+        assert wrapper[0] == "a"
+        assert wrapper[2] == "c"
+        assert wrapper[3] == "+"
+        assert wrapper[4] == "1"
+        assert wrapper[5] == "*"
+        assert wrapper[6] == "3"
+        assert wrapper[9] == "6"
+
+        s = "abc+1*3456"
+        for i in range(len(s)):
+            for j in range(len(s)):
+                assert wrapper[i:j] == s[i:j]
+                print(i,j,wrapper[i:j])
+
 

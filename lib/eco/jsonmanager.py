@@ -1,13 +1,14 @@
-import json
+import json, gzip
 
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from PyQt4.QtGui import QImage
 
 class JsonManager(object):
-    def __init__(self):
+    def __init__(self, unescape=False):
         self.last_terminal = None
         self.language_boxes = []
+        self.unescape = unescape
 
     def save(self, root, language, whitespaces, filename):
         main = {}
@@ -16,14 +17,20 @@ class JsonManager(object):
         main["language"] = language
         main["whitespaces"] = whitespaces
 
-        fp = open(filename, "w")
-        json.dump(main, fp)#, indent=4)
-        fp.close()
+        z = gzip.open(str(filename), "w")
+        z.write(json.dumps(main))
+        z.close()
 
     def load(self, filename):
-        fp = open(filename, "r")
-        main = json.load(fp)
-        fp.close()
+        try:
+            z = gzip.open(str(filename), "r")
+            main = json.loads(z.read())
+            z.close()
+        except IOError:
+            # backwards compatibility
+            fp = open(filename, "r")
+            main = json.load(fp)
+            fp.close()
 
         language = main["language"]
         root_json = main["root"]
@@ -62,7 +69,9 @@ class JsonManager(object):
         node_symbol = eval(jsnode["symbol"])
 
         symbol = node_symbol()
-        symbol.name = jsnode["text"]
+        symbol.name = jsnode["text"].encode("utf-8")
+        if self.unescape:
+            symbol.name = symbol.name.decode("string-escape")
         node = node_class(symbol)
         assert node.symbol is symbol
         node.lookup = jsnode["lookup"]

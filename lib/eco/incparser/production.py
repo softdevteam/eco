@@ -21,10 +21,12 @@
 
 class Production(object):
 
-    def __init__(self, left, right):
+    def __init__(self, left, right, annotation=None):
         self.left = left
         self.right = right
+        self.annotation = annotation
         self._hash = None
+        self.inserts = {}
 
     def __eq__(self, other):
         return self.left == other.left and self.right == other.right
@@ -40,5 +42,5 @@ class Production(object):
         l = []
         for e in self.right:
             l.append(e.name)
-        return "%s ::= %s" % (self.left.name, " ".join(l))
+        return "%s ::= %s {%s}" % (self.left.name, " ".join(l), self.annotation)
         #return "Production(%s, %s)" % (self.left, self.right)

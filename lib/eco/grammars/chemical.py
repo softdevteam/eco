@@ -28,4 +28,6 @@ S ::= "chem"
 """
 "[a-zA-Z0-9]+":chem
 """
+,
+"Chemicals"
 )

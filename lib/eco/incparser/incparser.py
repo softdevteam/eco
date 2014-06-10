@@ -42,34 +42,36 @@ def print(*args, **kwargs):
 
 class IncParser(object):
 
-    def __init__(self, grammar, lr_type=LR0, whitespaces=False):
-        print("Parsing Grammar")
-        parser = Parser(grammar, whitespaces)
-        parser.parse()
+    def __init__(self, grammar=None, lr_type=LR0, whitespaces=False, startsymbol=None):
 
-        filename = "".join([os.path.dirname(__file__), "/../pickle/", str(hash(grammar) ^ hash(whitespaces)), ".pcl"])
-        try:
-            print("Try to unpickle former stategraph")
-            f = open(filename, "r")
-            start = time.time()
-            self.graph = pickle.load(f)
-            end = time.time()
-            print("unpickling done in", end-start)
-        except IOError:
-            print("could not unpickle old graph")
-            print("Creating Stategraph")
-            self.graph = StateGraph(parser.start_symbol, parser.rules, lr_type)
-            print("Building Stategraph")
-            self.graph.build()
-            print("Pickling")
-            pickle.dump(self.graph, open(filename, "w"))
+        if grammar:
+            print("Parsing Grammar")
+            parser = Parser(grammar, whitespaces)
+            parser.parse()
 
-        if lr_type == LALR:
-            self.graph.convert_lalr()
+            filename = "".join([os.path.dirname(__file__), "/../pickle/", str(hash(grammar) ^ hash(whitespaces)), ".pcl"])
+            try:
+                print("Try to unpickle former stategraph")
+                f = open(filename, "r")
+                start = time.time()
+                self.graph = pickle.load(f)
+                end = time.time()
+                print("unpickling done in", end-start)
+            except IOError:
+                print("could not unpickle old graph")
+                print("Creating Stategraph")
+                self.graph = StateGraph(parser.start_symbol, parser.rules, lr_type)
+                print("Building Stategraph")
+                self.graph.build()
+                print("Pickling")
+                pickle.dump(self.graph, open(filename, "w"))
 
-        print("Creating Syntaxtable")
-        self.syntaxtable = SyntaxTable(lr_type)
-        self.syntaxtable.build(self.graph)
+            if lr_type == LALR:
+                self.graph.convert_lalr()
+
+            print("Creating Syntaxtable")
+            self.syntaxtable = SyntaxTable(lr_type)
+            self.syntaxtable.build(self.graph)
 
         self.stack = []
         self.ast_stack = []
@@ -79,9 +81,31 @@ class IncParser(object):
         self.validating = False
         self.last_status = False
         self.error_node = None
+        self.whitespaces = whitespaces
 
         self.previous_version = None
         print("Incemental parser done")
+
+    def from_dict(self, rules, startsymbol, lr_type, whitespaces, pickle_id):
+        self.graph = None
+        if pickle_id:
+            filename = "".join([os.path.dirname(__file__), "/../pickle/", str(pickle_id ^ hash(whitespaces)), ".pcl"])
+            try:
+                print("unpickling")
+                f = open(filename, "r")
+                self.graph = pickle.load(f)
+            except IOError:
+                print("failed")
+        if self.graph is None:
+            print("building graph")
+            self.graph = StateGraph(startsymbol, rules, lr_type)
+            self.graph.build()
+            if pickle_id:
+                pickle.dump(self.graph, open(filename, "w"))
+
+        self.syntaxtable = SyntaxTable(lr_type)
+        self.syntaxtable.build(self.graph)
+        self.whitespaces = whitespaces
 
     def init_ast(self, magic_parent=None):
         bos = BOS(Terminal(""), 0, [])
@@ -93,7 +117,10 @@ class IncParser(object):
         root = Node(Nonterminal("Root"), 0, [bos, eos])
         self.previous_version = AST(root)
 
-    def inc_parse(self, line_indents=[]):
+    def reparse(self):
+        self.inc_parse([], True)
+
+    def inc_parse(self, line_indents=[], reparse=False):
         print("============ NEW INCREMENTAL PARSE ================= ")
         self.error_node = None
         self.stack = []
@@ -128,7 +155,7 @@ class IncParser(object):
                         la = result
 
             else: # Nonterminal
-                if la.changed:
+                if la.changed or reparse:
                     la.changed = False
                     self.undo.append((la, 'changed', True))
                     la = self.left_breakdown(la)
@@ -155,11 +182,10 @@ class IncParser(object):
                                 la = self.left_breakdown(la)
                     else:
                     # PARSER WITHOUT OPTIMISATION
-                        t = la.next_terminal()
                         if la.lookup != "":
-                            lookup_symbol = Terminal(t.lookup)
+                            lookup_symbol = Terminal(la.lookup)
                         else:
-                            lookup_symbol = t.symbol
+                            lookup_symbol = la.symbol
                         element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
 
                         if self.shiftable(la):
@@ -219,7 +245,11 @@ class IncParser(object):
     def reduce(self, element):
         children = []
         for i in range(element.amount()):
-            children.insert(0, self.stack.pop())
+            c = self.stack.pop()
+            # apply folding information from grammar to tree nodes
+            fold = element.action.right[element.amount()-i-1].folding
+            c.symbol.folding = fold
+            children.insert(0, c)
         self.current_state = self.stack[-1].state #XXX
 
         goto = self.syntaxtable.lookup(self.current_state, element.action.left)
@@ -231,9 +261,54 @@ class IncParser(object):
             self.undo.append((c, 'left', c.left))
             self.undo.append((c, 'right', c.right))
 
-        new_node = Node(element.action.left, goto.action, children)
+        new_node = Node(element.action.left.copy(), goto.action, children)
         self.stack.append(new_node)
         self.current_state = new_node.state
+        try:
+            # eco grammar annotations
+            element.action.annotation.interpret
+            self.interpret_annotation(new_node, element.action)
+        except AttributeError:
+            # johnstone annotations
+            self.add_alternate_version(new_node, element.action)
+
+    def interpret_annotation(self, node, production):
+        annotation = production.annotation
+        if annotation:
+            astnode = annotation.interpret(node)
+            node.alternate = astnode
+
+    def add_alternate_version(self, node, production):
+        # add alternate (folded) versions for nodes to the tree
+        alternate = TextNode(node.symbol.__class__(node.symbol.name), node.state, [])
+        alternate.children = []
+        teared = []
+        for i in range(len(node.children)):
+            if production.inserts.has_key(i):
+                # insert teared nodes at right position
+                value = production.inserts[i]
+                for t in teared:
+                    if t.symbol.name == value.name:
+                        alternate.children.append(t)
+            c = node.children[i]
+            if c.symbol.folding == "^^^":
+                c.symbol.folding = None
+                teared.append(c)
+                continue
+            elif c.symbol.folding == "^^":
+                while c.alternate is not None:
+                    c = c.alternate
+                alternate.symbol = c.symbol
+                for child in c.children:
+                    alternate.children.append(child)
+            elif c.symbol.folding == "^":
+                while c.alternate is not None:
+                    c = c.alternate
+                for child in c.children:
+                    alternate.children.append(child)
+            else:
+                alternate.children.append(c)
+        node.alternate = alternate
 
     def left_breakdown(self, la):
         if len(la.children) > 0:
@@ -356,3 +431,10 @@ class IncParser(object):
         self.stack = []
         self.ast_stack = []
         self.all_changes = []
+        self.undo = []
+        self.last_shift_state = 0
+        self.validating = False
+        self.last_status = False
+        self.error_node = None
+        self.previous_version = None
+        self.init_ast()
