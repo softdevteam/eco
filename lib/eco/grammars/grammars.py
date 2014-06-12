@@ -65,7 +65,7 @@ class EcoFile(object):
         return (bootstrap.incparser, bootstrap.inclexer)
 
     def add_alternative(self, nonterminal, language):
-        self.alts[nonterminal] = language
+        self.alts[nonterminal] = "<%s>" % (language.name,)
 
     def change_start(self, name):
         self.extract = name
@@ -95,24 +95,24 @@ chemical = EcoFile("Chemicals", "grammars/chemicals.eco", "Chemicals")
 
 # extensions
 pythonsql = EcoFile("Python + SQL", "grammars/python275.eco", "Python")
-pythonsql.add_alternative("atom", "<SQL>")
+pythonsql.add_alternative("atom", sql)
 
 pythonprolog = EcoFile("Python + Prolog", "grammars/python275.eco", "Python")
-pythonprolog.add_alternative("atom", "<Prolog>")
+pythonprolog.add_alternative("atom", prolog)
 
 htmlpythonsql = EcoFile("HTML + Python + SQL", "grammars/html.eco", "Html")
-htmlpythonsql.add_alternative("element", "<Python + SQL>")
-htmlpythonsql.add_alternative("attribute_value", "<Image>")
+htmlpythonsql.add_alternative("element", pythonsql)
+htmlpythonsql.add_alternative("attribute_value", img)
 
 java_expr = EcoFile("Java expression", "grammars/java15.eco", "Java")
 java_expr.change_start("expression")
-java_expr.add_alternative("unary_expression", "<Chemicals>")
+java_expr.add_alternative("unary_expression", chemical)
 
 sql_ref_java = EcoFile("SQL ref. Java expression", "grammars/sql.eco", "Sql")
-sql_ref_java.add_alternative("y_condition", "<Java expression>")
+sql_ref_java.add_alternative("y_condition", java_expr)
 
 javasqlchemical = EcoFile("Java + SQL + Chemical", "grammars/java15.eco", "Java")
-javasqlchemical.add_alternative("unary_expression", "<SQL ref. Java expression>")
+javasqlchemical.add_alternative("unary_expression", sql_ref_java)
 
 languages = [calc, java, javasqlchemical, java_expr, python, pythonsql, pythonprolog, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar]
 
