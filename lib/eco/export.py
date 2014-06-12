@@ -44,15 +44,15 @@ class HtmlPythonSQL(object):
             f.write("""
 def gen_exec(query):
     try:
-        c = %s.cursor()
-        c.execute(query)
+        _c = %s.cursor()
+        _c.execute(query)
         while True:
-            o = c.fetchone()
+            o = _c.fetchone()
             if o == None:
                 break
             yield o
     finally:
-        c.close()
+        _c.close()
 """ % m.group(1))
         f.write(output)
         f.close()
