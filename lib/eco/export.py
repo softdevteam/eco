@@ -39,7 +39,7 @@ class HtmlPythonSQL(object):
 
         f = open(filename, "w")
         output = "".join(output)
-        m = re.search("([a-zA-Z_][a-zA-Z_0-9]+) = sqlite3.connect",output)
+        m = re.search("([a-zA-Z_][a-zA-Z_0-9]*) = sqlite3.connect",output)
         if m:
             f.write("""
 def gen_exec(query):
