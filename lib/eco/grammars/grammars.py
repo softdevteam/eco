@@ -101,7 +101,7 @@ pythonprolog = EcoFile("Python + Prolog", "grammars/python275.eco", "Python")
 pythonprolog.add_alternative("atom", "<Prolog>")
 
 htmlpythonsql = EcoFile("HTML + Python + SQL", "grammars/html.eco", "Html")
-htmlpythonsql.add_alternative("element", "<Python 2.7.5>")
+htmlpythonsql.add_alternative("element", "<Python + SQL>")
 htmlpythonsql.add_alternative("attribute_value", "<Image>")
 
 java_expr = EcoFile("Java expression", "grammars/java15.eco", "Java")
