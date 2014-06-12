@@ -130,15 +130,65 @@ class IncParser(object):
         bos = self.previous_version.parent.children[0]
         la = self.pop_lookahead(bos)
         self.loopcount = 0
+        self.comment_mode = False
 
         USE_OPT = True
 
         while(True):
             self.loopcount += 1
+            if self.comment_mode:
+                if la.lookup == "cmt_end":
+                    # in comment mode we just add all subtrees as they are to a
+                    # subtree COMMENT subtrees that have changes are broken
+                    # apart, e.g. to be able to find an inserted */ the CMT
+                    # subtree is then added to the parsers stack without
+                    # changing its state when the parser later reduces stack
+                    # elements to a new subtree, CMT subtrees are added as
+                    # children
+                    next_la = self.pop_lookahead(la)
+                    self.comment_mode = False
+                    comment_stack.append(la)
+                    CMT = Node(Nonterminal("COMMENT"))
+                    for c in comment_stack:
+                        self.undo.append((c, 'parent', c.parent))
+                        self.undo.append((c, 'left', c.left))
+                        self.undo.append((c, 'right', c.right))
+                    CMT.set_children(comment_stack)
+                    CMT.state = self.current_state
+                    self.stack.append(CMT)
+                    la = next_la
+                    continue
+                if isinstance(la, EOS):
+                    self.comment_mode = False
+                    self.do_undo(la)
+                    self.last_status = False
+                    return False
+                la = self.add_to_stack(la, comment_stack)
+                continue
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
                 if la.changed:#self.has_changed(la):
                     assert False # with prelexing you should never end up here!
                 else:
+                    if la.lookup == "cmt_start":
+                        # when we find a cmt_start token, we enter comment mode
+                        self.comment_mode = True
+                        comment_stack = []
+                        comment_stack.append(la)
+                        # since unchanged subtrees are left untouched, we
+                        # wouldn't find a cmt_end if it is part of another
+                        # comment, e.g. /* foo /* bar */ to be able to merge
+                        # two comment together, we need to find the next
+                        # cmt_end and mark its subtree as changed
+                        end = la
+                        while True:
+                            end = end.next_term
+                            if isinstance(end, EOS):
+                                break
+                            if end.lookup == "cmt_end":
+                                end.mark_changed()
+                                break
+                        la = self.pop_lookahead(la)
+                        continue
                     if la.lookup != "":
                         lookup_symbol = Terminal(la.lookup)
                     else:
@@ -196,6 +246,21 @@ class IncParser(object):
                             la = self.left_breakdown(la)
         print("============ INCREMENTAL PARSE END ================= ")
 
+    def add_to_stack(self, la, stack):
+        # comment helper that adds elements to the comment stack and if la is a
+        # subtree with changes, recursively break it apart and adds its
+        # children
+        if la.changed:
+            for c in la.children:
+                la = self.add_to_stack(c, stack)
+                if isinstance(la.symbol, Terminal) and la.lookup == "cmt_end":
+                    return la
+        else:
+            stack.append(la)
+        if isinstance(la, EOS):
+            return la
+        return self.pop_lookahead(la)
+
     def parse_terminal(self, la, lookup_symbol):
         #print("Parsing terminal", la)
         if isinstance(lookup_symbol, IndentationTerminal):
@@ -233,26 +298,40 @@ class IncParser(object):
                 self.right_breakdown()
                 self.validating = False
             else:
-                # undo all changes
-                while len(self.undo) > 0:
-                    node, attribute, value = self.undo.pop(-1)
-                    setattr(node, attribute, value)
-                self.error_node = la
-                print ("Error", la, la.prev_term, la.next_term)
-                print("loopcount", self.loopcount)
-                return "Error"
+                return self.do_undo(la)
+
+    def do_undo(self, la):
+        while len(self.undo) > 0:
+            node, attribute, value = self.undo.pop(-1)
+            setattr(node, attribute, value)
+        self.error_node = la
+        print ("Error", la, la.prev_term, la.next_term)
+        print("loopcount", self.loopcount)
+        return "Error"
 
     def reduce(self, element):
+        # Reduces elements from the stack to a Nonterminal subtree.  special:
+        # COMMENT subtrees that are found on the stack during reduction are
+        # added "silently" to the subtree (they don't count to the amount of
+        # symbols of the reduction)
         children = []
-        for i in range(element.amount()):
+        i = 0
+        while i < element.amount():
             c = self.stack.pop()
             # apply folding information from grammar to tree nodes
             fold = element.action.right[element.amount()-i-1].folding
             c.symbol.folding = fold
             children.insert(0, c)
-        self.current_state = self.stack[-1].state #XXX
+            if c.symbol.name != "COMMENT":
+                i += 1
+        if self.stack[-1].symbol.name == "COMMENT":
+            c = self.stack.pop()
+            children.insert(0, c)
+        self.current_state = self.stack[-1].state #XXX don't store on nodes, but on stack
 
         goto = self.syntaxtable.lookup(self.current_state, element.action.left)
+        if goto is None:
+            raise Exception("Reduction error on %s in state %s: goto is None" % (element, self.current_state))
         assert goto != None
 
         # save childrens parents state
@@ -263,7 +342,7 @@ class IncParser(object):
 
         new_node = Node(element.action.left.copy(), goto.action, children)
         self.stack.append(new_node)
-        self.current_state = new_node.state
+        self.current_state = new_node.state # = goto.action
         try:
             # eco grammar annotations
             element.action.annotation.interpret
