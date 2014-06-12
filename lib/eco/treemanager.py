@@ -1124,7 +1124,7 @@ class TreeManager(object):
         lang = self.parsers[0][2]
         if lang == "Python + Prolog":
             self.export_unipycation()
-        elif lang == "HTML + Python 2.7.5 + SQL (Eco)":
+        elif lang == "HTML + Python + SQL":
             self.export_html_python_sql()
         else:
             self.export_as_text()
