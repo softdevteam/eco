@@ -37,16 +37,11 @@ class HtmlPythonSQL(object):
                 html_text.append(node.symbol.name)
                 continue
 
-        # find name of sql connection
-        output = "".join(output)
-        try:
-            connection = re.search("([a-zA-Z_][a-zA-Z_0-9]+) = sqlite3.connect",output).group(1)
-        except AttributeError:
-            print ("Couldn't find database connection in program")
-            return
-
         f = open(filename, "w")
-        f.write("""
+        output = "".join(output)
+        m = re.search("([a-zA-Z_][a-zA-Z_0-9]+) = sqlite3.connect",output)
+        if m:
+            f.write("""
 def gen_exec(query):
     try:
         c = %s.cursor()
@@ -58,7 +53,7 @@ def gen_exec(query):
             yield o
     finally:
         c.close()
-""" % (connection,))
+""" % m.group(1))
         f.write(output)
         f.close()
 
