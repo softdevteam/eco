@@ -299,6 +299,30 @@ class LanguageView(QtGui.QDialog):
     def getWhitespace(self):
         return True
 
+class RunWithProgress(QObject):
+    class ProgressThread(QThread):
+        def __init__(self, func, q):
+            self.func = func
+            self.q = q
+            QThread.__init__(self)
+        def run(self):
+            QThread.msleep(100) # give qeventloop a chance to update gui
+            self.func()
+            self.q.quit()
+
+    def __init__(self, func, title, label):
+        p = QProgressDialog()
+        p.setWindowTitle(title)
+        p.setLabelText(label)
+        p.setWindowModality(Qt.WindowModal)
+        p.setCancelButton(None)
+        p.setRange(0,0)
+        p.show()
+        q = QEventLoop()
+        l = self.ProgressThread(func, q)
+        l.start()
+        q.exec_()
+
 class Window(QtGui.QMainWindow):
 
 
@@ -442,7 +466,9 @@ class Window(QtGui.QMainWindow):
         if result:
             etab = EditorTab()
             lang = languages[lview.getLanguage()]
-            etab.set_language(lang, lview.getWhitespace())
+            def x():
+                etab.set_language(lang, lview.getWhitespace())
+            RunWithProgress(x, "Creating new document", "Loading grammar...")
             self.ui.tabWidget.addTab(etab, "[No name]")
             self.ui.tabWidget.setCurrentWidget(etab)
             etab.editor.setFocus(Qt.OtherFocusReason)
@@ -465,7 +491,9 @@ class Window(QtGui.QMainWindow):
             if filename.endsWith(".eco") or filename.endsWith(".nb"):
                 etab = EditorTab()
 
-                etab.editor.loadFromJson(filename)
+                def x():
+                    etab.editor.loadFromJson(filename)
+                RunWithProgress(x, "Opening file", "Loading file and grammars...")
                 etab.editor.update()
                 etab.filename = filename
 
@@ -474,7 +502,9 @@ class Window(QtGui.QMainWindow):
                 etab.editor.setFocus(Qt.OtherFocusReason)
             else: # import
                 self.newfile()
-                self.importfile(filename)
+                def x():
+                    self.importfile(filename)
+                RunWithProgress(x, "Importing file", "Importing and parsing file...")
 
     def closeTab(self, index):
         etab = self.ui.tabWidget.widget(index)
