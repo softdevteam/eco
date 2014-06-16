@@ -37,6 +37,8 @@ class NodeEditor(QFrame):
         self.timer = QTimer(self)
         self.connect(self.timer, SIGNAL("timeout()"), self.test)
 
+        self.colors = [QColor("#333333"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
+
     def test(self):
         self.tm.analyse()
         self.update()
@@ -199,6 +201,9 @@ class NodeEditor(QFrame):
             draw_lbox = True
         else:
             draw_lbox = False
+
+        draw_all_boxes = self.getWindow().show_languageboxes()
+
         self.lines = self.tm.lines
         self.cursor = self.tm.cursor
         self.lines[line].height = 1 # reset height
@@ -246,9 +251,13 @@ class NodeEditor(QFrame):
                     break
 
             # draw language boxes
-            if lbox > 0 and draw_lbox:
+            if lbox > 0 and (draw_lbox or draw_all_boxes):
                 #color = self.nesting_colors[lbox % 5]
-                color = QColor(0,0,0,30)
+                if draw_all_boxes:
+                    color = self.colors[(lbox-1) % len(self.colors)]
+                    color.setAlpha(50)
+                else:
+                    color = QColor(0,0,0,30)
                 editor.update_image(node)
                 if node.symbol.name != "\r" and not isinstance(node.symbol, IndentationTerminal):
                     if not node.image or node.plain_mode:

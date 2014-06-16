@@ -362,6 +362,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionCode_complete, SIGNAL("triggered()"), self.show_code_completion)
         self.connect(self.ui.actionFull_reparse, SIGNAL("triggered()"), self.full_reparse)
         self.connect(self.ui.treeWidget, SIGNAL("itemDoubleClicked(QTreeWidgetItem *, int)"), self.click_parsers)
+        self.connect(self.ui.actionShow_language_boxes, SIGNAL("triggered()"), self.update_editor)
 
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
@@ -369,6 +370,14 @@ class Window(QtGui.QMainWindow):
         self.viewer = Viewer("pydot")
 
         self.finddialog = FindDialog()
+
+    def show_languageboxes(self):
+        if self.ui.actionShow_language_boxes.isChecked():
+            return True
+        return False
+
+    def update_editor(self):
+        self.getEditor().update()
 
     def run_subprocess(self):
         self.ui.teConsole.clear()

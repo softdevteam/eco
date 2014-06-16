@@ -78,6 +78,8 @@
     </property>
     <addaction name="actionParse_Tree"/>
     <addaction name="actionStateGraph"/>
+    <addaction name="separator"/>
+    <addaction name="actionShow_language_boxes"/>
    </widget>
    <widget class="QMenu" name="menuInfo">
     <property name="title">
@@ -450,6 +452,14 @@
   <action name="actionFull_reparse">
    <property name="text">
     <string>Full reparse</string>
+   </property>
+  </action>
+  <action name="actionShow_language_boxes">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show language boxes</string>
    </property>
   </action>
  </widget>

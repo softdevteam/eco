@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'newgui.ui'
 #
-# Created: Mon Jun  9 16:58:31 2014
+# Created: Mon Jun 16 12:16:37 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -181,6 +181,9 @@ class Ui_MainWindow(object):
         self.actionCode_complete.setObjectName(_fromUtf8("actionCode_complete"))
         self.actionFull_reparse = QtGui.QAction(MainWindow)
         self.actionFull_reparse.setObjectName(_fromUtf8("actionFull_reparse"))
+        self.actionShow_language_boxes = QtGui.QAction(MainWindow)
+        self.actionShow_language_boxes.setCheckable(True)
+        self.actionShow_language_boxes.setObjectName(_fromUtf8("actionShow_language_boxes"))
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addSeparator()
@@ -195,6 +198,8 @@ class Ui_MainWindow(object):
         self.menuPoject.addAction(self.actionRun)
         self.menuView.addAction(self.actionParse_Tree)
         self.menuView.addAction(self.actionStateGraph)
+        self.menuView.addSeparator()
+        self.menuView.addAction(self.actionShow_language_boxes)
         self.menuInfo.addAction(self.actionAbout)
         self.menuEdit.addAction(self.actionUndo)
         self.menuEdit.addAction(self.actionRedo)
@@ -290,4 +295,5 @@ class Ui_MainWindow(object):
         self.actionCode_complete.setText(_translate("MainWindow", "Code complete", None))
         self.actionCode_complete.setShortcut(_translate("MainWindow", "Ctrl+Space", None))
         self.actionFull_reparse.setText(_translate("MainWindow", "Full reparse", None))
+        self.actionShow_language_boxes.setText(_translate("MainWindow", "Show language boxes", None))
 
