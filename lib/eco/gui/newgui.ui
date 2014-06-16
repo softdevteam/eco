@@ -99,6 +99,7 @@
     <addaction name="actionPaste"/>
     <addaction name="separator"/>
     <addaction name="actionFind"/>
+    <addaction name="actionFind_next"/>
     <addaction name="separator"/>
     <addaction name="actionAdd_language_box"/>
     <addaction name="actionSelect_next_language_box"/>
@@ -459,7 +460,15 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Show language boxes</string>
+    <string>Highlight language boxes</string>
+   </property>
+  </action>
+  <action name="actionFind_next">
+   <property name="text">
+    <string>Find next</string>
+   </property>
+   <property name="shortcut">
+    <string>F3</string>
    </property>
   </action>
  </widget>

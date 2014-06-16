@@ -353,6 +353,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionCut, SIGNAL("triggered()"), self.cut)
         self.connect(self.ui.actionPaste, SIGNAL("triggered()"), self.paste)
         self.connect(self.ui.actionFind, SIGNAL("triggered()"), self.find)
+        self.connect(self.ui.actionFind_next, SIGNAL("triggered()"), self.find_next)
         self.connect(self.ui.actionAdd_language_box, SIGNAL("triggered()"), self.show_lbox_menu)
         self.connect(self.ui.actionSelect_next_language_box, SIGNAL("triggered()"), self.select_next_lbox)
         self.connect(self.ui.actionNew, SIGNAL("triggered()"), self.newfile)
@@ -405,6 +406,14 @@ class Window(QtGui.QMainWindow):
         result = self.finddialog.exec_()
         if result:
             text = self.finddialog.getText()
+            self.getEditor().tm.find_text(text)
+            self.getEditor().update()
+            self.btReparse([])
+            self.getEditorTab().keypress()
+
+    def find_next(self):
+        text = self.finddialog.getText()
+        if text:
             self.getEditor().tm.find_text(text)
             self.getEditor().update()
             self.btReparse([])

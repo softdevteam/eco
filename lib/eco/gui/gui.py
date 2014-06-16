@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'newgui.ui'
 #
-# Created: Mon Jun 16 12:16:37 2014
+# Created: Mon Jun 16 12:33:13 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -184,6 +184,8 @@ class Ui_MainWindow(object):
         self.actionShow_language_boxes = QtGui.QAction(MainWindow)
         self.actionShow_language_boxes.setCheckable(True)
         self.actionShow_language_boxes.setObjectName(_fromUtf8("actionShow_language_boxes"))
+        self.actionFind_next = QtGui.QAction(MainWindow)
+        self.actionFind_next.setObjectName(_fromUtf8("actionFind_next"))
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addSeparator()
@@ -209,6 +211,7 @@ class Ui_MainWindow(object):
         self.menuEdit.addAction(self.actionPaste)
         self.menuEdit.addSeparator()
         self.menuEdit.addAction(self.actionFind)
+        self.menuEdit.addAction(self.actionFind_next)
         self.menuEdit.addSeparator()
         self.menuEdit.addAction(self.actionAdd_language_box)
         self.menuEdit.addAction(self.actionSelect_next_language_box)
@@ -295,5 +298,7 @@ class Ui_MainWindow(object):
         self.actionCode_complete.setText(_translate("MainWindow", "Code complete", None))
         self.actionCode_complete.setShortcut(_translate("MainWindow", "Ctrl+Space", None))
         self.actionFull_reparse.setText(_translate("MainWindow", "Full reparse", None))
-        self.actionShow_language_boxes.setText(_translate("MainWindow", "Show language boxes", None))
+        self.actionShow_language_boxes.setText(_translate("MainWindow", "Highlight language boxes", None))
+        self.actionFind_next.setText(_translate("MainWindow", "Find next", None))
+        self.actionFind_next.setShortcut(_translate("MainWindow", "F3", None))
 
