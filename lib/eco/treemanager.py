@@ -1116,20 +1116,20 @@ class TreeManager(object):
             print("Grammar Error: could not determine grammar type")
             return
 
-    def export(self):
+    def export(self, path=None):
         for p, _, _, _, _ in self.parsers:
             if p.last_status == False:
                 print("Cannot export a syntacially incorrect grammar")
                 return
         lang = self.parsers[0][2]
         if lang == "Python + Prolog":
-            self.export_unipycation()
+            self.export_unipycation(path)
         elif lang == "HTML + Python + SQL":
-            self.export_html_python_sql()
+            self.export_html_python_sql(path)
         else:
-            self.export_as_text()
+            self.export_as_text(path)
 
-    def export_unipycation(self):
+    def export_unipycation(self, path=None):
         import subprocess, sys
         import os
         import tempfile
@@ -1154,19 +1154,23 @@ class TreeManager(object):
                     break
             output.append(node.symbol.name)
             node = node.next_term
-        f = tempfile.mkstemp()
-        os.write(f[0],"".join(output))
-        os.close(f[0])
-        if os.environ.has_key("UNIPYCATION"):
-            return subprocess.Popen([os.path.join(os.environ["UNIPYCATION"], "pypy/goal/pypy-c"), f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
+        if path:
+            with open(path, "w") as f:
+                f.write("".join(output))
         else:
-            sys.stderr.write("UNIPYCATION environment not set")
+            f = tempfile.mkstemp()
+            os.write(f[0],"".join(output))
+            os.close(f[0])
+            if os.environ.has_key("UNIPYCATION"):
+                return subprocess.Popen([os.path.join(os.environ["UNIPYCATION"], "pypy/goal/pypy-c"), f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
+            else:
+                sys.stderr.write("UNIPYCATION environment not set")
 
-    def export_html_python_sql(self):
+    def export_html_python_sql(self, path):
         conv = HtmlPythonSQL()
-        conv.export(self.get_bos(), "exportedhtml.py")
+        conv.export(self.get_bos(), path)
 
-    def export_as_text(self):
+    def export_as_text(self, path):
         node = self.lines[0].node # first node
         text = []
         while True:
@@ -1174,9 +1178,8 @@ class TreeManager(object):
             text.append(node.symbol.name)
             if isinstance(node, EOS):
                 break
-        f = open("export.txt","w")
-        f.write("".join(text))
-        f.close()
+        with open(path, "w") as f:
+            f.write("".join(text))
 
     def relex(self, node):
         root = node.get_root()

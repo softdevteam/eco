@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'newgui.ui'
+# Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Mon Jun 16 12:33:13 2014
+# Created: Wed Jun 18 14:45:11 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -43,7 +43,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.addWidget(self.tabWidget)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 23))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
@@ -186,11 +186,17 @@ class Ui_MainWindow(object):
         self.actionShow_language_boxes.setObjectName(_fromUtf8("actionShow_language_boxes"))
         self.actionFind_next = QtGui.QAction(MainWindow)
         self.actionFind_next.setObjectName(_fromUtf8("actionFind_next"))
+        self.actionExportAs = QtGui.QAction(MainWindow)
+        self.actionExportAs.setObjectName(_fromUtf8("actionExportAs"))
+        self.actionExport = QtGui.QAction(MainWindow)
+        self.actionExport.setObjectName(_fromUtf8("actionExport"))
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionSave)
         self.menuFile.addAction(self.actionSave_as)
+        self.menuFile.addAction(self.actionExport)
+        self.menuFile.addAction(self.actionExportAs)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionExit)
         self.menuOptions.addAction(self.actionRandomDel)
@@ -265,7 +271,7 @@ class Ui_MainWindow(object):
         self.actionImport.setText(_translate("MainWindow", "Import...", None))
         self.actionRandomDel.setText(_translate("MainWindow", "Delete random chars", None))
         self.actionUndoRandomDel.setText(_translate("MainWindow", "Undo random deletion", None))
-        self.actionOpen.setText(_translate("MainWindow", "Open...", None))
+        self.actionOpen.setText(_translate("MainWindow", "Open", None))
         self.actionOpen.setShortcut(_translate("MainWindow", "Ctrl+O", None))
         self.actionSave.setText(_translate("MainWindow", "Save", None))
         self.actionSave.setShortcut(_translate("MainWindow", "Ctrl+S", None))
@@ -286,7 +292,7 @@ class Ui_MainWindow(object):
         self.actionCopy.setShortcut(_translate("MainWindow", "Ctrl+C", None))
         self.actionPaste.setText(_translate("MainWindow", "Paste", None))
         self.actionPaste.setShortcut(_translate("MainWindow", "Ctrl+V", None))
-        self.actionSave_as.setText(_translate("MainWindow", "Save as...", None))
+        self.actionSave_as.setText(_translate("MainWindow", "Save as", None))
         self.actionSave_as.setShortcut(_translate("MainWindow", "Ctrl+Shift+S", None))
         self.actionAdd_language_box.setText(_translate("MainWindow", "Add language box", None))
         self.actionAdd_language_box.setShortcut(_translate("MainWindow", "Ctrl+L", None))
@@ -301,4 +307,8 @@ class Ui_MainWindow(object):
         self.actionShow_language_boxes.setText(_translate("MainWindow", "Highlight language boxes", None))
         self.actionFind_next.setText(_translate("MainWindow", "Find next", None))
         self.actionFind_next.setShortcut(_translate("MainWindow", "F3", None))
+        self.actionExportAs.setText(_translate("MainWindow", "Export as", None))
+        self.actionExportAs.setShortcut(_translate("MainWindow", "Ctrl+Shift+E", None))
+        self.actionExport.setText(_translate("MainWindow", "Export", None))
+        self.actionExport.setShortcut(_translate("MainWindow", "Ctrl+E", None))
 

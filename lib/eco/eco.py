@@ -330,6 +330,7 @@ class Window(QtGui.QMainWindow):
         self.ui.setupUi(self)
 
         self.filename = None
+        self.export_path = None
 
         # XXX show current file in views
         self.parseview = ParseView(self)
@@ -340,6 +341,8 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
         self.connect(self.ui.actionSave, SIGNAL("triggered()"), self.savefile)
         self.connect(self.ui.actionSave_as, SIGNAL("triggered()"), self.savefileAs)
+        self.connect(self.ui.actionExport, SIGNAL("triggered()"), self.export)
+        self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
         self.connect(self.ui.actionSelect_font, SIGNAL("triggered()"), self.change_font)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
         self.connect(self.ui.actionParse_Tree, SIGNAL("triggered()"), self.showParseView)
@@ -500,6 +503,18 @@ class Window(QtGui.QMainWindow):
         if filename:
             self.getEditor().saveToJson(filename)
             self.getEditorTab().filename = filename
+
+    def export(self):
+        if not self.export_path:
+            self.export_path = QFileDialog.getSaveFileName()
+        if self.export_path:
+            self.getEditor().tm.export(self.export_path)
+
+    def exportAs(self):
+        path = QFileDialog.getSaveFileName()
+        if path:
+            self.export_path = path
+            self.getEditor().tm.export(path)
 
     def openfile(self):
         filename = QFileDialog.getOpenFileName()
