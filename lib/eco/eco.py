@@ -329,9 +329,6 @@ class Window(QtGui.QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        self.filename = None
-        self.export_path = None
-
         # XXX show current file in views
         self.parseview = ParseView(self)
 
@@ -493,27 +490,39 @@ class Window(QtGui.QMainWindow):
             etab.editor.setFocus(Qt.OtherFocusReason)
 
     def savefile(self):
+        ed = self.getEditorTab()
+        if not ed:
+            return
         if self.getEditorTab().filename:
             self.getEditor().saveToJson(self.getEditorTab().filename)
         else:
             self.savefileAs()
 
     def savefileAs(self):
+        ed = self.getEditorTab()
+        if not ed:
+            return
         filename = QFileDialog.getSaveFileName()
         if filename:
             self.getEditor().saveToJson(filename)
             self.getEditorTab().filename = filename
 
     def export(self):
-        if not self.export_path:
-            self.export_path = QFileDialog.getSaveFileName()
-        if self.export_path:
-            self.getEditor().tm.export(self.export_path)
+        ed = self.getEditorTab()
+        if not ed:
+            return
+        if not ed.export_path:
+            ed.export_path = QFileDialog.getSaveFileName()
+        if ed.export_path:
+            self.getEditor().tm.export(ed.export_path)
 
     def exportAs(self):
+        ed = self.getEditorTab()
+        if not ed:
+            return
         path = QFileDialog.getSaveFileName()
         if path:
-            self.export_path = path
+            ed.export_path = path
             self.getEditor().tm.export(path)
 
     def openfile(self):

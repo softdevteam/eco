@@ -37,7 +37,7 @@ class EditorTab(QWidget):
         self.connect(self.editor, SIGNAL("painted()"), self.painted)
         self.connect(self.editor, SIGNAL("keypress(QKeyEvent)"), self.keypress)
 
-        self.filename = None
+        self.filename = self.export_path = None
 
     def changed(self):
         return self.editor.tm.changed
