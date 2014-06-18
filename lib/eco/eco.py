@@ -467,8 +467,8 @@ class Window(QtGui.QMainWindow):
                 text = text[:-1]
             # key simulated opening
             self.getEditor().insertTextNoSim(text)
-            self.btReparse(None)
-            self.getEditor().update()
+            #self.btReparse(None)
+            #self.getEditor().update()
 
     def change_font(self):
         gfont = QApplication.instance().gfont
@@ -545,6 +545,7 @@ class Window(QtGui.QMainWindow):
                 def x():
                     self.importfile(filename)
                 RunWithProgress(x, "Importing file", "Importing and parsing file...")
+                etab.editor.update()
 
     def closeTab(self, index):
         etab = self.ui.tabWidget.widget(index)
