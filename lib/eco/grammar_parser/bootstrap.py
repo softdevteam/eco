@@ -254,6 +254,8 @@ class BootstrapParser(object):
         return ReferenceExpr(base, ref)
 
     def parse_listloop(self, node):
+        if len(node.children) == 0:
+            return []
         if node.children[0].symbol.name == "list_loop":
             l = self.parse_listloop(node.children[0])
             element = self.parse_unknown(node.children[3])
@@ -446,9 +448,13 @@ class ListExpr(Expr):
 
     def interpret(self, node):
         l = []
+        if len(self.elements) > 0:
+            name = node.symbol.name
+        else:
+            name = "[ ]"
         for e in self.elements:
             l.append(e.interpret(node))
-        return ListNode(node.symbol.name, l)
+        return ListNode(name, l)
 
 class ListNode(object):
     def __init__(self, name, l):
