@@ -545,7 +545,7 @@ class Window(QtGui.QMainWindow):
                 def x():
                     self.importfile(filename)
                 RunWithProgress(x, "Importing file", "Importing and parsing file...")
-                etab.editor.update()
+                self.getEditorTab().update()
 
     def closeTab(self, index):
         etab = self.ui.tabWidget.widget(index)
