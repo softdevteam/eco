@@ -57,8 +57,6 @@ import math
 import syntaxhighlighter
 import editor
 
-from treemanager import TreeManager, Cursor
-
 from nodeeditor import NodeEditor
 from editortab import EditorTab
 
