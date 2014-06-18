@@ -1,0 +1,9 @@
+===========================================================================
+  Eco: An Editor for Language Composition
+===========================================================================
+
+Eco is a prototype editor for editing composed languages. It is not feature
+complete, it is not intended for production, and it does have bugs. Eco is
+distributed on a BSD/MIT license.
+
+More details at http://soft-dev.org/
