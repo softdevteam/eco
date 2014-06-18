@@ -47,9 +47,6 @@ class NodeEditor(QFrame):
     def setImageMode(self, boolean):
         self.imagemode = boolean
 
-    def set_treemanager(self, tm):
-        self.tm = tm
-
     def reset(self):
         #self.getWindow().ui.scrollArea.horizontalScrollBar().setValue(0)
         #self.getWindow().ui.scrollArea.verticalScrollBar().setValue(0)
