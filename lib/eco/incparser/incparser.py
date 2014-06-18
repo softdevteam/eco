@@ -148,7 +148,7 @@ class IncParser(object):
                     next_la = self.pop_lookahead(la)
                     self.comment_mode = False
                     comment_stack.append(la)
-                    CMT = Node(Nonterminal("COMMENT"))
+                    CMT = Node(Nonterminal("~COMMENT~"))
                     for c in comment_stack:
                         self.undo.append((c, 'parent', c.parent))
                         self.undo.append((c, 'left', c.left))
@@ -322,9 +322,9 @@ class IncParser(object):
             fold = element.action.right[element.amount()-i-1].folding
             c.symbol.folding = fold
             children.insert(0, c)
-            if c.symbol.name != "COMMENT":
+            if c.symbol.name != "~COMMENT~":
                 i += 1
-        if self.stack[-1].symbol.name == "COMMENT":
+        if self.stack[-1].symbol.name == "~COMMENT~":
             c = self.stack.pop()
             children.insert(0, c)
         self.current_state = self.stack[-1].state #XXX don't store on nodes, but on stack
