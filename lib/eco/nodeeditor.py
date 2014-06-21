@@ -583,25 +583,35 @@ class NodeEditor(QFrame):
 
     def showSubgrammarMenu(self):
         self.sublanguage = None
-        lookaheads = self.tm.getLookaheadList()
         # Create menu
         menu = QtGui.QMenu( self )
         # Create actions
         toolbar = QtGui.QToolBar()
+        bf = QFont()
+        bf.setBold(True)
+        valid_langs = []
+        for l in languages:
+            if "<%s>" % l in self.tm.getLookaheadList():
+                valid_langs.append(l)
+        if len(valid_langs) > 0:
+            for l in valid_langs:
+                item = toolbar.addAction(str(l), self.createMenuFunction(l))
+                self._set_icon(item, l)
+                item.setFont(bf)
+                menu.addAction(item)
+            menu.addSeparator()
         for l in languages:
             item = toolbar.addAction(str(l), self.createMenuFunction(l))
-            icon = QIcon.fromTheme("text-x-" + l.base.lower())
-            if icon.isNull():
-                icon = QIcon.fromTheme("text-x-source")
-            item.setIcon(icon)
-            l = "<%s>" % (l)
-            if l in lookaheads:
-                font = QFont()
-                font.setBold(True)
-                item.setFont(font)
+            self._set_icon(item, l)
             menu.addAction(item)
         x,y = self.cursor_to_coordinate()
         menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
+
+    def _set_icon(self, mitem, lang):
+        icon = QIcon.fromTheme("text-x-" + lang.base.lower())
+        if icon.isNull():
+            icon = QIcon.fromTheme("text-x-generic")
+        mitem.setIcon(icon)
 
     def showCodeCompletionMenu(self, l):
         menu = QtGui.QMenu( self )
