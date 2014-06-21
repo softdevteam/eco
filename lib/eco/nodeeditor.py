@@ -649,45 +649,6 @@ class NodeEditor(QFrame):
     def selectSubgrammar(self, item):
         pass
 
-    def randomDeletion(self):
-        import random
-        from time import sleep
-        deleted = []
-        for i in range(30):
-            # choose random line
-            y = random.randint(0, len(self.max_cols)-1)
-            if self.max_cols[y] > 0:
-                x = random.randint(0, self.max_cols[y])
-                self.cursor = Cursor(x,y)
-
-                event = QKeyEvent(QEvent.KeyPress, Qt.Key_Delete, Qt.NoModifier, "delete")
-                #QCoreApplication.postEvent(self, event)
-                self.keyPressEvent(event)
-
-                if self.last_delchar: # might be none if delete at end of file
-                    deleted.append((self.cursor.copy(), self.last_delchar))
-        self.deleted_chars = deleted
-
-    def undoDeletion(self):
-        self.indentation = False
-        for cursor, c in reversed(self.deleted_chars):
-            self.cursor = cursor
-            if c in ["\n","\r"]:
-                key = Qt.Key_Return
-                modifier = Qt.NoModifier
-            elif ord(c) in range(97, 122): # a-z
-                key = ord(c) - 32
-                modifier = Qt.NoModifier
-            elif ord(c) in range(65, 90): # A-Z
-                key = ord(c)
-                modifier = Qt.ShiftModifier
-            else:   # !, {, }, ...
-                key = ord(c)
-                modifier = Qt.NoModifier
-            event = QKeyEvent(QEvent.KeyPress, key, modifier, c)
-            self.keyPressEvent(event)
-        self.indentation = True
-
     def saveToJson(self, filename):
         whitespaces = self.tm.get_mainparser().whitespaces
         root = self.tm.parsers[0][0].previous_version.parent

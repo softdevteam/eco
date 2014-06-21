@@ -63,8 +63,6 @@
     <property name="title">
      <string>Options</string>
     </property>
-    <addaction name="actionRandomDel"/>
-    <addaction name="actionUndoRandomDel"/>
     <addaction name="actionSelect_font"/>
     <addaction name="actionFull_reparse"/>
    </widget>
@@ -236,16 +234,6 @@
    </property>
    <property name="text">
     <string>Import...</string>
-   </property>
-  </action>
-  <action name="actionRandomDel">
-   <property name="text">
-    <string>Delete random chars</string>
-   </property>
-  </action>
-  <action name="actionUndoRandomDel">
-   <property name="text">
-    <string>Undo random deletion</string>
    </property>
   </action>
   <action name="actionOpen">

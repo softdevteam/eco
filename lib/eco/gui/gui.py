@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Wed Jun 18 14:45:11 2014
+# Created: Sat Jun 21 16:21:27 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -103,10 +103,6 @@ class Ui_MainWindow(object):
         icon = QtGui.QIcon.fromTheme(_fromUtf8("document-import"))
         self.actionImport.setIcon(icon)
         self.actionImport.setObjectName(_fromUtf8("actionImport"))
-        self.actionRandomDel = QtGui.QAction(MainWindow)
-        self.actionRandomDel.setObjectName(_fromUtf8("actionRandomDel"))
-        self.actionUndoRandomDel = QtGui.QAction(MainWindow)
-        self.actionUndoRandomDel.setObjectName(_fromUtf8("actionUndoRandomDel"))
         self.actionOpen = QtGui.QAction(MainWindow)
         icon = QtGui.QIcon.fromTheme(_fromUtf8("document-open"))
         self.actionOpen.setIcon(icon)
@@ -199,8 +195,6 @@ class Ui_MainWindow(object):
         self.menuFile.addAction(self.actionExportAs)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionExit)
-        self.menuOptions.addAction(self.actionRandomDel)
-        self.menuOptions.addAction(self.actionUndoRandomDel)
         self.menuOptions.addAction(self.actionSelect_font)
         self.menuOptions.addAction(self.actionFull_reparse)
         self.menuPoject.addAction(self.actionRun)
@@ -269,8 +263,6 @@ class Ui_MainWindow(object):
         self.treeWidget.headerItem().setText(0, _translate("MainWindow", "1", None))
         self.dockWidget.setWindowTitle(_translate("MainWindow", "Console", None))
         self.actionImport.setText(_translate("MainWindow", "Import...", None))
-        self.actionRandomDel.setText(_translate("MainWindow", "Delete random chars", None))
-        self.actionUndoRandomDel.setText(_translate("MainWindow", "Undo random deletion", None))
         self.actionOpen.setText(_translate("MainWindow", "Open", None))
         self.actionOpen.setShortcut(_translate("MainWindow", "Ctrl+O", None))
         self.actionSave.setText(_translate("MainWindow", "Save", None))
