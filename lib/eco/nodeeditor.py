@@ -527,7 +527,7 @@ class NodeEditor(QFrame):
         self.emit(SIGNAL("keypress(QKeyEvent)"), e)
         self.getWindow().showLookahead()
 
-    def showLanuageBoxMenu(self):
+    def showLanguageBoxMenu(self):
         self.showSubgrammarMenu()
         if self.sublanguage:
             if self.tm.hasSelection():

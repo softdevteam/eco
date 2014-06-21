@@ -390,7 +390,7 @@ class Window(QtGui.QMainWindow):
         self.getEditor().update()
 
     def show_lbox_menu(self):
-        self.getEditor().showLanuageBoxMenu()
+        self.getEditor().showLanguageBoxMenu()
         self.getEditor().update()
 
     def show_code_completion(self):
