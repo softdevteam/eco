@@ -845,6 +845,8 @@ class TreeManager(object):
         self.deleteSelection()
         # create language box
         lbox = self.create_languagebox(language)
+        root = self.cursor.node.get_root()
+        lbox.parent_lbox = root
         # insert text
         newnode = TextNode(Terminal(text))
         lbox.symbol.ast.children[0].insert_after(newnode)
