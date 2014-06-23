@@ -739,8 +739,8 @@ class TreeManager(object):
 
                 root = node.get_root()
                 magic = root.get_magicterminal()
-                next_node = node.next_terminal()
-                previous_node = node.previous_terminal()
+                next_node = node.next_terminal(skip_indent=True)
+                previous_node = node.previous_terminal(skip_indent=True)
                 # XXX add function to tree to ast: is_empty
                 if magic and isinstance(next_node, EOS) and isinstance(previous_node, BOS):
                     # language box is empty -> delete it and all references

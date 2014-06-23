@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 import re
-from grammar_parser.gparser import Nonterminal, Terminal
+from grammar_parser.gparser import Nonterminal, Terminal, IndentationTerminal
 from syntaxtable import FinishSymbol
 
 class AST(object):
@@ -269,8 +269,12 @@ class Node(object):
                 node = node.children[0]
         return node
 
-    def next_terminal(self):
-        return self.next_term
+    def next_terminal(self, skip_indent=False):
+        n = self.next_term
+        if skip_indent:
+            while n is not None and isinstance(n.symbol, IndentationTerminal):
+                n = n.next_term
+        return n
 
     def old_next_terminal(self):
         if isinstance(self, EOS):
@@ -291,8 +295,12 @@ class Node(object):
 
         return node
 
-    def previous_terminal(self):
-        return self.prev_term
+    def previous_terminal(self, skip_indent = False):
+        n = self.prev_term
+        if skip_indent:
+            while n is not None and isinstance(n.symbol, IndentationTerminal):
+                n = n.prev_term
+        return n
 
     def old_previous_terminal(self):
         if isinstance(self, BOS):

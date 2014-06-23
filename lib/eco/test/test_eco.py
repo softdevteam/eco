@@ -875,6 +875,12 @@ class Test_NestedLboxWithIndentation():
 
         cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
 
+    def reset(self):
+        self.parser.reset()
+        self.treemanager = TreeManager()
+        self.treemanager.add_parser(self.parser, self.lexer, calc.name)
+        self.treemanager.set_font_test(7, 17)
+
     def test_simple(self):
         inputstring = "1+"
         for c in inputstring:
@@ -886,6 +892,15 @@ class Test_NestedLboxWithIndentation():
 
         assert self.treemanager.parsers[1][2] == "Python 2.7.5"
         assert self.treemanager.parsers[1][0].last_status == True
+
+    def test_remove_empty_lbox(self):
+        # whitespace sensitive languages still contain indentation tokens when they are "empty"
+        self.reset()
+        self.treemanager.add_languagebox(lang_dict["Python 2.7.5"])
+        self.treemanager.key_normal("a")
+        self.treemanager.key_backspace()
+        assert isinstance(self.treemanager.cursor.node, BOS)
+        assert isinstance(self.treemanager.cursor.node.next_term, EOS)
 
 #from grammars.grammars import lang_dict, python_prolog
 class Test_Languageboxes(Test_Python):
