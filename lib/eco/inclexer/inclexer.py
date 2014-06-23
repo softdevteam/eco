@@ -451,6 +451,10 @@ class IncrementalLexerCF(object):
         else:
             past_startnode = False
 
+        if isinstance(node, EOS):
+            # nothing to do here
+            return False
+
         # relex
         read_nodes = []
         generated_tokens = []

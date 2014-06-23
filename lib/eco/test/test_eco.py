@@ -82,6 +82,15 @@ class Test_Typing:
         self.treemanager.cursor_reset()
         assert isinstance(self.treemanager.cursor.node, BOS)
 
+    def test_delete_selection(self):
+        self.reset()
+        self.treemanager.key_normal("a")
+        self.treemanager.key_shift()
+        self.treemanager.key_cursors("left", mod_shift=True)
+        assert self.treemanager.hasSelection()
+        nodes, _, _ = self.treemanager.get_nodes_from_selection()
+        self.treemanager.key_delete()
+
     def test_paste(self):
         self.reset()
         assert self.parser.last_status == False
