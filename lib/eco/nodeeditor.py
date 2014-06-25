@@ -262,7 +262,11 @@ class NodeEditor(QFrame):
 
             # prepare selection drawing
             if node is selection_start.node:
-                draw_selection_start = (x + selection_start.pos * self.fontwt, y, line)
+                if node.lookup == "<return>":
+                    sel_x = x
+                else:
+                    sel_x = x + selection_start.pos * self.fontwt
+                draw_selection_start = (sel_x, y, line)
 
             if node is selection_end.node:
                 draw_selection_end = (x + selection_end.pos * self.fontwt, y, line)
