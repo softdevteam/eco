@@ -507,6 +507,8 @@ class NodeEditor(QFrame):
         elif e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             if e.modifiers() == Qt.ShiftModifier:
                 self.tm.key_cursors(self.key_to_string(e.key()), True)
+            elif e.modifiers() == Qt.ControlModifier:
+                self.tm.ctrl_cursor(self.key_to_string(e.key()))
             else:
                 self.tm.key_cursors(self.key_to_string(e.key()), False)
         elif e.key() == Qt.Key_Home:

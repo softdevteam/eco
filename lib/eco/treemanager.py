@@ -89,6 +89,18 @@ class Cursor(object):
             if node.image and not node.plain_mode:
                 self.pos = len(node.symbol.name)
 
+    def jump_left(self):
+        self.node = self.find_previous_visible(self.node)
+        self.pos = len(self.node.symbol.name)
+
+    def jump_right(self):
+        node = self.find_next_visible(self.node)
+        if self.inside() or isinstance(node, EOS):
+            self.pos = len(self.node.symbol.name)
+            return
+        self.node = node
+        self.pos = len(self.node.symbol.name)
+
     def find_next_visible(self, node):
         if self.is_visible(node) or isinstance(node.symbol, MagicTerminal):
             node = node.next_term
@@ -781,6 +793,12 @@ class TreeManager(object):
             self.selection_end = self.cursor.copy()
         else:
             self.unselect()
+
+    def ctrl_cursor(self, key):
+        if key == "left":
+            self.cursor.jump_left()
+        if key == "right":
+            self.cursor.jump_right()
 
     def unselect(self):
             self.selection_start = self.cursor.copy()
