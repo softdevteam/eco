@@ -67,7 +67,7 @@ class SyntaxTable(object):
         self.table = {}
         self.lr_type = lr_type
 
-    def build(self, graph):
+    def build(self, graph, precedences=[]):
         start_production = Production(None, [graph.start_symbol])
         symbols = graph.get_symbols()
         symbols.add(FinishSymbol())
@@ -84,11 +84,14 @@ class SyntaxTable(object):
                         else:
                             lookahead = symbols
                         for s in lookahead:
+                            newaction = Reduce(state.p)
                             if self.table.has_key((i,s)):
-                                msg = "Conflict at %s for %s: %s => Reduce(%s)"
-                                print msg % (i, s, self.table[(i,s)], state.p)
-                                #print("CONFLICT", (i,s), "before:", self.table[(i,s)], "now:", "Reduce(", state.p, ")")
-                            self.table[(i, s)] = Reduce(state.p)
+                                oldaction = self.table[(i,s)]
+                                newaction = self.resolve_conflict(i, s, olaction, newaction, precedences)
+                            if newaction:
+                                self.table[(i, s)] = newaction
+                            else:
+                                del self.table[(i,s)]
             # shift, goto
             for s in symbols:
                 dest = graph.follow(i, s)
@@ -98,8 +101,90 @@ class SyntaxTable(object):
                     if isinstance(s, Nonterminal):
                         action = Goto(dest)
                     if self.table.has_key((i,s)):
-                        print("CONFLICT", (i,s), "before:", self.table[(i,s)], "now:", action)
-                    self.table[(i, s)] = action
+                        action = self.resolve_conflict(i, s, self.table[(i,s)], action, precedences)
+                    if action:
+                        self.table[(i, s)] = action
+                    else:
+                        del self.table[(i,s)]
+
+    def resolve_conflict(self, state, symbol, oldaction, newaction, precedences):
+        # input: old_action, lookup_symbol, new_action
+        # return: action/error
+        # shift/reduce or reduce/shift
+
+        # get precedence and associativity
+        newassoc = self.find_assoc(symbol, precedences)
+        if oldaction.action.prec:
+            # old production has a precedence attached to it
+            symbol = Terminal(oldaction.action.prec)
+            oldassoc = self.find_assoc(symbol, precedences)
+        else:
+            # otherwise use precedence from last terminal in production body
+            prev_terminal = self.get_last_terminal(oldaction)
+            oldassoc = self.find_assoc(prev_terminal, precedences)
+
+        # if oldaction and lookup symbol have precedences & associativity
+        # and conflict is shift/reduce
+        if oldassoc and newassoc and not self.is_reduce_reduce(oldaction, newaction):
+            if oldassoc[1] > newassoc[1]:
+                # previous action has higher precedence -> do nothing
+                return oldaction
+            elif oldassoc[1] < newassoc[1]:
+                # previous action has lower precedenec -> override action
+                return newaction
+            else:
+                # both precedences are equal, use associativity
+                if newassoc[0] == "%left":
+                    # left binding -> reduce
+                    return self.get_reduce(oldaction, newaction)
+                elif newassoc[0] == "%right":
+                    # right binding -> shift
+                    return self.get_shift(oldaction, newaction)
+                elif newassoc[0] == "%nonassoc":
+                    # parsing error
+                    return None
+        else:
+            # use built in fixes and print warning
+            # shift/reduce: shift
+            # reduce/reduce: use earlier reduce
+            if self.is_reduce_reduce(oldaction, newaction):
+                print("Warning: Reduce/Reduce conflict in state %s with %s: %s vs. %s => Solved by using first reduce." % (state, symbol, oldaction, newaction))
+                return oldaction
+            else:
+                print("Warning: Shift/Reduce conflict in state %s with %s: %s vs. %s => Solved by shift." % (state, symbol, oldaction, newaction))
+                return self.get_shift(oldaction, newaction)
+        print("Error: Shift/Reduce conflict in state %s with %s: %s vs. %s => Unsolved!" % (state, symbol, oldaction, newaction))
+
+    def is_reduce_reduce(self, a1, a2):
+        return isinstance(a1, Reduce) and isinstance(a2, Reduce)
+
+    def get_reduce(self, a1, a2):
+        if isinstance(a1, Reduce):
+            return a1
+        assert isinstance(a2, Reduce)
+        return a2
+
+    def get_shift(self, a1, a2):
+        if isinstance(a1, Shift):
+            return a1
+        assert isinstance(a2, Shift)
+        return a2
+
+    def find_assoc(self, symbol, precedences):
+        if not symbol:
+            return None
+        i = 0
+        for p in precedences:
+            name, terminals = p
+            if symbol.name in terminals:
+                return (name, i)
+            i += 1
+
+    def get_last_terminal(self, rule):
+        for symbol in reversed(rule.action.right):
+            if isinstance(symbol, Terminal):
+                return symbol
+        return None
 
     def lookup(self, state_id, symbol):
         try:

@@ -286,7 +286,9 @@ class LanguageView(QtGui.QDialog):
             item.setText(str(l))
             icon = QIcon.fromTheme("text-x-" + l.base.lower())
             if icon.isNull():
-                icon = QIcon.fromTheme("text-x-generic")
+                icon = QIcon.fromTheme("application-x-" + l.base.lower())
+                if icon.isNull():
+                    icon = QIcon.fromTheme("text-x-generic")
             item.setIcon(icon)
 
         self.ui.listWidget.item(0).setSelected(True)

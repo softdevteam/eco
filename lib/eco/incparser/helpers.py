@@ -203,7 +203,7 @@ class Helper(object):
                         # create epsilon symbol if alternative is empty
                         if a == []:
                             a = [Epsilon()]
-                        p = Production(symbol, a, self.grammar[symbol].annotations[i])
+                        p = Production(symbol, a, self.grammar[symbol].annotations[i], self.grammar[symbol].precs[i])
                         if self.grammar[symbol].inserts.has_key(i):
                             insert = self.grammar[symbol].inserts[i]
                             p.inserts[insert[0]] = insert[1]

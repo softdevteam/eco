@@ -21,10 +21,11 @@
 
 class Production(object):
 
-    def __init__(self, left, right, annotation=None):
+    def __init__(self, left, right, annotation=None, prec=None):
         self.left = left
         self.right = right
         self.annotation = annotation
+        self.prec = prec
         self._hash = None
         self.inserts = {}
 

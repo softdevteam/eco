@@ -20,6 +20,7 @@ class BootstrapParser(object):
         self.extra_alternatives = {}
         self.change_startrule = None
         self.options = {}
+        self.precedences = []
 
     def implicit_ws(self):
         if self.options.has_key("implicit_ws"):
@@ -71,9 +72,19 @@ class BootstrapParser(object):
     def parse_options(self, options):
         if options.children == []:
             return
+        if len(options.children) > 0:
+            assert options.children[0].symbol.name == "settings"
+            self.parse_settings(options.children[0])
+        if len(options.children) > 1:
+            assert options.children[1].symbol.name == "precedences"
+            self.parse_precedences(options.children[1])
+
+    def parse_settings(self, options):
+        if options.children == []:
+            return
         if len(options.children) == 2:
             more = options.children[0]
-            self.parse_options(more)
+            self.parse_settings(more)
             option = options.children[1]
         else:
             option = options.children[0]
@@ -81,6 +92,33 @@ class BootstrapParser(object):
         choice = option.children[6]
         assert choice.symbol.name == "choice"
         self.options[name] = choice.children[0].symbol.name
+
+    def parse_precedences(self, precedences):
+        if precedences.children == []:
+            return
+        # recursively parse other precedences
+        if len(precedences.children) == 2:
+            more = precedences.children[0]
+            self.parse_precedences(more)
+            precedence = precedences.children[1]
+        else:
+            precedence = precedences.children[0]
+        # parse single precedence
+        name = precedence.children[0].symbol.name
+        terminals = self.parse_precedence_symbols(precedence.children[2])
+        self.precedences.append((name, terminals))
+
+    def parse_precedence_symbols(self, symbol):
+        s = []
+        for c in symbol.children:
+            if c.symbol.name == "WS":
+                continue
+            if c.symbol.name == "terminals":
+                rec_s = self.parse_precedence_symbols(symbol.children[0])
+                s.extend(rec_s)
+            if c.lookup == "terminal":
+                s.append(c.symbol.name[1:-1])
+        return s
 
     def create_parser(self, pickle_id = None):
         startrule = self.ast.children[1] # startrule
@@ -105,7 +143,7 @@ class BootstrapParser(object):
             self.start_symbol = start_rule.symbol
 
         incparser = IncParser()
-        incparser.from_dict(self.rules, self.start_symbol, self.lr_type, self.implicit_ws(), pickle_id)
+        incparser.from_dict(self.rules, self.start_symbol, self.lr_type, self.implicit_ws(), pickle_id, self.precedences)
         incparser.init_ast()
         self.incparser = incparser
 
@@ -126,8 +164,8 @@ class BootstrapParser(object):
             self.start_symbol = symbol
         r = Rule(symbol)
         for a in alternatives:
-            r.add_alternative(a[0], a[1])
-        # add additional alternatives to the grammar (e.g. languageboxes)
+            r.add_alternative(a[0], a[1], a[2])
+        # add additional alternatives to the grammar (grammar extension feature, e.g. languageboxes)
         if self.extra_alternatives.has_key(symbol.name):
             t = self.extra_alternatives[symbol.name]
             r.add_alternative([MagicTerminal(t), Nonterminal("WS")], None)
@@ -144,14 +182,23 @@ class BootstrapParser(object):
 
     def parse_alternative(self, node):
         if len(node.children) > 0:
-            symbols = self.parse_symbols(node.children[0])
             annotation = None
-
-            if len(node.children) > 1:
-                annotation = self.parse_annotation(node.children[1])
-            return (symbols, annotation)
+            prec = None
+            for c in node.children:
+                if c.symbol.name == "symbols":
+                    symbols = self.parse_symbols(c)
+                if c.symbol.name == "prec":
+                    prec = self.parse_prec(c)
+                if c.symbol.name == "annotations":
+                    annotation = self.parse_annotation(c)
+            return (symbols, annotation, prec)
         else:
-            return ([], None)
+            return ([], None, None)
+
+    def parse_prec(self, node):
+        if node.children:
+            c = node.children[2]
+            return c.symbol.name[1:-1]
 
     def parse_symbols(self, node):
         if node.children[0].symbol.name == "symbols":

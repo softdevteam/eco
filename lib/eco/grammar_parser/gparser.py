@@ -27,14 +27,16 @@ class Rule(object):
         self.symbol = symbol
         self.alternatives = []
         self.annotations = []
+        self.precs = []
         self.inserts = {}
 
-    def add_alternative(self, alternative, annotation=None):
+    def add_alternative(self, alternative, annotation=None, prec=None):
         # create symbol for empty alternative
         #if alternative == []:
         #    alternative = [Epsilon()]
         self.alternatives.append(alternative)
         self.annotations.append(annotation)
+        self.precs.append(prec)
 
     def __repr__(self):
         return "Rule(%s => %s)" % (self.symbol, self.alternatives)

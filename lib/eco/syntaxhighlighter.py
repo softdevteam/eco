@@ -194,6 +194,20 @@ class HtmlHighlighter(SyntaxHighlighter):
         "COMMENT": "grey",
     }
 
+class PhpHighlighter(SyntaxHighlighter):
+    keyword_colors = {
+        "T_CLASS": "green",
+        "T_NAMESPACE": "green",
+        "T_FUNCTION": "green",
+        "T_STRING": "blue",
+        "T_RETURN": "green"
+    }
+    keyword_style = {
+        "static": "italic",
+        "void": "bold",
+        "int": "bold"
+    }
+
 def get_highlighter(parent):
     if parent == "Java":
         return JavaHighlighter()
@@ -209,4 +223,6 @@ def get_highlighter(parent):
         return ScopingrulesHighlighter()
     if parent == "Html":
         return HtmlHighlighter()
+    if parent == "Php":
+        return PhpHighlighter()
     return SyntaxHighlighter()

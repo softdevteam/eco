@@ -92,6 +92,7 @@ html = EcoFile("HTML", "grammars/html.eco", "Html")
 sql = EcoFile("SQL", "grammars/sql.eco", "Sql")
 img = EcoFile("Image", "grammars/img.eco", "Image")
 chemical = EcoFile("Chemicals", "grammars/chemicals.eco", "Chemicals")
+php = EcoFile("PHP", "grammars/php.eco", "Php")
 
 # extensions
 pythonsql = EcoFile("Python + SQL", "grammars/python275.eco", "Python")
@@ -114,7 +115,7 @@ sql_ref_java.add_alternative("y_condition", java_expr)
 javasqlchemical = EcoFile("Java + SQL + Chemical", "grammars/java15.eco", "Java")
 javasqlchemical.add_alternative("unary_expression", sql_ref_java)
 
-languages = [calc, java, javasqlchemical, java_expr, python, pythonsql, pythonprolog, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar]
+languages = [calc, java, javasqlchemical, java_expr, php, python, pythonsql, pythonprolog, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar]
 
 lang_dict = {}
 for l in languages:
