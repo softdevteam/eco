@@ -1,3 +1,5 @@
+from grammar_parser.bootstrap import AstNode, ListNode
+
 class URI(object):
     def __init__(self):
         self.kind = ""
@@ -60,10 +62,25 @@ class AstAnalyser(object):
     def get_field(self, ref):
         return None
 
-    def get_definition(self, nodename):
+    def get_definition(self, node):
+        nodename = node.symbol.name
         for d in self.definitions:
             if d.name == nodename:
-                return d
+                # overloaded definitions allowed: check if types match
+                if self.match(node, d):
+                    return d
+
+    def match(self, astnode, nbrule):
+        for p in nbrule.params:
+            if isinstance(p, tuple):
+                name = p[0]  # nbrule parameter name, e.g. lhs
+                _type = p[1] # nbrule parameter type, e.g. Name
+                ref = astnode.get(name.symbol.name) # reference in AstNode, e.g. lhs -> AstNode("Name")
+                if not isinstance(ref, AstNode):
+                    return False
+                if ref.name != _type.symbol.name:
+                    return False
+        return True
 
     def scan(self, node, path):
         if node is None:
@@ -76,11 +93,16 @@ class AstAnalyser(object):
 
         if isinstance(node, AstNode):
             base = None
-            nbrule = self.get_definition(node.symbol.name)
+            nbrule = self.get_definition(node)
             uris = []
             if nbrule:
+                #XXX nbrule might have definition AND reference
                 _type = nbrule.get_type() # class, method, reference, etc (as declared in nb-file)
-                name = node.get(nbrule.get_name())
+                dotnames = nbrule.get_name() # must be a list
+                tempnode = node
+                for n in dotnames:
+                    tempnode = tempnode.get(n)
+                name = tempnode
 
                 if isinstance(name, ListNode):
                     names = name.children
@@ -228,7 +250,7 @@ class AstAnalyser(object):
         astnode = self.get_correct_astnode(scope)
         if not astnode:
             return []
-        nbrule = self.get_definition(astnode.symbol.name)
+        nbrule = self.get_definition(astnode)
         name = astnode.get(nbrule.get_name())
 
         uri = self.find_uri_by_astnode(name)
@@ -249,7 +271,7 @@ class AstAnalyser(object):
         while scope is not None:
             astnode = scope.alternate
             if astnode:
-                nbrule = self.get_definition(scope.alternate.symbol.name)
+                nbrule = self.get_definition(scope.alternate)
                 # astnode must have a corresponding entry in self.data
                 if nbrule and self.data.has_key(nbrule.get_type()):
                     for e in self.data[nbrule.get_type()]:
@@ -296,25 +318,41 @@ class RuleReader(object):
         l = []
         if node:
             for n in node.children:
-                l.append(n.symbol.name)
+                if isinstance(n, AstNode) and n.name == "Parameter":
+                    name = n.get("name")
+                    _type = n.get("type")
+                    l.append((name, _type))
+                else:
+                    l.append(n.symbol.name)
         return l
 
     def read_options(self, options):
         d = {}
         for option in options.children:
             if option.symbol.name == "Defines":
-                d['defines'] = (option.get('type').symbol.name, option.get('name').symbol.name) # Class(name): defines class name
+                names = self.get_dotnames(option.get("name"))
+                d['defines'] = (option.get('type').symbol.name, names) # Class(name): defines class name
                 scope = option.get('scope')
                 if scope:
                     d['in'] = scope.symbol.name
             elif option.symbol.name == "Scopes":
                 d['scopes'] = self.read_names(option.get('types'))
             elif option.symbol.name == "References":
-                d['references'] = (self.read_names(option.get('types')), option.get('name').symbol.name) # Lookup(name): references field, variable name
+                names = self.get_dotnames(option.get("name"))
+                d['references'] = (self.read_names(option.get('types')), names) # Lookup(name): references field, variable name
                 scope = option.get('scope')
                 if scope:
                     d['in'] = scope.symbol.name
         return d
+
+    def get_dotnames(self, node):
+        if isinstance(node, ListNode):
+            names = []
+            for name in node.children:
+                names.append(name.symbol.name)
+        else:
+            names = [name.symbol.name]
+        return names
 
 class NBRule(object):
     def __init__(self, name, params, options):
