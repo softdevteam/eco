@@ -136,7 +136,10 @@ class Viewer(object):
         label.append(addtext)
         if isinstance(node.symbol, Terminal) and node.lookup != "":
             label.append("\n")
-            label.append(str(node.lookup))
+            if node.lookup.startswith("0,"):
+                label.append("?")
+            else:
+                label.append(str(node.lookup))
         label = "%s" % ("".join(label))
         label = label.replace("\"", "\\\"")
         dotnode = pydot.Node("\"%s\"" % id(node), label='"%s"' % label)
