@@ -39,6 +39,8 @@ class AstAnalyser(object):
         rootnode = self.load_nb_file(filename)
         self.definitions = RuleReader().read(rootnode)
 
+        self.processed_nodes = set()
+
     def load_nb_file(self, filename):
         from jsonmanager import JsonManager
         from grammar_parser.bootstrap import BootstrapParser
@@ -92,58 +94,36 @@ class AstAnalyser(object):
         from grammar_parser.bootstrap import AstNode, ListNode
 
         if isinstance(node, AstNode):
+            if id(node) in self.processed_nodes: # skip nodes that have been processed in parent
+                return
+
             base = None
             nbrule = self.get_definition(node)
             uris = []
+            _type = None
             if nbrule:
-                #XXX nbrule might have definition AND reference
-                _type = nbrule.get_type() # class, method, reference, etc (as declared in nb-file)
-                dotnames = nbrule.get_name() # must be a list
-                tempnode = node
-                if isinstance(dotnames, list):
-                    for n in dotnames:
-                        tempnode = tempnode.get(n)
-                    name = tempnode
-                else:
-                    name = node.get(dotnames) # scopes returns None
 
-                if isinstance(name, ListNode):
-                    names = name.children
-                else:
-                    names = [name]
+                uri = URI()
+                if nbrule.is_reference():
+                    _type = "reference"
+                    uri = self.create_uri(node, nbrule, _type, list(path), path)
+                    uris.extend(uri)
+                    uri = uri[0]
 
-                scoped_path = list(path)
-                if not nbrule.is_reference():
+                if nbrule.is_definition():
+                    _type = nbrule.get_definition()[0]
+
+                    scoped_path = list(path)
                     if scoped_path != [] and not self.scopes(scoped_path[-1], _type): #XXX should be while?
                         # if last parent hasn't scope, delete from path
                         scoped_path.pop(-1)
 
-                for n in names:
-                    uri = URI()
-                    if n is None:
-                        uri.name = None
-                    else:
-                        uri.name = n.symbol.name
-                    uri.kind = _type
-                    uri.path = scoped_path
-                    uri.nbrule = nbrule
-                    uri.node = n
-                    uri.vartype = node.get('type') # XXX needs to be defined by autocomplete rules
-                    uri.astnode = node
+                    uri = self.create_uri(node, nbrule, _type, scoped_path, path)
+                    uris.extend(uri)
+                    uri = uri[0]
 
-                    visibility = nbrule.get_visibility()
-                    if visibility not in ['surrounding','subsequent']:
-                        # URI has a base
-                        base = node.get(visibility)
-                        base_uri = self.scan(base, path)
-                        path = [base_uri]
-                        uri.path = path
-
-                    # add this uri to the path of its children
-                    path = list(path)
-                    path.append(Reference(_type, uri.name, nbrule))
-
-                    uris.append(uri)
+                path = list(path)
+                path.append(Reference(_type, uri.name, nbrule))
 
             # scan ASTNodes children
             for c in node.children:
@@ -166,22 +146,70 @@ class AstAnalyser(object):
                 self.scan(c, path)
             return
 
+    def resolve_name(self, node, dotnames):
+        tempnode = node
+        if isinstance(dotnames, list):
+            for n in dotnames:
+                tempnode = tempnode.get(n)
+                self.processed_nodes.add(id(tempnode))
+            name = tempnode
+        else:
+            name = node.get(dotnames) # scopes returns None
+
+        if isinstance(name, ListNode):
+            names = name.children
+        else:
+            names = [name]
+        return names
+
+    def create_uri(self, node, nbrule, _type, newpath, prevpath):
+        if _type == "reference":
+            names = self.resolve_name(node, nbrule.get_refname())
+        else:
+            names = self.resolve_name(node, nbrule.get_defname())
+        uris = []
+        for n in names: #XXX ast should use foreach instead
+            uri = URI()
+            if n is None:
+                uri.name = None
+            else:
+                uri.name = n.symbol.name
+            uri.kind = _type
+            uri.path = newpath
+            uri.nbrule = nbrule
+            uri.node = n
+            uri.vartype = node.get('type') # XXX needs to be defined by autocomplete rules
+            uri.astnode = node
+
+            visibility = nbrule.get_visibility()
+            if visibility not in ['surrounding','subsequent']:
+                # URI has a base
+                base = node.get(visibility)
+                base_uri = self.scan(base, prevpath)
+                path = [base_uri]
+                uri.path = path
+
+            uris.append(uri)
+        return uris
+
     def analyse(self, node):
         # scan
         self.errors = {}
 
         self.data.clear()
+        self.processed_nodes.clear()
         self.index = 0
         self.scan(node, [])
         self.analyse_refs()
 
     def analyse_refs(self):
-        for key in self.data:
-            nbrule = self.data[key][0].nbrule
-            if nbrule.is_reference():
-                obj = self.data[key]
-                for reference in self.data[key]:
-                    self.find_reference(reference)
+       #for key in self.data:
+       #    nbrule = self.data[key][0].nbrule
+       #    if nbrule.is_reference():
+       #        obj = self.data[key]
+        if self.data.has_key("reference"):
+            for reference in self.data["reference"]:
+                self.find_reference(reference)
 
     def find_reference(self, reference):
         for refers in reference.nbrule.get_references()[0]:
@@ -394,19 +422,20 @@ class NBRule(object):
             return self.options['in']
         return None
 
-    def get_type(self):
+    def get_reftype(self):
         if self.is_reference():
             return "reference"
-        elif self.is_definition():
-            return self.options['defines'][0]
-        return None
 
-    def get_name(self):
+    def get_deftype(self):
+        if self.is_definition():
+            return self.options['defines'][0]
+
+    def get_refname(self):
         if self.is_reference():
             return self.options['references'][1]
-        elif self.is_definition():
+    def get_defname(self):
+        if self.is_definition():
             return self.options['defines'][1]
-        return None
 
     def __repr__(self):
         return "NBRule(%s, %s, %s)" % (self.name, self.params, self.options)
