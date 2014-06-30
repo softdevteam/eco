@@ -100,9 +100,12 @@ class AstAnalyser(object):
                 _type = nbrule.get_type() # class, method, reference, etc (as declared in nb-file)
                 dotnames = nbrule.get_name() # must be a list
                 tempnode = node
-                for n in dotnames:
-                    tempnode = tempnode.get(n)
-                name = tempnode
+                if isinstance(dotnames, list):
+                    for n in dotnames:
+                        tempnode = tempnode.get(n)
+                    name = tempnode
+                else:
+                    name = node.get(dotnames) # scopes returns None
 
                 if isinstance(name, ListNode):
                     names = name.children
