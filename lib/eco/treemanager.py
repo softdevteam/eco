@@ -1195,7 +1195,12 @@ class TreeManager(object):
         text = []
         while True:
             node = node.next_term
-            text.append(node.symbol.name)
+            if node.symbol.name == "\r":
+                text.append("\r\n")
+            else:
+                text.append(node.symbol.name)
+            if isinstance(node, IndentationTerminal):
+                continue
             if isinstance(node, EOS):
                 break
         with open(path, "w") as f:
