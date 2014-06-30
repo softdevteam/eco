@@ -327,7 +327,8 @@ class NodeEditor(QFrame):
                         color = "red"
                     self.draw_squiggly_line(paint,x,y,length, color)
 
-        self.draw_selection(paint, draw_selection_start, draw_selection_end)
+        if selection_start != selection_end:
+            self.draw_selection(paint, draw_selection_start, draw_selection_end)
 
         # paint infobox
         if False:
