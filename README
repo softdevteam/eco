@@ -6,4 +6,6 @@ Eco is a prototype editor for editing composed languages. It is not feature
 complete, it is not intended for production, and it does have bugs. Eco is
 distributed on a BSD/MIT license.
 
+To run type "./bin/eco".
+
 More details at http://soft-dev.org/
