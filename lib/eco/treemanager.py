@@ -5,7 +5,7 @@ from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal,
 from PyQt4.QtGui import QApplication
 from grammars.grammars import lang_dict, Language, EcoFile
 from indentmanager import IndentationManager
-from export import HtmlPythonSQL
+from export import HTMLPythonSQL
 
 import math
 
@@ -1187,8 +1187,8 @@ class TreeManager(object):
                 sys.stderr.write("UNIPYCATION environment not set")
 
     def export_html_python_sql(self, path):
-        conv = HtmlPythonSQL()
-        conv.export(self.get_bos(), path)
+        with open(path, "w") as f:
+            f.write(HTMLPythonSQL.export(self.get_bos()))
 
     def export_as_text(self, path):
         node = self.lines[0].node # first node
