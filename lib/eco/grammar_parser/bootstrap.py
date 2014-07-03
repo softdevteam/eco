@@ -167,8 +167,8 @@ class BootstrapParser(object):
             r.add_alternative(a[0], a[1], a[2])
         # add additional alternatives to the grammar (grammar extension feature, e.g. languageboxes)
         if self.extra_alternatives.has_key(symbol.name):
-            t = self.extra_alternatives[symbol.name]
-            r.add_alternative([MagicTerminal(t), Nonterminal("WS")], None)
+            for n in self.extra_alternatives[symbol.name]:
+                r.add_alternative([MagicTerminal(n), Nonterminal("WS")], None)
         self.rules[symbol] = r
 
     def parse_alternatives(self, node):

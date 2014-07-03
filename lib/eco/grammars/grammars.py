@@ -65,7 +65,9 @@ class EcoFile(object):
         return (bootstrap.incparser, bootstrap.inclexer)
 
     def add_alternative(self, nonterminal, language):
-        self.alts[nonterminal] = "<%s>" % (language.name,)
+        if nonterminal not in self.alts:
+            self.alts[nonterminal] = []
+        self.alts[nonterminal].append("<%s>" % language.name)
 
     def change_start(self, name):
         self.extract = name
