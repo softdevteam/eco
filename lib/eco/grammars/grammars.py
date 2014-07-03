@@ -97,14 +97,15 @@ chemical = EcoFile("Chemicals", "grammars/chemicals.eco", "Chemicals")
 php = EcoFile("PHP", "grammars/php.eco", "Php")
 
 # extensions
-pythonsql = EcoFile("Python + SQL", "grammars/python275.eco", "Python")
-pythonsql.add_alternative("atom", sql)
-
 pythonprolog = EcoFile("Python + Prolog", "grammars/python275.eco", "Python")
 pythonprolog.add_alternative("atom", prolog)
 
+pythonhtmlsql = EcoFile("Python + HTML + SQL", "grammars/python275.eco", "Python")
+pythonhtmlsql.add_alternative("atom", html)
+pythonhtmlsql.add_alternative("atom", sql)
+
 htmlpythonsql = EcoFile("HTML + Python + SQL", "grammars/html.eco", "Html")
-htmlpythonsql.add_alternative("element", pythonsql)
+htmlpythonsql.add_alternative("element", pythonhtmlsql)
 htmlpythonsql.add_alternative("attribute_value", img)
 
 java_expr = EcoFile("Java expression", "grammars/java15.eco", "Java")
@@ -117,7 +118,7 @@ sql_ref_java.add_alternative("y_condition", java_expr)
 javasqlchemical = EcoFile("Java + SQL + Chemical", "grammars/java15.eco", "Java")
 javasqlchemical.add_alternative("unary_expression", sql_ref_java)
 
-languages = [calc, java, javasqlchemical, java_expr, php, python, pythonsql, pythonprolog, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar]
+languages = [calc, java, javasqlchemical, java_expr, php, python, pythonhtmlsql, pythonprolog, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar]
 
 lang_dict = {}
 for l in languages:
