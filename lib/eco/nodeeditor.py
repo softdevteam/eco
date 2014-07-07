@@ -7,7 +7,7 @@ BODY_FONT = "Monospace"
 BODY_FONT_SIZE = 9
 
 from treemanager import TreeManager, Cursor
-from grammars.grammars import languages, lang_dict
+from grammars.grammars import submenu_langs as languages, lang_dict
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from jsonmanager import JsonManager

@@ -119,6 +119,8 @@ javasqlchemical = EcoFile("Java + SQL + Chemical", "grammars/java15.eco", "Java"
 javasqlchemical.add_alternative("unary_expression", sql_ref_java)
 
 languages = [calc, java, javasqlchemical, java_expr, php, python, pythonhtmlsql, pythonprolog, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar]
+newfile_langs = [java, javasqlchemical, php, python, pythonhtmlsql, pythonprolog, prolog, sql, html, htmlpythonsql]
+submenu_langs = [java, javasqlchemical, java_expr, php, python, pythonhtmlsql, pythonprolog, prolog, sql, sql_ref_java, html, htmlpythonsql, img, chemical]
 
 lang_dict = {}
 for l in languages:

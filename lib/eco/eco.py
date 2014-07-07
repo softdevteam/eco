@@ -48,7 +48,7 @@ from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal,
 
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 
-from grammars.grammars import languages, lang_dict, Language, EcoGrammar
+from grammars.grammars import languages, newfile_langs, lang_dict, Language, EcoGrammar
 
 from time import time
 import os
@@ -281,7 +281,7 @@ class LanguageView(QtGui.QDialog):
         self.ui = Ui_LanguageDialog()
         self.ui.setupUi(self)
 
-        for l in languages:
+        for l in newfile_langs:
             item = QListWidgetItem(self.ui.listWidget)
             item.setText(str(l))
             icon = QIcon.fromTheme("text-x-" + l.base.lower())
@@ -505,7 +505,7 @@ class Window(QtGui.QMainWindow):
         result = lview.exec_()
         if result:
             etab = EditorTab()
-            lang = languages[lview.getLanguage()]
+            lang = newfile_langs[lview.getLanguage()]
             def x():
                 etab.set_language(lang, lview.getWhitespace())
             RunWithProgress(x, "Creating new document", "Loading grammar...")
