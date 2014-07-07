@@ -1,4 +1,4 @@
-# Copyright (c) 2012--2013 King's College London
+# Copyright (c) 2013--2014 King's College London
 # Created by the Software Development Team <http://soft-dev.org/>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
