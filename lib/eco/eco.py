@@ -48,7 +48,7 @@ from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal,
 
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 
-from grammars.grammars import languages, newfile_langs, lang_dict, Language, EcoGrammar
+from grammars.grammars import languages, newfile_langs, submenu_langs, lang_dict, Language, EcoGrammar
 
 from time import time
 import os
@@ -387,7 +387,7 @@ class Window(QtGui.QMainWindow):
             self.openfile(QString(f))
 
     def preload(self):
-        for l in languages:
+        for l in newfile_langs + submenu_langs:
             try:
                 print("Preloading %s" % (l.name))
                 l.load()
