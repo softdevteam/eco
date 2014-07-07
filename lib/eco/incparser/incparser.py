@@ -470,17 +470,11 @@ class IncParser(object):
         return AST(root)
 
     def get_next_possible_symbols(self, state_id):
-        stateset = self.graph.state_sets[state_id]
-        lookahead = set()
-        for state in stateset.elements:
-            if state.isfinal():
-                lookahead = lookahead | stateset.lookaheads[state]
-            else:
-                s = state.next_symbol()
-                if isinstance(s, Terminal):
-                    lookahead.add(s)
-
-        return lookahead
+        l = set()
+        for (state, symbol) in self.syntaxtable.table.keys():
+            if state == state_id:
+                l.add(symbol)
+        return l
 
     def get_next_symbols_list(self, state = -1):
         if state == -1:
