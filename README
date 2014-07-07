@@ -16,12 +16,16 @@ Installation:
 
 1) Checkout Eco from https://bitbucket.org/softdevteam/eco
 2) cd eco/
-3) ./bin/eco
+
+3) Download database generator to create test database.
+
+    wget https://bitbucket.org/softdevteam/eco/downloads/gendb.py
+    python2.7 gendb.py
+
+4) Run Eco:
+    ./bin/eco
 
 Tutorial:
-
-0)
-Download <insert link to database file here>
 
 1)
 Eco is a language aware editor. When creatig a new file we need to specifiy in
@@ -33,9 +37,9 @@ We are writing HTML. Type in the following:
 
     <html>
     <head>
+    </head>
     <body>
     </body>
-    </head>
 
 Eco attempts to parse the program on every keystroke. The parse tree can be
 inspected by clicking "View->Tree" and ticking the checkbox "Show tree". Note
@@ -58,7 +62,7 @@ Now hit CTRL+L (or select Edit->Add language box from the menu). From the popup
 menu select "Python + HTML + SQL".  Then type:
 
     import sqlite3
-    c = sqlite3.connect("<path-to-sqlfile>")
+    c = sqlite3.connect("test.db")
 
 We just created a language box inside of HTML containing Python code. Let's
 create another one.
