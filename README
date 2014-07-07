@@ -41,16 +41,19 @@ We are writing HTML. Type in the following:
     <body>
     </body>
 
-Eco attempts to parse the program on every keystroke. The parse tree can be
-inspected by clicking "View->Tree" and ticking the checkbox "Show tree". Note
-that leaving this checked will redraw the parse tree on every keystroke using
-graphviz which becomes quite slow quickly. At the moment our program is still
-unvalid as shown by the red squiggly line. Let's fix the program by closing the
-<html> tag.
+At the moment our program is still unvalid as shown by the red squiggly line.
+Let's fix the program by closing the <html> tag.
 
 Type:
 
     </html>
+
+Eco attempts to parse the program on every keystroke. The parse tree can be
+inspected by clicking "View->Tree" and ticking the checkbox "Show tree".
+
+NOTE: Before you continue it is recommended to uncheck this box again. Leaving
+it checked will redraw the parse tree on every keystroke using graphviz which
+can become quite slow once the program gets bigger.
 
 3)
 Now we are going to add Python into our HTML program. The grammar we loaded
@@ -75,7 +78,7 @@ then type:
     for n in db:
         print html, n
 
-In this code "db" and "html" are palceholders that we are going to replace with
+In this code "db" and "html" are placeholders that we are going to replace with
 further language boxes.
 
 5)
@@ -103,8 +106,9 @@ Your code now should look somewhat like this:
     </html>
 
 7)
-Now we can export our program using "File->Export" and saving it as "web.py".
-Afterwards we can run it:
+Now we can export our program using "File->Export" and saving it as "web.py"
+(make sure it is saved in the same location where you stored and exectuted
+'gendb.py'). Afterwards we can run it:
 
     python2.7 web.py > web.html
 
