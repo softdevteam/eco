@@ -88,7 +88,7 @@ class AstAnalyser(object):
         if node is None:
             return
 
-        if node.__dict__.has_key('alternate') and node.alternate:
+        if hasattr(node, 'alternate') and node.alternate:
             node = node.alternate
 
         from grammar_parser.bootstrap import AstNode, ListNode
@@ -185,7 +185,7 @@ class AstAnalyser(object):
             if visibility not in ['surrounding','subsequent']:
                 # URI has a base
                 base = node.get(visibility)
-                base_uri = self.scan(base, prevpath)
+                base_uri = self.scan(base, prevpath) # this has to be an ASTNode to be successfully scanned
                 path = [base_uri]
                 uri.path = path
 

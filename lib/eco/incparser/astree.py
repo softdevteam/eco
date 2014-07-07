@@ -153,6 +153,7 @@ class AST(object):
         return "\n".join(output)
 
 class Node(object):
+    __slots__ = ["symbol", "state", "parent", "left", "right", "prev_term", "next_term", "magic_parent", "children"]
     def __init__(self, symbol, state, children):
         self.symbol = symbol
         self.state = state
@@ -354,6 +355,7 @@ uppercase = set(list(string.ascii_uppercase))
 digits = set(list(string.digits))
 
 class TextNode(Node):
+    __slots__ = ["pos", "position", "changed", "seen", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "regex", "text", "lookup", "priority", "parent_lbox", "magic_backpointer"]
     def __init__(self, symbol, state=-1, children=[], pos=-1, lookahead=0):
         Node.__init__(self, symbol, state, children)
         self.pos = pos
