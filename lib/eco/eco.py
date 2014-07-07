@@ -655,11 +655,7 @@ class Window(QtGui.QMainWindow):
             else:
                 qtreeitem.setIcon(0, QIcon("gui/exclamation.png"))
                 enode = parser.error_node
-                symbols = parser.get_expected_symbols(enode.prev_term.state)
-                l = []
-                for s in symbols:
-                    l.append("'%s'" % (s.name))
-                emsg = "Error: Found \"%s\" expected %s (State: %s)" % (enode.symbol.name, ",".join(l), enode.prev_term.state)
+                emsg = "Error on \"%s\"" % (enode.symbol.name,)
                 qtreeitem.setToolTip(0, emsg)
             qtreeitem.parser = parser
             self.add_parsingstatus(nested, parser.previous_version.parent, qtreeitem)
