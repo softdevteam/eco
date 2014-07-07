@@ -323,6 +323,7 @@ class RunWithProgress(QObject):
         l.start()
         q.exec_()
 
+from optparse import OptionParser
 class Window(QtGui.QMainWindow):
 
 
@@ -371,6 +372,27 @@ class Window(QtGui.QMainWindow):
         self.viewer = Viewer("pydot")
 
         self.finddialog = FindDialog()
+
+    def parse_options(self):
+        # parse options
+        parser = OptionParser(usage="usage: python2.7 %prog FILE [options]")
+        parser.add_option("-p", "--preload", action="store_true", default=False, help="Preload grammars")
+        parser.add_option("-v", "--verbose", action="store_true", default=False, help="Show output")
+        (options, args) = parser.parse_args()
+        print(options)
+        if options.preload:
+            self.preload()
+        if len(args) > 0:
+            f = args[0]
+            self.openfile(QString(f))
+
+    def preload(self):
+        for l in languages:
+            try:
+                print("Preloading %s" % (l.name))
+                l.load()
+            except AttributeError:
+                pass
 
     def show_languageboxes(self):
         if self.ui.actionShow_language_boxes.isChecked():
@@ -527,8 +549,9 @@ class Window(QtGui.QMainWindow):
             ed.export_path = path
             self.getEditor().tm.export(path)
 
-    def openfile(self):
-        filename = QFileDialog.getOpenFileName()
+    def openfile(self, filename=None):
+        if not filename:
+            filename = QFileDialog.getOpenFileName()
         if filename:
             if filename.endsWith(".eco") or filename.endsWith(".nb"):
                 etab = EditorTab()
@@ -659,6 +682,7 @@ def main():
     window.connect(window.thread, t.signal, window.show_output)
 
     window.show()
+    window.parse_options()
     t.wait()
     sys.exit(app.exec_())
 
