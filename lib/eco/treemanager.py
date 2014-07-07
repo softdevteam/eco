@@ -1146,6 +1146,8 @@ class TreeManager(object):
             self.export_unipycation(path)
         elif lang == "HTML + Python + SQL":
             self.export_html_python_sql(path)
+        elif lang == "PHP + Python":
+            self.export_html_python_sql(path)
         else:
             self.export_as_text(path)
 
@@ -1189,6 +1191,10 @@ class TreeManager(object):
     def export_html_python_sql(self, path):
         with open(path, "w") as f:
             f.write(HTMLPythonSQL.export(self.get_bos()))
+
+    def export_php_python(self, path):
+        with open(path, "w") as f:
+            f.write(PHPPython.export(self.get_bos()))
 
     def export_as_text(self, path):
         node = self.lines[0].node # first node
