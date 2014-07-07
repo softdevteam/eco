@@ -43,14 +43,28 @@ class SourcePos(object):
     def __repr__(self):
         return "SourcePos(%r, %r, %r)" % (self.i, self.lineno, self.columnno)
 
+import os
+try:
+    import cPickle as pickle
+except:
+    import pickle
+
 class Lexer(object):
     def __init__(self, token_regexs, names, ignore=None):
         self.token_regexs = token_regexs
         self.names = names
         self.rex = regex.LexingOrExpression(token_regexs, names)
-        automaton = self.rex.make_automaton()
-        self.automaton = automaton.make_deterministic(names)
-        self.automaton.optimize() # XXX not sure whether this is a good idea
+        # pickling automaton to increase loading times
+        h = hash(str(token_regexs)) ^ hash(str(names))
+        filename = "".join([os.path.dirname(__file__), "/../pickle/", str(h), ".pcl"])
+        try:
+            f = open(filename, "r")
+            self.automaton = pickle.load(f)
+        except IOError:
+            automaton = self.rex.make_automaton()
+            self.automaton = automaton.make_deterministic(names)
+            self.automaton.optimize() # XXX not sure whether this is a good idea
+            pickle.dump(self.automaton, open(filename, "w"))
         if ignore is None:
             ignore = []
         for ign in ignore:
