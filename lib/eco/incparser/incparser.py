@@ -88,23 +88,22 @@ class IncParser(object):
 
     def from_dict(self, rules, startsymbol, lr_type, whitespaces, pickle_id, precedences):
         self.graph = None
+        self.syntaxtable = None
         if pickle_id:
             filename = "".join([os.path.dirname(__file__), "/../pickle/", str(pickle_id ^ hash(whitespaces)), ".pcl"])
             try:
-                print("unpickling")
                 f = open(filename, "r")
-                self.graph = pickle.load(f)
+                self.syntaxtable = pickle.load(f)
             except IOError:
-                print("failed")
-        if self.graph is None:
-            print("building graph")
+                pass
+        if self.syntaxtable is None:
             self.graph = StateGraph(startsymbol, rules, lr_type)
             self.graph.build()
+            self.syntaxtable = SyntaxTable(lr_type)
+            self.syntaxtable.build(self.graph, precedences)
             if pickle_id:
-                pickle.dump(self.graph, open(filename, "w"))
+                pickle.dump(self.syntaxtable, open(filename, "w"))
 
-        self.syntaxtable = SyntaxTable(lr_type)
-        self.syntaxtable.build(self.graph, precedences)
         self.whitespaces = whitespaces
 
     def init_ast(self, magic_parent=None):
@@ -211,8 +210,9 @@ class IncParser(object):
                     la = self.left_breakdown(la)
                 else:
                     if USE_OPT:
-                        follow_id = self.graph.follow(self.current_state, la.symbol)
-                        if follow_id: # can we shift this Nonterminal in the current state?
+                        goto = self.syntaxtable.lookup(self.current_state, la.symbol)
+                        if goto: # can we shift this Nonterminal in the current state?
+                            follow_id = goto.action
                             self.stack.append(la)
                             la.state = follow_id #XXX this fixed goto error (i should think about storing the states on the stack instead of inside the elements)
                             self.current_state = follow_id
@@ -220,6 +220,7 @@ class IncParser(object):
                             self.validating = True
                             continue
                         else:
+                            #XXX can be made faster by providing more information in syntax tables
                             first_term = la.find_first_terminal()
                             if first_term.lookup != "":
                                 lookup_symbol = Terminal(first_term.lookup)
@@ -412,7 +413,7 @@ class IncParser(object):
         return la.right_sibling()
 
     def shiftable(self, la):
-        if self.graph.follow(self.current_state, la.symbol):
+        if self.syntaxtable.lookup(self.current_state, la.symbol):
             return True
         return False
 
