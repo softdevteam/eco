@@ -512,6 +512,8 @@ class Window(QtGui.QMainWindow):
             self.ui.tabWidget.addTab(etab, "[No name]")
             self.ui.tabWidget.setCurrentWidget(etab)
             etab.editor.setFocus(Qt.OtherFocusReason)
+            return True
+        return False
 
     def savefile(self):
         ed = self.getEditorTab()
@@ -566,11 +568,11 @@ class Window(QtGui.QMainWindow):
                 self.ui.tabWidget.setCurrentWidget(etab)
                 etab.editor.setFocus(Qt.OtherFocusReason)
             else: # import
-                self.newfile()
-                def x():
-                    self.importfile(filename)
-                RunWithProgress(x, "Importing file", "Importing and parsing file...")
-                self.getEditorTab().update()
+                if self.newfile():
+                    def x():
+                        self.importfile(filename)
+                    RunWithProgress(x, "Importing file", "Importing and parsing file...")
+                    self.getEditorTab().update()
 
     def closeTab(self, index):
         etab = self.ui.tabWidget.widget(index)
