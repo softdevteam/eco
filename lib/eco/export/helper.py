@@ -38,7 +38,6 @@ class Generic:
         while True:
             node = node.next_term
             sym = node.symbol
-            print type(node), type(sym), sym.name
             if isinstance(node, EOS):
                 break
             assert isinstance(node, TextNode)
