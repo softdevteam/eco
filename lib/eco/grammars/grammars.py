@@ -118,9 +118,15 @@ sql_ref_java.add_alternative("y_condition", java_expr)
 javasqlchemical = EcoFile("Java + SQL + Chemical", "grammars/java15.eco", "Java")
 javasqlchemical.add_alternative("unary_expression", sql_ref_java)
 
-languages = [calc, java, javasqlchemical, java_expr, php, python, pythonhtmlsql, pythonprolog, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar]
-newfile_langs = [java, javasqlchemical, php, python, pythonhtmlsql, pythonprolog, prolog, sql, html, htmlpythonsql]
-submenu_langs = [java, javasqlchemical, java_expr, php, python, pythonhtmlsql, pythonprolog, prolog, sql, sql_ref_java, html, htmlpythonsql, img, chemical]
+phppython = EcoFile("PHP + Python", "grammars/php.eco", "Php")
+pythonphp = EcoFile("Python + PHP", "grammars/python275.eco", "Python")
+phppython.add_alternative("class_statement", pythonphp)
+phppython.add_alternative("expr", pythonphp)
+pythonphp.add_alternative("atom", phppython)
+
+languages = [calc, java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar]
+newfile_langs = [java, javasqlchemical, php, phppython, python, pythonhtmlsql, pythonprolog, prolog, sql, html, htmlpythonsql]
+submenu_langs = [java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, prolog, sql, sql_ref_java, html, htmlpythonsql, img, chemical]
 
 lang_dict = {}
 for l in languages:

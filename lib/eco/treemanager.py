@@ -26,7 +26,7 @@ from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal,
 from PyQt4.QtGui import QApplication
 from grammars.grammars import lang_dict, Language, EcoFile
 from indentmanager import IndentationManager
-from export import HTMLPythonSQL
+from export import HTMLPythonSQL, PHPPython
 
 import math
 
@@ -1168,7 +1168,7 @@ class TreeManager(object):
         elif lang == "HTML + Python + SQL":
             self.export_html_python_sql(path)
         elif lang == "PHP + Python":
-            self.export_html_python_sql(path)
+            self.export_php_python(path)
         else:
             self.export_as_text(path)
 
