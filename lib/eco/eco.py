@@ -60,6 +60,8 @@ import editor
 from nodeeditor import NodeEditor
 from editortab import EditorTab
 
+import logging
+
 def print_var(name, value):
     print("%s: %s" % (name, value))
 
@@ -378,13 +380,19 @@ class Window(QtGui.QMainWindow):
         parser = OptionParser(usage="usage: python2.7 %prog FILE [options]")
         parser.add_option("-p", "--preload", action="store_true", default=False, help="Preload grammars")
         parser.add_option("-v", "--verbose", action="store_true", default=False, help="Show output")
+        parser.add_option("-l", "--log", default="WARNING", help="Log level: INFO, WARNING, ERROR [default: %default]")
         (options, args) = parser.parse_args()
-        print(options)
         if options.preload:
             self.preload()
         if len(args) > 0:
             f = args[0]
             self.openfile(QString(f))
+
+        if options.log.upper() in ["INFO", "WARNING", "ERROR"]:
+            loglevel=getattr(logging, options.log.upper())
+        else:
+            loglevel=logging.WARNING
+        logging.basicConfig(format='%(levelname)s: %(message)s', filemode='w', level=loglevel)
 
     def preload(self):
         for l in newfile_langs + submenu_langs:

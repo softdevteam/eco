@@ -34,42 +34,40 @@ from stategraph import StateGraph
 from constants import LR0, LR1, LALR
 from astree import AST, TextNode, BOS, EOS
 
-Node = TextNode
+import logging
 
-# deactivate parser output for now
-def print(*args, **kwargs):
-    pass
+Node = TextNode
 
 class IncParser(object):
 
     def __init__(self, grammar=None, lr_type=LR0, whitespaces=False, startsymbol=None):
 
         if grammar:
-            print("Parsing Grammar")
+            logging.debug("Parsing Grammar")
             parser = Parser(grammar, whitespaces)
             parser.parse()
 
             filename = "".join([os.path.dirname(__file__), "/../pickle/", str(hash(grammar) ^ hash(whitespaces)), ".pcl"])
             try:
-                print("Try to unpickle former stategraph")
+                logging.debug("Try to unpickle former stategraph")
                 f = open(filename, "r")
                 start = time.time()
                 self.graph = pickle.load(f)
                 end = time.time()
-                print("unpickling done in", end-start)
+                logging.debug("unpickling done in %s", end-start)
             except IOError:
-                print("could not unpickle old graph")
-                print("Creating Stategraph")
+                logging.debug("could not unpickle old graph")
+                logging.debug("Creating Stategraph")
                 self.graph = StateGraph(parser.start_symbol, parser.rules, lr_type)
-                print("Building Stategraph")
+                logging.debug("Building Stategraph")
                 self.graph.build()
-                print("Pickling")
+                logging.debug("Pickling")
                 pickle.dump(self.graph, open(filename, "w"))
 
             if lr_type == LALR:
                 self.graph.convert_lalr()
 
-            print("Creating Syntaxtable")
+            logging.debug("Creating Syntaxtable")
             self.syntaxtable = SyntaxTable(lr_type)
             self.syntaxtable.build(self.graph)
 
@@ -84,7 +82,7 @@ class IncParser(object):
         self.whitespaces = whitespaces
 
         self.previous_version = None
-        print("Incemental parser done")
+        logging.debug("Incemental parser done")
 
     def from_dict(self, rules, startsymbol, lr_type, whitespaces, pickle_id, precedences):
         self.graph = None
@@ -120,7 +118,7 @@ class IncParser(object):
         self.inc_parse([], True)
 
     def inc_parse(self, line_indents=[], reparse=False):
-        print("============ NEW INCREMENTAL PARSE ================= ")
+        logging.debug("============ NEW INCREMENTAL PARSE ================= ")
         self.error_node = None
         self.stack = []
         self.undo = []
@@ -245,7 +243,7 @@ class IncParser(object):
                             la = self.pop_lookahead(la)
                         else:
                             la = self.left_breakdown(la)
-        print("============ INCREMENTAL PARSE END ================= ")
+        logging.debug("============ INCREMENTAL PARSE END ================= ")
 
     def add_to_stack(self, la, stack):
         # comment helper that adds elements to the comment stack and if la is a
@@ -263,7 +261,6 @@ class IncParser(object):
         return self.pop_lookahead(la)
 
     def parse_terminal(self, la, lookup_symbol):
-        #print("Parsing terminal", la)
         if isinstance(lookup_symbol, IndentationTerminal):
             #XXX hack: change parsing table to accept IndentationTerminals
             lookup_symbol = Terminal(lookup_symbol.name)
@@ -273,11 +270,11 @@ class IncParser(object):
             bos = self.previous_version.parent.children[0]
             eos = self.previous_version.parent.children[-1]
             self.previous_version.parent.set_children([bos, self.stack[1], eos])
-            print("loopcount", self.loopcount)
-            print ("Accept")
+            logging.debug("loopcount: %s", self.loopcount)
+            logging.debug ("Accept")
             return "Accept"
         elif isinstance(element, Shift):
-            print("Shift", la)
+            logging.debug("Shift: %s", la)
             # removing this makes "Valid tokens" correct, should not be needed
             # for incremental parser
             #self.undo.append((la, "state", la.state))
@@ -291,7 +288,6 @@ class IncParser(object):
             return self.pop_lookahead(la)
 
         elif isinstance(element, Reduce):
-            #print("Reducing")
             self.reduce(element)
             return self.parse_terminal(la, lookup_symbol)
         elif element is None:
@@ -306,8 +302,8 @@ class IncParser(object):
             node, attribute, value = self.undo.pop(-1)
             setattr(node, attribute, value)
         self.error_node = la
-        print ("Error", la, la.prev_term, la.next_term)
-        print("loopcount", self.loopcount)
+        logging.debug ("Error: %s %s %s", la, la.prev_term, la.next_term)
+        logging.debug("loopcount: %s", self.loopcount)
         return "Error"
 
     def reduce(self, element):
@@ -417,28 +413,6 @@ class IncParser(object):
             return True
         return False
 
-    def find_changes(self, inputiter):
-        # XXX later we'll work on the ast the whole time
-        # so nodes are marked as changed while typing
-        print("-------- find changes -----")
-        changed = []
-        ast = self.previous_version
-        nodes = [ast.parent]
-        while nodes != []:
-            node = nodes.pop()
-            if isinstance(node.symbol, Terminal) or isinstance(node.symbol, Epsilon):
-                i = next(inputiter)
-                if i != node.symbol:
-                    print("changed", node, "to", i)
-                    temp = node
-                    changed.append(temp)
-                    while(temp.parent is not None):
-                        changed.append(temp.parent)
-                        temp = temp.parent
-            nodes.extend(list(reversed(node.children)))
-        self.all_changes = changed
-        print("---------------------------")
-
     def has_changed(self, node):
         return node in self.all_changes
 
@@ -450,18 +424,6 @@ class IncParser(object):
                 l.append(Terminal(i))
         l.append(FinishSymbol())
         return l
-
-   #def reduce_ast(self, element, state):
-   #    l = []
-   #    # action = Production
-   #    for e in element.action.right:
-   #        if e == Epsilon():
-   #            l.append(Node(Epsilon(), 0, []))
-   #        else:
-   #            l.append(self.ast_stack.pop())
-   #    l.reverse()
-   #    n = Node(element.action.left, state, l)
-   #    self.ast_stack.append(n)
 
     def get_ast(self):
         bos = Node(Terminal("bos"), 0, [])
