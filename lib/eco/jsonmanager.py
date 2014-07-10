@@ -86,8 +86,8 @@ class JsonManager(object):
         return jsnode
 
     def json_to_node(self, jsnode):
-        node_class = eval(jsnode["class"])
-        node_symbol = eval(jsnode["symbol"])
+        node_class = globals()[jsnode["class"]]
+        node_symbol = globals()[jsnode["symbol"]]
 
         symbol = node_symbol()
         symbol.name = jsnode["text"].encode("utf-8")
