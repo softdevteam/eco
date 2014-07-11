@@ -27,11 +27,6 @@ from PyQt4.QtCore import *
 from PyQt4 import QtGui
 from PyQt4.QtGui import *
 
-try:
-    import cPickle as pickle
-except:
-    import pickle
-
 from gui.gui import Ui_MainWindow
 from gui.parsetree import Ui_MainWindow as Ui_ParseTree
 from gui.stateview import Ui_MainWindow as Ui_StateView
