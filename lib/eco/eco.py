@@ -296,29 +296,6 @@ class LanguageView(QtGui.QDialog):
     def getWhitespace(self):
         return True
 
-class RunWithProgress(QObject):
-    class ProgressThread(QThread):
-        def __init__(self, func, q):
-            self.func = func
-            self.q = q
-            QThread.__init__(self)
-        def run(self):
-            QThread.msleep(100) # give qeventloop a chance to update gui
-            self.func()
-            self.q.quit()
-
-    def __init__(self, func, title, label):
-        p = QProgressDialog()
-        p.setWindowTitle(title)
-        p.setLabelText(label)
-        p.setWindowModality(Qt.WindowModal)
-        p.setCancelButton(None)
-        p.setRange(0,0)
-        p.show()
-        q = QEventLoop()
-        l = self.ProgressThread(func, q)
-        l.start()
-        q.exec_()
 
 from optparse import OptionParser
 class Window(QtGui.QMainWindow):
@@ -559,9 +536,7 @@ class Window(QtGui.QMainWindow):
             if filename.endsWith(".eco") or filename.endsWith(".nb"):
                 etab = EditorTab()
 
-                def x():
-                    etab.editor.loadFromJson(filename)
-                RunWithProgress(x, "Opening file", "Loading file and grammars...")
+                etab.editor.loadFromJson(filename)
                 etab.editor.update()
                 etab.filename = filename
 
@@ -570,9 +545,7 @@ class Window(QtGui.QMainWindow):
                 etab.editor.setFocus(Qt.OtherFocusReason)
             else: # import
                 if self.newfile():
-                    def x():
-                        self.importfile(filename)
-                    RunWithProgress(x, "Importing file", "Importing and parsing file...")
+                    self.importfile(filename)
                     self.getEditorTab().update()
 
     def closeTab(self, index):
