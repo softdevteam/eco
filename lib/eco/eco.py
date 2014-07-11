@@ -509,9 +509,7 @@ class Window(QtGui.QMainWindow):
         if result:
             etab = EditorTab()
             lang = newfile_langs[lview.getLanguage()]
-            def x():
-                etab.set_language(lang, lview.getWhitespace())
-            RunWithProgress(x, "Creating new document", "Loading grammar...")
+            etab.set_language(lang, lview.getWhitespace())
             self.ui.tabWidget.addTab(etab, "[No name]")
             self.ui.tabWidget.setCurrentWidget(etab)
             etab.editor.setFocus(Qt.OtherFocusReason)
