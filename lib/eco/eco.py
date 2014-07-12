@@ -319,8 +319,14 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
         self.connect(self.ui.actionSelect_font, SIGNAL("triggered()"), self.change_font)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
-        self.connect(self.ui.actionParse_Tree, SIGNAL("triggered()"), self.showParseView)
-        self.connect(self.ui.actionStateGraph, SIGNAL("triggered()"), self.showStateView)
+        try:
+            import pydot
+            self.connect(self.ui.actionParse_Tree, SIGNAL("triggered()"), self.showParseView)
+            self.connect(self.ui.actionStateGraph, SIGNAL("triggered()"), self.showStateView)
+        except ImportError:
+            sys.stderr.write("Warning: pydot not installed, so viewing of trees is disabled.\n")
+            self.ui.actionParse_Tree.setEnabled(False)
+            self.ui.actionStateGraph.setEnabled(False)
         self.connect(self.ui.actionAbout, SIGNAL("triggered()"), self.showAboutView)
         self.connect(self.ui.actionUndo, SIGNAL("triggered()"), self.undo)
         self.connect(self.ui.actionRedo, SIGNAL("triggered()"), self.redo)

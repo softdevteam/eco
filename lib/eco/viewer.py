@@ -19,7 +19,11 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-import pydot, os
+import os
+try:
+    import pydot
+except ImportError:
+    pass
 
 from grammar_parser.gparser import MagicTerminal, Terminal
 from grammar_parser.bootstrap import AstNode, ListNode
