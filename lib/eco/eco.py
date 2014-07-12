@@ -20,8 +20,19 @@
 # IN THE SOFTWARE.
 
 from __future__ import print_function
-
 import subprocess, sys
+
+try:
+    import py
+except ImportError:
+    sys.stderr.write("""Error: can't import the py module. Typically this can be installed with:
+  pip install py
+
+More detailed install instructions for py can be found at:
+  http://pylib.readthedocs.org/en/latest/install.html
+""")
+    sys.exit(1)
+
 from PyQt4 import QtCore
 from PyQt4.QtCore import *
 from PyQt4 import QtGui
