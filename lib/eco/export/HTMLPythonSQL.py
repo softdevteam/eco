@@ -94,7 +94,7 @@ class Nested_HTML(helper.Generic):
 
 
 def _escape(s):
-    return s.replace("\"", "\\\"").replace("'", "\\'")
+    return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("'", "\\'")
 
 
 def export(node):
