@@ -47,6 +47,7 @@ class EditorTab(QWidget):
         self.scrollarea.setWidgetResizable(True)
         self.scrollarea.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.scrollarea.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.scrollarea.update_theme()
 
         self.linenumbers = LineNumbers(self)
 
@@ -59,6 +60,9 @@ class EditorTab(QWidget):
         self.connect(self.editor, SIGNAL("keypress(QKeyEvent)"), self.keypress)
 
         self.filename = self.export_path = None
+
+    def update_theme(self):
+        self.scrollarea.update_theme()
 
     def changed(self):
         return self.editor.tm.changed
@@ -153,6 +157,24 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
         anotherbox.addWidget(widget)
         anotherbox.setSpacing(0)
         anotherbox.setContentsMargins(3,0,0,0)
+
+    def update_theme(self):
+        settings = QSettings("softdev", "Eco")
+        pal = self.viewport().palette()
+        if settings.value("app_custom", False).toBool():
+            fg = settings.value("app_foreground", "#000000")
+            bg = settings.value("app_background", "#ffffff")
+            pal.setColor(QPalette.Base, QColor(bg))
+            pal.setColor(QPalette.Text, QColor(fg))
+        else:
+            theme = settings.value("app_theme", "Light (Default)")
+            if theme == "Dark":
+                pal.setColor(QPalette.Base, QColor(0, 43, 54))
+                pal.setColor(QPalette.Text, QColor("#93A1A1"))
+            else:
+                pal.setColor(QPalette.Base, QPalette().color(QPalette.Base))
+                pal.setColor(QPalette.Text, QColor("#333333"))
+        self.viewport().setPalette(pal)
 
     def incHSlider(self):
         self.horizontalScrollBar().setSliderPosition(self.horizontalScrollBar().sliderPosition() + self.horizontalScrollBar().singleStep())

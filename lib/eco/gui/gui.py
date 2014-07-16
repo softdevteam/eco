@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Sat Jun 21 16:21:27 2014
+# Created: Tue Jul 15 15:16:46 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -43,7 +43,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.addWidget(self.tabWidget)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 23))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 21))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
@@ -186,6 +186,8 @@ class Ui_MainWindow(object):
         self.actionExportAs.setObjectName(_fromUtf8("actionExportAs"))
         self.actionExport = QtGui.QAction(MainWindow)
         self.actionExport.setObjectName(_fromUtf8("actionExport"))
+        self.actionSettings = QtGui.QAction(MainWindow)
+        self.actionSettings.setObjectName(_fromUtf8("actionSettings"))
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addSeparator()
@@ -197,6 +199,8 @@ class Ui_MainWindow(object):
         self.menuFile.addAction(self.actionExit)
         self.menuOptions.addAction(self.actionSelect_font)
         self.menuOptions.addAction(self.actionFull_reparse)
+        self.menuOptions.addSeparator()
+        self.menuOptions.addAction(self.actionSettings)
         self.menuPoject.addAction(self.actionRun)
         self.menuView.addAction(self.actionParse_Tree)
         self.menuView.addAction(self.actionStateGraph)
@@ -303,4 +307,5 @@ class Ui_MainWindow(object):
         self.actionExportAs.setShortcut(_translate("MainWindow", "Ctrl+Shift+E", None))
         self.actionExport.setText(_translate("MainWindow", "Export", None))
         self.actionExport.setShortcut(_translate("MainWindow", "Ctrl+E", None))
+        self.actionSettings.setText(_translate("MainWindow", "Settings", None))
 

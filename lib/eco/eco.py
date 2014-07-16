@@ -44,6 +44,7 @@ from gui.stateview import Ui_MainWindow as Ui_StateView
 from gui.about import Ui_Dialog as Ui_AboutDialog
 from gui.finddialog import Ui_Dialog as Ui_FindDialog
 from gui.languagedialog import Ui_Dialog as Ui_LanguageDialog
+from gui.settings import Ui_MainWindow as Ui_Settings
 
 from grammar_parser.plexer import PriorityLexer
 from incparser.incparser import IncParser
@@ -71,9 +72,6 @@ import logging
 def print_var(name, value):
     print("%s: %s" % (name, value))
 
-BODY_FONT = "Monospace"
-BODY_FONT_SIZE = 9
-
 class GlobalFont(object):
     def __init__(self, font, size):
         font = QtGui.QFont(font, size)
@@ -89,7 +87,9 @@ class LineNumbers(QFrame):
     def __init__(self, parent=None):
         QtGui.QFrame.__init__(self, parent)
 
-        self.font = QtGui.QFont(BODY_FONT, BODY_FONT_SIZE)
+        family = settings.value("font-family").toString()
+        size = settings.value("font-size").toInt()[0]
+        self.font = QtGui.QFont(family, size)
         self.fontm = QtGui.QFontMetrics(self.font)
         self.fontht = self.fontm.height() + 3
         self.fontwt = self.fontm.width(" ")
@@ -262,6 +262,77 @@ class StateView(QtGui.QMainWindow):
         graphicsview.setScene(scene)
         graphicsview.resetMatrix()
 
+class SettingsView(QtGui.QMainWindow):
+    def __init__(self, window):
+        QtGui.QMainWindow.__init__(self)
+        self.ui = Ui_Settings()
+        self.ui.setupUi(self)
+
+        self.connect(self.ui.buttonBox, SIGNAL("accepted()"), self.accept)
+        self.connect(self.ui.buttonBox, SIGNAL("rejected()"), self.reject)
+
+        self.connect(self.ui.app_foreground, SIGNAL("clicked()"), self.pick_color)
+        self.connect(self.ui.app_background, SIGNAL("clicked()"), self.pick_color)
+
+        self.foreground = None
+        self.background = None
+        self.window = window
+
+        self.loadSettings()
+
+
+    def loadSettings(self):
+        settings = QSettings("softdev", "Eco")
+        self.ui.gen_showconsole.setCheckState(settings.value("gen_showconsole", 0).toInt()[0])
+        self.ui.gen_showparsestatus.setCheckState(settings.value("gen_showparsestatus", 2).toInt()[0])
+
+        family = settings.value("font-family").toString()
+        size = settings.value("font-size").toInt()[0]
+        self.ui.app_fontfamily.setCurrentFont(QtGui.QFont(family, size))
+        self.ui.app_fontsize.setValue(size)
+        self.ui.app_theme.setCurrentIndex(settings.value("app_themeindex", 0).toInt()[0])
+        self.ui.app_custom.setChecked(settings.value("app_custom", False).toBool())
+        self.foreground = settings.value("app_foreground", "#000000").toString()
+        self.background = settings.value("app_background", "#ffffff").toString()
+        self.change_color(self.ui.app_foreground, self.foreground)
+        self.change_color(self.ui.app_background, self.background)
+
+    def saveSettings(self):
+        settings = QSettings("softdev", "Eco")
+        settings.setValue("gen_showconsole", self.ui.gen_showconsole.checkState())
+        settings.setValue("gen_showparsestatus", self.ui.gen_showparsestatus.checkState())
+
+        settings.setValue("font-family", self.ui.app_fontfamily.currentFont().family())
+        settings.setValue("font-size", self.ui.app_fontsize.value())
+        settings.setValue("app_theme", self.ui.app_theme.currentText())
+        settings.setValue("app_themeindex", self.ui.app_theme.currentIndex())
+        settings.setValue("app_custom", self.ui.app_custom.isChecked())
+        settings.setValue("app_foreground", self.foreground)
+        settings.setValue("app_background", self.background)
+
+    def accept(self):
+        self.saveSettings()
+        settings = QSettings("softdev", "Eco")
+        gfont = QApplication.instance().gfont
+        gfont.setfont(QFont(settings.value("font-family").toString(), settings.value("font-size").toInt()[0]))
+        self.window.refreshTheme()
+        self.close()
+
+    def reject(self):
+        self.close()
+
+    def pick_color(self):
+        color = QColorDialog.getColor()
+        if self.sender() is self.ui.app_foreground:
+            self.change_color(self.ui.app_foreground, color.name())
+            self.foreground = color.name()
+        elif self.sender() is self.ui.app_background:
+            self.change_color(self.ui.app_background, color.name())
+            self.background = color.name()
+
+    def change_color(self, widget, color):
+        widget.setStyleSheet("background-color: %s" % (color))
+
 class AboutView(QtGui.QDialog):
     def __init__(self):
         QtGui.QDialog.__init__(self)
@@ -319,8 +390,8 @@ class Window(QtGui.QMainWindow):
 
         # XXX show current file in views
         self.parseview = ParseView(self)
-
         self.stateview = StateView(self)
+        self.settingsview = SettingsView(self)
 
         self.connect(self.ui.actionImport, SIGNAL("triggered()"), self.importfile)
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
@@ -338,6 +409,7 @@ class Window(QtGui.QMainWindow):
             sys.stderr.write("Warning: pydot not installed, so viewing of trees is disabled.\n")
             self.ui.actionParse_Tree.setEnabled(False)
             self.ui.actionStateGraph.setEnabled(False)
+        self.connect(self.ui.actionSettings, SIGNAL("triggered()"), self.showSettingsView)
         self.connect(self.ui.actionAbout, SIGNAL("triggered()"), self.showAboutView)
         self.connect(self.ui.actionUndo, SIGNAL("triggered()"), self.undo)
         self.connect(self.ui.actionRedo, SIGNAL("triggered()"), self.redo)
@@ -363,6 +435,13 @@ class Window(QtGui.QMainWindow):
         self.viewer = Viewer("pydot")
 
         self.finddialog = FindDialog()
+
+        # apply settings
+        settings = QSettings("softdev", "Eco")
+        if not settings.value("gen_showconsole", False).toBool():
+            self.ui.dockWidget.hide()
+        if not settings.value("gen_showparsestatus", True).toBool():
+            self.ui.dockWidget_2.hide()
 
     def parse_options(self):
         # parse options
@@ -395,6 +474,10 @@ class Window(QtGui.QMainWindow):
         if self.ui.actionShow_language_boxes.isChecked():
             return True
         return False
+
+    def refreshTheme(self):
+        for i in range(self.ui.tabWidget.count()):
+            self.ui.tabWidget.widget(i).update_theme()
 
     def update_editor(self):
         self.getEditor().update()
@@ -479,6 +562,9 @@ class Window(QtGui.QMainWindow):
 
     def showParseView(self):
         self.parseview.show()
+
+    def showSettingsView(self):
+        self.settingsview.show()
 
     def importfile(self, filename):
         if filename:
@@ -664,7 +750,14 @@ class Window(QtGui.QMainWindow):
 def main():
     app = QtGui.QApplication(sys.argv)
     app.setStyle('gtk')
-    app.gfont = GlobalFont(BODY_FONT, BODY_FONT_SIZE)
+
+    settings = QSettings("softdev", "Eco")
+    if not settings.contains("font-family"):
+        settings.setValue("font-family", "Monospace")
+        settings.setValue("font-size", 9)
+
+    app.gfont = GlobalFont(settings.value("font-family").toString(), settings.value("font-size").toInt()[0])
+
     window=Window()
     t = SubProcessThread(window, app)
     window.thread = t

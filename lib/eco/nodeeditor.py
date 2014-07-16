@@ -416,7 +416,8 @@ class NodeEditor(QFrame):
     def get_highlighter(self, node):
         root = node.get_root()
         base = lang_dict[self.tm.get_language(root)].base
-        return syntaxhighlighter.get_highlighter(base)
+        s = syntaxhighlighter.get_highlighter(base, self.palette())
+        return s
 
     def get_languagebox(self, node):
         root = node.get_root()

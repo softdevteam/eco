@@ -42,7 +42,7 @@
      <x>0</x>
      <y>0</y>
      <width>979</width>
-     <height>23</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -65,6 +65,8 @@
     </property>
     <addaction name="actionSelect_font"/>
     <addaction name="actionFull_reparse"/>
+    <addaction name="separator"/>
+    <addaction name="actionSettings"/>
    </widget>
    <widget class="QMenu" name="menuPoject">
     <property name="title">
@@ -475,6 +477,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+E</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>Settings</string>
    </property>
   </action>
  </widget>

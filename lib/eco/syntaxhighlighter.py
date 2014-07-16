@@ -19,6 +19,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+from PyQt4.Qt import QPalette
+
 class SyntaxHighlighter(object):
     colors = {
         "green": "#859900",
@@ -33,6 +35,9 @@ class SyntaxHighlighter(object):
     keyword_colors = {}
     keyword_style = {}
 
+    def __init__(self, palette):
+        self.palette = palette
+
     def get_color(self, node):
         if node.symbol.name in self.keyword_colors:
             color = self.keyword_colors[node.symbol.name]
@@ -40,7 +45,11 @@ class SyntaxHighlighter(object):
             color = self.keyword_colors[node.lookup]
         else:
             color = "default"
-        hexcode = self.colors[color]
+
+        if color == "default":
+            hexcode = self.palette.color(QPalette.Text)
+        else:
+            hexcode = self.colors[color]
         return hexcode
 
     def get_style(self, node):
@@ -208,21 +217,21 @@ class PhpHighlighter(SyntaxHighlighter):
         "int": "bold"
     }
 
-def get_highlighter(parent):
+def get_highlighter(parent, palette):
     if parent == "Java":
-        return JavaHighlighter()
+        return JavaHighlighter(palette)
     if parent == "Python":
-        return PythonHighlighter()
+        return PythonHighlighter(palette)
     if parent == "Sql":
-        return SqlHighlighter()
+        return SqlHighlighter(palette)
     if parent == "Prolog":
-        return PrologHighlighter()
+        return PrologHighlighter(palette)
     if parent == "Grammar":
-        return GrammarHighlighter()
+        return GrammarHighlighter(palette)
     if parent == "Scoping":
-        return ScopingrulesHighlighter()
+        return ScopingrulesHighlighter(palette)
     if parent == "Html":
-        return HtmlHighlighter()
+        return HtmlHighlighter(palette)
     if parent == "Php":
-        return PhpHighlighter()
-    return SyntaxHighlighter()
+        return PhpHighlighter(palette)
+    return SyntaxHighlighter(palette)
