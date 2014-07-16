@@ -40,6 +40,7 @@ class EcoGrammar(object):
     def __str__(self):
         return self.name
 
+_cache = {}
 class EcoFile(object):
     def __init__(self, name, filename, base=""):
         self.name = name
@@ -52,17 +53,39 @@ class EcoFile(object):
         from grammar_parser.bootstrap import BootstrapParser
         from jsonmanager import JsonManager
 
-        manager = JsonManager(unescape=True)
-        root, language, whitespaces = manager.load(self.filename)[0]
-        pickle_id = hash(self)
-        bootstrap = BootstrapParser(lr_type=1, whitespaces=whitespaces)
-        bootstrap.ast = root
-        bootstrap.extra_alternatives = self.alts
-        bootstrap.change_startrule = self.extract
-        bootstrap.read_options()
-        bootstrap.create_parser(pickle_id)
-        bootstrap.create_lexer()
-        return (bootstrap.incparser, bootstrap.inclexer)
+        if _cache.has_key(self.name + "::parser"):
+
+            root, language, whitespaces = _cache[self.name + "::json"]
+
+            pickle_id, whitespace = _cache[self.name + "::parser"]
+            from incparser.incparser import IncParser
+            incparser = IncParser()
+            incparser.from_dict(None, None, None, whitespace, pickle_id, None)
+            incparser.init_ast()
+
+            inclexer = _cache[self.name + "::lexer"]
+
+            return (incparser, inclexer)
+        else:
+            manager = JsonManager(unescape=True)
+            root, language, whitespaces = manager.load(self.filename)[0]
+
+            pickle_id = hash(self)
+            bootstrap = BootstrapParser(lr_type=1, whitespaces=whitespaces)
+            bootstrap.ast = root
+            bootstrap.extra_alternatives = self.alts
+            bootstrap.change_startrule = self.extract
+            bootstrap.read_options()
+
+            bootstrap.create_parser(pickle_id)
+            whitespace = bootstrap.implicit_ws()
+
+            bootstrap.create_lexer()
+
+            _cache[self.name + "::lexer"] = bootstrap.inclexer
+            _cache[self.name + "::json"] = (root, language, whitespaces)
+            _cache[self.name + "::parser"] = (pickle_id, whitespace)
+            return (bootstrap.incparser, bootstrap.inclexer)
 
     def add_alternative(self, nonterminal, language):
         if nonterminal not in self.alts:
