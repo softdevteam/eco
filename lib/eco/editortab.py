@@ -74,7 +74,8 @@ class EditorTab(QWidget):
             filename += "*"
         tabwidget = self.parent().parent()
         index = tabwidget.indexOf(self)
-        tabwidget.setTabText(index, filename)
+        if tabwidget.tabText(index) != filename:
+            tabwidget.setTabText(index, filename)
 
     def keypress(self, e=None):
         if(e and e.key() == Qt.Key_PageUp):
