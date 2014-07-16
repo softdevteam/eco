@@ -1140,6 +1140,7 @@ class TreeManager(object):
             im = p[4]
             if im:
                 im.repair_full()
+        self.full_reparse()
         self.changed = False
 
     def get_parser_lexer_for_language(self, grammar, whitespaces):
