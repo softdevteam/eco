@@ -481,7 +481,7 @@ class NodeEditor(QFrame):
             line += 1
 
         self.tm.cursor.line = line
-        cursor_x = x / self.fontwt
+        cursor_x = round(float(x) / self.fontwt)
         self.tm.cursor.move_to_x(cursor_x, self.tm.lines)
 
         if mouse_y > y or self.tm.cursor.get_x() != cursor_x:
