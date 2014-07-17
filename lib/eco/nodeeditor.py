@@ -59,6 +59,7 @@ class NodeEditor(QFrame):
         self.connect(self.timer, SIGNAL("timeout()"), self.test)
 
         self.colors = [QColor("#333333"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
+        self.setCursor(Qt.IBeamCursor)
 
     def test(self):
         self.tm.analyse()
