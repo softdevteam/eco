@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Tue Jul 15 15:16:46 2014
-#      by: PyQt4 UI code generator 4.10.3
+# Created: Thu Jul 17 15:21:59 2014
+#      by: PyQt4 UI code generator 4.11.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -47,8 +47,6 @@ class Ui_MainWindow(object):
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
-        self.menuOptions = QtGui.QMenu(self.menubar)
-        self.menuOptions.setObjectName(_fromUtf8("menuOptions"))
         self.menuPoject = QtGui.QMenu(self.menubar)
         self.menuPoject.setObjectName(_fromUtf8("menuPoject"))
         self.menuView = QtGui.QMenu(self.menubar)
@@ -119,10 +117,6 @@ class Ui_MainWindow(object):
         icon = QtGui.QIcon.fromTheme(_fromUtf8("system-run"))
         self.actionRun.setIcon(icon)
         self.actionRun.setObjectName(_fromUtf8("actionRun"))
-        self.actionSelect_font = QtGui.QAction(MainWindow)
-        icon = QtGui.QIcon.fromTheme(_fromUtf8("fonts"))
-        self.actionSelect_font.setIcon(icon)
-        self.actionSelect_font.setObjectName(_fromUtf8("actionSelect_font"))
         self.actionParse_Tree = QtGui.QAction(MainWindow)
         self.actionParse_Tree.setCheckable(False)
         self.actionParse_Tree.setChecked(False)
@@ -175,8 +169,6 @@ class Ui_MainWindow(object):
         icon = QtGui.QIcon.fromTheme(_fromUtf8("insert-text"))
         self.actionCode_complete.setIcon(icon)
         self.actionCode_complete.setObjectName(_fromUtf8("actionCode_complete"))
-        self.actionFull_reparse = QtGui.QAction(MainWindow)
-        self.actionFull_reparse.setObjectName(_fromUtf8("actionFull_reparse"))
         self.actionShow_language_boxes = QtGui.QAction(MainWindow)
         self.actionShow_language_boxes.setCheckable(True)
         self.actionShow_language_boxes.setObjectName(_fromUtf8("actionShow_language_boxes"))
@@ -196,11 +188,9 @@ class Ui_MainWindow(object):
         self.menuFile.addAction(self.actionExport)
         self.menuFile.addAction(self.actionExportAs)
         self.menuFile.addSeparator()
+        self.menuFile.addAction(self.actionSettings)
+        self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionExit)
-        self.menuOptions.addAction(self.actionSelect_font)
-        self.menuOptions.addAction(self.actionFull_reparse)
-        self.menuOptions.addSeparator()
-        self.menuOptions.addAction(self.actionSettings)
         self.menuPoject.addAction(self.actionRun)
         self.menuView.addAction(self.actionParse_Tree)
         self.menuView.addAction(self.actionStateGraph)
@@ -223,7 +213,6 @@ class Ui_MainWindow(object):
         self.menuEdit.addAction(self.actionCode_complete)
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuEdit.menuAction())
-        self.menubar.addAction(self.menuOptions.menuAction())
         self.menubar.addAction(self.menuPoject.menuAction())
         self.menubar.addAction(self.menuView.menuAction())
         self.menubar.addAction(self.menuWindow.menuAction())
@@ -246,7 +235,6 @@ class Ui_MainWindow(object):
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.actionRun)
         self.toolBar.addSeparator()
-        self.toolBar.addAction(self.actionSelect_font)
         self.toolBar.addSeparator()
 
         self.retranslateUi(MainWindow)
@@ -256,7 +244,6 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(_translate("MainWindow", "Eco - Editor for language composition", None))
         self.menuFile.setTitle(_translate("MainWindow", "File", None))
-        self.menuOptions.setTitle(_translate("MainWindow", "Options", None))
         self.menuPoject.setTitle(_translate("MainWindow", "Project", None))
         self.menuView.setTitle(_translate("MainWindow", "View", None))
         self.menuInfo.setTitle(_translate("MainWindow", "Help", None))
@@ -267,14 +254,13 @@ class Ui_MainWindow(object):
         self.treeWidget.headerItem().setText(0, _translate("MainWindow", "1", None))
         self.dockWidget.setWindowTitle(_translate("MainWindow", "Console", None))
         self.actionImport.setText(_translate("MainWindow", "Import...", None))
-        self.actionOpen.setText(_translate("MainWindow", "Open", None))
+        self.actionOpen.setText(_translate("MainWindow", "Open...", None))
         self.actionOpen.setShortcut(_translate("MainWindow", "Ctrl+O", None))
         self.actionSave.setText(_translate("MainWindow", "Save", None))
         self.actionSave.setShortcut(_translate("MainWindow", "Ctrl+S", None))
-        self.actionNew.setText(_translate("MainWindow", "New", None))
+        self.actionNew.setText(_translate("MainWindow", "New...", None))
         self.actionNew.setShortcut(_translate("MainWindow", "Ctrl+N", None))
         self.actionRun.setText(_translate("MainWindow", "Run", None))
-        self.actionSelect_font.setText(_translate("MainWindow", "Select font..", None))
         self.actionParse_Tree.setText(_translate("MainWindow", "Tree", None))
         self.actionAbout.setText(_translate("MainWindow", "About", None))
         self.actionStateGraph.setText(_translate("MainWindow", "StateGraph", None))
@@ -288,7 +274,7 @@ class Ui_MainWindow(object):
         self.actionCopy.setShortcut(_translate("MainWindow", "Ctrl+C", None))
         self.actionPaste.setText(_translate("MainWindow", "Paste", None))
         self.actionPaste.setShortcut(_translate("MainWindow", "Ctrl+V", None))
-        self.actionSave_as.setText(_translate("MainWindow", "Save as", None))
+        self.actionSave_as.setText(_translate("MainWindow", "Save as...", None))
         self.actionSave_as.setShortcut(_translate("MainWindow", "Ctrl+Shift+S", None))
         self.actionAdd_language_box.setText(_translate("MainWindow", "Add language box", None))
         self.actionAdd_language_box.setShortcut(_translate("MainWindow", "Ctrl+L", None))
@@ -299,13 +285,12 @@ class Ui_MainWindow(object):
         self.actionFind.setShortcut(_translate("MainWindow", "Ctrl+F", None))
         self.actionCode_complete.setText(_translate("MainWindow", "Code complete", None))
         self.actionCode_complete.setShortcut(_translate("MainWindow", "Ctrl+Space", None))
-        self.actionFull_reparse.setText(_translate("MainWindow", "Full reparse", None))
         self.actionShow_language_boxes.setText(_translate("MainWindow", "Highlight language boxes", None))
         self.actionFind_next.setText(_translate("MainWindow", "Find next", None))
         self.actionFind_next.setShortcut(_translate("MainWindow", "F3", None))
-        self.actionExportAs.setText(_translate("MainWindow", "Export as", None))
+        self.actionExportAs.setText(_translate("MainWindow", "Export as...", None))
         self.actionExportAs.setShortcut(_translate("MainWindow", "Ctrl+Shift+E", None))
         self.actionExport.setText(_translate("MainWindow", "Export", None))
         self.actionExport.setShortcut(_translate("MainWindow", "Ctrl+E", None))
-        self.actionSettings.setText(_translate("MainWindow", "Settings", None))
+        self.actionSettings.setText(_translate("MainWindow", "Settings...", None))
 

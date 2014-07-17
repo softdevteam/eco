@@ -57,16 +57,9 @@
     <addaction name="actionExport"/>
     <addaction name="actionExportAs"/>
     <addaction name="separator"/>
-    <addaction name="actionExit"/>
-   </widget>
-   <widget class="QMenu" name="menuOptions">
-    <property name="title">
-     <string>Options</string>
-    </property>
-    <addaction name="actionSelect_font"/>
-    <addaction name="actionFull_reparse"/>
-    <addaction name="separator"/>
     <addaction name="actionSettings"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuPoject">
     <property name="title">
@@ -115,7 +108,6 @@
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
-   <addaction name="menuOptions"/>
    <addaction name="menuPoject"/>
    <addaction name="menuView"/>
    <addaction name="menuWindow"/>
@@ -156,7 +148,6 @@
    <addaction name="separator"/>
    <addaction name="actionRun"/>
    <addaction name="separator"/>
-   <addaction name="actionSelect_font"/>
    <addaction name="separator"/>
   </widget>
   <widget class="QDockWidget" name="dockWidget_2">
@@ -244,7 +235,7 @@
      <normaloff>../../../../../.designer</normaloff>../../../../../.designer</iconset>
    </property>
    <property name="text">
-    <string>Open</string>
+    <string>Open...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
@@ -268,7 +259,7 @@
      <normaloff>../../../../../.designer</normaloff>../../../../../.designer</iconset>
    </property>
    <property name="text">
-    <string>New</string>
+    <string>New...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+N</string>
@@ -281,15 +272,6 @@
    </property>
    <property name="text">
     <string>Run</string>
-   </property>
-  </action>
-  <action name="actionSelect_font">
-   <property name="icon">
-    <iconset theme="fonts">
-     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
-   </property>
-   <property name="text">
-    <string>Select font..</string>
    </property>
   </action>
   <action name="actionParse_Tree">
@@ -383,7 +365,7 @@
      <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
    </property>
    <property name="text">
-    <string>Save as</string>
+    <string>Save as...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+S</string>
@@ -442,11 +424,6 @@
     <string>Ctrl+Space</string>
    </property>
   </action>
-  <action name="actionFull_reparse">
-   <property name="text">
-    <string>Full reparse</string>
-   </property>
-  </action>
   <action name="actionShow_language_boxes">
    <property name="checkable">
     <bool>true</bool>
@@ -465,7 +442,7 @@
   </action>
   <action name="actionExportAs">
    <property name="text">
-    <string>Export as</string>
+    <string>Export as...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+E</string>
@@ -481,7 +458,7 @@
   </action>
   <action name="actionSettings">
    <property name="text">
-    <string>Settings</string>
+    <string>Settings...</string>
    </property>
   </action>
  </widget>

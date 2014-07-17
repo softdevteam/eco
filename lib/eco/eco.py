@@ -399,7 +399,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionSave_as, SIGNAL("triggered()"), self.savefileAs)
         self.connect(self.ui.actionExport, SIGNAL("triggered()"), self.export)
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
-        self.connect(self.ui.actionSelect_font, SIGNAL("triggered()"), self.change_font)
+        #self.connect(self.ui.actionSelect_font, SIGNAL("triggered()"), self.change_font)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
         try:
             import pydot
@@ -425,7 +425,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.tabWidget, SIGNAL("tabCloseRequested(int)"), self.closeTab)
         self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.tabChanged)
         self.connect(self.ui.actionCode_complete, SIGNAL("triggered()"), self.show_code_completion)
-        self.connect(self.ui.actionFull_reparse, SIGNAL("triggered()"), self.full_reparse)
+        #self.connect(self.ui.actionFull_reparse, SIGNAL("triggered()"), self.full_reparse)
         self.connect(self.ui.treeWidget, SIGNAL("itemDoubleClicked(QTreeWidgetItem *, int)"), self.click_parsers)
         self.connect(self.ui.actionShow_language_boxes, SIGNAL("triggered()"), self.update_editor)
 
