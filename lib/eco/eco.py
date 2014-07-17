@@ -609,7 +609,7 @@ class Window(QtGui.QMainWindow):
         ed = self.getEditorTab()
         if not ed:
             return
-        filename = QFileDialog.getSaveFileName()
+        filename = QFileDialog.getSaveFileName(self, "Save File", QDir.currentPath(), "Eco files (*.eco *.nb);; All files (*.*)")
         if filename:
             self.getEditor().saveToJson(filename)
             self.getEditorTab().filename = filename
@@ -634,7 +634,7 @@ class Window(QtGui.QMainWindow):
 
     def openfile(self, filename=None):
         if not filename:
-            filename = QFileDialog.getOpenFileName()
+            filename = QFileDialog.getOpenFileName(self, "Open File", QDir.currentPath(), "Eco files (*.eco *.nb);; All files (*.*)")
         if filename:
             if filename.endsWith(".eco") or filename.endsWith(".nb"):
                 etab = EditorTab()
