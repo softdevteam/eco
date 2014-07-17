@@ -27,6 +27,7 @@ from helpers import closure_0, goto_0, Helper
 from syntaxtable import FinishSymbol
 from constants import LR0, LR1, LALR
 from time import time
+import logging
 
 class StateGraph(object):
 
@@ -109,23 +110,23 @@ class StateGraph(object):
                 self.add_time += add_end - add_start
 
         end = time()
-        print("add time", self.add_time)
-        print("closure time", self.closure_time)
-        print("closure time helper", self.helper.closure_time)
-        print("goto time", self.goto_time)
-        print("hashtime", StateSet._hashtime)
-        print("addcount", self.addcount)
-        print("states", len(self.state_sets))
-        print("weakly", self.weakly)
-        print("weakly count", self.weakly_count)
-        print("mergetime", self.mergetime)
+        logging.info("add time %s", self.add_time)
+        logging.info("closure time %s", self.closure_time)
+        logging.info("closure time helper %s", self.helper.closure_time)
+        logging.info("goto time %s", self.goto_time)
+        logging.info("hashtime %s", StateSet._hashtime)
+        logging.info("addcount %s", self.addcount)
+        logging.info("states %s", len(self.state_sets))
+        logging.info("weakly %s", self.weakly)
+        logging.info("weakly count %s", self.weakly_count)
+        logging.info("mergetime %s", self.mergetime)
         #print("maybe", self.maybe_compatible)
         #for key in self.maybe_compatible:
         #    print(key, len(self.maybe_compatible[key]))
 
 
         # apply closure
-        print("Apply closure to states")
+        logging.info("Apply closure to states")
         clstart = time()
         new_state_sets = []
         new_ids = {}
@@ -135,12 +136,12 @@ class StateGraph(object):
             new_state_sets.append(new_state)
             new_ids[new_state] = new_state
         self.state_sets = new_state_sets
-        print("after closure", len(new_state_sets))
-        print("edges", len(set(self.edges.values())))
+        logging.info("after closure %s", len(new_state_sets))
+        logging.info("edges %s", len(set(self.edges.values())))
         self.ids = new_ids
-        print(time() - clstart)
+        logging.info(time() - clstart)
 
-        print("Finished building Stategraph in ", end-start)
+        logging.info("Finished building Stategraph in %s", end-start)
         self.closure = None
         self.goto = None
 
