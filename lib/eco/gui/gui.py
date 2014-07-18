@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Fri Jul 18 11:36:36 2014
-#      by: PyQt4 UI code generator 4.11.1
+# Created: Fri Jul 18 15:14:23 2014
+#      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -46,7 +46,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.addWidget(self.tabWidget)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 23))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
@@ -131,23 +131,23 @@ class Ui_MainWindow(object):
         self.actionStateGraph = QtGui.QAction(MainWindow)
         self.actionStateGraph.setObjectName(_fromUtf8("actionStateGraph"))
         self.actionUndo = QtGui.QAction(MainWindow)
-        icon = QtGui.QIcon.fromTheme(_fromUtf8("undo"))
+        icon = QtGui.QIcon.fromTheme(_fromUtf8("edit-undo"))
         self.actionUndo.setIcon(icon)
         self.actionUndo.setObjectName(_fromUtf8("actionUndo"))
         self.actionRedo = QtGui.QAction(MainWindow)
-        icon = QtGui.QIcon.fromTheme(_fromUtf8("redo"))
+        icon = QtGui.QIcon.fromTheme(_fromUtf8("edit-redo"))
         self.actionRedo.setIcon(icon)
         self.actionRedo.setObjectName(_fromUtf8("actionRedo"))
         self.actionCut = QtGui.QAction(MainWindow)
-        icon = QtGui.QIcon.fromTheme(_fromUtf8("editcut"))
+        icon = QtGui.QIcon.fromTheme(_fromUtf8("edit-cut"))
         self.actionCut.setIcon(icon)
         self.actionCut.setObjectName(_fromUtf8("actionCut"))
         self.actionCopy = QtGui.QAction(MainWindow)
-        icon = QtGui.QIcon.fromTheme(_fromUtf8("editcopy"))
+        icon = QtGui.QIcon.fromTheme(_fromUtf8("edit-copy"))
         self.actionCopy.setIcon(icon)
         self.actionCopy.setObjectName(_fromUtf8("actionCopy"))
         self.actionPaste = QtGui.QAction(MainWindow)
-        icon = QtGui.QIcon.fromTheme(_fromUtf8("editpaste"))
+        icon = QtGui.QIcon.fromTheme(_fromUtf8("edit-paste"))
         self.actionPaste.setIcon(icon)
         self.actionPaste.setObjectName(_fromUtf8("actionPaste"))
         self.actionSave_as = QtGui.QAction(MainWindow)
@@ -155,11 +155,11 @@ class Ui_MainWindow(object):
         self.actionSave_as.setIcon(icon)
         self.actionSave_as.setObjectName(_fromUtf8("actionSave_as"))
         self.actionAdd_language_box = QtGui.QAction(MainWindow)
-        icon = QtGui.QIcon.fromTheme(_fromUtf8("insert-object"))
+        icon = QtGui.QIcon.fromTheme(_fromUtf8("list-add"))
         self.actionAdd_language_box.setIcon(icon)
         self.actionAdd_language_box.setObjectName(_fromUtf8("actionAdd_language_box"))
         self.actionSelect_next_language_box = QtGui.QAction(MainWindow)
-        icon = QtGui.QIcon.fromTheme(_fromUtf8("forward"))
+        icon = QtGui.QIcon.fromTheme(_fromUtf8("go-next"))
         self.actionSelect_next_language_box.setIcon(icon)
         self.actionSelect_next_language_box.setObjectName(_fromUtf8("actionSelect_next_language_box"))
         self.actionExit = QtGui.QAction(MainWindow)

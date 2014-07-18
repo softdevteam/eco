@@ -46,7 +46,7 @@
      <x>0</x>
      <y>0</y>
      <width>979</width>
-     <height>21</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -305,8 +305,7 @@
   </action>
   <action name="actionUndo">
    <property name="icon">
-    <iconset theme="undo">
-     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
+    <iconset theme="edit-undo"/>
    </property>
    <property name="text">
     <string>Undo</string>
@@ -317,8 +316,7 @@
   </action>
   <action name="actionRedo">
    <property name="icon">
-    <iconset theme="redo">
-     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
+    <iconset theme="edit-redo"/>
    </property>
    <property name="text">
     <string>Redo</string>
@@ -329,8 +327,7 @@
   </action>
   <action name="actionCut">
    <property name="icon">
-    <iconset theme="editcut">
-     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
+    <iconset theme="edit-cut"/>
    </property>
    <property name="text">
     <string>Cut</string>
@@ -341,8 +338,7 @@
   </action>
   <action name="actionCopy">
    <property name="icon">
-    <iconset theme="editcopy">
-     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
+    <iconset theme="edit-copy"/>
    </property>
    <property name="text">
     <string>Copy</string>
@@ -353,8 +349,7 @@
   </action>
   <action name="actionPaste">
    <property name="icon">
-    <iconset theme="editpaste">
-     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
+    <iconset theme="edit-paste"/>
    </property>
    <property name="text">
     <string>Paste</string>
@@ -377,8 +372,7 @@
   </action>
   <action name="actionAdd_language_box">
    <property name="icon">
-    <iconset theme="insert-object">
-     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
+    <iconset theme="list-add"/>
    </property>
    <property name="text">
     <string>Add language box</string>
@@ -389,8 +383,7 @@
   </action>
   <action name="actionSelect_next_language_box">
    <property name="icon">
-    <iconset theme="forward">
-     <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
+    <iconset theme="go-next"/>
    </property>
    <property name="text">
     <string>Select next language box</string>
@@ -446,7 +439,9 @@
   </action>
   <action name="actionExportAs">
    <property name="icon">
-    <iconset theme="document-export"/>
+    <iconset theme="document-export">
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Export as...</string>
@@ -457,7 +452,9 @@
   </action>
   <action name="actionExport">
    <property name="icon">
-    <iconset theme="document-export"/>
+    <iconset theme="document-export">
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Export</string>
@@ -468,7 +465,9 @@
   </action>
   <action name="actionSettings">
    <property name="icon">
-    <iconset theme="gnome-settings"/>
+    <iconset theme="gnome-settings">
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Settings...</string>
