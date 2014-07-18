@@ -870,16 +870,9 @@ class TreeManager(object):
         # cut text
         text = self.copySelection()
         self.deleteSelection()
-        # create language box
-        lbox = self.create_languagebox(language)
-        root = self.cursor.node.get_root()
-        lbox.parent_lbox = root
-        # insert text
-        newnode = TextNode(Terminal(text))
-        lbox.symbol.ast.children[0].insert_after(newnode)
-        self.relex(newnode)
-        appendnode.insert_after(lbox)
-        self.changed = True
+        self.add_languagebox(language)
+        self.pasteText(text)
+        return
 
     def clean_empty_lbox(self, node):
         root = node.get_root()
