@@ -19,6 +19,10 @@
   <property name="windowTitle">
    <string>Eco - Editor for language composition</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>gui/eco.png</normaloff>gui/eco.png</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_4">
     <item>
@@ -441,6 +445,9 @@
    </property>
   </action>
   <action name="actionExportAs">
+   <property name="icon">
+    <iconset theme="document-export"/>
+   </property>
    <property name="text">
     <string>Export as...</string>
    </property>
@@ -449,6 +456,9 @@
    </property>
   </action>
   <action name="actionExport">
+   <property name="icon">
+    <iconset theme="document-export"/>
+   </property>
    <property name="text">
     <string>Export</string>
    </property>
@@ -457,6 +467,9 @@
    </property>
   </action>
   <action name="actionSettings">
+   <property name="icon">
+    <iconset theme="gnome-settings"/>
+   </property>
    <property name="text">
     <string>Settings...</string>
    </property>

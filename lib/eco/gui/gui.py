@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Thu Jul 17 15:21:59 2014
+# Created: Fri Jul 18 11:36:36 2014
 #      by: PyQt4 UI code generator 4.11.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -32,6 +32,9 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
         MainWindow.setSizePolicy(sizePolicy)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(_fromUtf8("gui/eco.png")), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        MainWindow.setWindowIcon(icon)
         self.centralwidget = QtGui.QWidget(MainWindow)
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))
         self.verticalLayout_4 = QtGui.QVBoxLayout(self.centralwidget)
@@ -175,10 +178,16 @@ class Ui_MainWindow(object):
         self.actionFind_next = QtGui.QAction(MainWindow)
         self.actionFind_next.setObjectName(_fromUtf8("actionFind_next"))
         self.actionExportAs = QtGui.QAction(MainWindow)
+        icon = QtGui.QIcon.fromTheme(_fromUtf8("document-export"))
+        self.actionExportAs.setIcon(icon)
         self.actionExportAs.setObjectName(_fromUtf8("actionExportAs"))
         self.actionExport = QtGui.QAction(MainWindow)
+        icon = QtGui.QIcon.fromTheme(_fromUtf8("document-export"))
+        self.actionExport.setIcon(icon)
         self.actionExport.setObjectName(_fromUtf8("actionExport"))
         self.actionSettings = QtGui.QAction(MainWindow)
+        icon = QtGui.QIcon.fromTheme(_fromUtf8("gnome-settings"))
+        self.actionSettings.setIcon(icon)
         self.actionSettings.setObjectName(_fromUtf8("actionSettings"))
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)

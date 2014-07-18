@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'about.ui'
 #
-# Created: Wed Nov  6 15:49:22 2013
-#      by: PyQt4 UI code generator 4.10.3
+# Created: Fri Jul 18 11:36:54 2014
+#      by: PyQt4 UI code generator 4.11.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -27,6 +27,8 @@ class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName(_fromUtf8("Dialog"))
         Dialog.resize(472, 342)
+        icon = QtGui.QIcon.fromTheme(_fromUtf8("help-about"))
+        Dialog.setWindowIcon(icon)
         self.verticalLayout = QtGui.QVBoxLayout(Dialog)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.textEdit = QtGui.QTextEdit(Dialog)
