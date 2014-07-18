@@ -506,10 +506,6 @@ class NodeEditor(QFrame):
         self.tm.selection_end = self.tm.cursor.copy()
         self.update()
 
-    def XXXkeyPressEvent(self, e):
-        import cProfile
-        cProfile.runctx("self.linkkeyPressEvent(e)", globals(), locals())
-
     def key_to_string(self, key):
         if key == Qt.Key_Up:
             return "up"
