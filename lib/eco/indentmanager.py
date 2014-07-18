@@ -44,7 +44,7 @@ class IndentationManager:
             else:
                 while True:
                     if bol is None:
-                        return
+                        return False # nothing has been changed
                     if self.is_logical_line(bol):
                         break
                     bol = self.next_line(bol)
