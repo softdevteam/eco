@@ -58,7 +58,8 @@ class NodeEditor(QFrame):
         self.timer = QTimer(self)
         self.connect(self.timer, SIGNAL("timeout()"), self.test)
 
-        self.colors = [QColor("#333333"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
+        self.lightcolors = [QColor("#333333"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
+        self.darkcolors = [QColor("#999999"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
         self.setCursor(Qt.IBeamCursor)
 
     def test(self):
@@ -200,6 +201,15 @@ class NodeEditor(QFrame):
 
     #XXX if starting node is inside language box, init lbox with amout of languge boxes
     def paint_nodes(self, paint, node, x, y, line, max_y, lbox=0):
+
+        settings = QSettings("softdev", "Eco")
+        if settings.value("app_theme", "Light").toString() == "Dark":
+            alpha = 100
+            colors = self.darkcolors
+        else:
+            alpha = 40
+            colors = self.lightcolors
+
         first_node = node
         selected_language = self.tm.mainroot
         error_node = self.tm.get_mainparser().error_node
@@ -273,10 +283,11 @@ class NodeEditor(QFrame):
             if lbox > 0 and (draw_lbox or draw_all_boxes):
                 #color = self.nesting_colors[lbox % 5]
                 if draw_all_boxes:
-                    color = self.colors[(lbox-1) % len(self.colors)]
-                    color.setAlpha(50)
+                    color = colors[(lbox-1) % len(colors)]
+                    color.setAlpha(alpha)
                 else:
-                    color = QColor(0,0,0,30)
+                    color = colors[0]
+                    color.setAlpha(alpha)
                 editor.update_image(node)
                 if node.symbol.name != "\r" and not isinstance(node.symbol, IndentationTerminal):
                     if not node.image or node.plain_mode:
