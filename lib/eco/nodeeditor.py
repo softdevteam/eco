@@ -552,6 +552,10 @@ class NodeEditor(QFrame):
             self.tm.find_next()
         elif e.key() in [Qt.Key_PageUp, Qt.Key_PageDown]:
             pass # ignore those keys
+        elif e.nativeModifiers() != 0:
+            # User pressed Ctrl- Or Alt- (etc.) i.e. a character we can't
+            # sensibly insert into the text.
+            pass
         else:
             if e.key() == Qt.Key_Tab:
                 text = "    "
