@@ -544,6 +544,7 @@ class Window(QtGui.QMainWindow):
         text = self.getEditor().tm.cutSelection()
         QApplication.clipboard().setText(text)
         self.getEditor().update()
+        self.btReparse([])
 
     def copy(self):
         text = self.getEditor().tm.copySelection()

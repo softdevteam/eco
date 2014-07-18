@@ -770,19 +770,7 @@ class TreeManager(object):
             if node.symbol.name == "" and not isinstance(node, BOS):
                 repairnode = self.cursor.find_previous_visible(node)
 
-                root = node.get_root()
-                magic = root.get_magicterminal()
-                next_node = node.next_terminal(skip_indent=True)
-                previous_node = node.previous_terminal(skip_indent=True)
-                # XXX add function to tree to ast: is_empty
-                if magic and isinstance(next_node, EOS) and isinstance(previous_node, BOS):
-                    # language box is empty -> delete it and all references
-                    self.cursor.node = self.cursor.find_previous_visible(previous_node)
-                    self.cursor.pos = len(self.cursor.node.symbol.name)
-                    repairnode = self.cursor.node
-                    magic.parent.remove_child(magic)
-                    self.delete_parser(root)
-                else:
+                if not self.clean_empty_lbox(node):
                     # normal node is empty -> remove it from AST
                     node.parent.remove_child(node)
                     need_reparse = True
@@ -893,6 +881,21 @@ class TreeManager(object):
         appendnode.insert_after(lbox)
         self.changed = True
 
+    def clean_empty_lbox(self, node):
+        root = node.get_root()
+        magic = root.get_magicterminal()
+        next_node = node.next_terminal(skip_indent=True)
+        previous_node = node.previous_terminal(skip_indent=True)
+        if magic and isinstance(next_node, EOS) and isinstance(previous_node, BOS):
+            # language box is empty -> delete it and all references
+            self.cursor.node = self.cursor.find_previous_visible(previous_node)
+            self.cursor.pos = len(self.cursor.node.symbol.name)
+            repairnode = self.cursor.node
+            magic.parent.remove_child(magic)
+            self.delete_parser(root)
+            return True
+        return False
+
     def create_node(self, text, lbox=False):
         if lbox:
             symbol = MagicTerminal(text)
@@ -999,20 +1002,31 @@ class TreeManager(object):
     def deleteSelection(self):
         #XXX simple version: later we might want to modify the nodes directly
         nodes, diff_start, diff_end = self.get_nodes_from_selection()
-        repair_node = nodes[0].prev_term
+        if nodes == []:
+            return
+        if isinstance(nodes[0], BOS):
+            del nodes[0]
+        repair_node = self.cursor.find_previous_visible(nodes[0])
         if len(nodes) == 1:
             s = nodes[0].symbol.name
             s = s[:diff_start] + s[diff_end:]
             nodes[0].symbol.name = s
             self.delete_if_empty(nodes[0])
+            self.clean_empty_lbox(nodes[0])
         else:
             nodes[0].symbol.name = nodes[0].symbol.name[:diff_start]
             nodes[-1].symbol.name = nodes[-1].symbol.name[diff_end:]
             self.delete_if_empty(nodes[0])
             self.delete_if_empty(nodes[-1])
+            self.clean_empty_lbox(nodes[0])
+            self.clean_empty_lbox(nodes[-1])
         for node in nodes[1:-1]:
+            if isinstance(node, BOS) or isinstance(node, EOS):
+                continue
             node.parent.remove_child(node)
-        repair_node = repair_node.next_term # in case first node was deleted
+            self.clean_empty_lbox(node)
+        if not isinstance(repair_node.next_term, EOS):
+            repair_node = repair_node.next_term # in case first node was deleted
         self.relex(repair_node)
         cur_start = min(self.selection_start, self.selection_end)
         cur_end = max(self.selection_start, self.selection_end)
