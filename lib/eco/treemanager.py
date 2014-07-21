@@ -1242,6 +1242,8 @@ class TreeManager(object):
             f.write("".join(text))
 
     def relex(self, node):
+        if isinstance(node, BOS) or isinstance(node, EOS):
+            return
         root = node.get_root()
         lexer = self.get_lexer(root)
         return lexer.relex(node)
