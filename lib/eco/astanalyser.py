@@ -96,12 +96,18 @@ class AstAnalyser(object):
     def match(self, astnode, nbrule):
         for p in nbrule.params:
             if isinstance(p, tuple):
+                # check if names and types match
                 name = p[0]  # nbrule parameter name, e.g. lhs
                 _type = p[1] # nbrule parameter type, e.g. Name
                 ref = astnode.get(name.symbol.name) # reference in AstNode, e.g. lhs -> AstNode("Name")
                 if not isinstance(ref, AstNode):
                     return False
                 if ref.name != _type.symbol.name:
+                    return False
+            else:
+                # just check if names match
+                ref = astnode.get(p) # reference in AstNode, e.g. lhs -> AstNode("Name")
+                if ref is None:
                     return False
         return True
 
