@@ -794,7 +794,7 @@ class TreeManager(object):
         if node.plain_mode:
             node.plain_mode = False
 
-    def key_cursors(self, key, mod_shift):
+    def key_cursors(self, key, mod_shift=False):
         self.undomanager.finish()
         self.edit_rightnode = False
         self.cursor_movement(key)
@@ -1242,7 +1242,11 @@ class TreeManager(object):
             f.write("".join(text))
 
     def relex(self, node):
+        if node is None:
+            return
         if isinstance(node, BOS) or isinstance(node, EOS):
+            return
+        if isinstance(node.symbol, MagicTerminal):
             return
         root = node.get_root()
         lexer = self.get_lexer(root)

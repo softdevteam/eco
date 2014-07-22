@@ -990,3 +990,23 @@ class Test_Languageboxes(Test_Python):
         self.treemanager.key_normal("x")
         assert self.treemanager.parsers[0][0].last_status == True
 
+    def test_delete_selection(self):
+        self.reset()
+        for c in "a = 1":
+            self.treemanager.key_normal(c)
+        self.treemanager.key_normal("\r")
+        self.treemanager.add_languagebox(lang_dict["Prolog"])
+        lbox = self.treemanager.cursor.node.get_root().get_magicterminal()
+        assert lbox.symbol.name == "<Prolog>"
+        for c in "abc def":
+            self.treemanager.key_normal(c)
+        self.treemanager.key_cursors("left")
+        # select "bc de"
+        self.treemanager.key_shift()
+        self.treemanager.key_cursors("left", mod_shift=True)
+        self.treemanager.key_cursors("left", mod_shift=True)
+        self.treemanager.key_cursors("left", mod_shift=True)
+        self.treemanager.key_cursors("left", mod_shift=True)
+        self.treemanager.key_cursors("left", mod_shift=True)
+        self.treemanager.deleteSelection()
+        assert lbox.symbol.name == "<Prolog>"
