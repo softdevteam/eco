@@ -779,7 +779,7 @@ class SubProcessThread(QThread):
         self.signal = QtCore.SIGNAL("output")
 
     def run(self):
-        p = self.window.getEditor().export()
+        p = self.window.getEditor().export(run=True)
         if p:
             for line in iter(p.stdout.readline, b''):
                 self.emit(self.signal, line.rstrip())

@@ -708,5 +708,5 @@ class NodeEditor(QFrame):
         self.tm.load_file(language_boxes)
         self.reset()
 
-    def export(self):
-        return self.tm.export()
+    def export(self, run=False):
+        return self.tm.export(None, run)

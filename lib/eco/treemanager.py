@@ -1169,7 +1169,7 @@ class TreeManager(object):
             print("Grammar Error: could not determine grammar type")
             return
 
-    def export(self, path=None):
+    def export(self, path=None, run=False):
         for p, _, _, _, _ in self.parsers:
             if p.last_status == False:
                 print("Cannot export a syntacially incorrect grammar")
@@ -1180,7 +1180,7 @@ class TreeManager(object):
         elif lang == "HTML + Python + SQL":
             self.export_html_python_sql(path)
         elif lang == "PHP + Python":
-            self.export_php_python(path)
+            return self.export_php_python(path, run)
         else:
             self.export_as_text(path)
 
@@ -1225,9 +1225,19 @@ class TreeManager(object):
         with open(path, "w") as f:
             f.write(HTMLPythonSQL.export(self.get_bos()))
 
-    def export_php_python(self, path):
-        with open(path, "w") as f:
-            f.write(PHPPython.export(self.get_bos()))
+    def export_php_python(self, path, run=False):
+        if run:
+            import tempfile
+            import os, sys, subprocess
+            f = tempfile.mkstemp()
+            os.write(f[0], PHPPython.export(self.get_bos()))
+            if os.environ.has_key("HIPPYBRIDGE"):
+                return subprocess.Popen([os.path.join(os.environ["HIPPYBRIDGE"], "hippy-c"), f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
+            else:
+                sys.stderr.write("HIPPYBRIDGE environment not set")
+        else:
+            with open(path, "w") as f:
+                f.write(PHPPython.export(self.get_bos()))
 
     def export_as_text(self, path):
         node = self.lines[0].node # first node
