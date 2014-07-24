@@ -20,6 +20,7 @@
 # IN THE SOFTWARE.
 
 from grammar_parser.bootstrap import AstNode, ListNode
+from grammar_parser.gparser import MagicTerminal
 
 class URI(object):
     def __init__(self):
@@ -120,6 +121,9 @@ class AstAnalyser(object):
 
         from grammar_parser.bootstrap import AstNode, ListNode
 
+        if isinstance(node.symbol, MagicTerminal):
+            uri = self.merge_lbox_data(node, list(path))
+
         if isinstance(node, AstNode):
             if id(node) in self.processed_nodes: # skip nodes that have been processed in parent
                 return
@@ -219,15 +223,75 @@ class AstAnalyser(object):
             uris.append(uri)
         return uris
 
-    def analyse(self, node):
+    def merge_lbox_data(self, node, path):
+        root = node.symbol.ast
+        analyser = self.get_lboxanalyser(root)
+        analyser.analyse(root, self.parsers)
+
+        # convert variables, functions
+        if node.symbol.name == "<Python + PHP>":
+            # merge python into php
+            original = "variable"
+            dest = "function"
+            max_path = 1
+        elif node.symbol.name == "<PHP + Python>":
+            # merge php into python
+            original = "function"
+            dest = "variable"
+            max_path = 1
+        else:
+            return
+        for method in analyser.data.get(original,[]):
+            if len(method.path) > max_path:
+                continue
+            uri = self.convert_uri(dest, method, path)
+            uri.nbrule = NBRule("none", [], {})
+            self.add_uri(uri)
+
+        # convert references
+        for ref in analyser.data.get("reference",[]):
+            # if reference couldn't be resolved, try in outer lbox
+            if ref.node in analyser.errors:
+                del analyser.errors[ref.node]
+                uri = self.convert_uri("reference", ref, path)
+                if uri.name.startswith("$"):
+                    uri.name = uri.name[1:]
+                else:
+                    uri.name = "$" + uri.name
+                uri.nbrule = NBRule("none", [], {"references":(["variable"], ["function"])})
+                self.add_uri(uri)
+        return
+
+    def convert_uri(self, newkind, prev, path):
+        uri = URI()
+        uri.kind = newkind
+        uri.astnode = prev.astnode
+        uri.node = prev.node
+        uri.path = path
+        uri.name = prev.name
+        uri.index = self.index
+        return uri
+
+    def add_uri(self, uri):
+        self.data.setdefault(uri.kind, [])
+        self.data[uri.kind].append(uri)
+        self.index += 1
+
+    def analyse(self, node, parsers=None):
         # scan
         self.errors = {}
+        self.parsers = parsers
 
         self.data.clear()
         self.processed_nodes.clear()
         self.index = 0
         self.scan(node, [])
         self.analyse_refs()
+
+    def get_lboxanalyser(self, root):
+        for parser, lexer, lang, analyser, im in self.parsers:
+            if parser.previous_version.parent is root:
+                return analyser
 
     def analyse_refs(self):
        #for key in self.data:

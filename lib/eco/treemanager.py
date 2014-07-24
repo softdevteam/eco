@@ -450,6 +450,10 @@ class TreeManager(object):
         return ""
 
     def analyse(self):
+        if self.parsers[0][2] == "PHP + Python":
+            self.parsers[0][3].analyse(self.parsers[0][0].previous_version.parent, self.parsers)
+            return
+
         for p in self.parsers:
             if p[0].last_status:
                 if p[3]:
