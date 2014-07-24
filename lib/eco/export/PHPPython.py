@@ -25,16 +25,19 @@ class PHP(helper.Generic):
     def language_box(self, name, node):
         if name == "<Python + PHP>":
             buf = Python().pp(node)
-            self.buf.append("embed_py_func(\"\"\"%s\"\"\")" % (_escape(buf)))
+            self.buf.append("embed_py_func(\"%s\")" % (_escapepy(buf)))
 
 class Python(helper.Generic):
     def language_box(self, name, node):
         if name == "<PHP + Python>":
             buf = PHP().pp(node)
-            self.buf.append("embed_php_func(\"\"\"%s\"\"\")" % (_escape(buf)))
+            self.buf.append("embed_php_func(\"\"\"\n%s\n\"\"\")" % (_escape(buf)))
+
+def _escapepy(s):
+    return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("'", "\\'").replace("\n", "\\n").replace("$", "\$")
 
 def _escape(s):
     return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("'", "\\'")
 
 def export(node):
-    return PHP().pp(node)
+    return "<?php\n%s\n?>" % (PHP().pp(node),)
