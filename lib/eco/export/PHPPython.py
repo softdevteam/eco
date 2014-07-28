@@ -32,17 +32,20 @@ class PHP(helper.Generic):
         self.bracklvl = 0
         self.buf = []
         self.embed = []
+        self.used_funcs = set()
 
     def language_box(self, name, node):
         if name == "<Python + PHP>":
             buf = Python().pp(node)
             if self.in_class():
                 # put PHP func in here and store embed for later
-                phpfunc = self.convert_py_to_php(buf)
+                name = re.match("def\s+([a-zA-Z_][a-zA-Z0-9_]*)", buf).group(1)
+                pyname = self.get_unused_name(name)
+                phpfunc = self.convert_py_to_php(buf, pyname)
                 self.buf.append(phpfunc)
 
                 # rename py function
-                text = re.sub("def\s+([a-zA-Z_][a-zA-Z0-9_]*)",r"def py_\1", buf)
+                text = re.sub("def\s+([a-zA-Z_][a-zA-Z0-9_]*)",r"def %s" % (pyname), buf)
                 self.embed.append(text)
             else:
                 self.buf.append("embed_py_func(\"%s\");" % (_escapepy(buf)))
@@ -76,14 +79,14 @@ class PHP(helper.Generic):
                     # release lbox functions
                     c = self.nestings.pop()
                     if c[0] == "class":
-                        for e in self.embed:
-                            self.buf.append("\nembed_py_func(\"%s\");" % (_escapepy(e)))
-                            self.embed.pop()
+                        while self.embed != []:
+                            func = self.embed.pop()
+                            self.buf.append("\nembed_py_func(\"%s\");" % (_escapepy(func)))
 
     def in_class(self):
         return self.nestings and self.nestings[-1][0] == "class"
 
-    def convert_py_to_php(self, text):
+    def convert_py_to_php(self, text, pyname):
         name = re.match("def\s+([a-zA-Z_][a-zA-Z0-9_]*)", text).group(1)
         params = re.match(".*\((.*)\)\s*:", text).group(1).replace(" ", "").split(",")
         if params == [""]:
@@ -98,8 +101,17 @@ class PHP(helper.Generic):
             args = "$this, %s" % (", ".join(newparams))
         else:
             args = "$this"
-        phpfunc = "function %s(%s){return py_%s(%s);}" % (name, ",".join(newparams), name, args)
+        phpfunc = "function %s(%s){return %s(%s);}" % (name, ",".join(newparams), pyname, args)
         return phpfunc
+
+    def get_unused_name(self, name):
+        newname = "py_" + name
+        i = 1
+        while newname in self.used_funcs:
+            newname = "py_" + name + str(i)
+            i += 1
+        self.used_funcs.add(newname)
+        return newname
 
 class Python(helper.Generic):
     def language_box(self, name, node):
