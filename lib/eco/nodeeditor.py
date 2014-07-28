@@ -260,7 +260,8 @@ class NodeEditor(QFrame):
                 if self.cursor.node is lbnode:
                     self.draw_cursor(paint, x, 5 + y * self.fontht)
                 if lbnode:
-                    lbox -= 1
+                    if lbox > 0:
+                        lbox -= 1
                     node = lbnode.next_term
                     highlighter = self.get_highlighter(node)
                     editor = self.get_editor(node)
