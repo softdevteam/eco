@@ -121,7 +121,7 @@ class AstAnalyser(object):
 
         from grammar_parser.bootstrap import AstNode, ListNode
 
-        if isinstance(node.symbol, MagicTerminal):
+        if isinstance(node.symbol, MagicTerminal) and self.parsers:
             uri = self.merge_lbox_data(node, list(path))
 
         if isinstance(node, AstNode):
