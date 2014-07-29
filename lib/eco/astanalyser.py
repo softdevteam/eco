@@ -269,6 +269,7 @@ class AstAnalyser(object):
         uri.node = prev.node
         uri.path = path
         uri.name = prev.name
+        uri.vartype = prev.vartype
         uri.index = self.index
         return uri
 
@@ -373,7 +374,7 @@ class AstAnalyser(object):
         if not astnode:
             return []
         nbrule = self.get_definition(astnode)
-        name = astnode.get(nbrule.get_name())
+        name = astnode.get(nbrule.get_defname()[0])
 
         uri = self.find_uri_by_astnode(name)
         if uri:
@@ -395,8 +396,8 @@ class AstAnalyser(object):
             if astnode:
                 nbrule = self.get_definition(scope.alternate)
                 # astnode must have a corresponding entry in self.data
-                if nbrule and self.data.has_key(nbrule.get_type()):
-                    for e in self.data[nbrule.get_type()]:
+                if nbrule and self.data.has_key(nbrule.get_deftype()):
+                    for e in self.data[nbrule.get_deftype()]:
                         if e.astnode is astnode:
                             return astnode
             scope = scope.parent
