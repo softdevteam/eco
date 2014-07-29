@@ -464,6 +464,9 @@ class IncrementalLexerCF(object):
         next_token = self.lexer.get_token_iter(StringWrapper(node))
         while True:
             token = next_token()
+            if token.source == "":
+                read_nodes.append(current_node)
+                break
             read += len(token.source)
             generated_tokens.append(token)
             while read > pos + len(current_node.symbol.name):
