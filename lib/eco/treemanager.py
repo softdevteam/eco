@@ -739,6 +739,7 @@ class TreeManager(object):
 
         if self.hasSelection():
             self.deleteSelection()
+            self.reparse(self.cursor.node, True)
             return
 
         if self.cursor.inside(): # cursor inside a node
