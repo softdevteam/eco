@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Fri Jul 18 15:14:23 2014
-#      by: PyQt4 UI code generator 4.10.3
+# Created: Mon Jul 28 11:53:55 2014
+#      by: PyQt4 UI code generator 4.11.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -46,7 +46,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.addWidget(self.tabWidget)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 23))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 21))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
@@ -99,7 +99,7 @@ class Ui_MainWindow(object):
         self.teConsole.setObjectName(_fromUtf8("teConsole"))
         self.verticalLayout.addWidget(self.teConsole)
         self.dockWidget.setWidget(self.dockWidgetContents)
-        MainWindow.addDockWidget(QtCore.Qt.DockWidgetArea(2), self.dockWidget)
+        MainWindow.addDockWidget(QtCore.Qt.DockWidgetArea(8), self.dockWidget)
         self.actionImport = QtGui.QAction(MainWindow)
         icon = QtGui.QIcon.fromTheme(_fromUtf8("document-import"))
         self.actionImport.setIcon(icon)
