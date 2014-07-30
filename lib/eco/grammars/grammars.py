@@ -143,6 +143,7 @@ javasqlchemical.add_alternative("unary_expression", sql_ref_java)
 
 phppython = EcoFile("PHP + Python", "grammars/php.eco", "Php")
 pythonphp = EcoFile("Python + PHP", "grammars/python275.eco", "Python")
+phppython.add_alternative("top_statement", pythonphp)
 phppython.add_alternative("class_statement", pythonphp)
 phppython.add_alternative("expr", pythonphp)
 pythonphp.add_alternative("atom", phppython)
