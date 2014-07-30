@@ -87,7 +87,7 @@ class SyntaxTable(object):
                             newaction = Reduce(state.p)
                             if self.table.has_key((i,s)):
                                 oldaction = self.table[(i,s)]
-                                newaction = self.resolve_conflict(i, s, olaction, newaction, precedences)
+                                newaction = self.resolve_conflict(i, s, oldaction, newaction, precedences)
                             if newaction:
                                 self.table[(i, s)] = newaction
                             else:
