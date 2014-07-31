@@ -89,6 +89,8 @@ class PythonHighlighter(SyntaxHighlighter):
         "reversed":"blue",
         "isinstance":"blue",
         "print":"blue",
+        "True":"blue",
+        "False":"blue",
     }
 
 class JavaHighlighter(SyntaxHighlighter):
