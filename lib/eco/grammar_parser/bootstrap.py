@@ -476,7 +476,8 @@ class ReferenceExpr(Expr):
         return self.base == other.base and self.reference == other.reference
 
     def interpret(self, reference):
-        assert isinstance(reference, AstNode)
+        if not isinstance(reference, AstNode):
+            return None
         try:
             x = reference.children[self.reference]
         except KeyError:
