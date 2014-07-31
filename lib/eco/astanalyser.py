@@ -59,7 +59,10 @@ class AstAnalyser(object):
         self.index = 0
 
         rootnode = self.load_nb_file(filename)
-        self.definitions = RuleReader().read(rootnode)
+        r = RuleReader()
+        r.read(rootnode)
+        self.definitions = r.definitions
+        self.keywords = r.keywords
 
         self.processed_nodes = set()
 
@@ -304,6 +307,8 @@ class AstAnalyser(object):
                 self.find_reference(reference)
 
     def find_reference(self, reference):
+        if reference.name in self.keywords:
+            return
         for refers in reference.nbrule.get_references()[0]:
 
             # global variable
@@ -424,8 +429,22 @@ class AstAnalyser(object):
 
 class RuleReader(object):
     def read(self, root):
-        definitions = root.children[1].children[1].alternate
-        l = self.read_definitions(definitions)
+        startrule = root.children[1]
+        rules = startrule.children[1]
+        if len(rules.children) == 2:
+            keywords = rules.children[0]
+            self.keywords = self.read_keywords(keywords.alternate)
+            definitions = rules.children[1]
+        else:
+            self.keywords = []
+            definitions = rules.children[0]
+        self.definitions = self.read_definitions(definitions.alternate)
+
+    def read_keywords(self, keywords):
+        l = []
+        names = keywords.get("names")
+        for name in names.children:
+            l.append(name.symbol.name)
         return l
 
     def read_definitions(self, definitions):
