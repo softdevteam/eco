@@ -399,7 +399,6 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionSave_as, SIGNAL("triggered()"), self.savefileAs)
         self.connect(self.ui.actionExport, SIGNAL("triggered()"), self.export)
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
-        #self.connect(self.ui.actionSelect_font, SIGNAL("triggered()"), self.change_font)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
         try:
             import pydot
@@ -434,6 +433,8 @@ class Window(QtGui.QMainWindow):
 
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
+
+        self.ui.teConsole.setFont(QApplication.instance().gfont.font)
 
         self.viewer = Viewer("pydot")
 
@@ -479,6 +480,7 @@ class Window(QtGui.QMainWindow):
         return False
 
     def refreshTheme(self):
+        self.ui.teConsole.setFont(QApplication.instance().gfont.font)
         for i in range(self.ui.tabWidget.count()):
             self.ui.tabWidget.widget(i).update_theme()
 
@@ -580,11 +582,6 @@ class Window(QtGui.QMainWindow):
             self.getEditor().insertTextNoSim(text)
             #self.btReparse(None)
             #self.getEditor().update()
-
-    def change_font(self):
-        gfont = QApplication.instance().gfont
-        font = QFontDialog.getFont(gfont.font)
-        gfont.setfont(font[0])
 
     def newfile(self):
         # create new nodeeditor
