@@ -225,8 +225,9 @@ class NodeEditor(QFrame):
 
         self.selected_lbox = self.tm.get_languagebox(self.tm.cursor.node)
 
-        if start_lbox and self.selected_lbox is start_lbox:
+        if start_lbox:
             lbox += 1
+        if start_lbox and self.selected_lbox is start_lbox:
             draw_lbox = True
         else:
             draw_lbox = False
@@ -314,7 +315,7 @@ class NodeEditor(QFrame):
             # after we drew a return, update line information
             if node.lookup == "<return>" and not node is first_node:
                 # draw lbox to end of line
-                if draw_lbox:
+                if draw_lbox or (draw_all_boxes and lbox > 0):
                     paint.fillRect(QRectF(x,3+y*self.fontht, self.geometry().width()-x, self.fontht), color)
 
                 self.lines[line].width = x / self.fontwt
