@@ -210,7 +210,7 @@ class LineNumbers(QFrame):
         y = editor.paint_start[1]
         start = editor.paint_start[0]
         for i in range(start, len(editor.lines)):
-            text = str(i)
+            text = str(i+1)
             paint.drawText(QtCore.QPointF(self.geometry().width() - (len(text)+1)*gfont.fontwt, gfont.fontht + y*gfont.fontht), text +":")
             y += editor.lines[i].height
             i += 1
