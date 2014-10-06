@@ -29,6 +29,7 @@ class PHP(helper.Generic):
 
     def __init__(self):
         self.nestings = []
+        self.variable_assignment = False
         self.bracklvl = 0
         self.buf = []
         self.embed = []
@@ -46,9 +47,21 @@ class PHP(helper.Generic):
 
                 # rename py function
                 text = re.sub("def\s+([a-zA-Z_][a-zA-Z0-9_]*)",r"def %s" % (pyname), buf)
-                self.embed.append(text)
+                self.embed.append((pyname, text))
             else:
-                self.buf.append("embed_py_func(\"%s\");" % (_escapepy(buf)))
+                # $foo = embed_py_func(...)
+                if self.variable_assignment:
+                    self.buf.append("embed_py_func(\"%s\");" % (_escapepy(buf)))
+                # embed_py_func(...)
+                else:
+                    name = re.match("def\s+([a-zA-Z_][a-zA-Z0-9_]*)", buf).group(1)
+                    pyname = self.get_unused_name(name)
+                    phpfunc = self.convert_py_to_php(buf, pyname, inclass = False)
+
+                    # rename py function
+                    text = re.sub("def\s+([a-zA-Z_][a-zA-Z0-9_]*)",r"def %s" % (pyname), buf)
+                    self.buf.append("\n$%s = embed_py_func(\"%s\");" % (pyname, _escapepy(text)))
+                    self.buf.append(phpfunc)
 
     def walk(self, node):
         while True:
@@ -58,7 +71,10 @@ class PHP(helper.Generic):
                 break
             assert isinstance(node, TextNode)
             if isinstance(sym, MagicTerminal):
+                if node.parent.parent.symbol.name == "expr_without_variable":
+                    self.variable_assignment = True
                 self.language_box(sym.name, node.symbol.ast.children[0])
+                self.variable_assignment = False
             elif isinstance(sym, IndentationTerminal):
                 pass
             elif sym.name == "\r":
@@ -80,16 +96,16 @@ class PHP(helper.Generic):
                     c = self.nestings.pop()
                     if c[0] == "class":
                         while self.embed != []:
-                            func = self.embed.pop()
-                            self.buf.append("\nembed_py_func(\"%s\");" % (_escapepy(func)))
+                            name, func = self.embed.pop()
+                            self.buf.append("\n$%s = embed_py_func(\"%s\");" % (name, _escapepy(func)))
 
     def in_class(self):
         return self.nestings and self.nestings[-1][0] == "class"
 
-    def convert_py_to_php(self, text, pyname):
+    def convert_py_to_php(self, text, pyname, inclass=True):
         name = re.match("def\s+([a-zA-Z_][a-zA-Z0-9_]*)", text).group(1)
         params = re.match(".*\((.*)\)\s*:", text).group(1).replace(" ", "").split(",")
-        if params == [""]:
+        if params == [""] and inclass:
             logging.error("emebbed python function needs 'self' parameter")
         params = params[1:]
         newparams = []
@@ -101,14 +117,16 @@ class PHP(helper.Generic):
             args = "$this, %s" % (", ".join(newparams))
         else:
             args = "$this"
-        phpfunc = "function %s(%s){return %s(%s);}" % (name, ",".join(newparams), pyname, args)
+        if not inclass:
+            args = args[5:] # remove $this if function is not within a class
+        phpfunc = "function %s(%s){global $%s; return $%s(%s);}" % (name, ",".join(newparams), pyname, pyname, args)
         return phpfunc
 
     def get_unused_name(self, name):
-        newname = "py_" + name
+        newname = "__pyhyp__" + name
         i = 1
         while newname in self.used_funcs:
-            newname = "py_" + name + str(i)
+            newname = "__pyhyp__" + name + str(i)
             i += 1
         self.used_funcs.add(newname)
         return newname
