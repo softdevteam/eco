@@ -107,7 +107,8 @@ class PHP(helper.Generic):
         params = re.match(".*\((.*)\)\s*:", text).group(1).replace(" ", "").split(",")
         if params == [""] and inclass:
             logging.error("emebbed python function needs 'self' parameter")
-        params = params[1:]
+        if inclass:
+            params = params[1:] # delete self
         newparams = []
         for p in params:
             if p != "":
@@ -118,7 +119,7 @@ class PHP(helper.Generic):
         else:
             args = "$this"
         if not inclass:
-            args = args[5:] # remove $this if function is not within a class
+            args = args[6:] # remove $this if function is not within a class
         phpfunc = "function %s(%s){global $%s; return $%s(%s);}" % (name, ",".join(newparams), pyname, pyname, args)
         return phpfunc
 
