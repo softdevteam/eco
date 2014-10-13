@@ -46,7 +46,7 @@ class PHP(helper.Generic):
                 self.buf.append(phpfunc)
 
                 # rename py function
-                text = re.sub("def\s+([a-zA-Z_][a-zA-Z0-9_]*)",r"def %s" % (pyname), buf)
+                text = re.sub("def\s+([a-zA-Z_][a-zA-Z0-9_]*)",r"def %s" % (pyname), buf, count = 1)
                 self.embed.append((pyname, text))
             else:
                 # $foo = embed_py_func(...)
@@ -59,9 +59,12 @@ class PHP(helper.Generic):
                     phpfunc = self.convert_py_to_php(buf, pyname, inclass = False)
 
                     # rename py function
-                    text = re.sub("def\s+([a-zA-Z_][a-zA-Z0-9_]*)",r"def %s" % (pyname), buf)
+                    text = re.sub("def\s+([a-zA-Z_][a-zA-Z0-9_]*)",r"def %s" % (pyname), buf, count = 1)
                     self.buf.append("\n$%s = embed_py_func(\"%s\");" % (pyname, _escapepy(text)))
                     self.buf.append(phpfunc)
+        elif name == "<Python expression>":
+            buf = PythonExpr().pp(node)
+            self.buf.append("call_user_func(embed_py_func(\"f = lambda: %s;\"))" % (_escapepy(buf)))
 
     def walk(self, node):
         while True:
@@ -137,6 +140,9 @@ class Python(helper.Generic):
         if name == "<PHP + Python>":
             buf = PHP().pp(node)
             self.buf.append("embed_php_func(\"\"\"\n%s\n\"\"\")" % (_escape(buf)))
+
+class PythonExpr(Python):
+    pass
 
 def _escapepy(s):
     return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("'", "\\'").replace("\n", "\\n").replace("$", "\$")

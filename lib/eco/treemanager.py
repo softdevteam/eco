@@ -865,6 +865,7 @@ class TreeManager(object):
 
         lbox.symbol.parser = root
         lbox.symbol.ast = root
+        lbox.plain_mode = True
         return lbox
 
     def surround_with_languagebox(self, language):
