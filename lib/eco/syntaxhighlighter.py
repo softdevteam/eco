@@ -222,7 +222,7 @@ class PhpHighlighter(SyntaxHighlighter):
 def get_highlighter(parent, palette):
     if parent == "Java":
         return JavaHighlighter(palette)
-    if parent == "Python":
+    if parent == "Python" or parent=="IPython":
         return PythonHighlighter(palette)
     if parent == "Sql":
         return SqlHighlighter(palette)

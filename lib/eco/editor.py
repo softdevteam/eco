@@ -19,6 +19,14 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+import sys
+try:
+    # checkout https://github.com/Brittix1023/mipy into eco/lib/
+    sys.path.append("../mipy")
+    from mipy import kernel, request_listener
+    has_mipy = True
+except ImportError:
+    has_mipy = False
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from PyQt4 import QtCore
@@ -109,9 +117,63 @@ class ChemicalEditor(ImageEditor):
     def get_filename(self, node):
         return "chemicals/" + node.symbol.name + ".png"
 
+if not has_mipy:
+    class IPythonEditor(NormalEditor):
+        pass
+else:
+    class IPythonEditor(NormalEditor):
+        proc = kernel.IPythonKernelProcess()
+
+        def paint_node(self, paint, node, x, y, highlighter):
+            lbox = node.get_root().get_magicterminal()
+            if lbox.plain_mode:
+                return NormalEditor.paint_node(self, paint, node, x, y, highlighter)
+            else:
+                dx, dy = NormalEditor.paint_node(self, paint, node, x, y, highlighter)
+                if isinstance(node.next_term, EOS):
+                    content = self.get_content(lbox)
+                    try:
+                        krn = IPythonEditor.proc.connection
+
+                        if krn is not None:
+                            listener = IPythonExecuteListener()
+                            krn.execute_request(content, listener=listener)
+                            while not listener.finished:
+                                krn.poll(-1)
+                            text = str(listener.result)
+                    except Exception, e:
+                        text = e.message
+                    paint.drawText(QtCore.QPointF(x+100, self.fontht + y*self.fontht), " | "+text)
+                return dx, dy
+
+        def get_content(self, lbox):
+            node = lbox.symbol.ast.children[0].next_term
+            l = []
+            while not isinstance(node, EOS):
+                if not isinstance(node.symbol, IndentationTerminal):
+                    l.append(node.symbol.name)
+                node = node.next_term
+            return "".join(l)
+
+    class IPythonExecuteListener(request_listener.ExecuteRequestListener):
+        def __init__(self):
+            self.result = None
+            self.finished = False
+
+        def on_execute_result(self, execution_count, data, metadata):
+            self.result = data['text/plain']
+
+        def on_execute_finished(self):
+            self.finished = True
+
+        def on_error(self, ename, value, traceback):
+            raise Exception(ename)
+
 def get_editor(parent, fontwt, fontht):
     if parent == "Chemicals":
         return ChemicalEditor(fontwt, fontht)
     if parent == "Image":
         return ImageEditor(fontwt, fontht)
+    if parent == "IPython":
+        return IPythonEditor(fontwt, fontht)
     return NormalEditor(fontwt, fontht)

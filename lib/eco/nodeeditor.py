@@ -224,6 +224,7 @@ class NodeEditor(QFrame):
         editor = self.get_editor(node)
 
         self.selected_lbox = self.tm.get_languagebox(self.tm.cursor.node)
+        #XXX get initial x for langbox
 
         if start_lbox:
             lbox += 1
@@ -238,10 +239,13 @@ class NodeEditor(QFrame):
         self.cursor = self.tm.cursor
         self.lines[line].height = 1 # reset height
         draw_cursor = True
+        #l_x = [0]
         while y < max_y:
 
             # if we found a language box, continue drawing inside of it
             if isinstance(node.symbol, MagicTerminal):
+                #l_x.append(x)
+                node.pos = x
                 lbox += 1
                 lbnode = node.symbol.ast
                 if self.selected_lbox is node:
@@ -261,6 +265,7 @@ class NodeEditor(QFrame):
                 if self.cursor.node is lbnode:
                     self.draw_cursor(paint, x, 5 + y * self.fontht)
                 if lbnode:
+                    #l_x.pop()
                     if lbox > 0:
                         lbox -= 1
                     node = lbnode.next_term
@@ -319,7 +324,7 @@ class NodeEditor(QFrame):
                     paint.fillRect(QRectF(x,3+y*self.fontht, self.geometry().width()-x, self.fontht), color)
 
                 self.lines[line].width = x / self.fontwt
-                x = 0
+                x = 0#l_x[-1]
                 y += self.lines[line].height
                 line += 1
                 self.lines[line].height = 1 # reset height
@@ -461,7 +466,15 @@ class NodeEditor(QFrame):
         if e.button() == Qt.LeftButton:
             self.coordinate_to_cursor(e.x(), e.y())
             node = self.tm.get_node_from_cursor()
-            if node.image is None:
+            lbox = self.get_languagebox(node)
+            if lbox.symbol.name == "<IPython>":
+                if lbox.plain_mode is False:
+                    lbox.plain_mode = True
+                else:
+                    lbox.plain_mode = False
+                self.update()
+                return
+            elif node.image is None:
                 return
 
             if node.plain_mode is False:

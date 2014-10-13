@@ -110,6 +110,7 @@ from eco_grammar import eco_grammar # needed to edit EcoGrammar
 calc = EcoFile("Basic Calculator", "grammars/basiccalc.eco", "Calc")
 java = EcoFile("Java 1.5", "grammars/java15.eco", "Java")
 python = EcoFile("Python 2.7.5", "grammars/python275.eco", "Python")
+ipython = EcoFile("IPython", "grammars/python275.eco", "IPython")
 prolog = EcoFile("Prolog", "grammars/prolog.eco", "Prolog")
 scoping = EcoFile("Scoping Rules (Ecofile)", "grammars/scoping_grammar.eco", "Scoping")
 eco = EcoFile("Eco Grammar (Ecofile)", "grammars/eco_grammar.eco", "Grammar") # based on eco_grammar
@@ -152,12 +153,13 @@ phppython.add_alternative("expr", pythonphp)
 phppython.add_alternative("expr", python_expr)
 pythonphp.add_alternative("atom", phppython)
 
-languages = [calc, java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar]
-newfile_langs = [java, javasqlchemical, php, phppython, python, pythonhtmlsql, pythonprolog, prolog, sql, html, htmlpythonsql]
-submenu_langs = [java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, prolog, sql, sql_ref_java, html, htmlpythonsql, img, chemical]
-languages = [calc, java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar, python_expr]
-newfile_langs = [java, javasqlchemical, php, phppython, python, pythonhtmlsql, pythonprolog, prolog, sql, html, htmlpythonsql, calc]
-submenu_langs = [java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, python_expr, prolog, sql, sql_ref_java, html, htmlpythonsql, img, chemical]
+pythonipython = EcoFile("Python + IPython", "grammars/python275.eco", "Python")
+pythonipython.add_alternative("atom", ipython)
+
+
+languages = [calc, java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar, python_expr, ipython, pythonipython]
+newfile_langs = [java, javasqlchemical, php, phppython, python, pythonhtmlsql, pythonprolog, prolog, sql, html, htmlpythonsql, pythonipython, calc]
+submenu_langs = [java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, python_expr, prolog, sql, sql_ref_java, html, htmlpythonsql, img, chemical, ipython]
 
 lang_dict = {}
 for l in languages:
