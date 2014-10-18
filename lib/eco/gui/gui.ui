@@ -46,7 +46,7 @@
      <x>0</x>
      <y>0</y>
      <width>979</width>
-     <height>21</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -280,10 +280,10 @@
   </action>
   <action name="actionParse_Tree">
    <property name="checkable">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
    <property name="checked">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
    <property name="text">
     <string>Tree</string>
@@ -437,6 +437,9 @@
   </action>
   <action name="actionShow_language_boxes">
    <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
     <bool>true</bool>
    </property>
    <property name="text">

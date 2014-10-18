@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Mon Jul 28 11:53:55 2014
-#      by: PyQt4 UI code generator 4.11.1
+# Created: Sat Oct 18 13:52:38 2014
+#      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -46,7 +46,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.addWidget(self.tabWidget)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 23))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
@@ -121,8 +121,8 @@ class Ui_MainWindow(object):
         self.actionRun.setIcon(icon)
         self.actionRun.setObjectName(_fromUtf8("actionRun"))
         self.actionParse_Tree = QtGui.QAction(MainWindow)
-        self.actionParse_Tree.setCheckable(False)
-        self.actionParse_Tree.setChecked(False)
+        self.actionParse_Tree.setCheckable(True)
+        self.actionParse_Tree.setChecked(True)
         self.actionParse_Tree.setObjectName(_fromUtf8("actionParse_Tree"))
         self.actionAbout = QtGui.QAction(MainWindow)
         icon = QtGui.QIcon.fromTheme(_fromUtf8("help-about"))
@@ -174,6 +174,7 @@ class Ui_MainWindow(object):
         self.actionCode_complete.setObjectName(_fromUtf8("actionCode_complete"))
         self.actionShow_language_boxes = QtGui.QAction(MainWindow)
         self.actionShow_language_boxes.setCheckable(True)
+        self.actionShow_language_boxes.setChecked(True)
         self.actionShow_language_boxes.setObjectName(_fromUtf8("actionShow_language_boxes"))
         self.actionFind_next = QtGui.QAction(MainWindow)
         self.actionFind_next.setObjectName(_fromUtf8("actionFind_next"))
