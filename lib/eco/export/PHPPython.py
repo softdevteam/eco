@@ -124,7 +124,11 @@ class PHP(helper.Generic):
             args = "$this"
         if not inclass:
             args = args[6:] # remove $this if function is not within a class
-        phpfunc = "function %s(&%s){\n    global $%s;\n    return $%s(%s);\n}" % (name, ", &".join(newparams), pyname, pyname, args)
+        if newparams != []:
+            paramstring = "&" + ", &".join(newparams)
+        else:
+            paramstring = "";
+        phpfunc = "function %s(%s){\n    global $%s;\n    return $%s(%s);\n}" % (name, paramstring, pyname, pyname, args)
         return phpfunc
 
     def get_unused_name(self, name):
