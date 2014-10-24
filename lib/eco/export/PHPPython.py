@@ -61,6 +61,7 @@ class PHP(helper.Generic):
                     # rename py function
                     text = re.sub("def\s+([a-zA-Z_][a-zA-Z0-9_]*)",r"def %s" % (pyname), buf, count = 1)
                     self.buf.append("\n$%s = embed_py_func(\"%s\");" % (pyname, _escapepy(text)))
+                    self.buf.append("\n");
                     self.buf.append(phpfunc)
         elif name == "<Python expression>":
             buf = PythonExpr().pp(node)
@@ -123,7 +124,7 @@ class PHP(helper.Generic):
             args = "$this"
         if not inclass:
             args = args[6:] # remove $this if function is not within a class
-        phpfunc = "function %s(%s){global $%s; return $%s(%s);}" % (name, ",".join(newparams), pyname, pyname, args)
+        phpfunc = "function %s(&%s){\n    global $%s;\n    return $%s(%s);\n}" % (name, ", &".join(newparams), pyname, pyname, args)
         return phpfunc
 
     def get_unused_name(self, name):
