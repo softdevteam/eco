@@ -440,6 +440,8 @@ class Window(QtGui.QMainWindow):
 
         self.finddialog = FindDialog()
 
+        self.last_dir = None
+
         # apply settings
         settings = QSettings("softdev", "Eco")
         if not settings.value("gen_showconsole", False).toBool():
@@ -610,8 +612,9 @@ class Window(QtGui.QMainWindow):
         ed = self.getEditorTab()
         if not ed:
             return
-        filename = QFileDialog.getSaveFileName(self, "Save File", QDir.currentPath(), "Eco files (*.eco *.nb);; All files (*.*)")
+        filename = QFileDialog.getSaveFileName(self, "Save File", self.get_last_dir(), "Eco files (*.eco *.nb);; All files (*.*)")
         if filename:
+            self.save_last_dir(str(filename))
             self.getEditor().saveToJson(filename)
             self.getEditorTab().filename = filename
 
@@ -628,15 +631,28 @@ class Window(QtGui.QMainWindow):
         ed = self.getEditorTab()
         if not ed:
             return
-        path = QFileDialog.getSaveFileName()
+        path = QFileDialog.getSaveFileName(self, "Export file", self.get_last_dir())
         if path:
+            self.save_last_dir(str(path))
             ed.export_path = path
             self.getEditor().tm.export(path)
 
+    def get_last_dir(self):
+        settings = QSettings("softdev", "Eco")
+        last_dir = settings.value("last_dir").toString()
+        if last_dir:
+            return last_dir
+        return QDir.currentPath()
+
+    def save_last_dir(self, filename):
+        settings = QSettings("softdev", "Eco")
+        settings.setValue("last_dir", filename)
+
     def openfile(self, filename=None):
         if not filename:
-            filename = QFileDialog.getOpenFileName(self, "Open File", QDir.currentPath(), "Eco files (*.eco *.nb);; All files (*.*)")
+            filename = QFileDialog.getOpenFileName(self, "Open File", self.get_last_dir(), "Eco files (*.eco *.nb);; All files (*.*)")
         if filename:
+            self.save_last_dir(str(filename))
             if filename.endsWith(".eco") or filename.endsWith(".nb"):
                 etab = EditorTab()
 
