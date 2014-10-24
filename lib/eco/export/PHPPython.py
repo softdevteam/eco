@@ -124,10 +124,7 @@ class PHP(helper.Generic):
             args = "$this"
         if not inclass:
             args = args[6:] # remove $this if function is not within a class
-        if newparams != []:
-            paramstring = "&" + ", &".join(newparams)
-        else:
-            paramstring = "";
+        paramstring = ", ".join(newparams)
         phpfunc = "function %s(%s){\n    global $%s;\n    return $%s(%s);\n}" % (name, paramstring, pyname, pyname, args)
         return phpfunc
 
