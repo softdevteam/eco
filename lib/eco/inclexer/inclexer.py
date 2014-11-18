@@ -491,6 +491,7 @@ class IncrementalLexerCF(object):
                 any_changes = True
             last_node = node
             node.symbol.name = t.source
+            node.mark_version()
             if node.lookup != t.name:
                 any_changes = True
             node.lookup = t.name

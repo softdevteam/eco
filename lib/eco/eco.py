@@ -413,8 +413,8 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionUndo, SIGNAL("triggered()"), self.undo)
         self.connect(self.ui.actionRedo, SIGNAL("triggered()"), self.redo)
         # XXX temporarily disable undo/redo because it's buggy
-        self.ui.actionUndo.setEnabled(False)
-        self.ui.actionRedo.setEnabled(False)
+        #self.ui.actionUndo.setEnabled(False)
+        #self.ui.actionRedo.setEnabled(False)
         self.connect(self.ui.actionCopy, SIGNAL("triggered()"), self.copy)
         self.connect(self.ui.actionCut, SIGNAL("triggered()"), self.cut)
         self.connect(self.ui.actionPaste, SIGNAL("triggered()"), self.paste)
@@ -462,7 +462,7 @@ class Window(QtGui.QMainWindow):
             f = args[0]
             self.openfile(QString(f))
 
-        if options.log.upper() in ["INFO", "WARNING", "ERROR"]:
+        if options.log.upper() in ["INFO", "WARNING", "ERROR", "DEBUG"]:
             loglevel=getattr(logging, options.log.upper())
         else:
             loglevel=logging.WARNING

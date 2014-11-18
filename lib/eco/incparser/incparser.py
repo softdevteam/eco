@@ -113,6 +113,9 @@ class IncParser(object):
         eos.prev_term = bos
         root = Node(Nonterminal("Root"), 0, [bos, eos])
         self.previous_version = AST(root)
+        root.save(0)
+        bos.save(0)
+        eos.save(0)
 
     def reparse(self):
         self.inc_parse([], True)

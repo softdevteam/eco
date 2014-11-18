@@ -57,6 +57,8 @@ class NodeEditor(QFrame):
 
         self.timer = QTimer(self)
         self.connect(self.timer, SIGNAL("timeout()"), self.test)
+        self.undotimer = QTimer(self)
+        self.connect(self.undotimer, SIGNAL("timeout()"), self.trigger_undotimer)
 
         self.lightcolors = [QColor("#333333"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
         self.darkcolors = [QColor("#999999"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
@@ -66,6 +68,9 @@ class NodeEditor(QFrame):
         self.tm.analyse()
         self.update()
         self.timer.stop()
+
+    def trigger_undotimer(self):
+        self.tm.savestate()
 
     def setImageMode(self, boolean):
         self.imagemode = boolean
@@ -542,6 +547,7 @@ class NodeEditor(QFrame):
     def keyPressEvent(self, e):
 
         self.timer.start(500)
+        self.undotimer.start(500)
 
         if e.key() in [Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Control, Qt.Key_Meta, Qt.Key_AltGr]:
             if e.key() == Qt.Key_Shift:
