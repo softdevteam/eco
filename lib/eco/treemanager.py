@@ -643,7 +643,7 @@ class TreeManager(object):
     def key_shift_ctrl_z(self):
         if self.get_max_version() > self.version:
             self.version += 1
-            self.recover_version()
+            self.recover_version("redo")
             self.cursor.load(self.version)
 
     def get_max_version(self):
@@ -656,18 +656,30 @@ class TreeManager(object):
     def key_ctrl_z(self):
         if self.version > 0:
             self.version -= 1
-            self.recover_version()
+            self.recover_version("undo")
             self.cursor.load(self.version)
 
-    def recover_version(self):
+    def recover_version(self, direction):
+        import time
+        start = time.time()
         root = self.get_bos().parent
         root.load(self.version)
         self.get_bos().load(self.version)
+        eos = root.children[-1]
+        eos.load(self.version)
         node = self.pop_lookahead(self.get_bos())
         while True:
             if isinstance(node, EOS):
+                end = time.time()
+                print("Recovered in %s" % (end-start))
                 return
-           #if node.version < self.version:
+            # Optimisation that skips trees that version wouldn't change
+           #if direction == "undo" and node.version < self.version:
+           #    print("skipping", node.symbol)
+           #    node = self.pop_lookahead(node)
+           #    continue
+           #if direction == "redo" and node.version < self.version - 1:
+           #    print("skipping", node.symbol)
            #    node = self.pop_lookahead(node)
            #    continue
             node.load(self.version)
@@ -714,6 +726,8 @@ class TreeManager(object):
         bos.save(self.version)
         root = bos.parent
         root.save(self.version)
+        eos = root.children[-1]
+        eos.save(self.version)
         node = self.pop_lookahead(bos)
         while True:
             if isinstance(node, EOS):
@@ -1379,7 +1393,7 @@ class TreeManager(object):
         if changed:
             root = node.get_root()
             parser = self.get_parser(root)
-            parser.inc_parse(version=self.version)
+            parser.inc_parse()
         if self.savenextparse:
             self.save()
             self.last_saved_version = self.version

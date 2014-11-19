@@ -199,6 +199,7 @@ class Node(object):
             c.needs_saving = True
         if last is not None:
             last.right = None # last child has no right sibling
+            #XXX need to save this?
 
     def save(self, version):
         self.log[("children", version)] = list(self.children)
@@ -231,11 +232,15 @@ class Node(object):
                 # update siblings
                 if removed_child.left:
                     removed_child.left.right = removed_child.right
+                    removed_child.left.needs_saving = True
                 if removed_child.right:
                     removed_child.right.left = removed_child.left
+                    removed_child.right.needs_saving = True
                 # update terminal pointers
                 child.prev_term.next_term = child.next_term
+                child.prev_term.needs_saving = True
                 child.next_term.prev_term = child.prev_term
+                child.next_term.needs_saving = True
                 self.mark_changed()
                 self.changed = True
                 return

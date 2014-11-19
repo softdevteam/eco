@@ -547,7 +547,7 @@ class NodeEditor(QFrame):
     def keyPressEvent(self, e):
 
         self.timer.start(500)
-        self.undotimer.start(500)
+        self.undotimer.start(300)
 
         if e.key() in [Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Control, Qt.Key_Meta, Qt.Key_AltGr]:
             if e.key() == Qt.Key_Shift:
