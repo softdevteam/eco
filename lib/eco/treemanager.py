@@ -656,41 +656,45 @@ class TreeManager(object):
     def key_ctrl_z(self):
         if self.version > 0:
             self.version -= 1
-            self.recover_version("undo")
             self.cursor.load(self.version)
+            self.recover_version("undo")
 
     def recover_version(self, direction):
         import time
-        start = time.time()
-        root = self.get_bos().parent
-        root.load(self.version)
-        self.get_bos().load(self.version)
-        eos = root.children[-1]
-        eos.load(self.version)
-        node = self.pop_lookahead(self.get_bos())
-        while True:
-            if isinstance(node, EOS):
-                end = time.time()
-                print("Recovered in %s" % (end-start))
-                return
-            # Optimisation that skips trees that version wouldn't change
-           #if direction == "undo" and node.version < self.version:
-           #    print("skipping", node.symbol)
-           #    node = self.pop_lookahead(node)
-           #    continue
-           #if direction == "redo" and node.version < self.version - 1:
-           #    print("skipping", node.symbol)
-           #    node = self.pop_lookahead(node)
-           #    continue
-            node.load(self.version)
-            # continue with children if version is smaller
-            #if node.version >= self.version: don't optimise for now, depends which direction we are going
-            if len(node.children) > 0:
-                node = node.children[0]
-                continue
-            else:
-                # skip subtree and continue otherwise
-                node = self.pop_lookahead(node)
+        for l in self.parsers:
+            start = time.time()
+            parser = l[0]
+            root = parser.previous_version.parent
+            #root = self.cursor.node.get_root()#get_bos().parent
+            root.load(self.version)
+            bos = root.children[0]
+            bos.load(self.version)
+            eos = root.children[-1]
+            eos.load(self.version)
+            node = self.pop_lookahead(bos)
+            while True:
+                if isinstance(node, EOS):
+                    end = time.time()
+                    #print("Recovered in %s" % (end-start))
+                    break
+                # Optimisation that skips trees that version wouldn't change
+               #if direction == "undo" and node.version < self.version:
+               #    print("skipping", node.symbol)
+               #    node = self.pop_lookahead(node)
+               #    continue
+               #if direction == "redo" and node.version < self.version - 1:
+               #    print("skipping", node.symbol)
+               #    node = self.pop_lookahead(node)
+               #    continue
+                node.load(self.version)
+                # continue with children if version is smaller
+                #if node.version >= self.version: don't optimise for now, depends which direction we are going
+                if len(node.children) > 0:
+                    node = node.children[0]
+                    continue
+                else:
+                    # skip subtree and continue otherwise
+                    node = self.pop_lookahead(node)
 
     def pop_lookahead(self, la):
         while(la.right_sibling() is None):
@@ -720,25 +724,28 @@ class TreeManager(object):
             if v > version:
                 del node.log[(key, v)]
 
-    def save(self):
-        self.cursor.save(self.version)
-        bos = self.get_bos()
-        bos.save(self.version)
-        root = bos.parent
-        root.save(self.version)
-        eos = root.children[-1]
-        eos.save(self.version)
-        node = self.pop_lookahead(bos)
-        while True:
-            if isinstance(node, EOS):
-                node.save(self.version)
-                return
-            if node.needs_saving:
-                node.save(self.version)
-                if len(node.children) > 0:
-                    node = node.children[0]
-                    continue
-            node = self.pop_lookahead(node)
+    def save(self, root):
+        for l in self.parsers:
+            parser = l[0]
+            root = parser.previous_version.parent
+            self.cursor.save(self.version)
+            #root = self.cursor.node.get_root()#bos.parent
+            root.save(self.version)
+            bos = root.children[0]
+            bos.save(self.version)
+            eos = root.children[-1]
+            eos.save(self.version)
+            node = self.pop_lookahead(bos)
+            while True:
+                if isinstance(node, EOS):
+                    node.save(self.version)
+                    break
+                if node.needs_saving:
+                    node.save(self.version)
+                    if len(node.children) > 0:
+                        node = node.children[0]
+                        continue
+                node = self.pop_lookahead(node)
 
     def key_home(self, shift=False):
         self.unselect()
@@ -1395,7 +1402,8 @@ class TreeManager(object):
             parser = self.get_parser(root)
             parser.inc_parse()
         if self.savenextparse:
-            self.save()
+            root = node.get_root()
+            self.save(root)
             self.last_saved_version = self.version
             self.savenextparse = False
 
