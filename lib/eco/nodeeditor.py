@@ -250,7 +250,7 @@ class NodeEditor(QFrame):
             # if we found a language box, continue drawing inside of it
             if isinstance(node.symbol, MagicTerminal):
                 #l_x.append(x)
-                node.pos = x
+                #node.pos = x
                 lbox += 1
                 lbnode = node.symbol.ast
                 if self.selected_lbox is node:
