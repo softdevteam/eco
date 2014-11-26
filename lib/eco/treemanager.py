@@ -363,6 +363,7 @@ class TreeManager(object):
         self.version = 1
         self.last_saved_version = 1
         self.savenextparse = False
+        self.saved_lines = {}
 
     def set_font_test(self, width, height):
         # only needed for testing
@@ -422,6 +423,7 @@ class TreeManager(object):
             self.cursor = Cursor(self.mainroot.children[0], 0, 0)
             self.cursor.save(0)
             self.cursor.save(self.version)
+            self.save_lines()
             self.selection_start = self.cursor.copy()
             self.selection_end = self.cursor.copy()
             lboxnode = self.create_node("<%s>" % language, lbox=True)
@@ -661,6 +663,7 @@ class TreeManager(object):
 
     def recover_version(self, direction):
         import time
+        self.load_lines()
         for l in self.parsers:
             start = time.time()
             parser = l[0]
@@ -724,7 +727,45 @@ class TreeManager(object):
             if v > version:
                 del node.log[(key, v)]
 
+    def save_lines(self):
+        # check if lines have changed
+        lines = self.get_lines_from_version(self.version)
+        if len(lines) != len(self.lines):
+            self.saved_lines[self.version] = list(self.lines)
+            return
+
+        # check if nodes are different (e.g. we could delete and reinsert a line between saves)
+        for i in range(len(lines)):
+            if lines[i] is not self.lines[i]:
+                self.saved_lines[self.version] = list(self.lines)
+                return
+
+    def get_lines_from_version(self, version):
+        version = self.version
+        while True:
+            if version == -1:
+                return []
+            try:
+                l = self.saved_lines[version]
+                break
+            except KeyError:
+                version -= 1
+        return l
+
+    def load_lines(self):
+        version = self.version
+        while True:
+            if version == 0:
+                return
+            try:
+                l = self.saved_lines[version]
+                break
+            except KeyError:
+                version -= 1
+        self.lines = l
+
     def save(self, root):
+        self.save_lines()
         for l in self.parsers:
             parser = l[0]
             root = parser.previous_version.parent
