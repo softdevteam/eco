@@ -265,9 +265,9 @@ class Node(object):
                 # update terminal pointers
                 newnode.prev_term = node
                 node.next_term.prev_term = newnode
+                node.next_term.needs_saving = True
                 newnode.next_term = node.next_term
                 node.next_term = newnode
-                node.next_term.needs_saving = True
                 newnode.magic_parent = node.magic_parent
                 return
             i += 1
