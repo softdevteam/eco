@@ -70,6 +70,9 @@ class Cursor(object):
         for key in self.log.keys():
             if key > version:
                 del self.log[key]
+        for key in self.saved_lines.keys():
+            if key > version:
+                del self.saved_lines[key]
 
     def copy(self):
         return Cursor(self.node, self.pos, self.line)
@@ -762,7 +765,7 @@ class TreeManager(object):
                 break
             except KeyError:
                 version -= 1
-        self.lines = l
+        self.lines = list(l) # copy, otherwise saved list will be mutated
 
     def save(self, root):
         self.save_lines()
