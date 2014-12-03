@@ -1010,3 +1010,114 @@ class Test_Languageboxes(Test_Python):
         self.treemanager.key_cursors("left", mod_shift=True)
         self.treemanager.deleteSelection()
         assert lbox.symbol.name == "<Prolog>"
+
+class Test_Undo(Test_Python):
+
+    def compare(self, text):
+        import tempfile
+        f = tempfile.NamedTemporaryFile()
+        self.treemanager.export_as_text(f.name)
+        assert f.read() == text
+        f.close()
+
+    def type_save(self, text):
+        self.treemanager.savestate() # tells treemanager to save after the next operation and increase the version
+        self.treemanager.key_normal(text)
+
+    def test_simple_undo_redo(self):
+        self.treemanager.savestate()
+        self.treemanager.key_normal("1")
+        self.treemanager.savestate()
+        self.treemanager.key_normal("+")
+        self.treemanager.savestate()
+        self.treemanager.key_normal("2")
+        self.compare("1+2")
+        self.treemanager.key_ctrl_z()
+        self.compare("1+")
+        self.treemanager.key_ctrl_z()
+        self.compare("1")
+        self.treemanager.key_ctrl_z()
+        self.compare("")
+
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("1")
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("1+")
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("1+2")
+
+    def test_undo_indentation(self):
+        self.reset()
+        self.type_save("class")
+        self.type_save(" X:")
+        self.type_save("\r    ")
+        self.type_save("pass")
+        self.compare("class X:\r\n    pass")
+
+        self.treemanager.key_ctrl_z()
+        self.compare("class X:\r\n    ")
+
+        self.treemanager.key_ctrl_z()
+        self.compare("class X:")
+        assert self.treemanager.cursor.node.next_term.symbol.name == "NEWLINE"
+        assert isinstance(self.treemanager.cursor.node.next_term.next_term, EOS)
+
+        self.treemanager.key_ctrl_z()
+        self.compare("class")
+
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("class X:\r\n    pass")
+        assert self.treemanager.cursor.node.next_term.symbol.name == "NEWLINE"
+        assert self.treemanager.cursor.node.next_term.next_term.symbol.name == "DEDENT"
+        assert isinstance(self.treemanager.cursor.node.next_term.next_term.next_term, EOS)
+
+    def test_undo_and_type(self):
+        self.reset()
+        self.type_save("12")
+        self.type_save("+")
+        self.type_save("34")
+        self.compare("12+34")
+
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.compare("12")
+        self.type_save("-56")
+        self.compare("12-56")
+
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("12-56")
+
+    def test_redo_bug(self):
+        self.reset()
+        self.type_save("1")
+        self.type_save("\r")
+        self.type_save("2")
+        self.move("up", 1)
+        self.compare("1\r\n2")
+        self.type_save("\r")
+        self.type_save("3")
+        self.compare("1\r\n3\r\n2")
+
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.compare("1")
+
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("1\r\n3\r\n2")
+
+        self.move("down", 1)
+        self.treemanager.key_backspace()
+        self.compare("1\r\n3\r\n")
+        self.treemanager.key_backspace()
+        self.compare("1\r\n3")
+        self.treemanager.key_backspace()
+        self.compare("1\r\n")
+        self.treemanager.key_backspace()
+        self.compare("1")
