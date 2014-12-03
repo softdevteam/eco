@@ -768,7 +768,7 @@ class TreeManager(object):
                 version -= 1
         self.lines = list(l) # copy, otherwise saved list will be mutated
 
-    def save(self, root):
+    def save(self):
         self.save_lines()
         for l in self.parsers:
             parser = l[0]
@@ -1447,8 +1447,7 @@ class TreeManager(object):
             parser = self.get_parser(root)
             parser.inc_parse()
         if self.savenextparse:
-            root = node.get_root()
-            self.save(root)
+            self.save()
             self.last_saved_version = self.version
             self.savenextparse = False
 
