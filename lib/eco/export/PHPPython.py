@@ -39,15 +39,8 @@ class PHP(helper.Generic):
         if name == "<Python + PHP>":
             buf = Python().pp(node)
             if self.in_class():
-                # put PHP func in here and store embed for later
-                name = re.match("def\s+([a-zA-Z_][a-zA-Z0-9_]*)", buf).group(1)
-                pyname = self.get_unused_name(name)
-                phpfunc = self.convert_py_to_php(buf, pyname)
-                self.buf.append(phpfunc)
-
-                # rename py function
-                text = re.sub("def\s+([a-zA-Z_][a-zA-Z0-9_]*)",r"def %s" % (pyname), buf, count = 1)
-                self.embed.append((pyname, text))
+                classname = self.get_classname()
+                self.embed.append((classname, buf))
             else:
                 # $foo = embed_py_func(...)
                 if self.variable_assignment:
@@ -88,7 +81,11 @@ class PHP(helper.Generic):
 
             # collect information about classes and brackets
             if sym.name == "class":
-                self.nestings.append(("class", self.bracklvl))
+                tmp = node
+                while tmp.lookup != "T_STRING":
+                    tmp = tmp.next_term
+                classname = tmp.symbol.name
+                self.nestings.append(("class", self.bracklvl, classname))
             elif sym.name == "function":
                 self.nestings.append(("function", self.bracklvl))
             elif sym.name == "{":
@@ -100,11 +97,17 @@ class PHP(helper.Generic):
                     c = self.nestings.pop()
                     if c[0] == "class":
                         while self.embed != []:
-                            name, func = self.embed.pop()
-                            self.buf.append("\n$%s = embed_py_func(\"%s\");" % (name, _escapepy(func)))
+                            classname, func = self.embed.pop()
+                            self.buf.append("\nembed_py_meth(\"%s\", \"%s\");" % (classname, _escapepy(func)))
 
     def in_class(self):
         return self.nestings and self.nestings[-1][0] == "class"
+
+    def get_classname(self):
+        try:
+            return self.nestings[-1][2]
+        except Exception:
+            return None
 
     def convert_py_to_php(self, text, pyname, inclass=True):
         name = re.match("def\s+([a-zA-Z_][a-zA-Z0-9_]*)", text).group(1)
@@ -153,4 +156,4 @@ def _escape(s):
     return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("'", "\\'")
 
 def export(node):
-    return "<?php\n%s\n?>" % (PHP().pp(node),)
+    return "<?php{\n%s\n}?>" % (PHP().pp(node),)
