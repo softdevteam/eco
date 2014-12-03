@@ -70,9 +70,6 @@ class Cursor(object):
         for key in self.log.keys():
             if key > version:
                 del self.log[key]
-        for key in self.saved_lines.keys():
-            if key > version:
-                del self.saved_lines[key]
 
     def copy(self):
         return Cursor(self.node, self.pos, self.line)
@@ -714,6 +711,10 @@ class TreeManager(object):
         self.delete_versions_from(bos, version)
         self.delete_versions_from(root, version)
         self.cursor.clean_versions(version)
+        # clean linenumbers
+        for key in self.saved_lines.keys():
+            if key > version:
+                del self.saved_lines[key]
         node = self.pop_lookahead(self.get_bos())
         while True:
             if isinstance(node, EOS):
