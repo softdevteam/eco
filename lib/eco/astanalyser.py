@@ -89,9 +89,13 @@ class AstAnalyser(object):
     def get_field(self, ref):
         return None
 
-    def get_definition(self, node):
+    def get_definition(self, node, analyser=None):
+        if not analyser:
+            definitions = self.definitions
+        else:
+            definitions = analyser.definitions
         nodename = node.symbol.name
-        for d in self.definitions:
+        for d in definitions:
             if d.name == nodename:
                 # overloaded definitions allowed: check if types match
                 if self.match(node, d):
@@ -375,17 +379,20 @@ class AstAnalyser(object):
 
     def get_completion(self, scope):
         # find astnode with rule
-        astnode = self.get_correct_astnode(scope)
+        root = scope.get_root()
+        lbox = root.get_magicterminal()
+        analyser = self.get_lboxanalyser(root)
+        astnode = self.get_correct_astnode(scope, analyser, lbox)
         if not astnode:
             return []
-        nbrule = self.get_definition(astnode)
+        nbrule = self.get_definition(astnode, analyser)
         name = astnode.get(nbrule.get_defname()[0])
 
         uri = self.find_uri_by_astnode(name)
         if uri:
             path = uri.path + [uri]
             names = self.get_reachable_names_by_path(path)
-            if scope.lookup in ["NAME","nonterminal","IDENTIFIER"]: #XXX this needs to be provided by the grammar
+            if scope.lookup in ["T_STRING", "NAME","nonterminal","IDENTIFIER"]: #XXX this needs to be provided by the grammar
                 filtered_names = []
                 for uri in names:
                     if uri.name.startswith(scope.symbol.name):
@@ -393,18 +400,23 @@ class AstAnalyser(object):
                 return filtered_names
             return names
 
-    def get_correct_astnode(self, scope):
+    def get_correct_astnode(self, scope, analyser=None, lbox=None):
         # returns the correct astnode for a corresponding scope. Is needed for
         # nested astnodes that have rules, e.g. blocks inside methods
         while scope is not None:
             astnode = scope.alternate
             if astnode:
-                nbrule = self.get_definition(scope.alternate)
+                nbrule = self.get_definition(scope.alternate, analyser)
                 # astnode must have a corresponding entry in self.data
-                if nbrule and self.data.has_key(nbrule.get_deftype()):
-                    for e in self.data[nbrule.get_deftype()]:
-                        if e.astnode is astnode:
-                            return astnode
+                if nbrule:
+                    deftype = nbrule.get_deftype()
+                    if lbox and lbox.symbol.name == "<Python + PHP>":
+                        if deftype == "variable": # convert to find it in data
+                            deftype = "function"
+                    if self.data.has_key(deftype):
+                        for e in self.data[deftype]:
+                            if e.astnode is astnode:
+                                return astnode
             scope = scope.parent
 
     def find_uri_by_astnode(self, node):
