@@ -1181,7 +1181,7 @@ class TreeManager(object):
             self.export_unipycation(path)
         elif lang == "HTML + Python + SQL":
             self.export_html_python_sql(path)
-        elif lang == "PHP + Python":
+        elif lang == "PHP + Python" or lang == "PHP":
             return self.export_php_python(path, run)
         else:
             self.export_as_text(path)
