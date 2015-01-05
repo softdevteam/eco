@@ -1184,7 +1184,7 @@ class TreeManager(object):
         elif lang == "PHP + Python" or lang == "PHP":
             return self.export_php_python(path, run)
         else:
-            self.export_as_text(path)
+            return self.export_as_text(path)
 
     def export_unipycation(self, path=None):
         import subprocess, sys
@@ -1239,23 +1239,34 @@ class TreeManager(object):
                 sys.stderr.write("HIPPYBRIDGE environment not set")
         else:
             with open(path, "w") as f:
-                f.write(PHPPython.export(self.get_bos()))
+                text = PHPPython.export(self.get_bos())
+                f.write(text)
+                return text
 
     def export_as_text(self, path):
         node = self.lines[0].node # first node
         text = []
         while True:
             node = node.next_term
+            if isinstance(node.symbol, IndentationTerminal):
+                continue
+            if isinstance(node, EOS):
+                lbnode = self.get_languagebox(node)
+                if lbnode:
+                    node = lbnode
+                    continue
+                else:
+                    break
+            if isinstance(node.symbol, MagicTerminal):
+                node = node.symbol.ast.children[0]
+                continue
             if node.symbol.name == "\r":
                 text.append("\r\n")
             else:
                 text.append(node.symbol.name)
-            if isinstance(node, IndentationTerminal):
-                continue
-            if isinstance(node, EOS):
-                break
         with open(path, "w") as f:
             f.write("".join(text))
+        return "".join(text)
 
     def relex(self, node):
         if node is None:

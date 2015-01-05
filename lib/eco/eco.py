@@ -45,6 +45,7 @@ from gui.about import Ui_Dialog as Ui_AboutDialog
 from gui.finddialog import Ui_Dialog as Ui_FindDialog
 from gui.languagedialog import Ui_Dialog as Ui_LanguageDialog
 from gui.settings import Ui_MainWindow as Ui_Settings
+from gui.preview import Ui_Dialog as Ui_Preview
 
 from grammar_parser.plexer import PriorityLexer
 from incparser.incparser import IncParser
@@ -339,6 +340,22 @@ class AboutView(QtGui.QDialog):
         self.ui = Ui_AboutDialog()
         self.ui.setupUi(self)
 
+class PreviewDialog(QtGui.QDialog):
+    def __init__(self):
+        QtGui.QDialog.__init__(self)
+        self.ui = Ui_Preview()
+        self.ui.setupUi(self)
+
+        self.connect(self.ui.comboBox, SIGNAL("currentIndexChanged(const QString&)"), self.change)
+
+    def change(self, index):
+        if index == "Text":
+            text = self.tm.export_as_text("/dev/null")
+            self.ui.textEdit.setText(text)
+        elif index == "Default":
+            text = self.tm.export("/dev/null")
+            self.ui.textEdit.setText(text)
+
 class FindDialog(QtGui.QDialog):
     def __init__(self):
         QtGui.QDialog.__init__(self)
@@ -392,6 +409,7 @@ class Window(QtGui.QMainWindow):
         self.parseview = ParseView(self)
         self.stateview = StateView(self)
         self.settingsview = SettingsView(self)
+        self.previewdialog = PreviewDialog()
 
         self.connect(self.ui.actionImport, SIGNAL("triggered()"), self.importfile)
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
@@ -410,6 +428,7 @@ class Window(QtGui.QMainWindow):
             self.ui.actionStateGraph.setEnabled(False)
         self.connect(self.ui.actionSettings, SIGNAL("triggered()"), self.showSettingsView)
         self.connect(self.ui.actionAbout, SIGNAL("triggered()"), self.showAboutView)
+        self.connect(self.ui.actionPreview, SIGNAL("triggered()"), self.showPreviewDialog)
         self.connect(self.ui.actionUndo, SIGNAL("triggered()"), self.undo)
         self.connect(self.ui.actionRedo, SIGNAL("triggered()"), self.redo)
         # XXX temporarily disable undo/redo because it's buggy
@@ -573,6 +592,11 @@ class Window(QtGui.QMainWindow):
 
     def showSettingsView(self):
         self.settingsview.show()
+
+    def showPreviewDialog(self):
+        if self.getEditor():
+            self.previewdialog.tm = self.getEditor().tm
+            self.previewdialog.show()
 
     def importfile(self, filename):
         if filename:

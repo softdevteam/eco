@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Sat Oct 18 13:52:38 2014
-#      by: PyQt4 UI code generator 4.10.3
+# Created: Wed Dec 17 15:09:52 2014
+#      by: PyQt4 UI code generator 4.11.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -46,7 +46,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.addWidget(self.tabWidget)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 23))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 21))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
@@ -190,6 +190,8 @@ class Ui_MainWindow(object):
         icon = QtGui.QIcon.fromTheme(_fromUtf8("gnome-settings"))
         self.actionSettings.setIcon(icon)
         self.actionSettings.setObjectName(_fromUtf8("actionSettings"))
+        self.actionPreview = QtGui.QAction(MainWindow)
+        self.actionPreview.setObjectName(_fromUtf8("actionPreview"))
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addSeparator()
@@ -204,6 +206,7 @@ class Ui_MainWindow(object):
         self.menuPoject.addAction(self.actionRun)
         self.menuView.addAction(self.actionParse_Tree)
         self.menuView.addAction(self.actionStateGraph)
+        self.menuView.addAction(self.actionPreview)
         self.menuView.addSeparator()
         self.menuView.addAction(self.actionShow_language_boxes)
         self.menuInfo.addAction(self.actionAbout)
@@ -303,4 +306,5 @@ class Ui_MainWindow(object):
         self.actionExport.setText(_translate("MainWindow", "Export", None))
         self.actionExport.setShortcut(_translate("MainWindow", "Ctrl+E", None))
         self.actionSettings.setText(_translate("MainWindow", "Settings...", None))
+        self.actionPreview.setText(_translate("MainWindow", "Preview...", None))
 
