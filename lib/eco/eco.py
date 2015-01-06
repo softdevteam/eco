@@ -474,9 +474,14 @@ class Window(QtGui.QMainWindow):
         parser.add_option("-p", "--preload", action="store_true", default=False, help="Preload grammars")
         parser.add_option("-v", "--verbose", action="store_true", default=False, help="Show output")
         parser.add_option("-l", "--log", default="WARNING", help="Log level: INFO, WARNING, ERROR [default: %default]")
+        parser.add_option("-e", "--export", action="store_true", default=False, help="Export files. Usage: --export [SOURCE] [DESTINATION]")
         (options, args) = parser.parse_args()
         if options.preload:
             self.preload()
+        if options.export:
+            source = args[0]
+            dest = args[1]
+            self.cli_export(source, dest)
         if len(args) > 0:
             f = args[0]
             self.openfile(QString(f))
@@ -494,6 +499,23 @@ class Window(QtGui.QMainWindow):
                 l.load()
             except AttributeError:
                 pass
+
+    def cli_export(self, source, dest):
+        print("Exporting...")
+        print("    Source: %s" % source)
+        print("    Destination: %s" % dest)
+
+        from jsonmanager import JsonManager
+        manager = JsonManager()
+        language_boxes = manager.load(source)
+
+        from treemanager import TreeManager
+        self.tm = TreeManager()
+
+        self.tm.load_file(language_boxes)
+        self.tm.export(dest)
+        QApplication.quit()
+        sys.exit(1)
 
     def show_languageboxes(self):
         if self.ui.actionShow_language_boxes.isChecked():
@@ -804,8 +826,8 @@ def main():
     window.thread = t
     window.connect(window.thread, t.signal, window.show_output)
 
-    window.show()
     window.parse_options()
+    window.show()
     t.wait()
     sys.exit(app.exec_())
 
