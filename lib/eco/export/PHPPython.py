@@ -47,7 +47,7 @@ class PHP(helper.Generic):
                     self.buf.append("embed_py_func(\"%s\");" % (_escapepy(buf)))
                 # embed_py_func(...)
                 else:
-                    name = re.match("def\s+([a-zA-Z_][a-zA-Z0-9_]*)", buf).group(1)
+                    name = re.match("(@.*\s)?def\s+([a-zA-Z_][a-zA-Z0-9_]*)", buf).group(2)
                     pyname = self.get_unused_name(name)
                     phpfunc = self.convert_py_to_php(buf, pyname, inclass = False)
 
@@ -110,8 +110,8 @@ class PHP(helper.Generic):
             return None
 
     def convert_py_to_php(self, text, pyname, inclass=True):
-        name = re.match("def\s+([a-zA-Z_][a-zA-Z0-9_]*)", text).group(1)
-        params = re.match(".*\((.*)\)\s*:", text).group(1).replace(" ", "").split(",")
+        name = re.match("(@.*\s)?def\s+([a-zA-Z_][a-zA-Z0-9_]*)", text).group(2)
+        params = re.match("(@.*\s)?.*\((.*)\)\s*:", text).group(2).replace(" ", "").split(",")
         if params == [""] and inclass:
             logging.error("emebbed python function needs 'self' parameter")
         if inclass:
