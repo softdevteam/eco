@@ -619,6 +619,7 @@ class Window(QtGui.QMainWindow):
         if self.getEditor():
             self.previewdialog.tm = self.getEditor().tm
             self.previewdialog.show()
+            self.previewdialog.change(self.previewdialog.ui.comboBox.currentText())
 
     def importfile(self, filename):
         if filename:
