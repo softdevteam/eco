@@ -134,6 +134,8 @@ class PHP(helper.Generic):
             pos = c.find("=")
             if pos > 0:
                 cleanargs.append(c[:pos])
+            else:
+                cleanargs.append(c)
         cleanargs = ",".join(cleanargs)
 
         paramstring = ", ".join(newparams)
