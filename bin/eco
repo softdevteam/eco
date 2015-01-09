@@ -1,4 +1,4 @@
 #!/bin/sh
 
 cd `dirname $0`/../lib/eco
-python2.7 eco.py > /dev/null
+python2.7 eco.py $* > /dev/null
