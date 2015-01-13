@@ -224,10 +224,18 @@ class NodeEditor(QFrame):
         editor = self.get_editor(node)
 
         self.selected_lbox = self.tm.get_languagebox(self.tm.cursor.node)
-        #XXX get initial x for langbox
+        l_x = [0] # new document x
 
-        if start_lbox:
+        #XXX get initial x for langbox
+        box = start_lbox
+        while box:
+            c = Cursor(box.symbol.ast.children[0], 0, 0)
+            c.jump_left()
+            l_x.append(c.get_x() * self.fontwt + l_x[-1])
+            box = self.get_languagebox(box)
             lbox += 1
+        x = l_x[-1]
+
         if start_lbox and self.selected_lbox is start_lbox:
             draw_lbox = True
         else:
@@ -239,12 +247,11 @@ class NodeEditor(QFrame):
         self.cursor = self.tm.cursor
         self.lines[line].height = 1 # reset height
         draw_cursor = True
-        #l_x = [0]
         while y < max_y:
 
             # if we found a language box, continue drawing inside of it
             if isinstance(node.symbol, MagicTerminal):
-                #l_x.append(x)
+                l_x.append(x)
                 node.pos = x
                 lbox += 1
                 lbnode = node.symbol.ast
@@ -265,7 +272,7 @@ class NodeEditor(QFrame):
                 if self.cursor.node is lbnode:
                     self.draw_cursor(paint, x, 5 + y * self.fontht)
                 if lbnode:
-                    #l_x.pop()
+                    l_x.pop()
                     if lbox > 0:
                         lbox -= 1
                     node = lbnode.next_term
@@ -324,7 +331,7 @@ class NodeEditor(QFrame):
                     paint.fillRect(QRectF(x,3+y*self.fontht, self.geometry().width()-x, self.fontht), color)
 
                 self.lines[line].width = x / self.fontwt
-                x = 0#l_x[-1]
+                x = l_x[-1]
                 y += self.lines[line].height
                 line += 1
                 self.lines[line].height = 1 # reset height
