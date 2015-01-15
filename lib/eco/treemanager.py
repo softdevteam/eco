@@ -605,19 +605,35 @@ class TreeManager(object):
         bos = parser.previous_version.parent.children[0]
         eos = parser.previous_version.parent.children[-1]
         node = bos
-        line = 0
         while node is not eos:
             if node is parser.error_node:
                 break
-            if node.symbol.name == "\r":
-                line += 1
             node = node.next_term
-        if node is eos:
-            node = bos
 
-        self.cursor.line = line
+        # get linenode
+        linenode = node
+        while True:
+            if linenode is None:
+                break
+            if linenode.symbol.name == "\r":
+                break
+            linenode = self.cursor.find_previous_visible(linenode)
+
+        # get line number
+        linenr = 0
+        for line in self.lines:
+            if linenode is None:
+                break
+            if line.node is linenode:
+                break
+            linenr += 1
+
+        self.cursor.line = linenr
         self.cursor.node = node
         self.cursor.pos = 0
+        if node is eos:
+            self.cursor.node = self.cursor.find_previous_visible(node)
+            self.cursor.pos = len(self.cursor.node.symbol.name)
         self.selection_start = self.cursor.copy()
         self.selection_end = self.cursor.copy()
 
