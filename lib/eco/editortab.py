@@ -81,7 +81,7 @@ class EditorTab(QWidget):
         if tabwidget.tabText(index) != filename:
             tabwidget.setTabText(index, filename)
 
-    def keypress(self, e=None):
+    def keypress(self, e=None, center=False):
         if(e and e.key() == Qt.Key_PageUp):
             self.scrollarea.decVSlider(True)
         elif(e and e.key() == Qt.Key_PageDown):
@@ -89,7 +89,7 @@ class EditorTab(QWidget):
         else:
             self.editor.getScrollSizes()
             self.scrollarea.update()
-            self.scrollarea.fix()
+            self.scrollarea.fix(center=center)
 
     def set_language(self, lang, whitespace):
         if isinstance(lang, Language):
@@ -117,20 +117,24 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
         self.horizontalScrollBar().setPageStep(50)
 
 
-    def fix(self):
+    def fix(self, center=False):
         gfont = QApplication.instance().gfont
         cursor = self.parent().editor.tm.cursor
         x, y = self.parent().editor.cursor_to_coordinate()
 
         scrollbar_height = self.horizontalScrollBar().geometry().height()
+        if center:
+            half_screen = self.geometry().height() / 2
+        else:
+            half_screen = 0
 
         # fix vertical bar
         if y < 0:
-            while y < 0:
+            while y < half_screen:
                 self.decVSlider()
                 y += gfont.fontht
         if y+3 > self.parent().editor.geometry().height() - scrollbar_height: # the 3 is the padding of the canvas
-            while y+3 > self.parent().editor.geometry().height() - scrollbar_height:
+            while y+3 + half_screen > self.parent().editor.geometry().height() - scrollbar_height:
                 self.incVSlider()
                 y -= gfont.fontht
 
