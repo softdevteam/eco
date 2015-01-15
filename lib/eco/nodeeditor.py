@@ -393,6 +393,10 @@ class NodeEditor(QFrame):
         return error_node
 
     def draw_cursor(self, paint, x, y):
+        pen = paint.pen()
+        colorhex = self.palette().color(QPalette.Text)
+        pen.setColor(QColor(colorhex))
+        paint.setPen(pen)
         draw_cursor_at = QRect(x, y, 0, self.fontht - 3)
         paint.drawRect(draw_cursor_at)
 
