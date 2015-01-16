@@ -295,6 +295,9 @@ class NodeEditor(QFrame):
                 else:
                     color = colors[0]
                     color.setAlpha(alpha)
+                if draw_lbox and draw_all_boxes: # we are drawing the currently selected language box
+                    color = colors[-1] # overwrite color
+                    color.setAlpha(alpha)
                 editor.update_image(node)
                 if node.symbol.name != "\r" and not isinstance(node.symbol, IndentationTerminal):
                     if not node.image or node.plain_mode:
