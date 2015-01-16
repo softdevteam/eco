@@ -1161,7 +1161,23 @@ class TreeManager(object):
         self.changed = True
         return
 
-    def load_file(self, language_boxes):
+    def fast_export(self, language_boxes, path):
+        # fix languagebox pointers
+        for root, language, whitespaces in language_boxes:
+            try:
+                lbox = root.magic_backpointer
+                lbox.parent_lbox = lbox.get_root()
+            except:
+                bos = root.children[0]
+                class X:
+                    last_status = True
+                self.parsers = [[X, None, language, None, None]]
+        def x():
+            return bos
+        self.get_bos = x
+        return self.export(path)
+
+    def load_file(self, language_boxes, reparse=True):
         # setup language boxes
         for root, language, whitespaces in language_boxes:
             grammar = lang_dict[language]

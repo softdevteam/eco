@@ -512,8 +512,7 @@ class Window(QtGui.QMainWindow):
         from treemanager import TreeManager
         self.tm = TreeManager()
 
-        self.tm.load_file(language_boxes)
-        self.tm.export(dest)
+        self.tm.fast_export(language_boxes, dest)
         QApplication.quit()
         sys.exit(1)
 
