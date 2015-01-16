@@ -578,13 +578,26 @@ class TreeManager(object):
             self.find_text(self.last_search)
 
     def find_text(self, text):
+        startnode = self.cursor.node
         node = self.cursor.node.next_term
         line = self.cursor.line
         index = -1
         while node is not self.cursor.node:
+            if node is startnode:
+                break
+            if isinstance(node.symbol, MagicTerminal):
+                node = node.symbol.ast.children[0]
+                continue
             if isinstance(node, EOS):
-                node = self.get_bos()
-                line = 0
+                root = node.get_root()
+                lbox = root.get_magicterminal()
+                if lbox:
+                    node = lbox.next_term
+                    continue
+                else:
+                    # start from beginning
+                    node = self.get_bos()
+                    line = 0
             index = node.symbol.name.find(text)
             if index > -1:
                 break
