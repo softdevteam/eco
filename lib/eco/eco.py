@@ -217,12 +217,12 @@ class ParseView(QtGui.QMainWindow):
     def showAstSelection(self):
         editor = self.window.getEditor()
         whitespaces = self.ui.cb_toggle_ws.isChecked()
-        nodes, _, _ = editor.get_nodes_from_selection()
+        nodes, _, _ = editor.tm.get_nodes_from_selection()
         if len(nodes) == 0:
             return
         start = nodes[0]
         end = nodes[-1]
-        ast = editor.lrp.previous_version
+        ast = editor.tm.get_mainparser().previous_version
         parent = ast.find_common_parent(start, end)
         for node in nodes:
             p = node.get_parent()
