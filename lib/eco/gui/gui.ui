@@ -80,6 +80,7 @@
     <addaction name="actionPreview"/>
     <addaction name="separator"/>
     <addaction name="actionShow_language_boxes"/>
+    <addaction name="actionShow_namebinding"/>
    </widget>
    <widget class="QMenu" name="menuInfo">
     <property name="title">
@@ -494,6 +495,14 @@
   <action name="actionPreview">
    <property name="text">
     <string>Preview...</string>
+   </property>
+  </action>
+  <action name="actionShow_namebinding">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show namebinding</string>
    </property>
   </action>
  </widget>

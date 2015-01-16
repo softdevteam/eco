@@ -63,9 +63,10 @@ class NodeEditor(QFrame):
         self.setCursor(Qt.IBeamCursor)
 
     def test(self):
-        self.tm.analyse()
-        self.update()
-        self.timer.stop()
+        if self.getWindow().show_namebinding():
+            self.tm.analyse()
+            self.update()
+            self.timer.stop()
 
     def setImageMode(self, boolean):
         self.imagemode = boolean
@@ -356,7 +357,7 @@ class NodeEditor(QFrame):
             node = node.next_term
 
             # draw squiggly line
-            if node is error_node or self.tm.has_error(node):
+            if node is error_node or (self.getWindow().show_namebinding() and self.tm.has_error(node)):
                 if isinstance(node, EOS):
                     length = self.fontwt
                 else:

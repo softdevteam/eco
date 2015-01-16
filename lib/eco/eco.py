@@ -449,6 +449,7 @@ class Window(QtGui.QMainWindow):
         #self.connect(self.ui.actionFull_reparse, SIGNAL("triggered()"), self.full_reparse)
         self.connect(self.ui.treeWidget, SIGNAL("itemDoubleClicked(QTreeWidgetItem *, int)"), self.click_parsers)
         self.connect(self.ui.actionShow_language_boxes, SIGNAL("triggered()"), self.update_editor)
+        self.connect(self.ui.actionShow_namebinding, SIGNAL("triggered()"), self.update_editor)
 
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
@@ -518,6 +519,11 @@ class Window(QtGui.QMainWindow):
 
     def show_languageboxes(self):
         if self.ui.actionShow_language_boxes.isChecked():
+            return True
+        return False
+
+    def show_namebinding(self):
+        if self.ui.actionShow_namebinding.isChecked():
             return True
         return False
 

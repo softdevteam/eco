@@ -192,6 +192,9 @@ class Ui_MainWindow(object):
         self.actionSettings.setObjectName(_fromUtf8("actionSettings"))
         self.actionPreview = QtGui.QAction(MainWindow)
         self.actionPreview.setObjectName(_fromUtf8("actionPreview"))
+        self.actionShow_namebinding = QtGui.QAction(MainWindow)
+        self.actionShow_namebinding.setCheckable(True)
+        self.actionShow_namebinding.setObjectName(_fromUtf8("actionShow_namebinding"))
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addSeparator()
@@ -209,6 +212,7 @@ class Ui_MainWindow(object):
         self.menuView.addAction(self.actionPreview)
         self.menuView.addSeparator()
         self.menuView.addAction(self.actionShow_language_boxes)
+        self.menuView.addAction(self.actionShow_namebinding)
         self.menuInfo.addAction(self.actionAbout)
         self.menuEdit.addAction(self.actionUndo)
         self.menuEdit.addAction(self.actionRedo)
@@ -307,4 +311,5 @@ class Ui_MainWindow(object):
         self.actionExport.setShortcut(_translate("MainWindow", "Ctrl+E", None))
         self.actionSettings.setText(_translate("MainWindow", "Settings...", None))
         self.actionPreview.setText(_translate("MainWindow", "Preview...", None))
+        self.actionShow_namebinding.setText(_translate("MainWindow", "Show namebinding", None))
 
