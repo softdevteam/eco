@@ -26,7 +26,7 @@ from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal,
 from PyQt4.QtGui import QApplication
 from grammars.grammars import lang_dict, Language, EcoFile
 from indentmanager import IndentationManager
-from export import HTMLPythonSQL, PHPPython
+from export import HTMLPythonSQL, PHPPython, ATerms
 
 import math
 
@@ -1221,6 +1221,10 @@ class TreeManager(object):
             if p.last_status == False:
                 print("Cannot export a syntacially incorrect grammar")
                 return
+
+        if str(path).endswith(".aterms"):
+            return self.export_aterms(path)
+
         lang = self.parsers[0][2]
         if lang == "Python + Prolog":
             self.export_unipycation(path)
@@ -1312,6 +1316,13 @@ class TreeManager(object):
         with open(path, "w") as f:
             f.write("".join(text))
         return "".join(text)
+
+    def export_aterms(self, path):
+        start = self.get_bos().parent
+        with open(path, "w") as f:
+            text = ATerms.export(start)
+            f.write(text)
+            return text
 
     def relex(self, node):
         if node is None:
