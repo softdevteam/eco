@@ -475,14 +475,19 @@ class Window(QtGui.QMainWindow):
         parser.add_option("-p", "--preload", action="store_true", default=False, help="Preload grammars")
         parser.add_option("-v", "--verbose", action="store_true", default=False, help="Show output")
         parser.add_option("-l", "--log", default="WARNING", help="Log level: INFO, WARNING, ERROR [default: %default]")
-        parser.add_option("-e", "--export", action="store_true", default=False, help="Export files. Usage: --export [SOURCE] [DESTINATION]")
+        parser.add_option("-e", "--export", action="store_true", default=False, help="Fast export files. Usage: --export [SOURCE] [DESTINATION]")
+        parser.add_option("-f", "--fullexport", action="store_true", default=False, help="Export files. Usage: --fullexport [SOURCE] [DESTINATION]")
         (options, args) = parser.parse_args()
         if options.preload:
             self.preload()
+        if options.fullexport:
+            source = args[0]
+            dest = args[1]
+            self.cli_export(source, dest, False)
         if options.export:
             source = args[0]
             dest = args[1]
-            self.cli_export(source, dest)
+            self.cli_export(source, dest, True)
         if len(args) > 0:
             f = args[0]
             self.openfile(QString(f))
@@ -501,7 +506,7 @@ class Window(QtGui.QMainWindow):
             except AttributeError:
                 pass
 
-    def cli_export(self, source, dest):
+    def cli_export(self, source, dest, fast):
         print("Exporting...")
         print("    Source: %s" % source)
         print("    Destination: %s" % dest)
@@ -513,7 +518,11 @@ class Window(QtGui.QMainWindow):
         from treemanager import TreeManager
         self.tm = TreeManager()
 
-        self.tm.fast_export(language_boxes, dest)
+        if fast:
+            self.tm.fast_export(language_boxes, dest)
+        else:
+            self.tm.load_file(language_boxes)
+            self.tm.export(dest)
         QApplication.quit()
         sys.exit(1)
 
