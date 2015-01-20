@@ -136,7 +136,10 @@ class Viewer(object):
         except AttributeError:
             pass
         label = []
-        label.append(node.symbol.name)
+        if isinstance(node, ListNode):
+            label.append("[" + node.symbol.name + "]")
+        else:
+            label.append(node.symbol.name)
         label.append(addtext)
         if isinstance(node.symbol, Terminal) and node.lookup != "":
             label.append("\n")
