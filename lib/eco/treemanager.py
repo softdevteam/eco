@@ -1310,7 +1310,7 @@ class TreeManager(object):
                 node = node.symbol.ast.children[0]
                 continue
             if node.symbol.name == "\r":
-                text.append("\r\n")
+                text.append("\n")
             else:
                 text.append(node.symbol.name)
         with open(path, "w") as f:
