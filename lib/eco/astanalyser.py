@@ -297,6 +297,8 @@ class AstAnalyser(object):
         self.analyse_refs()
 
     def get_lboxanalyser(self, root):
+        if not self.parsers:
+            return
         for parser, lexer, lang, analyser, im in self.parsers:
             if parser.previous_version.parent is root:
                 return analyser
@@ -382,6 +384,11 @@ class AstAnalyser(object):
         root = scope.get_root()
         lbox = root.get_magicterminal()
         analyser = self.get_lboxanalyser(root)
+        lboxresults = []
+        if analyser and analyser is not self:
+            lboxresults = analyser.get_completion(scope)
+        if analyser is self:
+            lbox = None
         astnode = self.get_correct_astnode(scope, analyser, lbox)
         if not astnode:
             return []
@@ -398,7 +405,7 @@ class AstAnalyser(object):
                     if uri.name.startswith(scope.symbol.name):
                         filtered_names.append(uri)
                 return filtered_names
-            return names
+            return names + lboxresults
 
     def get_correct_astnode(self, scope, analyser=None, lbox=None):
         # returns the correct astnode for a corresponding scope. Is needed for
