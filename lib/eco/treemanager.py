@@ -1284,7 +1284,7 @@ class TreeManager(object):
         new = TextNode(Terminal(text))
         bos.insert_after(new)
         root = new.get_root()
-        lexer.relex_import(new, self.version+1)
+        lexer.relex_import(new)
         self.rescan_linebreaks(0)
         im = self.parsers[0][4]
         if im:

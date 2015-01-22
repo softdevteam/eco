@@ -266,6 +266,7 @@ class Node(object):
                 newnode.prev_term = node
                 node.next_term.prev_term = newnode
                 node.next_term.needs_saving = True
+                node.next_term.mark_version()
                 newnode.next_term = node.next_term
                 node.next_term = newnode
                 newnode.magic_parent = node.magic_parent
