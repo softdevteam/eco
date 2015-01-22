@@ -473,9 +473,9 @@ class TextNode(Node):
         Node.load(self, version)
         if not isinstance(self.symbol, Terminal):
             return
-        x = self.get_text(version)
-        if self.get_text(version):
-            self.symbol.name = self.get_text(version)
+        text = self.get_text(version)
+        if text:
+            self.symbol.name = text
         else:
             # remove ?
             #self.parent.remove_child(self)
