@@ -677,21 +677,14 @@ class TreeManager(object):
             node = self.pop_lookahead(bos)
             while True:
                 if isinstance(node, EOS):
-                    end = time.time()
-                    #print("Recovered in %s" % (end-start))
                     break
-                # Optimisation that skips trees that version wouldn't change
-               #if direction == "undo" and node.version < self.version:
-               #    print("skipping", node.symbol)
-               #    node = self.pop_lookahead(node)
-               #    continue
-               #if direction == "redo" and node.version < self.version - 1:
-               #    print("skipping", node.symbol)
-               #    node = self.pop_lookahead(node)
-               #    continue
+                prev_version = node.version
                 node.load(self.version)
-                # continue with children if version is smaller
-                #if node.version >= self.version: don't optimise for now, depends which direction we are going
+                if prev_version == node.version and node.version != self.version:
+                    # version hasn't changed and is older -> skipping children
+                    node = self.pop_lookahead(node)
+                    continue
+                # continue with children
                 if len(node.children) > 0:
                     node = node.children[0]
                     continue
@@ -1284,7 +1277,7 @@ class TreeManager(object):
         new = TextNode(Terminal(text))
         bos.insert_after(new)
         root = new.get_root()
-        lexer.relex_import(new)
+        lexer.relex_import(new, self.version+1)
         self.rescan_linebreaks(0)
         im = self.parsers[0][4]
         if im:

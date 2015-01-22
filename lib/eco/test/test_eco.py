@@ -1121,3 +1121,28 @@ class Test_Undo(Test_Python):
         self.compare("1\r\n")
         self.treemanager.key_backspace()
         self.compare("1")
+
+    def test_redo_bug2(self):
+        self.reset()
+        self.type_save("1")
+        self.type_save("+")
+        self.type_save("2")
+        self.move("left", 2)
+        self.compare("1+2")
+        self.treemanager.savestate()
+        self.treemanager.key_delete()
+        self.compare("12")
+
+        self.treemanager.key_ctrl_z()
+        self.compare("1+2")
+        self.treemanager.key_ctrl_z()
+        self.compare("1+")
+        self.treemanager.key_ctrl_z()
+        self.compare("1")
+
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("1+")
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("1+2")
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("12")
