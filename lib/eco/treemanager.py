@@ -761,10 +761,10 @@ class TreeManager(object):
 
     def save(self):
         self.save_lines()
+        self.cursor.save(self.version)
         for l in self.parsers:
             parser = l[0]
             root = parser.previous_version.parent
-            self.cursor.save(self.version)
             #root = self.cursor.node.get_root()#bos.parent
             root.save(self.version)
             bos = root.children[0]
