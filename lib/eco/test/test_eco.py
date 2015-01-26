@@ -1138,6 +1138,7 @@ class Test_Undo(Test_Python):
         self.treemanager.key_shift_ctrl_z()
         assert self.treemanager.version == max_version
 
+    @slow
     def test_undo_random_deletion(self):
         import random
         self.reset()
@@ -1187,6 +1188,7 @@ class Test_Undo(Test_Python):
         keys = list("abcdefghijklmnopqrstuvwxyz0123456789 \n:,.[]{}()!$%^&*()_+=")
         return random.choice(keys)
 
+    @slow
     def test_undo_random_insertion(self):
         import random
         self.reset()
