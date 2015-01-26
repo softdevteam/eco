@@ -27,6 +27,8 @@ from incparser.astree import BOS, EOS
 
 from PyQt4 import QtCore
 
+import programs
+
 import pytest
 slow = pytest.mark.slow
 
@@ -745,71 +747,8 @@ class Test_Indentation(Test_Python):
     def test_indentation_stresstest(self):
         import random
         self.reset()
-        inputstring = """class Connect4(object):
-    UI_DEPTH = 5 # lookahead for minimax
 
-    def __init__(self, p1_is_ai, p2_is_ai):
-        self.top = tk.Tk()
-        self.top.title("Unipycation: Connect 4 GUI (Python)")
-
-        self.pl_engine = uni.Engine()
-
-        # controls cpu/human players
-        self.turn = None # True for p1, False for p2
-        self.ai_players = { True : p1_is_ai, False : p2_is_ai }
-
-        self.cols = []
-        self.insert_buttons = []
-        for colno in range(COLS):
-            col = []
-            b = tk.Button(self.top, text=str(colno), command=token_click_closure(self, colno))
-            b.grid(column=colno, row=0)
-            self.insert_buttons.append(b)
-
-            for rowno in range(ROWS):
-                b = tk.Button(self.top, state=tk.DISABLED)
-                b.grid(column=colno, row=rowno + 1)
-                col.append(b)
-            self.cols.append(col)
-
-        self.new_game_button = tk.Button(self.top, text="Start New Game", command=self._new)
-        self.new_game_button.grid(column=COLS, row=0)
-
-        self.status_text = tk.Label(self.top, text="---")
-        self.status_text.grid(column=COLS, row=1)
-
-    def _set_status_text(self, text):
-        self.status_text["text"] = text
-
-    def _update_from_pos_one_colour(self, pylist, colour):
-        assert colour in ["red", "yellow"]
-
-        for c in pylist:
-            assert c.name == "c"
-            (x, y) = c
-            self.cols[x][y]["background"] = colour
-
-    def _turn(self):
-        # Not pretty, but works...
-        while True:
-            self.turn = not self.turn # flip turn
-            if self.ai_players[self.turn]:
-                self._set_status_text("%s AI thinking" % (self._player_colour().title()))
-                self._ai_turn()
-                if self._check_win(): break # did the AI player win?
-            else:
-                self._set_status_text("%s human move" % (self._player_colour().title()))
-                break # allow top loop to deal with human turn
-
-    def _end(self, winner_colour=None):
-        for i in self.insert_buttons:
-            i["state"] = tk.DISABLED
-
-        if winner_colour is not None:
-            self.new_game_button["background"] = winner_colour
-            self._set_status_text("%s wins" % winner_colour)"""
-
-        self.treemanager.import_file(inputstring)
+        self.treemanager.import_file(programs.connect4)
         assert self.parser.last_status == True
 
         deleted = {}
@@ -1013,16 +952,25 @@ class Test_Languageboxes(Test_Python):
 
 class Test_Undo(Test_Python):
 
+    def reset(self):
+        Test_Python.reset(self)
+        self.treemanager.version = 1
+        self.treemanager.last_saved_version = 1
+
     def compare(self, text):
         import tempfile
         f = tempfile.NamedTemporaryFile()
-        self.treemanager.export_as_text(f.name)
-        assert f.read() == text
+        result = self.treemanager.export_as_text("/tmp/temp.py")
+        assert result == text
         f.close()
 
     def type_save(self, text):
         self.treemanager.savestate() # tells treemanager to save after the next operation and increase the version
         self.treemanager.key_normal(text)
+
+    def save(self):
+        self.treemanager.version += 1
+        self.treemanager.save()
 
     def test_simple_undo_redo(self):
         self.treemanager.savestate()
@@ -1146,3 +1094,141 @@ class Test_Undo(Test_Python):
         self.compare("1+2")
         self.treemanager.key_shift_ctrl_z()
         self.compare("12")
+
+
+    def text_compare(self, original):
+        original = original.replace("\r", "").split("\n")
+        current = self.treemanager.export_as_text("/dev/null").replace("\r", "").split("\n")
+
+        for i in xrange(len(current)):
+            assert original[i] == current[i]
+
+    def test_import(self):
+        self.reset() # saves automatically
+
+        self.treemanager.import_file("class X:\n    def x():\n         pass") # saves automatically
+        self.move("down", 2)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("1")
+        self.compare("class X:\r\n    def x():\r\n         pass1")
+        self.treemanager.key_ctrl_z()
+        self.compare("class X:\r\n    def x():\r\n         pass")
+        self.treemanager.key_ctrl_z()
+        self.compare("")
+
+    def test_overflow(self):
+        self.reset() # this saves the inital version as 1
+        min_version = self.treemanager.version
+        self.treemanager.import_file("class X:\n    def x():\n        pass")
+        max_version = self.treemanager.version
+
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        assert self.treemanager.version == min_version
+
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        assert self.treemanager.version == max_version
+
+    def test_undo_random_deletion(self):
+        import random
+        self.reset()
+
+        self.treemanager.import_file(programs.connect4)
+        assert self.parser.last_status == True
+
+        self.text_compare(programs.connect4)
+
+        line_count = len(self.treemanager.lines)
+        random_lines = range(line_count)
+        random.shuffle(random_lines)
+
+        start_version = self.treemanager.version
+        for linenr in random_lines:
+            cols = range(20)
+            random.shuffle(cols)
+            for col in cols:
+                self.treemanager.cursor_reset()
+                self.move('down', linenr)
+                self.move('right', col)
+                x = self.treemanager.key_delete()
+                if x == "eos":
+                    continue
+            self.treemanager.savestate()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.connect4)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+        self.text_compare(broken)
+
+        # undo again and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.connect4)
+
+    def get_random_key(self):
+        import random
+        keys = list("abcdefghijklmnopqrstuvwxyz0123456789 \n:,.[]{}()!$%^&*()_+=")
+        return random.choice(keys)
+
+    def test_undo_random_insertion(self):
+        import random
+        self.reset()
+        self.save()
+
+        self.treemanager.import_file(programs.connect4)
+        assert self.parser.last_status == True
+        self.save()
+
+        self.text_compare(programs.connect4)
+
+        line_count = len(self.treemanager.lines)
+        random_lines = range(line_count)
+        random.shuffle(random_lines)
+
+        start_version = self.treemanager.version
+        for linenr in random_lines:
+            cols = range(20)
+            random.shuffle(cols)
+            for col in cols:
+                self.treemanager.cursor_reset()
+                self.move('down', linenr)
+                self.move('right', col)
+                x = self.treemanager.key_normal(self.get_random_key())
+                if x == "eos":
+                    continue
+            self.save()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.connect4)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+        self.text_compare(broken)
+
+        # undo again and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.connect4)
