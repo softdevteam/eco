@@ -421,9 +421,6 @@ class TreeManager(object):
             self.lines.append(Line(parser.previous_version.parent.children[0]))
             self.mainroot = parser.previous_version.parent
             self.cursor = Cursor(self.mainroot.children[0], 0, 0)
-            self.cursor.save(0)
-            self.cursor.save(self.version)
-            self.save_lines()
             self.selection_start = self.cursor.copy()
             self.selection_end = self.cursor.copy()
             lboxnode = self.create_node("<%s>" % language, lbox=True)
@@ -432,6 +429,7 @@ class TreeManager(object):
             lboxnode.symbol.parser = self.mainroot
             lboxnode.symbol.ast = self.mainroot
             self.main_lbox = lboxnode
+            self.save()
 
     def load_analyser(self, language):
         try:
