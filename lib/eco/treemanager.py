@@ -1398,7 +1398,7 @@ class TreeManager(object):
             with open(path, "w") as f:
                 f.write(PHPPython.export(self.get_bos()))
 
-    def export_as_text(self, path):
+    def export_as_text(self, path=None):
         node = self.lines[0].node # first node
         text = []
         while True:
@@ -1411,8 +1411,10 @@ class TreeManager(object):
                 text.append("\r\n")
             else:
                 text.append(node.symbol.name)
-        with open(path, "w") as f:
-            f.write("".join(text))
+        if path:
+            with open(path, "w") as f:
+                f.write("".join(text))
+        return "".join(text)
 
     def relex(self, node):
         if node is None:
