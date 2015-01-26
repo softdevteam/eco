@@ -654,7 +654,7 @@ class TreeManager(object):
         return maxversion
 
     def key_ctrl_z(self):
-        if self.version > 0:
+        if self.version > 1:
             self.version -= 1
             self.cursor.load(self.version)
             self.recover_version("undo")
