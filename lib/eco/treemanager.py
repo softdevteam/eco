@@ -908,7 +908,7 @@ class TreeManager(object):
                 if lbox:
                     node = lbox.next_term
                 else:
-                    return
+                    return "eos"
             while isinstance(node.symbol, IndentationTerminal):
                 node = node.next_term
             if isinstance(node.symbol, MagicTerminal):
@@ -1181,7 +1181,9 @@ class TreeManager(object):
         self.relex(repair_node)
         cur_start = min(self.selection_start, self.selection_end)
         cur_end = max(self.selection_start, self.selection_end)
-        self.cursor = cur_start.copy()
+        self.cursor.node = cur_start.node
+        self.cursor.line = cur_start.line
+        self.cursor.pos  = cur_start.pos
         self.selection_end = cur_start.copy()
         del self.lines[cur_start.line+1:cur_end.line+1]
         self.selection_start = self.cursor.copy()
@@ -1262,7 +1264,9 @@ class TreeManager(object):
 
     def import_file(self, text):
         # init
-        self.cursor = Cursor(self.get_bos(),0,0)
+        self.cursor.node = self.get_bos()
+        self.cursor.pos = 0
+        self.cursor.line = 0
         for p in self.parsers[1:]:
             del p
         # convert linebreaks
