@@ -1284,6 +1284,7 @@ class TreeManager(object):
         im = self.parsers[0][4]
         if im:
             im.repair_full()
+        self.savenextparse = True
         self.reparse(bos)
         self.changed = True
         return
