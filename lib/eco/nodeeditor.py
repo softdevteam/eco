@@ -354,8 +354,6 @@ class NodeEditor(QFrame):
                 infobox_coordinates = (self.cursor.x * self.fontwt, (y+1) * self.fontht)
                 draw_cursor = False
 
-            node = node.next_term
-
             # draw squiggly line
             if node is error_node or (self.getWindow().show_namebinding() and self.tm.has_error(node)):
                 if isinstance(node, EOS):
@@ -369,7 +367,9 @@ class NodeEditor(QFrame):
                         color = "orange"
                     else:
                         color = "red"
-                    self.draw_squiggly_line(paint,x,y,length, color)
+                    self.draw_squiggly_line(paint,x-length,y,length, color)
+
+            node = node.next_term
 
         if selection_start != selection_end:
             self.draw_selection(paint, draw_selection_start, draw_selection_end)
