@@ -1,10 +1,10 @@
-# Eco: An Editor for Language Composition #
+## Eco: An Editor for Language Composition ##
 
 Eco is a prototype editor for editing composed languages. It is not feature
 complete, it is not intended for production, and it does have bugs. Eco is
 distributed under a BSD/MIT license.
 
-## Install ##
+### Install ###
 At a minimum you will need to install:
 
 * Python 2.7 https://www.python.org/download/
@@ -21,8 +21,8 @@ If you wish to see visualisations of parse trees, you may optionally install:
 * PyDot https://code.google.com/p/pydot/
 
 
-## Running Eco ##
+### Running Eco ###
 
 To run Eco, use the bin/eco file:
 
-  $ bin/eco
+  `$ bin/eco`
