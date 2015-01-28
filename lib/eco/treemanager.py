@@ -751,7 +751,7 @@ class TreeManager(object):
 
     def key_backspace(self, undo_mode = True):
         node = self.get_selected_node()
-        if node is self.mainroot.children[0]:
+        if node is self.mainroot.children[0] and not self.hasSelection():
             return
         if node.image is not None and not node.plain_mode:
             return
