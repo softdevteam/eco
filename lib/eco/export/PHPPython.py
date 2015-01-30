@@ -41,7 +41,7 @@ class PHP(helper.Generic):
             if self.in_class():
                 classname = self.get_classname()
                 self.embed.append((classname, buf))
-            else:
+            elif self.in_function():
                 # $foo = embed_py_func(...)
                 if self.variable_assignment:
                     self.buf.append("embed_py_func(\"%s\");" % (_escapepy(buf)))
@@ -56,6 +56,11 @@ class PHP(helper.Generic):
                     self.buf.append("\n$%s = embed_py_func(\"%s\");" % (pyname, _escapepy(text)))
                     self.buf.append("\n");
                     self.buf.append(phpfunc)
+            else: # outside of a function we can use embed_py_func_global
+                if self.variable_assignment:
+                    self.buf.append("embed_py_func(\"%s\");" % (_escapepy(buf)))
+                else:
+                    self.buf.append("embed_py_func_global(\"%s\");" % (_escapepy(buf)))
         elif name == "<Python expression>":
             buf = PythonExpr().pp(node)
             self.buf.append("call_user_func(embed_py_func(\"f = lambda: %s;\"))" % (_escapepy(buf)))
@@ -102,6 +107,9 @@ class PHP(helper.Generic):
 
     def in_class(self):
         return self.nestings and self.nestings[-1][0] == "class"
+
+    def in_function(self):
+        return self.nestings and self.nestings[-1][0] == "function"
 
     def get_classname(self):
         try:
