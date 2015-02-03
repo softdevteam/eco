@@ -24,6 +24,7 @@ from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
 from incparser.astree import BOS, EOS
+from grammar_parser.gparser import MagicTerminal
 
 from PyQt4 import QtCore
 
@@ -522,7 +523,74 @@ or_test ::= "1"^^
 
         assert parser.last_status == True
 
-class Test_Python:
+class Test_Helper:
+    def reset(self):
+        self.parser.reset()
+        self.treemanager = TreeManager()
+        self.treemanager.add_parser(self.parser, self.lexer, python.name)
+        self.treemanager.set_font_test(7, 17)
+
+    def move(self, direction, times):
+        for i in range(times): self.treemanager.cursor_movement(direction)
+
+    def tree_compare(self, node1, node2):
+        # XXX: test references (next_term, parent, lookup)
+        while True:
+            assert node1.symbol == node2.symbol
+            if isinstance(node1.symbol, MagicTerminal):
+                self.tree_compare(node1.symbol.ast, node2.symbol.ast)
+            if isinstance(node1, EOS) and isinstance(node2, EOS):
+                break
+            node1 = self.next_node(node1)
+            node2 = self.next_node(node2)
+
+    def next_node(self, node):
+        if node.children:
+            return node.children[0]
+        while(node.right_sibling() is None):
+            node = node.parent
+        return node.right_sibling()
+
+    def test_compare(self):
+        t = TreeManager()
+        parser, lexer = python.load()
+        t.add_parser(parser, lexer, python.name)
+        inputstring = "class Test:\r    def x():\r        pass\r"
+        t.import_file(inputstring)
+        self.tree_compare(parser.previous_version.parent, parser.previous_version.parent)
+
+    def test_compare2(self):
+        t1 = TreeManager()
+        parser1, lexer1 = python.load()
+        t1.add_parser(parser1, lexer1, python.name)
+        inputstring = "class Test:\r    def x():\r        pass\r"
+        t1.import_file(inputstring)
+
+        t2 = TreeManager()
+        parser2, lexer2 = python.load()
+        t2.add_parser(parser2, lexer2, python.name)
+        inputstring = "class Test:\r    def x():\r        pass\r"
+        t2.import_file(inputstring)
+
+        self.tree_compare(parser1.previous_version.parent, parser2.previous_version.parent)
+
+    def test_compare3(self):
+        t1 = TreeManager()
+        parser1, lexer1 = python.load()
+        t1.add_parser(parser1, lexer1, python.name)
+        inputstring = "class Test:\r    def x():\r    pass\r"
+        t1.import_file(inputstring)
+
+        t2 = TreeManager()
+        parser2, lexer2 = python.load()
+        t2.add_parser(parser2, lexer2, python.name)
+        inputstring = "class Test:\r    def y():\r    pass\r"
+        t2.import_file(inputstring)
+
+        with pytest.raises(AssertionError):
+            self.tree_compare(parser1.previous_version.parent, parser2.previous_version.parent)
+
+class Test_Python(Test_Helper):
     def setup_class(cls):
         parser, lexer = python.load()
         cls.lexer = lexer
@@ -533,15 +601,6 @@ class Test_Python:
         cls.treemanager.add_parser(cls.parser, cls.lexer, python.name)
 
         cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
-
-    def reset(self):
-        self.parser.reset()
-        self.treemanager = TreeManager()
-        self.treemanager.add_parser(self.parser, self.lexer, python.name)
-        self.treemanager.set_font_test(7, 17)
-
-    def move(self, direction, times):
-        for i in range(times): self.treemanager.cursor_movement(direction)
 
 class Test_Bugs(Test_Python):
 
@@ -1183,6 +1242,13 @@ class Test_Undo(Test_Python):
             self.treemanager.key_ctrl_z()
         self.text_compare(programs.connect4)
 
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        t1.add_parser(parser, lexer, python.name)
+        t1.import_file(programs.connect4)
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
     def get_random_key(self):
         import random
         keys = list("abcdefghijklmnopqrstuvwxyz0123456789 \n:,.[]{}()!$%^&*()_+=")
@@ -1234,3 +1300,10 @@ class Test_Undo(Test_Python):
         while self.treemanager.version > start_version:
             self.treemanager.key_ctrl_z()
         self.text_compare(programs.connect4)
+
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        t1.add_parser(parser, lexer, python.name)
+        t1.import_file(programs.connect4)
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
