@@ -17,7 +17,10 @@ def main():
     argv = sys.argv[1:]
     for i in range(len(argv)):
         arg = argv[i]
-        if arg == "-e" or arg == "--export":
+        if not arg.startswith("-"):
+            call_args += [os.path.abspath(arg)]
+            i += 1
+        elif arg == "-e" or arg == "--export":
             call_args += [arg,
                           os.path.abspath(argv[i + 1]),
                           os.path.abspath(argv[i + 2]),
