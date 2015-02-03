@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from grammars.grammars import calc, java, python, Language, sql, pythonprolog, lang_dict
+from grammars.grammars import calc, java, python, Language, sql, pythonprolog, lang_dict, phppython, pythonphp
 from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
@@ -1307,3 +1307,77 @@ class Test_Undo(Test_Python):
         t1.import_file(programs.connect4)
 
         self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+class Test_Undo_LBoxes(Test_Helper):
+
+    def setup_class(cls):
+        parser, lexer = phppython.load()
+        cls.lexer = lexer
+        cls.parser = parser
+        cls.parser.init_ast()
+        cls.ast = cls.parser.previous_version
+        cls.treemanager = TreeManager()
+        cls.treemanager.add_parser(cls.parser, cls.lexer, phppython.name)
+
+        cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+    def test_simple(self):
+        self.reset()
+        self.treemanager.import_file(programs.phpclass)
+        self.move("up", 1)
+
+        self.treemanager.add_languagebox(lang_dict["Python + PHP"])
+
+        self.treemanager.key_normal("p")
+        self.treemanager.key_normal("a")
+        self.treemanager.key_normal("s")
+        self.treemanager.savestate()
+        self.treemanager.key_normal("s")
+
+        self.move("down", 1)
+        self.treemanager.key_end()
+        self.treemanager.savestate()
+        self.treemanager.key_normal("a")
+
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+
+    def test_simple2(self):
+        self.versions = []
+        self.reset()
+        self.versions.append(self.treemanager.export_as_text())
+        self.treemanager.import_file(programs.phpclass)
+        self.versions.append(self.treemanager.export_as_text())
+        self.move("down", 1)
+
+        self.treemanager.add_languagebox(lang_dict["Python + PHP"])
+
+        text = "def x():\r    pass"
+        for c in text:
+            self.treemanager.key_normal(c)
+
+        import copy
+        dp = copy.deepcopy(self.parser.previous_version.parent)
+        self.versions.append(self.treemanager.export_as_text())
+        self.treemanager.savestate()
+        self.treemanager.key_normal("a")
+        self.versions.append(self.treemanager.export_as_text())
+
+        self.move("up", 2)
+        self.treemanager.key_end()
+        self.treemanager.savestate()
+        self.treemanager.key_normal("\r")
+        self.versions.append(self.treemanager.export_as_text())
+        self.treemanager.savestate()
+        self.treemanager.key_normal("a")
+        self.versions.append(self.treemanager.export_as_text())
+
+        assert self.versions.pop() == self.treemanager.export_as_text()
+        self.treemanager.key_ctrl_z()
+        assert self.versions.pop() == self.treemanager.export_as_text()
+        self.treemanager.key_ctrl_z()
+        assert self.versions.pop() == self.treemanager.export_as_text()
+        self.treemanager.key_ctrl_z()
+        assert self.versions.pop() == self.treemanager.export_as_text()
+
+        self.tree_compare(self.parser.previous_version.parent, dp)
