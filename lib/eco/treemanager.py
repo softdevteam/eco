@@ -1406,7 +1406,15 @@ class TreeManager(object):
             if isinstance(node.symbol, IndentationTerminal):
                 continue
             if isinstance(node, EOS):
-                break
+                lbnode = self.get_languagebox(node)
+                if lbnode:
+                    node = lbnode
+                    continue
+                else:
+                    break
+            if isinstance(node.symbol, MagicTerminal):
+                node = node.symbol.ast.children[0]
+                continue
             if node.symbol.name == "\r":
                 text.append("\r\n")
             else:
