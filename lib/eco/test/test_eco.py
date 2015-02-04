@@ -1381,3 +1381,37 @@ class Test_Undo_LBoxes(Test_Helper):
         assert self.versions.pop() == self.treemanager.export_as_text()
 
         self.tree_compare(self.parser.previous_version.parent, dp)
+
+    def test_clean_version_bug(self):
+        self.reset()
+        self.treemanager.import_file(programs.phpclass)
+        self.move("down", 1)
+
+        self.treemanager.add_languagebox(lang_dict["Python + PHP"])
+        self.treemanager.key_normal("p")
+        self.treemanager.key_normal("a")
+        self.treemanager.key_normal("s")
+        self.treemanager.savestate()
+        self.treemanager.key_normal("s")
+
+        import copy
+        dp = copy.deepcopy(self.parser.previous_version.parent)
+
+        self.treemanager.savestate()
+        self.treemanager.key_normal("a")
+        self.treemanager.savestate()
+        self.treemanager.key_ctrl_z()
+
+        self.tree_compare(self.parser.previous_version.parent, dp)
+
+        self.move("up", 1)
+        self.treemanager.key_end()
+        self.move("left", 2)
+        self.treemanager.savestate()
+        self.treemanager.key_normal("x")
+
+        dp2 = copy.deepcopy(self.parser.previous_version.parent)
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+
+        self.tree_compare(self.parser.previous_version.parent, dp2)

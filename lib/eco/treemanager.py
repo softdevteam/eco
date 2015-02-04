@@ -697,25 +697,28 @@ class TreeManager(object):
 
     def clean_versions(self, version):
         maxversion = self.get_max_version()
-        bos = self.get_bos()
-        root = bos.parent
-        self.delete_versions_from(bos, version)
-        self.delete_versions_from(root, version)
-        self.cursor.clean_versions(version)
         # clean linenumbers
         for key in self.saved_lines.keys():
             if key > version:
                 del self.saved_lines[key]
-        node = self.pop_lookahead(self.get_bos())
-        while True:
-            if isinstance(node, EOS):
-                return
-            self.delete_versions_from(node, version)
-            if len(node.children) > 0:
-                node = node.children[0]
-                continue
-            else:
-                node = self.pop_lookahead(node)
+        self.cursor.clean_versions(version)
+
+        for l in self.parsers:
+            p = l[0]
+            root = p.previous_version.parent
+            bos = root.children[0]
+            self.delete_versions_from(bos, version)
+            self.delete_versions_from(root, version)
+            node = self.pop_lookahead(root.children[0])
+            while True:
+                if isinstance(node, EOS):
+                    break
+                self.delete_versions_from(node, version)
+                if len(node.children) > 0:
+                    node = node.children[0]
+                    continue
+                else:
+                    node = self.pop_lookahead(node)
 
     def delete_versions_from(self, node, version):
         for (key, v) in node.log.keys():
