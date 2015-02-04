@@ -538,11 +538,13 @@ class Window(QtGui.QMainWindow):
         self.getEditor().tm.key_shift_ctrl_z()
         self.getEditor().update()
         self.btReparse([])
+        self.getEditorTab().keypress()
 
     def undo(self):
         self.getEditor().tm.key_ctrl_z()
         self.getEditor().update()
         self.btReparse([])
+        self.getEditorTab().keypress()
 
     def cut(self):
         text = self.getEditor().tm.cutSelection()
