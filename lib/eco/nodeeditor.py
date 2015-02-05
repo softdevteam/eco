@@ -97,7 +97,9 @@ class NodeEditor(QFrame):
             temp_cursor = self.tm.cursor.copy()
             result = self.coordinate_to_cursor(pos.x(), pos.y())
             node = self.tm.cursor.node
-            self.tm.cursor = temp_cursor
+            self.tm.cursor.line = temp_cursor.line
+            self.tm.cursor.node = temp_cursor.node
+            self.tm.cursor.pos = temp_cursor.pos
             if not result:
                 event.ignore()
                 return True
