@@ -1154,6 +1154,31 @@ class Test_Undo(Test_Python):
         self.treemanager.key_shift_ctrl_z()
         self.compare("12")
 
+    def test_bug_lingering_nodes(self):
+        self.reset()
+        p = """class X:
+    def foo():
+        return 23"""
+        self.treemanager.import_file(p)
+        self.treemanager.key_end()
+        self.move("left", 1)
+        self.treemanager.savestate()
+        self.treemanager.key_normal("s")
+        dp = self.copy()
+
+        self.move("down", 2)
+        self.treemanager.key_end()
+        self.move("left", 1)
+        self.treemanager.savestate()
+        self.treemanager.key_normal("+")
+
+        self.treemanager.key_ctrl_z()
+
+        self.text_compare("""class Xs:
+    def foo():
+        return 23""")
+        self.tree_compare(self.parser.previous_version.parent, dp)
+
 
     def text_compare(self, original):
         original = original.replace("\r", "").split("\n")
@@ -1161,6 +1186,10 @@ class Test_Undo(Test_Python):
 
         for i in xrange(len(current)):
             assert original[i] == current[i]
+
+    def copy(self):
+        import copy
+        return copy.deepcopy(self.parser.previous_version.parent)
 
     def test_import(self):
         self.reset() # saves automatically
@@ -1251,18 +1280,16 @@ class Test_Undo(Test_Python):
 
     def get_random_key(self):
         import random
-        keys = list("abcdefghijklmnopqrstuvwxyz0123456789 \n:,.[]{}()!$%^&*()_+=")
+        keys = list("abcdefghijklmnopqrstuvwxyz0123456789 \r:,.[]{}()!$%^&*()_+=")
         return random.choice(keys)
 
     @slow
     def test_undo_random_insertion(self):
         import random
         self.reset()
-        self.save()
 
         self.treemanager.import_file(programs.connect4)
         assert self.parser.last_status == True
-        self.save()
 
         self.text_compare(programs.connect4)
 
@@ -1281,7 +1308,197 @@ class Test_Undo(Test_Python):
                 x = self.treemanager.key_normal(self.get_random_key())
                 if x == "eos":
                     continue
-            self.save()
+            self.treemanager.savestate()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.connect4)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+        self.text_compare(broken)
+
+        # undo again and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.connect4)
+
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        t1.add_parser(parser, lexer, python.name)
+        t1.import_file(programs.connect4)
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+    def test_undo_random_newlines(self):
+        import random
+        self.reset()
+
+        p = """class X:
+    def helloworld(x, y, z):
+        for x in range(0, 10):
+            if x == 1:
+                return 1
+            else:
+                return 12
+        return 13
+
+    def foo(x):
+        x = 1
+        y = 2
+        foo()
+        return 12"""
+        self.treemanager.import_file(p)
+        assert self.parser.last_status == True
+
+        self.text_compare(p)
+
+        line_count = len(self.treemanager.lines)
+        random_lines = range(line_count)
+        random.shuffle(random_lines)
+
+        start_version = self.treemanager.version
+        for linenr in random_lines[:5]:
+            cols = range(20)
+            random.shuffle(cols)
+            for col in cols[:1]: # add one newline per line
+                print("added newline at line %s:%s" % (linenr,col))
+                self.treemanager.cursor_reset()
+                self.move('down', linenr)
+                self.move('right', col)
+                x = self.treemanager.key_normal("\r")
+                if x == "eos":
+                    continue
+            self.treemanager.savestate()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(p)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+        self.text_compare(broken)
+
+        # undo again and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(p)
+
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        t1.add_parser(parser, lexer, python.name)
+        t1.import_file(p)
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+    def test_bug_insert_newline(self):
+        self.reset()
+
+        p = """class X:
+    def helloworld(x, y, z):
+        for x in range(0, 10):
+            if x == 1:
+                return 1
+            else:
+                return 12
+        return 13
+
+    def foo(x):
+        x = 1
+        y = 2
+        foo()
+        return 12"""
+        self.treemanager.import_file(p)
+        assert self.parser.last_status == True
+
+        self.text_compare(p)
+
+        line_count = len(self.treemanager.lines)
+        random_lines = range(line_count)
+        random.shuffle(random_lines)
+
+        start_version = self.treemanager.version
+
+        self.treemanager.cursor_reset()
+        self.move("down", 7)
+        self.move("right", 10)
+        self.treemanager.key_normal("\r")
+        self.treemanager.savestate()
+
+        self.treemanager.cursor_reset()
+        self.move("down", 6)
+        self.move("right", 0)
+        self.treemanager.key_normal("\r") # this has to be \r not \n (Eco works with \r)
+        self.treemanager.savestate()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(p)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+        self.text_compare(broken)
+
+        # undo again and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(p)
+
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        t1.add_parser(parser, lexer, python.name)
+        t1.import_file(p)
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+    @slow
+    def test_undo_random_insertdelete(self):
+        import random
+        self.reset()
+        #self.save()
+
+        self.treemanager.import_file(programs.connect4)
+        assert self.parser.last_status == True
+        #self.save()
+
+        self.text_compare(programs.connect4)
+
+        line_count = len(self.treemanager.lines)
+        random_lines = range(line_count)
+        random.shuffle(random_lines)
+
+        start_version = self.treemanager.version
+        for linenr in random_lines:
+            cols = range(20)
+            random.shuffle(cols)
+            for col in cols:
+                self.treemanager.cursor_reset()
+                self.move('down', linenr)
+                self.move('right', col)
+                k = self.get_random_key()
+                if k in ["a", "c", "e", "g", "i", "k", "m", "1", "3", "5", "7"]:
+                    # for a few characters DELETE instead of INSERT
+                    x = self.treemanager.key_delete()
+                else:
+                    x = self.treemanager.key_normal(self.get_random_key())
+                if x == "eos":
+                    continue
+            self.treemanager.savestate()
 
         end_version = self.treemanager.version
         broken = self.treemanager.export_as_text()

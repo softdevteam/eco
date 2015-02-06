@@ -170,6 +170,7 @@ class Node(object):
         node = self
         while True:
             node.needs_saving = True
+            node.version = node.version + 0.000001
             if not node.parent:
                 # if language box changed we need to update the version numbers
                 # in the parent parser as well
@@ -185,6 +186,7 @@ class Node(object):
         node = self
         while True:
             node.needs_saving = True
+            node.version = node.version + 0.000001
             if not node.parent:
                 if node.get_magicterminal():
                     node.get_magicterminal().mark_version()
