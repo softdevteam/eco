@@ -1423,10 +1423,6 @@ class Test_Undo(Test_Python):
 
         self.text_compare(p)
 
-        line_count = len(self.treemanager.lines)
-        random_lines = range(line_count)
-        random.shuffle(random_lines)
-
         start_version = self.treemanager.version
 
         self.treemanager.cursor_reset()
