@@ -56,17 +56,31 @@ class NodeEditor(QFrame):
         self.scroll_width = 0
 
         self.timer = QTimer(self)
-        self.connect(self.timer, SIGNAL("timeout()"), self.test)
+        self.backuptimer = QTimer(self)
+        self.connect(self.timer, SIGNAL("timeout()"), self.analysis_timer)
+        self.connect(self.backuptimer, SIGNAL("timeout()"), self.backup_timer)
+        self.backuptimer.start(30000)
 
         self.lightcolors = [QColor("#333333"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
         self.darkcolors = [QColor("#999999"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
         self.setCursor(Qt.IBeamCursor)
 
-    def test(self):
+    def analysis_timer(self):
         if self.getWindow().show_namebinding():
             self.tm.analyse()
             self.update()
-            self.timer.stop()
+        self.timer.stop()
+
+        # save swap
+        filename = self.getEditorTab().filename
+        if filename:
+            self.saveToJson(filename + ".swp", True)
+
+    def backup_timer(self):
+        filename = self.getEditorTab().filename
+        print("create backup")
+        if filename:
+            self.saveToJson(filename + ".bak", True)
 
     def setImageMode(self, boolean):
         self.imagemode = boolean
@@ -549,12 +563,12 @@ class NodeEditor(QFrame):
 
     def keyPressEvent(self, e):
 
-        self.timer.start(500)
-
         if e.key() in [Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Control, Qt.Key_Meta, Qt.Key_AltGr]:
             if e.key() == Qt.Key_Shift:
                 self.tm.key_shift()
             return
+
+        self.timer.start(500)
 
         #selected_node, inbetween, x = self.tm.get_nodes_from_cursor()
 
@@ -721,14 +735,15 @@ class NodeEditor(QFrame):
     def selectSubgrammar(self, item):
         pass
 
-    def saveToJson(self, filename):
+    def saveToJson(self, filename, swap=False):
         whitespaces = self.tm.get_mainparser().whitespaces
         root = self.tm.parsers[0][0].previous_version.parent
         language = self.tm.parsers[0][2]
         manager = JsonManager()
         manager.save(root, language, whitespaces, filename)
-        self.tm.changed = False
-        self.emit(SIGNAL("painted()"))
+        if not swap:
+            self.tm.changed = False
+            self.emit(SIGNAL("painted()"))
 
     def loadFromJson(self, filename):
         manager = JsonManager()

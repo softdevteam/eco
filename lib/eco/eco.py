@@ -666,6 +666,7 @@ class Window(QtGui.QMainWindow):
             return
         if self.getEditorTab().filename:
             self.getEditor().saveToJson(self.getEditorTab().filename)
+            self.delete_swap()
         else:
             self.savefileAs()
 
@@ -673,11 +674,34 @@ class Window(QtGui.QMainWindow):
         ed = self.getEditorTab()
         if not ed:
             return
+        self.delete_swap()
         filename = QFileDialog.getSaveFileName(self, "Save File", self.get_last_dir(), "Eco files (*.eco *.nb);; All files (*.*)")
         if filename:
             self.save_last_dir(str(filename))
             self.getEditor().saveToJson(filename)
             self.getEditorTab().filename = filename
+
+    def delete_swap(self):
+        swpfile = self.getEditorTab().filename + ".swp"
+        if os.path.isfile(swpfile):
+            os.remove(swpfile)
+
+    def show_backup_msgbox(self, name):
+        if not os.path.isfile(name):
+            return "original"
+        mbox = QMessageBox()
+        mbox.setText("Swap file already exists")
+        mbox.setInformativeText("Found a swap file by the name of '%s'. What do you want to do?" % (name,))
+        btorg = mbox.addButton("Open original (overwrites swap file)", QMessageBox.AcceptRole)
+        btswp = mbox.addButton("Open swap file", QMessageBox.ResetRole)
+        btabort = mbox.addButton("Abort", QMessageBox.RejectRole)
+        mbox.setDefaultButton(btabort)
+        mbox.exec_()
+        if(mbox.clickedButton() == btorg):
+            return "original"
+        elif(mbox.clickedButton() == btswp):
+            return "swap"
+        return "abort"
 
     def export(self):
         ed = self.getEditorTab()
@@ -711,10 +735,15 @@ class Window(QtGui.QMainWindow):
 
     def openfile(self, filename=None):
         if not filename:
-            filename = QFileDialog.getOpenFileName(self, "Open File", self.get_last_dir(), "Eco files (*.eco *.nb);; All files (*.*)")
+            filename = QFileDialog.getOpenFileName(self, "Open File", self.get_last_dir(), "Eco files (*.eco *.nb *.eco.bak);; All files (*.*)")
         if filename:
             self.save_last_dir(str(filename))
-            if filename.endsWith(".eco") or filename.endsWith(".nb"):
+            if filename.endsWith(".eco") or filename.endsWith(".nb") or filename.endsWith(".eco.bak") or filename.endsWith(".eco.swp"):
+                ret = self.show_backup_msgbox(filename + ".swp")
+                if ret == "abort":
+                    return
+                elif ret == "swap":
+                    filename += ".swp"
                 etab = EditorTab()
 
                 etab.editor.loadFromJson(filename)
@@ -732,6 +761,7 @@ class Window(QtGui.QMainWindow):
     def closeTab(self, index):
         etab = self.ui.tabWidget.widget(index)
         if not etab.changed():
+            self.delete_swap()
             self.ui.tabWidget.removeTab(index)
             return
         mbox = QMessageBox()
@@ -740,6 +770,7 @@ class Window(QtGui.QMainWindow):
         mbox.setStandardButtons(QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)
         mbox.setDefaultButton(QMessageBox.Save)
         ret = mbox.exec_()
+        self.delete_swap()
         if(ret == QMessageBox.Save):
             self.savefile()
             self.ui.tabWidget.removeTab(index)
