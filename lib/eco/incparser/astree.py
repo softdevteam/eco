@@ -166,10 +166,15 @@ class Node(object):
         self.set_children(children)
         self.log = {}
 
+    def save_ns(self, setchildren=False):
+        from treemanager import TreeManager
+        self.log[("ns", TreeManager.version)] = True
+
     def mark_changed(self):
         node = self
         while True:
             node.needs_saving = True
+            node.save_ns()
             node.version = node.version + 0.000001
             if not node.parent:
                 # if language box changed we need to update the version numbers
@@ -177,7 +182,7 @@ class Node(object):
                 if node.get_magicterminal():
                     node.get_magicterminal().mark_version()
                 break
-            if node.parent.changed is True and node.parent.needs_saving is True:
+            if node.parent.changed is True and node.parent.has_changes() is True:
                 break
             node = node.parent
             node.changed = True
@@ -186,12 +191,13 @@ class Node(object):
         node = self
         while True:
             node.needs_saving = True
+            node.save_ns()
             node.version = node.version + 0.000001
             if not node.parent:
                 if node.get_magicterminal():
                     node.get_magicterminal().mark_version()
                 break
-            if node.parent.needs_saving is True:
+            if node.parent.has_changes() is True:
                 break
             node = node.parent
 
@@ -205,6 +211,7 @@ class Node(object):
                 last.right = c
             last = c
             c.needs_saving = True
+            c.save_ns(True)
         if last is not None:
             last.right = None # last child has no right sibling
             #XXX need to save this?
@@ -223,7 +230,7 @@ class Node(object):
         while version >= 0:
             if ("parent", version) in self.log:
                 self.parent = self.log[("parent", version)]
-                self.children = self.log[("children", version)]
+                self.children = list(self.log[("children", version)])
                 self.left = self.log[("left", version)]
                 self.right = self.log[("right", version)]
                 self.next_term = self.log[("next_term", version)]
@@ -237,18 +244,25 @@ class Node(object):
             if self.children[i] is child:
                 removed_child = self.children.pop(i)
                 removed_child.deleted = True
+                removed_child.save_ns()
                 # update siblings
                 if removed_child.left:
                     removed_child.left.right = removed_child.right
                     removed_child.left.needs_saving = True
+                    removed_child.left.save_ns()
                 if removed_child.right:
                     removed_child.right.left = removed_child.left
                     removed_child.right.needs_saving = True
+                    removed_child.right.save_ns()
                 # update terminal pointers
                 child.prev_term.next_term = child.next_term
                 child.prev_term.needs_saving = True
+                child.prev_term.save_ns()
+                child.prev_term.mark_version()
                 child.next_term.prev_term = child.prev_term
                 child.next_term.needs_saving = True
+                child.next_term.save_ns()
+                child.next_term.mark_version()
                 self.mark_changed()
                 self.changed = True
                 return
@@ -268,12 +282,15 @@ class Node(object):
                 newnode.right = c.right
                 c.right = newnode
                 c.needs_saving = True
+                c.save_ns()
                 if newnode.right:
                     newnode.right.left = newnode
+                    newnode.right.save_ns()
                 # update terminal pointers
                 newnode.prev_term = node
                 node.next_term.prev_term = newnode
                 node.next_term.needs_saving = True
+                node.next_term.save_ns()
                 node.next_term.mark_version()
                 newnode.next_term = node.next_term
                 node.next_term = newnode
@@ -472,7 +489,7 @@ class TextNode(Node):
     def change_text(self, text):
         _cls = self.symbol.__class__
         self.symbol = _cls(text)
-        self.mark_changed()
+        self.mark_version()
 
     def save(self, version):
         Node.save(self, version)
@@ -489,6 +506,12 @@ class TextNode(Node):
             # remove ?
             #self.parent.remove_child(self)
             pass
+
+    def has_changes(self, version=None):
+        if version is None:
+            from treemanager import TreeManager
+            version = TreeManager.version
+        return self.log.has_key(("ns", version))
 
     def get_text(self, version):
         while True:
@@ -534,7 +557,7 @@ class TextNode(Node):
             return delchar
 
     def __repr__(self):
-        return "%s(%s, %s, %s, %s)" % (self.__class__.__name__, self.symbol, self.state, self.children, self.lookup)
+        return "%s(%s, %s, %s, %s)" % (self.__class__.__name__, self.symbol, self.state, len(self.children), self.lookup)
 
 class SpecialTextNode(TextNode):
     def backspace(self, pos):

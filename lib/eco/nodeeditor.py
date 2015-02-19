@@ -70,7 +70,8 @@ class NodeEditor(QFrame):
         self.timer.stop()
 
     def trigger_undotimer(self):
-        self.tm.savestate()
+        self.tm.save_current_version()
+        self.undotimer.stop()
 
     def setImageMode(self, boolean):
         self.imagemode = boolean
@@ -548,8 +549,8 @@ class NodeEditor(QFrame):
 
     def keyPressEvent(self, e):
 
+        startundotimer = False
         self.timer.start(500)
-        self.undotimer.start(300)
 
         if e.key() in [Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Control, Qt.Key_Meta, Qt.Key_AltGr]:
             if e.key() == Qt.Key_Shift:
@@ -565,6 +566,7 @@ class NodeEditor(QFrame):
         if e.key() == Qt.Key_Escape:
             self.tm.key_escape()
         elif e.key() == Qt.Key_Backspace:
+            startundotimer = True
             self.tm.key_backspace()
         elif e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             if e.modifiers() == Qt.ShiftModifier:
@@ -578,6 +580,7 @@ class NodeEditor(QFrame):
         elif e.key() == Qt.Key_End:
             self.tm.key_end(e.modifiers() == Qt.ShiftModifier)
         elif e.key() == Qt.Key_Delete:
+            startundotimer = True
             self.tm.key_delete()
         elif e.key() == Qt.Key_F3:
             self.tm.find_next()
@@ -588,6 +591,7 @@ class NodeEditor(QFrame):
             # sensibly insert into the text.
             pass
         else:
+            startundotimer = True
             if e.key() == Qt.Key_Tab:
                 text = "    "
             else:
@@ -598,6 +602,8 @@ class NodeEditor(QFrame):
         self.update()
         self.emit(SIGNAL("keypress(QKeyEvent)"), e)
         self.getWindow().showLookahead()
+        if startundotimer:
+            self.undotimer.start(500)
 
     def showLanguageBoxMenu(self):
         self.showSubgrammarMenu()
