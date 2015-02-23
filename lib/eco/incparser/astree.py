@@ -205,6 +205,8 @@ class Node(object):
         self.children = children
         last = None
         for c in children:
+            if c.parent:
+                c.parent.save_ns() # mark parent changed
             c.parent = self
             c.left = last
             if last is not None:

@@ -1837,6 +1837,40 @@ class Test_Undo(Test_Python):
         self.move('right', 0)
         self.treemanager.key_delete()
 
+    def test_bug_undo_loop_2(self):
+
+        self.reset()
+
+        self.treemanager.import_file(programs.pythonsmall)
+        assert self.parser.last_status == True
+
+        start_version = self.treemanager.version
+
+        self.treemanager.cursor_reset()
+        self.move('down', 5)
+        self.move('right', 3)
+        self.treemanager.key_normal('#')
+        self.treemanager.cursor_reset()
+        self.move('down', 5)
+        self.move('right', 3)
+        self.treemanager.key_normal(')')
+        self.treemanager.save_current_version()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.pythonsmall)
+
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        t1.add_parser(parser, lexer, python.name)
+        t1.import_file(programs.pythonsmall)
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
     def test_bug_undo_typing(self):
         self.reset()
 
