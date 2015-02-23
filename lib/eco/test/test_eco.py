@@ -1769,22 +1769,29 @@ class Test_Undo(Test_Python):
             random.shuffle(cols)
             for col in cols:
                 last_was_undo = False
+                print("self.treemanager.cursor_reset()")
                 self.treemanager.cursor_reset()
+                print("self.move('down', %s)" % (linenr))
+                print("self.move('right', %s)" % (col))
                 self.move('down', linenr)
                 self.move('right', col)
                 k = self.get_random_key()
                 if k in ["a", "c", "e", "g", "i", "k", "m", "1", "3", "5", "7"]:
                     # for a few characters DELETE instead of INSERT
+                    print("self.treemanager.key_delete()")
                     x = self.treemanager.key_delete()
                 elif k in ["o", "q", "s", "u"]:
+                    print("self.treemanager.key_ctrl_z()")
                     x = self.treemanager.key_ctrl_z()
                     last_was_undo = True
                 else:
                     key = self.get_random_key()
+                    print("self.treemanager.key_normal(%s)" % (repr(key)))
                     x = self.treemanager.key_normal(key)
                 if x == "eos":
                     continue
             if not last_was_undo:
+                print("self.treemanager.save_current_version()")
                 self.treemanager.save_current_version()
 
         end_version = self.treemanager.version
