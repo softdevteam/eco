@@ -1819,6 +1819,24 @@ class Test_Undo(Test_Python):
 
         self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
 
+    def test_bug_infinite_loop(self):
+        self.reset()
+
+        self.treemanager.import_file(programs.pythonsmall)
+        assert self.parser.last_status == True
+
+        self.treemanager.cursor_reset()
+        self.move('down', 8)
+        self.move('right', 0)
+        self.treemanager.key_delete()
+        self.treemanager.save_current_version()
+        self.treemanager.cursor_reset()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.cursor_reset()
+        self.move('down', 9)
+        self.move('right', 0)
+        self.treemanager.key_delete()
+
     def test_bug_undo_typing(self):
         self.reset()
 

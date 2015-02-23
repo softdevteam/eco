@@ -223,6 +223,7 @@ class Node(object):
         self.log[("right", version)] = self.right
         self.log[("next_term", version)] = self.next_term
         self.log[("prev_term", version)] = self.prev_term
+        self.log[("deleted", version)] = self.deleted
         self.version = version
         self.needs_saving = False
 
@@ -235,6 +236,7 @@ class Node(object):
                 self.right = self.log[("right", version)]
                 self.next_term = self.log[("next_term", version)]
                 self.prev_term = self.log[("prev_term", version)]
+                self.deleted = self.log[("deleted", version)]
                 self.version = version
                 return
             version -= 1
