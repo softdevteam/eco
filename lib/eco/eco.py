@@ -682,6 +682,8 @@ class Window(QtGui.QMainWindow):
             self.getEditorTab().filename = filename
 
     def delete_swap(self):
+        if self.getEditorTab().filename is None:
+            return
         swpfile = self.getEditorTab().filename + ".swp"
         if os.path.isfile(swpfile):
             os.remove(swpfile)
