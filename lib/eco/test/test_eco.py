@@ -1748,16 +1748,22 @@ class Test_Undo(Test_Python):
         self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
 
     @slow
+    def test_undo_random_insertdeleteundo_slow(self):
+        self.random_insert_delete_undo(programs.connect4)
+
     def test_undo_random_insertdeleteundo(self):
+        self.random_insert_delete_undo(programs.pythonsmall)
+
+    def random_insert_delete_undo(self, program):
         import random
         self.reset()
         #self.save()
 
-        self.treemanager.import_file(programs.pythonsmall)
+        self.treemanager.import_file(program)
         assert self.parser.last_status == True
         #self.save()
 
-        self.text_compare(programs.pythonsmall)
+        self.text_compare(program)
 
         line_count = len(self.treemanager.lines)
         random_lines = range(line_count)
@@ -1800,7 +1806,7 @@ class Test_Undo(Test_Python):
         # undo all and compare with original
         while self.treemanager.version > start_version:
             self.treemanager.key_ctrl_z()
-        self.text_compare(programs.pythonsmall)
+        self.text_compare(program)
 
         # redo all and compare with broken
         while self.treemanager.version < end_version:
@@ -1810,12 +1816,12 @@ class Test_Undo(Test_Python):
         # undo again and compare with original
         while self.treemanager.version > start_version:
             self.treemanager.key_ctrl_z()
-        self.text_compare(programs.pythonsmall)
+        self.text_compare(program)
 
         t1 = TreeManager()
         parser, lexer = python.load()
         t1.add_parser(parser, lexer, python.name)
-        t1.import_file(programs.pythonsmall)
+        t1.import_file(program)
 
         self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
 
