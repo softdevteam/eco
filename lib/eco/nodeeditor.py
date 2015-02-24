@@ -78,7 +78,6 @@ class NodeEditor(QFrame):
 
     def backup_timer(self):
         filename = self.getEditorTab().filename
-        print("create backup")
         if filename:
             self.saveToJson(filename + ".bak", True)
 
