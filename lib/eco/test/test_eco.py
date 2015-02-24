@@ -1010,3 +1010,39 @@ class Test_Languageboxes(Test_Python):
         self.treemanager.key_cursors("left", mod_shift=True)
         self.treemanager.deleteSelection()
         assert lbox.symbol.name == "<Prolog>"
+
+class Test_Backslash(Test_Python):
+
+    def test_parse(self):
+        self.reset()
+
+        program = """class X:\r    def x():\r        return \\\r            [1,2,3]"""
+
+        for c in program:
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
+
+    def test_parse_fail(self):
+        self.reset()
+
+        program = """class X:\r    def x():\r        return \\ \r            [1,2,3]"""
+
+        for c in program:
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == False
+
+    def test_parse_delete_insert(self):
+        self.reset()
+
+        program = """class X:\r    def x():\r        return \\\r            [1,2,3]"""
+
+        for c in program:
+            self.treemanager.key_normal(c)
+
+        assert self.parser.last_status == True
+        self.move("up", 1)
+        self.treemanager.key_end()
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == False
+        self.treemanager.key_normal("\\")
+        assert self.parser.last_status == True

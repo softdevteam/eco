@@ -63,7 +63,7 @@ class IndentationManager:
         bol = self.next_line(bol)
         while bol is not None:
             ws = self.count_whitespace(bol)
-            if ws is None:
+            if ws is None and bol.prev_term and bol.prev_term.symbol.name != "\\":
                 bol = self.next_line(bol)
                 continue
             old = self.get_indentation(bol)
@@ -300,6 +300,8 @@ class IndentationManager:
     def is_logical_line(self, node):
         # check if line is logical (i.e. doesn't only consist of whitespaces,
         # comments, etc)
+        if node.symbol.name == "\r" and node.prev_term.symbol.name == "\\":
+            return False
         node = node.next_term
         while True:
             if node is self.eos:
