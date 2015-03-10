@@ -101,6 +101,7 @@ class PHP(helper.Generic):
                     # release lbox functions
                     c = self.nestings.pop()
                     if c[0] == "class":
+                        self.embed.reverse()
                         while self.embed != []:
                             classname, func = self.embed.pop()
                             self.buf.append("\nembed_py_meth(\"%s\", \"%s\");" % (classname, _escapepy(func)))
