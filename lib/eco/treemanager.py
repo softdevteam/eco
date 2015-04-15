@@ -1282,10 +1282,10 @@ class TreeManager(object):
             import os, sys, subprocess
             f = tempfile.mkstemp()
             os.write(f[0], PHPPython.export(self.get_bos()))
-            if os.environ.has_key("HIPPYBRIDGE"):
-                return subprocess.Popen([os.path.join(os.environ["HIPPYBRIDGE"], "hippy-c"), f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
+            if os.environ.has_key("PYHYP"):
+                return subprocess.Popen([os.path.join(os.environ["PYHYP"], "hippy-c"), f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
             else:
-                sys.stderr.write("HIPPYBRIDGE environment not set")
+                sys.stderr.write("PYHYP environment not set")
         else:
             with open(path, "w") as f:
                 text = PHPPython.export(self.get_bos())
