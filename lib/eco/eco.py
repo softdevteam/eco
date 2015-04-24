@@ -492,7 +492,7 @@ class Window(QtGui.QMainWindow):
             f = args[0]
             self.openfile(QString(f))
 
-        if options.log.upper() in ["INFO", "WARNING", "ERROR"]:
+        if options.log.upper() in ["INFO", "WARNING", "ERROR", "DEBUG"]:
             loglevel=getattr(logging, options.log.upper())
         else:
             loglevel=logging.WARNING
