@@ -249,16 +249,22 @@ class IncParser(object):
         # comment helper that adds elements to the comment stack and if la is a
         # subtree with changes, recursively break it apart and adds its
         # children
-        if la.changed:
-            for c in la.children:
-                la = self.add_to_stack(c, stack)
-                if isinstance(la.symbol, Terminal) and la.lookup == "cmt_end":
-                    return la
-        else:
-            stack.append(la)
-        if isinstance(la, EOS):
-            return la
-        return self.pop_lookahead(la)
+
+        while True:
+            if isinstance(la.symbol, Terminal) and la.lookup == "cmt_end":
+                return la
+            if isinstance(la, EOS):
+                return la
+            if la.changed:
+                if la.children:
+                    la = la.children[0]
+                else:
+                    la = self.pop_lookahead(la)
+                continue
+            else:
+                stack.append(la)
+                la = self.pop_lookahead(la)
+                continue
 
     def parse_terminal(self, la, lookup_symbol):
         if isinstance(lookup_symbol, IndentationTerminal):
