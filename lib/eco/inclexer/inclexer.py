@@ -468,7 +468,19 @@ class IncrementalLexerCF(object):
                 read_nodes.append(current_node)
                 break
             read += len(token.source)
-            generated_tokens.append(token)
+            # special case when inserting a newline into a string, the lexer
+            # creates a single token. We need to make sure that that newline
+            # gets lexed into its own token
+            if len(token.source) > 1 and token.source.find("\r") >= 0:
+                l = token.source.split("\r")
+                for e in l:
+                    t = self.lexer.tokenize(e)
+                    generated_tokens.extend(t)
+                    if e is not l[-1]:
+                        newline = self.lexer.tokenize("\r")
+                        generated_tokens.extend(newline)
+            else:
+                generated_tokens.append(token)
             while read > pos + len(current_node.symbol.name):
                 pos += len(current_node.symbol.name)
                 read_nodes.append(current_node)
