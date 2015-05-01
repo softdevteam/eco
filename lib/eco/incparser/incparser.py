@@ -177,9 +177,15 @@ class IncParser(object):
                         # two comment together, we need to find the next
                         # cmt_end and mark its subtree as changed
                         end = la
+                        # XXX configure these through the grammar, e.g. Java
+                        # needs /*@*/, Python """@""" (@ means, match anything)
                         while True:
                             end = end.next_term
                             if isinstance(end, EOS):
+                                break
+                            if end.symbol.name.find("*/") > 0:
+                                # split token
+                                self.lexer.split_endcomment(end)
                                 break
                             if end.lookup == "cmt_end":
                                 end.mark_changed()

@@ -435,6 +435,21 @@ class IncrementalLexerCF(object):
         eos.left = last_node
         eos.prev_term = last_node
 
+
+    def split_endcomment(self, node):
+        read_nodes = [node]
+        generated_tokens = []
+        l = node.symbol.name.split("*/", 1)
+        t1 = self.lexer.tokenize(l[0])
+        generated_tokens.extend(t1)
+        t2 = self.lexer.tokenize("*/")
+        generated_tokens.extend(t2)
+        if l[1] != "":
+            t3 = self.lexer.tokenize(l[1])
+            generated_tokens.extend(t3)
+
+        self.merge_back(read_nodes, generated_tokens)
+
     def relex(self, node):
         # find farthest node that has lookahead into node
         # start munching tokens and spit out nodes
@@ -491,6 +506,10 @@ class IncrementalLexerCF(object):
                 read_nodes.append(current_node)
                 break
 
+        return self.merge_back(read_nodes, generated_tokens)
+
+    def merge_back(self, read_nodes, generated_tokens):
+
         any_changes = False
         # insert new nodes into tree
         it = iter(read_nodes)
@@ -504,6 +523,8 @@ class IncrementalLexerCF(object):
             last_node = node
             node.symbol.name = t.source
             if node.lookup != t.name:
+                any_changes = True
+            if t.source.find("*/") > 0:
                 any_changes = True
             node.lookup = t.name
             node.lookahead = t.lookahead

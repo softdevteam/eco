@@ -64,6 +64,7 @@ class EcoFile(object):
             incparser.init_ast()
 
             inclexer = _cache[self.name + "::lexer"]
+            incparser.lexer = inclexer # give parser a reference to its lexer (needed for multiline comments)
 
             return (incparser, inclexer)
         else:
@@ -85,6 +86,8 @@ class EcoFile(object):
             _cache[self.name + "::lexer"] = bootstrap.inclexer
             _cache[self.name + "::json"] = (root, language, whitespaces)
             _cache[self.name + "::parser"] = (pickle_id, whitespace)
+
+            bootstrap.incparser.lexer = bootstrap.inclexer
             return (bootstrap.incparser, bootstrap.inclexer)
 
     def add_alternative(self, nonterminal, language):
