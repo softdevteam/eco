@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 from production import Production
-from grammar_parser.gparser import Terminal, Nonterminal, Epsilon
+from grammar_parser.gparser import Terminal, Nonterminal, Epsilon, AnySymbol
 from constants import LR0, LR1, LALR
 
 class SyntaxTableElement(object):
@@ -96,7 +96,7 @@ class SyntaxTable(object):
             for s in symbols:
                 dest = graph.follow(i, s)
                 if dest:
-                    if isinstance(s, Terminal):
+                    if isinstance(s, Terminal) or isinstance(s, AnySymbol):
                         action = Shift(dest)
                     if isinstance(s, Nonterminal):
                         action = Goto(dest)

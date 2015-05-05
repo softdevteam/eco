@@ -28,7 +28,7 @@ except:
 
 import time, os
 
-from grammar_parser.gparser import Parser, Nonterminal, Terminal,MagicTerminal, Epsilon, IndentationTerminal
+from grammar_parser.gparser import Parser, Nonterminal, Terminal,MagicTerminal, Epsilon, IndentationTerminal, AnySymbol
 from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
 from stategraph import StateGraph
 from constants import LR0, LR1, LALR
@@ -80,6 +80,7 @@ class IncParser(object):
         self.last_status = False
         self.error_node = None
         self.whitespaces = whitespaces
+        self.anycount = {}
 
         self.previous_version = None
         logging.debug("Incemental parser done")
@@ -128,6 +129,8 @@ class IncParser(object):
         la = self.pop_lookahead(bos)
         self.loopcount = 0
         self.comment_mode = False
+        self.anycount = {}
+        anycount = 0
 
         USE_OPT = True
 
@@ -166,6 +169,21 @@ class IncParser(object):
                 if la.changed:#self.has_changed(la):
                     assert False # with prelexing you should never end up here!
                 else:
+                    if not isinstance(la.symbol, FinishSymbol):
+                        # check if ANYSYMBOL is allowed
+                        r = self.syntaxtable.lookup(self.current_state, AnySymbol())
+                        if r:
+                            # check if symbol is finishing symbol
+                            r2 = self.syntaxtable.lookup(r.action, la.symbol)
+                            if r2:
+                                self.current_state = r.action # switch to state after ANY and continue parsing normally
+                                self.anycount[la] = anycount
+                                anycount = 0
+                            else:
+                                self.stack.append(la)
+                                anycount += 1
+                                la = self.pop_lookahead(la)
+                                continue
                     if la.lookup == "cmt_start":
                         # when we find a cmt_start token, we enter comment mode
                         self.comment_mode = True
@@ -286,7 +304,7 @@ class IncParser(object):
             logging.debug ("Accept")
             return "Accept"
         elif isinstance(element, Shift):
-            logging.debug("Shift: %s", la)
+            logging.debug("Shift: %s -> %s", la, element.action)
             # removing this makes "Valid tokens" correct, should not be needed
             # for incremental parser
             #self.undo.append((la, "state", la.state))
@@ -300,6 +318,7 @@ class IncParser(object):
             return self.pop_lookahead(la)
 
         elif isinstance(element, Reduce):
+            logging.debug("Reduce: %s -> %s", la, element.action)
             self.reduce(element)
             return self.parse_terminal(la, lookup_symbol)
         elif element is None:
@@ -333,6 +352,10 @@ class IncParser(object):
             children.insert(0, c)
             if c.symbol.name != "~COMMENT~":
                 i += 1
+            if self.anycount.has_key(c):
+                for _ in range(self.anycount[c] - 1): # -1 cause we musn't count @
+                    c = self.stack.pop()
+                    children.insert(0,c)
         if self.stack[-1].symbol.name == "~COMMENT~":
             c = self.stack.pop()
             children.insert(0, c)
