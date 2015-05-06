@@ -52,10 +52,19 @@ class Goto(SyntaxTableElement): pass
 class Shift(SyntaxTableElement): pass
 
 class Reduce(SyntaxTableElement):
+    def __init__(self, action):
+        self.action = action
+        if AnySymbol() in self.action.right:
+            self.anysymbol = 1
+        else:
+            self.anysymbol = 0
+
     def amount(self):
+        if not hasattr(self, 'anysymbol'):
+            self.anysymbol = 0
         if self.action.right == [Epsilon()]:
             return 0
-        return len(self.action.right)
+        return len(self.action.right) - self.anysymbol
 
 class Accept(SyntaxTableElement):
     def __init__(self, action=None):

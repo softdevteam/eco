@@ -137,7 +137,7 @@ class IncParser(object):
         while(True):
             self.loopcount += 1
             if self.comment_mode:
-                if la.lookup == "cmt_end":
+                if la.lookup == "XXXcmt_end":
                     # in comment mode we just add all subtrees as they are to a
                     # subtree COMMENT subtrees that have changes are broken
                     # apart, e.g. to be able to find an inserted */ the CMT
@@ -174,17 +174,21 @@ class IncParser(object):
                         r = self.syntaxtable.lookup(self.current_state, AnySymbol())
                         if r:
                             # check if symbol is finishing symbol
-                            r2 = self.syntaxtable.lookup(r.action, la.symbol)
+                            r2 = self.syntaxtable.lookup(r.action, Terminal(la.lookup))
                             if r2:
+                                logging.debug("AnySymbol: end %s" % (la))
                                 self.current_state = r.action # switch to state after ANY and continue parsing normally
+                                logging.debug("AnySymbol: set state to %s", self.current_state)
                                 self.anycount[la] = anycount
                                 anycount = 0
                             else:
+                                logging.debug("AnySymbol: push %s" % (la))
+                                la.state = self.current_state # this node is now part of this comment state (needed to unvalidating)
                                 self.stack.append(la)
                                 anycount += 1
                                 la = self.pop_lookahead(la)
                                 continue
-                    if la.lookup == "cmt_start":
+                    if la.lookup == "XXXcmt_start":
                         # when we find a cmt_start token, we enter comment mode
                         self.comment_mode = True
                         comment_stack = []
@@ -234,10 +238,12 @@ class IncParser(object):
                     if USE_OPT:
                         goto = self.syntaxtable.lookup(self.current_state, la.symbol)
                         if goto: # can we shift this Nonterminal in the current state?
+                            logging.debug("USE_POT: %s (validating = True)", la.symbol)
                             follow_id = goto.action
                             self.stack.append(la)
                             la.state = follow_id #XXX this fixed goto error (i should think about storing the states on the stack instead of inside the elements)
                             self.current_state = follow_id
+                            logging.debug("USE_OPT: set state to %s", self.current_state)
                             la = self.pop_lookahead(la)
                             self.validating = True
                             continue
@@ -295,6 +301,7 @@ class IncParser(object):
             #XXX hack: change parsing table to accept IndentationTerminals
             lookup_symbol = Terminal(lookup_symbol.name)
         element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
+        logging.debug("parse_terminal: %s %s -> %s" % (self.current_state, lookup_symbol, element))
         if isinstance(element, Accept):
             #XXX change parse so that stack is [bos, startsymbol, eos]
             bos = self.previous_version.parent.children[0]
@@ -310,6 +317,7 @@ class IncParser(object):
             #self.undo.append((la, "state", la.state))
             la.state = element.action
             self.stack.append(la)
+            logging.debug("Shift: set state to %s", self.current_state)
             self.current_state = element.action
             if not la.lookup == "<ws>":
                 # last_shift_state is used to predict next symbol
@@ -323,7 +331,10 @@ class IncParser(object):
             return self.parse_terminal(la, lookup_symbol)
         elif element is None:
             if self.validating:
+                logging.debug("Was validating: Right breakdown and return to normal")
+                logging.debug("Before breakdown: %s", self.stack[-1])
                 self.right_breakdown()
+                logging.debug("After breakdown: %s", self.stack[-1])
                 self.validating = False
             else:
                 return self.do_undo(la)
@@ -353,13 +364,14 @@ class IncParser(object):
             if c.symbol.name != "~COMMENT~":
                 i += 1
             if self.anycount.has_key(c):
-                for _ in range(self.anycount[c] - 1): # -1 cause we musn't count @
+                for _ in range(self.anycount[c]):
                     c = self.stack.pop()
                     children.insert(0,c)
         if self.stack[-1].symbol.name == "~COMMENT~":
             c = self.stack.pop()
             children.insert(0, c)
         self.current_state = self.stack[-1].state #XXX don't store on nodes, but on stack
+        logging.debug("Reduce: set state to %s (%s)", self.current_state, self.stack[-1].symbol)
 
         goto = self.syntaxtable.lookup(self.current_state, element.action.left)
         if goto is None:
@@ -375,6 +387,7 @@ class IncParser(object):
         new_node = Node(element.action.left.copy(), goto.action, children)
         self.stack.append(new_node)
         self.current_state = new_node.state # = goto.action
+        logging.debug("Reduce: set state to %s (%s)", self.current_state, new_node.symbol)
         if getattr(element.action.annotation, "interpret", None):
             # eco grammar annotations
             self.interpret_annotation(new_node, element.action)
