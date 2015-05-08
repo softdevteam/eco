@@ -30,7 +30,7 @@ except ImportError:
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from PyQt4 import QtCore
-from PyQt4.QtGui import QPen, QColor, QImage
+from PyQt4.QtGui import QPen, QColor, QImage, QApplication
 
 import math, os
 
@@ -68,8 +68,22 @@ class Editor(object):
 class NormalEditor(Editor):
     def paint_node(self, paint, node, x, y, highlighter):
         dx, dy = (0, 0)
-        if node.symbol.name == "\r" or isinstance(node, EOS) or isinstance(node.symbol, IndentationTerminal):
+        if node.symbol.name == "\r" or isinstance(node, EOS):
             return dx, dy
+        if isinstance(node.symbol, IndentationTerminal):
+            paint.setPen(QPen(QColor("#aa3333")))
+            self.setStyle(paint, highlighter.get_style(node))
+            if QApplication.instance().showindent is True:
+                if node.symbol.name == "INDENT":
+                    text = ">"
+                elif node.symbol.name == "DEDENT":
+                    text = "<"
+                else:
+                    return dx, dy
+                paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text)
+                return 1*self.fontwt, dy
+            else:
+                return dx, dy
         if isinstance(node, TextNode):
             paint.setPen(QPen(QColor(highlighter.get_color(node))))
             self.setStyle(paint, highlighter.get_style(node))

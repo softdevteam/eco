@@ -450,6 +450,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.treeWidget, SIGNAL("itemDoubleClicked(QTreeWidgetItem *, int)"), self.click_parsers)
         self.connect(self.ui.actionShow_language_boxes, SIGNAL("triggered()"), self.update_editor)
         self.connect(self.ui.actionShow_namebinding, SIGNAL("triggered()"), self.update_editor)
+        self.connect(self.ui.actionShow_indentation, SIGNAL("triggered()"), self.toogle_indentation)
 
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
@@ -535,6 +536,13 @@ class Window(QtGui.QMainWindow):
         if self.ui.actionShow_namebinding.isChecked():
             return True
         return False
+
+    def toogle_indentation(self):
+        if self.ui.actionShow_indentation.isChecked():
+            QApplication.instance().showindent = True
+        else:
+            QApplication.instance().showindent = False
+        self.getEditor().update()
 
     def refreshTheme(self):
         self.ui.teConsole.setFont(QApplication.instance().gfont.font)
@@ -868,6 +876,7 @@ def main():
         settings.setValue("font-size", 9)
 
     app.gfont = GlobalFont(settings.value("font-family").toString(), settings.value("font-size").toInt()[0])
+    app.showindent = False
 
     window=Window()
     t = SubProcessThread(window, app)

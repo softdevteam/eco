@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Tue Jan 20 17:26:33 2015
-#      by: PyQt4 UI code generator 4.10.3
+# Created: Thu May  7 14:28:08 2015
+#      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -46,7 +46,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.addWidget(self.tabWidget)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 23))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 21))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
@@ -195,6 +195,9 @@ class Ui_MainWindow(object):
         self.actionShow_namebinding = QtGui.QAction(MainWindow)
         self.actionShow_namebinding.setCheckable(True)
         self.actionShow_namebinding.setObjectName(_fromUtf8("actionShow_namebinding"))
+        self.actionShow_indentation = QtGui.QAction(MainWindow)
+        self.actionShow_indentation.setCheckable(True)
+        self.actionShow_indentation.setObjectName(_fromUtf8("actionShow_indentation"))
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addSeparator()
@@ -213,6 +216,7 @@ class Ui_MainWindow(object):
         self.menuView.addSeparator()
         self.menuView.addAction(self.actionShow_language_boxes)
         self.menuView.addAction(self.actionShow_namebinding)
+        self.menuView.addAction(self.actionShow_indentation)
         self.menuInfo.addAction(self.actionAbout)
         self.menuEdit.addAction(self.actionUndo)
         self.menuEdit.addAction(self.actionRedo)
@@ -312,4 +316,5 @@ class Ui_MainWindow(object):
         self.actionSettings.setText(_translate("MainWindow", "Settings...", None))
         self.actionPreview.setText(_translate("MainWindow", "Preview...", None))
         self.actionShow_namebinding.setText(_translate("MainWindow", "Show namebinding", None))
+        self.actionShow_indentation.setText(_translate("MainWindow", "Show indentation", None))
 

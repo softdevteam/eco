@@ -46,7 +46,7 @@
      <x>0</x>
      <y>0</y>
      <width>979</width>
-     <height>23</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -81,6 +81,7 @@
     <addaction name="separator"/>
     <addaction name="actionShow_language_boxes"/>
     <addaction name="actionShow_namebinding"/>
+    <addaction name="actionShow_indentation"/>
    </widget>
    <widget class="QMenu" name="menuInfo">
     <property name="title">
@@ -503,6 +504,14 @@
    </property>
    <property name="text">
     <string>Show namebinding</string>
+   </property>
+  </action>
+  <action name="actionShow_indentation">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show indentation</string>
    </property>
   </action>
  </widget>
