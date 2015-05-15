@@ -42,10 +42,10 @@ class PHP(helper.Generic):
                 classname = self.get_classname()
                 self.embed.append((classname, buf))
             elif self.in_function():
-                # $foo = embed_py_func(...)
+                # $foo = compile_py_func(...)
                 if self.variable_assignment:
-                    self.buf.append("embed_py_func(\"%s\");" % (_escapepy(buf)))
-                # embed_py_func(...)
+                    self.buf.append("compile_py_func(\"%s\");" % (_escapepy(buf)))
+                # compile_py_func(...)
                 else:
                     name = re.match("(@.*\s)?def\s+([a-zA-Z_][a-zA-Z0-9_]*)", buf).group(2)
                     pyname = self.get_unused_name(name)
@@ -53,17 +53,17 @@ class PHP(helper.Generic):
 
                     # rename py function
                     text = re.sub("def\s+([a-zA-Z_][a-zA-Z0-9_]*)",r"def %s" % (pyname), buf, count = 1)
-                    self.buf.append("\n$%s = embed_py_func(\"%s\");" % (pyname, _escapepy(text)))
+                    self.buf.append("\n$%s = compile_py_func(\"%s\");" % (pyname, _escapepy(text)))
                     self.buf.append("\n");
                     self.buf.append(phpfunc)
-            else: # outside of a function we can use embed_py_func_global
+            else: # outside of a function we can use compile_py_func_global
                 if self.variable_assignment:
-                    self.buf.append("embed_py_func(\"%s\");" % (_escapepy(buf)))
+                    self.buf.append("compile_py_func(\"%s\");" % (_escapepy(buf)))
                 else:
-                    self.buf.append("embed_py_func_global(\"%s\");" % (_escapepy(buf)))
+                    self.buf.append("compile_py_func_global(\"%s\");" % (_escapepy(buf)))
         elif name == "<Python expression>":
             buf = PythonExpr().pp(node)
-            self.buf.append("call_user_func(embed_py_func(\"f = lambda: %s;\"))" % (_escapepy(buf)))
+            self.buf.append("call_user_func(compile_py_func(\"f = lambda: %s;\"))" % (_escapepy(buf)))
 
     def walk(self, node):
         while True:
@@ -104,7 +104,7 @@ class PHP(helper.Generic):
                         self.embed.reverse()
                         while self.embed != []:
                             classname, func = self.embed.pop()
-                            self.buf.append("\nembed_py_meth(\"%s\", \"%s\");" % (classname, _escapepy(func)))
+                            self.buf.append("\ncompile_py_meth(\"%s\", \"%s\");" % (classname, _escapepy(func)))
 
     def in_class(self):
         return self.nestings and self.nestings[-1][0] == "class"
@@ -164,7 +164,7 @@ class Python(helper.Generic):
     def language_box(self, name, node):
         if name == "<PHP + Python>":
             buf = PHP().pp(node)
-            self.buf.append("embed_php_func(\"\"\"\n%s\n\"\"\")" % (_escape(buf)))
+            self.buf.append("compile_php_func(\"\"\"\n%s\n\"\"\")" % (_escape(buf)))
 
 class PythonExpr(Python):
     pass
