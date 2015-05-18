@@ -1046,3 +1046,37 @@ class Test_Backslash(Test_Python):
         assert self.parser.last_status == False
         self.treemanager.key_normal("\\")
         assert self.parser.last_status == True
+
+class Test_Java:
+    def setup_class(cls):
+        parser, lexer = java.load()
+        cls.lexer = lexer
+        cls.parser = parser
+        cls.parser.init_ast()
+        cls.ast = cls.parser.previous_version
+        cls.treemanager = TreeManager()
+        cls.treemanager.add_parser(cls.parser, cls.lexer, java.name)
+
+        cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+    def reset(self):
+        self.parser.reset()
+        self.treemanager = TreeManager()
+        self.treemanager.add_parser(self.parser, self.lexer, python.name)
+        self.treemanager.set_font_test(7, 17)
+
+    def move(self, direction, times):
+        for i in range(times): self.treemanager.cursor_movement(direction)
+
+    def test_incparse_optshift_bug(self):
+        prog = """class Test {\r    public static void main() {\r        String y = z;\r    }\r}"""
+        for c in prog:
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
+        self.move("left", 1)
+        self.move("up", 3)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("\r")
+        for c in "int x = 1;":
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True

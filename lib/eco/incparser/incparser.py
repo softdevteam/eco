@@ -192,11 +192,8 @@ class IncParser(object):
                                 break
                         la = self.pop_lookahead(la)
                         continue
-                    if la.lookup != "":
-                        lookup_symbol = Terminal(la.lookup)
-                    else:
-                        lookup_symbol = la.symbol
 
+                    lookup_symbol = self.get_lookup(la)
                     result = self.parse_terminal(la, lookup_symbol)
                     if result == "Accept":
                         self.last_status = True
@@ -216,6 +213,7 @@ class IncParser(object):
                     if USE_OPT:
                         goto = self.syntaxtable.lookup(self.current_state, la.symbol)
                         if goto: # can we shift this Nonterminal in the current state?
+                            logging.debug("OPTShift: %s in state %s -> %s", la.symbol, self.current_state, goto)
                             follow_id = goto.action
                             self.stack.append(la)
                             la.state = follow_id #XXX this fixed goto error (i should think about storing the states on the stack instead of inside the elements)
@@ -226,10 +224,8 @@ class IncParser(object):
                         else:
                             #XXX can be made faster by providing more information in syntax tables
                             first_term = la.find_first_terminal()
-                            if first_term.lookup != "":
-                                lookup_symbol = Terminal(first_term.lookup)
-                            else:
-                                lookup_symbol = first_term.symbol
+
+                            lookup_symbol = self.get_lookup(first_term)
                             element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
                             if isinstance(element, Reduce):
                                 self.reduce(element)
@@ -244,7 +240,8 @@ class IncParser(object):
                         element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
 
                         if self.shiftable(la):
-                            self.shift(la)
+                            self.stack.append(la)
+                            self.current_state = la.state
                             self.right_breakdown()
                             la = self.pop_lookahead(la)
                         else:
@@ -273,9 +270,6 @@ class IncParser(object):
                 continue
 
     def parse_terminal(self, la, lookup_symbol):
-        if isinstance(lookup_symbol, IndentationTerminal):
-            #XXX hack: change parsing table to accept IndentationTerminals
-            lookup_symbol = Terminal(lookup_symbol.name)
         element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
         if isinstance(element, Accept):
             #XXX change parse so that stack is [bos, startsymbol, eos]
@@ -286,7 +280,7 @@ class IncParser(object):
             logging.debug ("Accept")
             return "Accept"
         elif isinstance(element, Shift):
-            logging.debug("Shift: %s", la)
+            logging.debug("Shift: %s -> %s", la, element.action)
             # removing this makes "Valid tokens" correct, should not be needed
             # for incremental parser
             #self.undo.append((la, "state", la.state))
@@ -300,6 +294,7 @@ class IncParser(object):
             return self.pop_lookahead(la)
 
         elif isinstance(element, Reduce):
+            logging.debug("Reduce: %s -> %s", la, element)
             self.reduce(element)
             return self.parse_terminal(la, lookup_symbol)
         elif element is None:
@@ -308,6 +303,16 @@ class IncParser(object):
                 self.validating = False
             else:
                 return self.do_undo(la)
+
+    def get_lookup(self, la):
+        if la.lookup != "":
+            lookup_symbol = Terminal(la.lookup)
+        else:
+            lookup_symbol = la.symbol
+        if isinstance(lookup_symbol, IndentationTerminal):
+            #XXX hack: change parsing table to accept IndentationTerminals
+            lookup_symbol = Terminal(lookup_symbol.name)
+        return lookup_symbol
 
     def do_undo(self, la):
         while len(self.undo) > 0:
@@ -336,6 +341,7 @@ class IncParser(object):
         if self.stack[-1].symbol.name == "~COMMENT~":
             c = self.stack.pop()
             children.insert(0, c)
+        logging.debug("   Element on stack: %s(%s)", self.stack[-1].symbol, self.stack[-1].state)
         self.current_state = self.stack[-1].state #XXX don't store on nodes, but on stack
 
         goto = self.syntaxtable.lookup(self.current_state, element.action.left)
@@ -350,6 +356,7 @@ class IncParser(object):
             self.undo.append((c, 'right', c.right))
 
         new_node = Node(element.action.left.copy(), goto.action, children)
+        logging.debug("   Add %s to stack", new_node.symbol)
         self.stack.append(new_node)
         self.current_state = new_node.state # = goto.action
         if getattr(element.action.annotation, "interpret", None):
@@ -405,13 +412,28 @@ class IncParser(object):
 
     def right_breakdown(self):
         node = self.stack.pop()
+        self.current_state = self.stack[-1].state
         while(isinstance(node.symbol, Nonterminal)):
             for c in node.children:
                 self.shift(c)
             node = self.stack.pop()
+            # after undoing an optimistic shift (through pop) we need to revert
+            # back to the state before the shift (which can be found on the top
+            # of the stack after the "pop"
+            try:
+                self.current_state = self.stack[-1].state
+            except IndexError:
+                # if there is nothing left on the stack reset state to 0
+                self.current_state = 0
         self.shift(node)
 
     def shift(self, la):
+        # after the breakdown, we need to properly shift the left over terminal
+        # using the (correct) current state from before the optimistic shift of
+        # it's parent tree
+        lookup_symbol = self.get_lookup(la)
+        element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
+        la.state = element.action
         self.stack.append(la)
         self.current_state = la.state
 
