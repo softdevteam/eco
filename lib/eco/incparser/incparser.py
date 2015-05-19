@@ -271,6 +271,7 @@ class IncParser(object):
 
     def parse_terminal(self, la, lookup_symbol):
         element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
+        logging.debug("parse_terminal: %s in %s -> %s", lookup_symbol, self.current_state, element)
         if isinstance(element, Accept):
             #XXX change parse so that stack is [bos, startsymbol, eos]
             bos = self.previous_version.parent.children[0]
@@ -356,7 +357,7 @@ class IncParser(object):
             self.undo.append((c, 'right', c.right))
 
         new_node = Node(element.action.left.copy(), goto.action, children)
-        logging.debug("   Add %s to stack", new_node.symbol)
+        logging.debug("   Add %s to stack and goto state %s", new_node.symbol, new_node.state)
         self.stack.append(new_node)
         self.current_state = new_node.state # = goto.action
         if getattr(element.action.annotation, "interpret", None):
@@ -413,6 +414,7 @@ class IncParser(object):
     def right_breakdown(self):
         node = self.stack.pop()
         self.current_state = self.stack[-1].state
+        logging.debug("right breakdown: set state to %s", self.current_state)
         while(isinstance(node.symbol, Nonterminal)):
             for c in node.children:
                 self.shift(c)
@@ -420,11 +422,14 @@ class IncParser(object):
             # after undoing an optimistic shift (through pop) we need to revert
             # back to the state before the shift (which can be found on the top
             # of the stack after the "pop"
-            try:
-                self.current_state = self.stack[-1].state
-            except IndexError:
-                # if there is nothing left on the stack reset state to 0
+            if isinstance(node.symbol, FinishSymbol):
+                # if we reached the end of the stack, reset to state 0 and push
+                # FinishSymbol pack onto the stack
                 self.current_state = 0
+                self.stack.append(node)
+                return
+            else:
+                self.current_state = self.stack[-1].state
         self.shift(node)
 
     def shift(self, la):
@@ -433,8 +438,10 @@ class IncParser(object):
         # it's parent tree
         lookup_symbol = self.get_lookup(la)
         element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
+        logging.debug("RBShift: la: %s state: %s element: %s", la, la.state, element)
         la.state = element.action
         self.stack.append(la)
+        logging.debug("RBShift: set state to %s", la.state)
         self.current_state = la.state
 
     def pop_lookahead(self, la):

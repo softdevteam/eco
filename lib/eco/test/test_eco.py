@@ -30,6 +30,9 @@ from PyQt4 import QtCore
 import pytest
 slow = pytest.mark.slow
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 class Test_Typing:
 
     def setup_class(cls):
@@ -585,6 +588,19 @@ class Test_Bugs(Test_Python):
         self.reset()
         self.treemanager.key_normal("c")
         self.treemanager.key_backspace() # shouldn't throw IndexError in repair_indentations
+
+    def test_delete_all(self):
+        self.reset()
+        source = "x = 1"
+        for c in source:
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
+        for c in source:
+            self.treemanager.key_backspace()
+        assert self.parser.last_status == True
+        for c in source:
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
 
 class Test_Indentation(Test_Python):
 
