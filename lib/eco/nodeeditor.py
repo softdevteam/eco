@@ -39,7 +39,7 @@ import editor
 
 import logging
 
-whitelist = list(u"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!\"$%^&*()_-+=;:'@#~[]{},.<>/?|\\`")
+whitelist = list(u"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!\"$%^&*()_-+=;:'@#~[]{},.<>/?|\\`\r ")
 
 class NodeEditor(QFrame):
 
