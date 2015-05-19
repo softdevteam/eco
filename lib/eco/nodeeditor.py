@@ -37,6 +37,10 @@ from astanalyser import AstAnalyser
 import syntaxhighlighter
 import editor
 
+import logging
+
+whitelist = list(u"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!\"$%^&*()_-+=;:'@#~[]{},.<>/?|\\`")
+
 class NodeEditor(QFrame):
 
     # ========================== init stuff ========================== #
@@ -605,6 +609,9 @@ class NodeEditor(QFrame):
                 text = "    "
             else:
                 text = e.text()
+                if text.toUtf8() not in whitelist:
+                    logging.debug("Key %s not supported" % text)
+                    return
             self.tm.key_normal(text)
 
         self.getWindow().btReparse([])
