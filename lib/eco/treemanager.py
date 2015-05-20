@@ -671,6 +671,7 @@ class TreeManager(object):
         self.load_lines()
         for l in self.parsers:
             parser = l[0]
+            parser.load_status(self.version)
             root = parser.previous_version.parent
             #root = self.cursor.node.get_root()#get_bos().parent
             root.load(self.version)
@@ -783,6 +784,7 @@ class TreeManager(object):
         self.cursor.save(self.version)
         for l in self.parsers:
             parser = l[0]
+            parser.save_status(self.version)
             root = parser.previous_version.parent
             #root = self.cursor.node.get_root()#bos.parent
             root.save(self.version)
