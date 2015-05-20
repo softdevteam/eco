@@ -58,6 +58,18 @@ class Cursor(object):
         self.node = node
         self.pos = pos
         self.line = line
+        self.log = {}
+
+    def save(self, version):
+        self.log[version] = (self.node, self.pos, self.line)
+
+    def load(self, version):
+        (self.node, self.pos, self.line) = self.log[version]
+
+    def clean_versions(self, version):
+        for key in self.log.keys():
+            if key > version:
+                del self.log[key]
 
     def copy(self):
         return Cursor(self.node, self.pos, self.line)
@@ -337,6 +349,8 @@ class UndoManager(object):
         self.undo_insert(tm, uo.text)
 
 class TreeManager(object):
+    version = 1
+
     def __init__(self):
         self.lines = []             # storage for line objects
         self.mainroot = None        # root node (main language)
@@ -348,6 +362,11 @@ class TreeManager(object):
         self.undomanager = UndoManager()
         self.changed = False
         self.last_search = ""
+        self.version = 1
+        TreeManager.version = 1
+        self.last_saved_version = 1
+        self.savenextparse = False
+        self.saved_lines = {}
 
     def set_font_test(self, width, height):
         # only needed for testing
@@ -413,6 +432,7 @@ class TreeManager(object):
             lboxnode.symbol.parser = self.mainroot
             lboxnode.symbol.ast = self.mainroot
             self.main_lbox = lboxnode
+            self.save()
 
     def load_analyser(self, language):
         try:
@@ -653,12 +673,165 @@ class TreeManager(object):
     # ============================ MODIFICATIONS ============================= #
 
     def key_shift_ctrl_z(self):
-        self.undomanager.redo(self)
-        self.changed = True
+        if self.get_max_version() > self.version:
+            self.version += 1
+            TreeManager.version = self.version
+            self.recover_version("redo")
+            self.cursor.load(self.version)
+
+    def get_max_version(self):
+        root = self.get_bos().parent
+        maxversion = 0
+        for (key, version) in root.log.keys():
+            maxversion = max(maxversion, version)
+        return maxversion
 
     def key_ctrl_z(self):
-        self.undomanager.undo(self)
-        self.changed = True
+        if self.mainroot.has_changes() and self.version == self.get_max_version():
+            # if there are unsaved changes, save before undo so we can redo them again
+            self.save_current_version()
+        if self.version > 1:
+            self.version -= 1
+            TreeManager.version = self.version
+            self.cursor.load(self.version)
+            self.recover_version("undo")
+
+    def recover_version(self, direction):
+        self.load_lines()
+        for l in self.parsers:
+            parser = l[0]
+            parser.load_status(self.version)
+            root = parser.previous_version.parent
+            #root = self.cursor.node.get_root()#get_bos().parent
+            root.load(self.version)
+            bos = root.children[0]
+            bos.load(self.version)
+            eos = root.children[-1]
+            eos.load(self.version)
+            node = self.pop_lookahead(bos)
+            while True:
+                if isinstance(node, EOS):
+                    break
+                prev_version = node.version
+                if direction == "undo":
+                    # recover old version if changes were made in that version
+                    if not node.has_changes(self.version):
+                        node = self.pop_lookahead(node)
+                        continue
+                elif direction == "redo":
+                    # recover newer version of node.version is smaller
+                    # however, if after reloading the version stays the same
+                    # we don't have to update the whole subtree
+                    if node.version < self.version:
+                        node.load(self.version)
+                        if node.version == prev_version:
+                            node = self.pop_lookahead(node)
+                            continue
+                node.load(self.version)
+                # continue with children
+                if len(node.children) > 0:
+                    node = node.children[0]
+                    continue
+                else:
+                    # skip subtree and continue otherwise
+                    node = self.pop_lookahead(node)
+
+    def pop_lookahead(self, la):
+        while(la.right_sibling() is None):
+            la = la.parent
+        return la.right_sibling()
+
+    def clean_versions(self, version):
+        maxversion = self.get_max_version()
+        # clean linenumbers
+        for key in self.saved_lines.keys():
+            if key > version:
+                del self.saved_lines[key]
+        self.cursor.clean_versions(version)
+
+        for l in self.parsers:
+            p = l[0]
+            root = p.previous_version.parent
+            bos = root.children[0]
+            self.delete_versions_from(bos, version)
+            self.delete_versions_from(root, version)
+            node = self.pop_lookahead(root.children[0])
+            while True:
+                if isinstance(node, EOS):
+                    break
+                self.delete_versions_from(node, version)
+                if len(node.children) > 0:
+                    node = node.children[0]
+                    continue
+                else:
+                    node = self.pop_lookahead(node)
+
+    def delete_versions_from(self, node, version):
+        for (key, v) in node.log.keys():
+            if v > version:
+                del node.log[(key, v)]
+
+    def save_lines(self):
+        # check if lines have changed
+        lines = self.get_lines_from_version(self.version)
+        if len(lines) != len(self.lines):
+            self.saved_lines[self.version] = list(self.lines)
+            return
+
+        # check if nodes are different (e.g. we could delete and reinsert a line between saves)
+        for i in range(len(lines)):
+            if lines[i] is not self.lines[i]:
+                self.saved_lines[self.version] = list(self.lines)
+                return
+
+    def get_lines_from_version(self, version):
+        version = self.version
+        while True:
+            if version == -1:
+                return []
+            try:
+                l = self.saved_lines[version]
+                break
+            except KeyError:
+                version -= 1
+        return l
+
+    def load_lines(self):
+        version = self.version
+        while True:
+            if version == 0:
+                return
+            try:
+                l = self.saved_lines[version]
+                break
+            except KeyError:
+                version -= 1
+        self.lines = list(l) # copy, otherwise saved list will be mutated
+
+    def save(self):
+        self.save_lines()
+        self.cursor.save(self.version)
+        for l in self.parsers:
+            parser = l[0]
+            parser.save_status(self.version)
+            root = parser.previous_version.parent
+            #root = self.cursor.node.get_root()#bos.parent
+            root.save(self.version)
+            bos = root.children[0]
+            bos.save(self.version)
+            eos = root.children[-1]
+            eos.save(self.version)
+            node = self.pop_lookahead(bos)
+            while True:
+                if isinstance(node, EOS):
+                    node.save(self.version)
+                    break
+                if node.has_changes():
+                    node.save(self.version)
+                    if len(node.children) > 0:
+                        node = node.children[0]
+                        continue
+                node = self.pop_lookahead(node)
 
     def key_home(self, shift=False):
         self.unselect()
@@ -785,7 +958,7 @@ class TreeManager(object):
                 if lbox:
                     node = lbox.next_term
                 else:
-                    return
+                    return "eos"
             while isinstance(node.symbol, IndentationTerminal):
                 node = node.next_term
             if isinstance(node.symbol, MagicTerminal):
@@ -1058,7 +1231,9 @@ class TreeManager(object):
         self.relex(repair_node)
         cur_start = min(self.selection_start, self.selection_end)
         cur_end = max(self.selection_start, self.selection_end)
-        self.cursor = cur_start.copy()
+        self.cursor.node = cur_start.node
+        self.cursor.line = cur_start.line
+        self.cursor.pos  = cur_start.pos
         self.selection_end = cur_start.copy()
         del self.lines[cur_start.line+1:cur_end.line+1]
         self.selection_start = self.cursor.copy()
@@ -1138,8 +1313,12 @@ class TreeManager(object):
     # ============================ FILE OPERATIONS ============================= #
 
     def import_file(self, text):
+        TreeManager.version = 0
+        self.version = 0
         # init
-        self.cursor = Cursor(self.get_bos(),0,0)
+        self.cursor.node = self.get_bos()
+        self.cursor.pos = 0
+        self.cursor.line = 0
         for p in self.parsers[1:]:
             del p
         # convert linebreaks
@@ -1152,12 +1331,13 @@ class TreeManager(object):
         new = TextNode(Terminal(text))
         bos.insert_after(new)
         root = new.get_root()
-        lexer.relex_import(new)
+        lexer.relex_import(new, self.version+1)
         self.rescan_linebreaks(0)
         im = self.parsers[0][4]
         if im:
             im.repair_full()
         self.reparse(bos)
+        self.save_current_version()
         self.changed = True
         return
 
@@ -1179,6 +1359,7 @@ class TreeManager(object):
 
     def load_file(self, language_boxes, reparse=True):
         # setup language boxes
+        TreeManager.version = 0
         for root, language, whitespaces in language_boxes:
             grammar = lang_dict[language]
             incparser, inclexer = self.get_parser_lexer_for_language(grammar, whitespaces)
@@ -1198,7 +1379,12 @@ class TreeManager(object):
             im = p[4]
             if im:
                 im.repair_full()
+        self.savenextparse = True
+        self.version = 1
+        self.last_saved_version = 1
         self.full_reparse()
+        self.save()
+        TreeManager.version = 1
         self.changed = False
 
     def get_parser_lexer_for_language(self, grammar, whitespaces):
@@ -1292,7 +1478,7 @@ class TreeManager(object):
                 f.write(text)
                 return text
 
-    def export_as_text(self, path):
+    def export_as_text(self, path=None):
         node = self.lines[0].node # first node
         text = []
         while True:
@@ -1313,8 +1499,10 @@ class TreeManager(object):
                 text.append("\n")
             else:
                 text.append(node.symbol.name)
-        with open(path, "w") as f:
-            f.write("".join(text))
+
+        if path:
+            with open(path, "w") as f:
+                f.write("".join(text))
         return "".join(text)
 
     def export_aterms(self, path):
@@ -1335,11 +1523,27 @@ class TreeManager(object):
         lexer = self.get_lexer(root)
         return lexer.relex(node)
 
+    def savestate(self):
+        self.savenextparse = True
+        if self.last_saved_version < self.version:
+            self.reparse(self.get_bos(), True)
+
     def reparse(self, node, changed=True):
+        if self.version < self.get_max_version():
+            # we changed stuff after one or more undos
+            # later versions are void -> delete
+            self.clean_versions(self.version)
+            self.last_saved_version = self.version
         if changed:
             root = node.get_root()
             parser = self.get_parser(root)
             parser.inc_parse()
+        TreeManager.version = self.version
+
+    def save_current_version(self):
+        self.version += 1
+        self.save()
+        TreeManager.version = self.version
 
     def full_reparse(self):
         for p in self.parsers:

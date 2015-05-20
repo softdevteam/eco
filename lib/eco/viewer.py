@@ -101,7 +101,7 @@ class Viewer(object):
         graph.write_png(tempdir + 'temp.png')
         self.image = tempdir + 'temp.png'
 
-    def get_tree_image(self, tree, selected_node, whitespaces=True, restrict_nodes=None, ast=False):
+    def get_tree_image(self, tree, selected_node, whitespaces=True, restrict_nodes=None, ast=False, version=0):
         if self.dot_type == 'google':
             import urllib.request
             s = self.create_ast_string(tree)
@@ -110,7 +110,7 @@ class Viewer(object):
             return temp[0]
         elif self.dot_type == 'pydot':
             graph = pydot.Dot(graph_type='graph')
-            self.add_node_to_tree(tree, graph, whitespaces, restrict_nodes, ast)
+            self.add_node_to_tree(tree, graph, whitespaces, restrict_nodes, ast, version)
 
             # mark currently selected node as red
             for node in selected_node:
@@ -121,7 +121,7 @@ class Viewer(object):
             graph.write_png(tempdir + 'temp.png')
             self.image = tempdir + 'temp.png'
 
-    def add_node_to_tree(self, node, graph, whitespaces, restrict_nodes, ast):
+    def add_node_to_tree(self, node, graph, whitespaces, restrict_nodes, ast, version):
 
         if restrict_nodes and node not in restrict_nodes:
             return None
@@ -153,18 +153,23 @@ class Viewer(object):
         self.countnodes += 1
         if node.changed:
             dotnode.set('color','green')
-        dotnode.set('fontsize', '10')
+        if node.has_changes(version):
+            dotnode.set('color','blue')
+        dotnode.set('fontsize', '8')
         dotnode.set('fontname', 'Arial')
         graph.add_node(dotnode)
 
-        for c in node.children:
+        children = node.children
+        if node.symbol.name == "Root":
+            children = node.log[("children", version)]
+        for c in children:
             key = ""
             if isinstance(node, AstNode):
                 key = c
                 c = node.children[c]
             if not whitespaces and c.symbol.name == "WS":
                 continue
-            c_node = self.add_node_to_tree(c, graph, whitespaces, restrict_nodes, ast)
+            c_node = self.add_node_to_tree(c, graph, whitespaces, restrict_nodes, ast, version)
             if c_node is not None:
                 if key != "":
                     graph.add_edge(pydot.Edge(dotnode, c_node, label=key, fontsize="10", fontname="Arial"))
@@ -172,7 +177,7 @@ class Viewer(object):
                     graph.add_edge(pydot.Edge(dotnode, c_node))
 
         if isinstance(node.symbol, MagicTerminal):
-            c_node = self.add_node_to_tree(node.symbol.parser, graph, whitespaces, restrict_nodes, ast)
+            c_node = self.add_node_to_tree(node.symbol.parser, graph, whitespaces, restrict_nodes, ast, version)
             graph.add_edge(pydot.Edge(dotnode, c_node))
 
         return dotnode

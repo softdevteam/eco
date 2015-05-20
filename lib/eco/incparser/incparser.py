@@ -80,6 +80,8 @@ class IncParser(object):
         self.last_status = False
         self.error_node = None
         self.whitespaces = whitespaces
+        self.status_by_version = {}
+        self.errornode_by_version = {}
 
         self.previous_version = None
         logging.debug("Incemental parser done")
@@ -113,6 +115,9 @@ class IncParser(object):
         eos.prev_term = bos
         root = Node(Nonterminal("Root"), 0, [bos, eos])
         self.previous_version = AST(root)
+        root.save(0)
+        bos.save(0)
+        eos.save(0)
 
     def reparse(self):
         self.inc_parse([], True)
@@ -514,3 +519,17 @@ class IncParser(object):
         self.error_node = None
         self.previous_version = None
         self.init_ast()
+
+    def load_status(self, version):
+        try:
+            self.last_status = self.status_by_version[version]
+        except KeyError:
+            logging.warning("Could not find status for version %s", version)
+        try:
+            self.error_node = self.errornode_by_version[version]
+        except KeyError:
+            logging.warning("Could not find errornode for version %s", version)
+
+    def save_status(self, version):
+        self.status_by_version[version] = self.last_status
+        self.errornode_by_version[version] = self.error_node

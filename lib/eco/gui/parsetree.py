@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'parsetree.ui'
 #
-# Created: Wed Jan 15 17:00:13 2014
-#      by: PyQt4 UI code generator 4.10.3
+# Created: Thu Feb 19 14:49:41 2015
+#      by: PyQt4 UI code generator 4.11.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -31,6 +31,17 @@ class Ui_MainWindow(object):
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))
         self.verticalLayout = QtGui.QVBoxLayout(self.centralwidget)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
+        self.horizontalLayout_2 = QtGui.QHBoxLayout()
+        self.horizontalLayout_2.setContentsMargins(-1, 0, -1, -1)
+        self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
+        self.label = QtGui.QLabel(self.centralwidget)
+        self.label.setObjectName(_fromUtf8("label"))
+        self.horizontalLayout_2.addWidget(self.label)
+        self.comboBox = QtGui.QComboBox(self.centralwidget)
+        self.comboBox.setObjectName(_fromUtf8("comboBox"))
+        self.horizontalLayout_2.addWidget(self.comboBox)
+        self.horizontalLayout_2.setStretch(1, 1)
+        self.verticalLayout.addLayout(self.horizontalLayout_2)
         self.graphicsView = QtGui.QGraphicsView(self.centralwidget)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
@@ -103,7 +114,8 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(_translate("MainWindow", "Tree viewer", None))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Parse Tree", None))
+        self.label.setText(_translate("MainWindow", "Display version:", None))
         self.cb_toggle_ast.setText(_translate("MainWindow", "Show tree", None))
         self.cb_toggle_ws.setText(_translate("MainWindow", "Show whitespace nodes", None))
         self.cb_fit_ast.setText(_translate("MainWindow", "Fit in view", None))

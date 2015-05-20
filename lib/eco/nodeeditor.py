@@ -64,6 +64,8 @@ class NodeEditor(QFrame):
         self.connect(self.timer, SIGNAL("timeout()"), self.analysis_timer)
         self.connect(self.backuptimer, SIGNAL("timeout()"), self.backup_timer)
         self.backuptimer.start(30000)
+        self.undotimer = QTimer(self)
+        self.connect(self.undotimer, SIGNAL("timeout()"), self.trigger_undotimer)
 
         self.lightcolors = [QColor("#333333"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
         self.darkcolors = [QColor("#999999"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
@@ -84,6 +86,10 @@ class NodeEditor(QFrame):
         filename = self.getEditorTab().filename
         if filename:
             self.saveToJson(filename + ".bak", True)
+
+    def trigger_undotimer(self):
+        self.tm.save_current_version()
+        self.undotimer.stop()
 
     def setImageMode(self, boolean):
         self.imagemode = boolean
@@ -110,7 +116,9 @@ class NodeEditor(QFrame):
             temp_cursor = self.tm.cursor.copy()
             result = self.coordinate_to_cursor(pos.x(), pos.y())
             node = self.tm.cursor.node
-            self.tm.cursor = temp_cursor
+            self.tm.cursor.line = temp_cursor.line
+            self.tm.cursor.node = temp_cursor.node
+            self.tm.cursor.pos = temp_cursor.pos
             if not result:
                 event.ignore()
                 return True
@@ -263,7 +271,7 @@ class NodeEditor(QFrame):
             # if we found a language box, continue drawing inside of it
             if isinstance(node.symbol, MagicTerminal):
                 #l_x.append(x)
-                node.pos = x
+                #node.pos = x
                 lbox += 1
                 lbnode = node.symbol.ast
                 if self.selected_lbox is node:
@@ -566,6 +574,9 @@ class NodeEditor(QFrame):
 
     def keyPressEvent(self, e):
 
+        startundotimer = False
+        self.timer.start(500)
+
         if e.key() in [Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Control, Qt.Key_Meta, Qt.Key_AltGr]:
             if e.key() == Qt.Key_Shift:
                 self.tm.key_shift()
@@ -582,6 +593,7 @@ class NodeEditor(QFrame):
         if e.key() == Qt.Key_Escape:
             self.tm.key_escape()
         elif e.key() == Qt.Key_Backspace:
+            startundotimer = True
             self.tm.key_backspace()
         elif e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             if e.modifiers() == Qt.ShiftModifier:
@@ -595,6 +607,7 @@ class NodeEditor(QFrame):
         elif e.key() == Qt.Key_End:
             self.tm.key_end(e.modifiers() == Qt.ShiftModifier)
         elif e.key() == Qt.Key_Delete:
+            startundotimer = True
             self.tm.key_delete()
         elif e.key() == Qt.Key_F3:
             self.tm.find_next()
@@ -605,6 +618,7 @@ class NodeEditor(QFrame):
             # sensibly insert into the text.
             pass
         else:
+            startundotimer = True
             if e.key() == Qt.Key_Tab:
                 text = "    "
             else:
@@ -618,6 +632,8 @@ class NodeEditor(QFrame):
         self.update()
         self.emit(SIGNAL("keypress(QKeyEvent)"), e)
         self.getWindow().showLookahead()
+        if startundotimer:
+            self.undotimer.start(500)
 
     def showLanguageBoxMenu(self):
         self.showSubgrammarMenu()

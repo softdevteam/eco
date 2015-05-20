@@ -383,6 +383,8 @@ class AstNode(object):
         self.children = children
 
     def __eq__(self, other):
+        if not isinstance(other, AstNode):
+            return False
         return self.name == other.name and self.children == other.children
 
     def interpret(self, node, reference=None):

@@ -168,6 +168,7 @@ class ParseView(QtGui.QMainWindow):
         self.connect(self.ui.rb_view_parsetree, SIGNAL("clicked()"), self.refresh)
         self.connect(self.ui.rb_view_linetree, SIGNAL("clicked()"), self.refresh)
         self.connect(self.ui.rb_view_ast, SIGNAL("clicked()"), self.refresh)
+        self.connect(self.ui.comboBox, SIGNAL("activated(const QString&)"), self.change_version)
 
         self.viewer = Viewer("pydot")
         self.ui.graphicsView.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform | QPainter.TextAntialiasing)
@@ -176,12 +177,24 @@ class ParseView(QtGui.QMainWindow):
 
         self.window = window
 
+    def change_version(self, text):
+        self.redraw()
+
     def refresh(self):
+        editor = self.window.getEditor()
+        self.version = editor.tm.version
+        self.ui.comboBox.clear()
+        for v in xrange(editor.tm.get_max_version()):
+            self.ui.comboBox.addItem(QString(str(v+1)))
+        self.ui.comboBox.setCurrentIndex(editor.tm.get_max_version()-1)
+        self.redraw()
+
+    def redraw(self):
         editor = self.window.getEditor()
         whitespaces = self.ui.cb_toggle_ws.isChecked()
         if self.ui.cb_toggle_ast.isChecked():
             if self.ui.rb_view_parsetree.isChecked():
-                self.viewer.get_tree_image(editor.tm.main_lbox, [], whitespaces)
+                self.viewer.get_tree_image(editor.tm.main_lbox, [], whitespaces, version=int(self.ui.comboBox.currentText()))
             elif self.ui.rb_view_linetree.isChecked():
                 self.viewer.get_terminal_tree(editor.tm.main_lbox)
             elif self.ui.rb_view_ast.isChecked():
@@ -432,8 +445,8 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionUndo, SIGNAL("triggered()"), self.undo)
         self.connect(self.ui.actionRedo, SIGNAL("triggered()"), self.redo)
         # XXX temporarily disable undo/redo because it's buggy
-        self.ui.actionUndo.setEnabled(False)
-        self.ui.actionRedo.setEnabled(False)
+        #self.ui.actionUndo.setEnabled(False)
+        #self.ui.actionRedo.setEnabled(False)
         self.connect(self.ui.actionCopy, SIGNAL("triggered()"), self.copy)
         self.connect(self.ui.actionCut, SIGNAL("triggered()"), self.cut)
         self.connect(self.ui.actionPaste, SIGNAL("triggered()"), self.paste)
@@ -601,11 +614,14 @@ class Window(QtGui.QMainWindow):
         self.getEditor().tm.key_shift_ctrl_z()
         self.getEditor().update()
         self.btReparse([])
+        self.getEditorTab().keypress()
 
     def undo(self):
+        self.getEditor().undotimer.stop()
         self.getEditor().tm.key_ctrl_z()
         self.getEditor().update()
         self.btReparse([])
+        self.getEditorTab().keypress()
 
     def cut(self):
         text = self.getEditor().tm.cutSelection()
