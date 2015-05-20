@@ -1268,7 +1268,7 @@ class TreeManager(object):
             os.write(f[0],"".join(output))
             os.close(f[0])
             if os.environ.has_key("UNIPYCATION"):
-                return subprocess.Popen([os.path.join(os.environ["UNIPYCATION"], "pypy/goal/pypy-c"), f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
+                return subprocess.Popen([os.environ["UNIPYCATION"], f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
             else:
                 sys.stderr.write("UNIPYCATION environment not set")
 
@@ -1283,7 +1283,7 @@ class TreeManager(object):
             f = tempfile.mkstemp()
             os.write(f[0], PHPPython.export(self.get_bos()))
             if os.environ.has_key("PYHYP"):
-                return subprocess.Popen([os.path.join(os.environ["PYHYP"], "hippy-c"), f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
+                return subprocess.Popen([os.environ["PYHYP"], f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
             else:
                 sys.stderr.write("PYHYP environment not set")
         else:
