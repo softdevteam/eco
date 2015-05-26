@@ -367,6 +367,7 @@ class TreeManager(object):
         self.last_saved_version = 1
         self.savenextparse = False
         self.saved_lines = {}
+        self.saved_parsers = {}
 
     def set_font_test(self, width, height):
         # only needed for testing
@@ -698,6 +699,7 @@ class TreeManager(object):
 
     def recover_version(self, direction):
         self.load_lines()
+        self.load_parsers()
         for l in self.parsers:
             parser = l[0]
             parser.load_status(self.version)
@@ -747,6 +749,9 @@ class TreeManager(object):
         for key in self.saved_lines.keys():
             if key > version:
                 del self.saved_lines[key]
+        for key in self.saved_parsers.keys():
+            if key > version:
+                del self.saved_parsers[key]
         self.cursor.clean_versions(version)
 
         for l in self.parsers:
@@ -808,8 +813,15 @@ class TreeManager(object):
                 version -= 1
         self.lines = list(l) # copy, otherwise saved list will be mutated
 
+    def save_parsers(self):
+        self.saved_parsers[self.version] = list(self.parsers)
+
+    def load_parsers(self):
+        self.parsers = list(self.saved_parsers[self.version])
+
     def save(self):
         self.save_lines()
+        self.save_parsers()
         self.cursor.save(self.version)
         for l in self.parsers:
             parser = l[0]
