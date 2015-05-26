@@ -637,11 +637,18 @@ class NodeEditor(QFrame):
 
     def showLanguageBoxMenu(self):
         self.showSubgrammarMenu()
+        self.create_languagebox()
+
+    def create_languagebox(self):
         if self.sublanguage:
             if self.tm.hasSelection():
                 self.tm.surround_with_languagebox(self.sublanguage)
             else:
                 self.tm.add_languagebox(self.sublanguage)
+
+    def change_languagebox(self):
+        if self.sublanguage:
+            self.tm.change_languagebox(self.sublanguage)
 
     def showCodeCompletion(self):
         l = self.tm.getCompletion()
@@ -689,12 +696,10 @@ class NodeEditor(QFrame):
     def getScrollArea(self):
         return self.parent().parent()
 
-    def showSubgrammarMenu(self):
+    def createSubgrammarMenu(self, menu):
         self.sublanguage = None
         # Create menu
-        menu = QtGui.QMenu( self )
         # Create actions
-        toolbar = QtGui.QToolBar()
         bf = QFont()
         bf.setBold(True)
         valid_langs = []
@@ -703,17 +708,27 @@ class NodeEditor(QFrame):
                 valid_langs.append(l)
         if len(valid_langs) > 0:
             for l in valid_langs:
-                item = toolbar.addAction(str(l), self.createMenuFunction(l))
+                item = QAction(str(l), menu)
+                item.setData(l)
                 self._set_icon(item, l)
                 item.setFont(bf)
                 menu.addAction(item)
             menu.addSeparator()
         for l in languages:
-            item = toolbar.addAction(str(l), self.createMenuFunction(l))
+            item = QAction(str(l), menu)
+            item.setData(l)
             self._set_icon(item, l)
             menu.addAction(item)
+        return menu
+
+    def showSubgrammarMenu(self):
+        menu = QtGui.QMenu("Language", self)
+        self.createSubgrammarMenu(menu)
         x,y = self.cursor_to_coordinate()
-        menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
+        action = menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
+        if action:
+            self.sublanguage = action.data().toPyObject()
+            self.edit_rightnode = True
 
     def _set_icon(self, mitem, lang):
         icon = QIcon.fromTheme("text-x-" + lang.base.lower())

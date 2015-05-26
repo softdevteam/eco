@@ -464,6 +464,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionShow_language_boxes, SIGNAL("triggered()"), self.update_editor)
         self.connect(self.ui.actionShow_namebinding, SIGNAL("triggered()"), self.update_editor)
         self.connect(self.ui.actionShow_indentation, SIGNAL("triggered()"), self.toogle_indentation)
+        self.connect(self.ui.menuChange_language_box, SIGNAL("aboutToShow()"), self.showEditMenu)
 
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
@@ -483,12 +484,74 @@ class Window(QtGui.QMainWindow):
         if not settings.value("gen_showparsestatus", True).toBool():
             self.ui.dockWidget_2.hide()
 
+    def contextMenu(self, pos):
+        menu = QMenu(self)
+
+        # add other contextmenu actions, e.g. copy, paste
+        menu.addAction(self.ui.actionUndo)
+        menu.addAction(self.ui.actionRedo)
+        menu.addSeparator()
+        menu.addAction(self.ui.actionCut)
+        menu.addAction(self.ui.actionCopy)
+        menu.addAction(self.ui.actionPaste)
+        menu.addSeparator()
+        menu.addAction(self.ui.actionFind)
+        menu.addAction(self.ui.actionFind_next)
+        menu.addSeparator()
+
+        # create language box menues
+        changemenu = QMenu("Change languagebox", self)
+        changemenu.setIcon(QtGui.QIcon.fromTheme("reload"))
+        self.getEditor().createSubgrammarMenu(changemenu)
+
+        newmenu = QMenu("Add languagebox", self)
+        newmenu.setIcon(QtGui.QIcon.fromTheme("list-add"))
+        self.getEditor().createSubgrammarMenu(newmenu)
+
+        menu.addMenu(changemenu)
+        menu.addMenu(newmenu)
+        menu.addAction(self.ui.actionSelect_next_language_box)
+        menu.addSeparator()
+        menu.addAction(self.ui.actionCode_complete)
+
+        action = menu.exec_(self.getEditor().mapToGlobal(pos))
+        if not action:
+            return
+
+        self.getEditor().sublanguage = action.data().toPyObject()
+        self.getEditor().edit_rightnode = True
+        if action.parentWidget() is newmenu:
+            self.getEditor().create_languagebox()
+        elif action.parentWidget() is changemenu:
+            self.getEditor().change_languagebox()
+        else:
+            return
+        self.getEditor().update()
+        self.btReparse([])
+
+    def showEditMenu(self):
+        self.ui.menuChange_language_box.clear()
+        if self.getEditor():
+            self.getEditor().createSubgrammarMenu(self.ui.menuChange_language_box)
+            self.ui.menuChange_language_box.update()
+            for a in self.ui.menuChange_language_box.actions():
+                self.connect(a, SIGNAL("triggered()"), self.actionChangeLBoxMenu)
+
+    def actionChangeLBoxMenu(self):
+        action = self.sender()
+        if action:
+            self.getEditor().sublanguage = action.data().toPyObject()
+            self.getEditor().edit_rightnode = True
+            self.getEditor().change_languagebox()
+            self.getEditor().update()
+            self.btReparse([])
+
     def parse_options(self):
         # parse options
         parser = OptionParser(usage="usage: python2.7 %prog FILE [options]")
         parser.add_option("-p", "--preload", action="store_true", default=False, help="Preload grammars")
         parser.add_option("-v", "--verbose", action="store_true", default=False, help="Show output")
-        parser.add_option("-l", "--log", default="WARNING", help="Log level: INFO, WARNING, ERROR [default: %default]")
+        parser.add_option("-l", "--log", default="WARNING", help="Log level: INFO, WARNING, ERROR, DEBUG [default: %default]")
         parser.add_option("-e", "--export", action="store_true", default=False, help="Fast export files. Usage: --export [SOURCE] [DESTINATION]")
         parser.add_option("-f", "--fullexport", action="store_true", default=False, help="Export files. Usage: --fullexport [SOURCE] [DESTINATION]")
         (options, args) = parser.parse_args()
@@ -681,6 +744,8 @@ class Window(QtGui.QMainWindow):
             self.ui.tabWidget.addTab(etab, "[No name]")
             self.ui.tabWidget.setCurrentWidget(etab)
             etab.editor.setFocus(Qt.OtherFocusReason)
+            etab.editor.setContextMenuPolicy(Qt.CustomContextMenu)
+            etab.editor.customContextMenuRequested.connect(self.contextMenu)
             return True
         return False
 

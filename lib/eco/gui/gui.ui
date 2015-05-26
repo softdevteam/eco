@@ -93,6 +93,15 @@
     <property name="title">
      <string>Edit</string>
     </property>
+    <widget class="QMenu" name="menuChange_language_box">
+     <property name="title">
+      <string>Change language box</string>
+     </property>
+     <property name="icon">
+      <iconset theme="reload"/>
+     </property>
+     <addaction name="actionDummy"/>
+    </widget>
     <addaction name="actionUndo"/>
     <addaction name="actionRedo"/>
     <addaction name="separator"/>
@@ -105,6 +114,7 @@
     <addaction name="separator"/>
     <addaction name="actionAdd_language_box"/>
     <addaction name="actionSelect_next_language_box"/>
+    <addaction name="menuChange_language_box"/>
     <addaction name="separator"/>
     <addaction name="actionCode_complete"/>
    </widget>
@@ -512,6 +522,11 @@
    </property>
    <property name="text">
     <string>Show indentation</string>
+   </property>
+  </action>
+  <action name="actionDummy">
+   <property name="text">
+    <string>dummy</string>
    </property>
   </action>
  </widget>

@@ -1082,6 +1082,35 @@ class TreeManager(object):
         self.pasteText(text)
         return
 
+    def change_languagebox(self, language):
+        node = self.cursor.node
+        root = node.get_root()
+        lbox = root.get_magicterminal()
+        if lbox:
+            self.save_current_version()
+            self.delete_parser(root)
+
+            incparser, inclexer = self.get_parser_lexer_for_language(language, True)
+            incparser.previous_version.parent = root
+            self.add_parser(incparser, inclexer, language.name)
+            lbox.symbol.name = "<%s>" % language
+
+            # reparse outer and inner box
+            im = self.get_indentmanager(root)
+            node = root.children[0].next_term
+            while not isinstance(node, EOS):
+                if isinstance(node.symbol, IndentationTerminal):
+                    if not im:
+                        node.parent.remove_child(node)
+                else:
+                    self.relex(node)
+                node = node.next_term
+            if im:
+                im.repair_full()
+            self.post_keypress("")
+            self.reparse(root.children[0], True)
+            self.reparse(lbox, True)
+
     def clean_empty_lbox(self, node):
         root = node.get_root()
         magic = root.get_magicterminal()
