@@ -1026,6 +1026,30 @@ class Test_Languageboxes(Test_Python):
         self.treemanager.deleteSelection()
         assert lbox.symbol.name == "<Prolog>"
 
+    def test_auto_indent(self):
+        self.reset()
+        self.treemanager.add_languagebox(lang_dict["Prolog"])
+        for c in "abc:\r    def":
+            self.treemanager.key_normal(c)
+        self.treemanager.leave_languagebox()
+        self.treemanager.key_normal("\r")
+        self.treemanager.key_normal("a")
+        assert self.treemanager.export_as_text() == "abc:\n    def\na"
+
+    def test_auto_indent2(self):
+        self.reset()
+        self.treemanager.add_languagebox(lang_dict["Prolog"])
+        for c in "abc:\r    def":
+            self.treemanager.key_normal(c)
+        self.treemanager.key_normal("\r")
+        self.treemanager.add_languagebox(lang_dict["Python 2.7.5"])
+        for c in "def x():\r        pass":
+            self.treemanager.key_normal(c)
+        self.treemanager.leave_languagebox()
+        self.treemanager.key_normal("\r")
+        self.treemanager.key_normal("a")
+        assert self.treemanager.export_as_text() == "abc:\n    def\n    def x():\n        pass\n    a"
+
 class Test_Backslash(Test_Python):
 
     def test_parse(self):
@@ -1095,6 +1119,7 @@ class Test_Java:
         for c in "int x = 1;":
             self.treemanager.key_normal(c)
         assert self.parser.last_status == True
+
 class Test_Undo(Test_Python):
 
     def reset(self):

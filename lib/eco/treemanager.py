@@ -877,7 +877,17 @@ class TreeManager(object):
                 bol = im.get_line_start(self.cursor.node)
                 indentation = im.count_whitespace(bol)
             else:
-                indentation = self.get_indentation(self.cursor.line)
+                # if previous line is a language box, don't use its indentation
+                y = self.cursor.line
+                node = self.lines[y].node
+                current_root = self.cursor.node.get_root()
+                while node.get_root() is not current_root:
+                    y -= 1
+                    if y < 0:
+                        y = 0
+                        break
+                    node = self.lines[y].node
+                indentation = self.get_indentation(y)
             if indentation is None:
                 indentation = 0
             text += " " * indentation
