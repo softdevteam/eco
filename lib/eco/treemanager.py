@@ -270,84 +270,6 @@ class Cursor(object):
     def __repr__(self):
         return "Cursor(%s, %s)" % (self.node, self.pos)
 
-class UndoObject(object):
-    def __init__(self, cmd, text, x, line):
-        self.cmd = cmd
-        self.text = text
-        self.x1 = x
-        self.line1 = line
-        self.x2 = len(text)
-        self.line2 = line
-
-    def __repr__(self):
-        return "UndoObject(cmd=%s, text=%s, x1=%s, line1=%s, x2=%s, line2=%s)" % (self.cmd, repr(self.text), self.x1, self.line1, self.x2, self.line2)
-
-class UndoManager(object):
-    def __init__(self):
-        self.stack = []
-        self.pos = -1
-        self.mode = "new"
-
-    def add(self, cmd, text, cursor):
-        if text == " " or str(text).startswith("\r"):
-            self.mode = "new"
-        if self.mode != cmd:
-            del self.stack[self.pos+1:]
-            if cmd == "insert":
-                x = cursor.get_x() - len(text)
-            elif cmd == "delete":
-                x = cursor.get_x() + len(text)
-            self.stack.append(UndoObject(cmd, text, x, cursor.line))
-            self.pos += 1
-            self.mode = cmd
-        else:
-            uo = self.stack[-1]
-            uo.text += text
-            uo.x2 = cursor.get_x()
-            uo.line2 = cursor.line
-        if len(self.stack) > 100: # keep stack small
-            del self.stack[0]
-            self.pos -= 1
-
-    def finish(self):
-        self.mode = "new"
-
-    def undo(self, tm):
-        if len(self.stack) > 0 and self.pos > -1:
-            uo = self.stack[self.pos]
-            f = self.__getattribute__("undo_" + uo.cmd)
-            tm.cursor.line = uo.line2
-            tm.cursor.move_to_x(uo.x2, tm.lines)
-            f(tm, uo.text)
-            self.pos -= 1
-        self.mode = "new"
-
-    def redo(self, tm):
-        if len(self.stack) > 0 and self.pos+1 < len(self.stack):
-            self.pos += 1
-            uo = self.stack[self.pos]
-            f = self.__getattribute__("redo_" + uo.cmd)
-            f(tm, uo)
-
-    def undo_insert(self, tm, text):
-        for i in text:
-            tm.key_backspace(False)
-
-    def redo_insert(self, tm, uo):
-        tm.cursor.line = uo.line1
-        tm.cursor.move_to_x(uo.x1, tm.lines)
-        for c in uo.text:
-            tm.key_normal(c, False)
-
-    def undo_delete(self, tm, text):
-        for c in text[::-1]:
-            tm.key_normal(c, False)
-
-    def redo_delete(self, tm, uo):
-        tm.cursor.line = uo.line1
-        tm.cursor.move_to_x(uo.x1, tm.lines)
-        self.undo_insert(tm, uo.text)
-
 class TreeManager(object):
     version = 1
 
@@ -359,7 +281,6 @@ class TreeManager(object):
         #self.selection_end = Cursor(0,0)
         self.parsers = []           # stores all currently used parsers
         self.edit_rightnode = False # changes which node to select when inbetween two nodes
-        self.undomanager = UndoManager()
         self.changed = False
         self.last_search = ""
         self.version = 1
@@ -862,7 +783,7 @@ class TreeManager(object):
         if shift:
             self.selection_end = self.cursor.copy()
 
-    def key_normal(self, text, undo_mode = True):
+    def key_normal(self, text):
         indentation = 0
 
         if self.hasSelection():
@@ -939,12 +860,10 @@ class TreeManager(object):
         need_reparse |= self.post_keypress(text)
         self.cursor.node = temp
         self.reparse(node, need_reparse)
-        if undo_mode:
-            self.undomanager.add('insert', text, self.cursor.copy())
         self.changed = True
         return indentation
 
-    def key_backspace(self, undo_mode = True):
+    def key_backspace(self):
         node = self.get_selected_node()
         if node is self.mainroot.children[0] and not self.hasSelection():
             return
@@ -956,9 +875,9 @@ class TreeManager(object):
             self.cursor.pos = len(self.cursor.node.symbol.name)
         else:
             self.cursor.left()
-        self.key_delete(undo_mode)
+        self.key_delete()
 
-    def key_delete(self, undo_mode = True):
+    def key_delete(self):
         node = self.get_node_from_cursor()
 
         if self.hasSelection():
@@ -1010,8 +929,6 @@ class TreeManager(object):
         need_reparse |= self.post_keypress("")
         self.cursor.fix()
         self.reparse(repairnode, need_reparse)
-        if undo_mode:
-            self.undomanager.add("delete", self.last_delchar, self.cursor.copy())
         self.changed = True
 
     def key_shift(self):
@@ -1024,7 +941,6 @@ class TreeManager(object):
             node.plain_mode = False
 
     def key_cursors(self, key, mod_shift=False):
-        self.undomanager.finish()
         self.edit_rightnode = False
         self.cursor_movement(key)
         if mod_shift:
