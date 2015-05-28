@@ -743,9 +743,14 @@ class NodeEditor(QFrame):
             self.edit_rightnode = True
 
     def _set_icon(self, mitem, lang):
-        icon = QIcon.fromTheme("text-x-" + lang.base.lower())
+        if lang.base.lower() == "html":
+            icon = QIcon.fromTheme("text-xhtml+xml")
+        else:
+            icon = QIcon.fromTheme("text-x-" + lang.base.lower())
         if icon.isNull():
-            icon = QIcon.fromTheme("text-x-generic")
+            icon = QIcon.fromTheme("application-x-" + lang.base.lower())
+            if icon.isNull():
+                icon = QIcon.fromTheme("text-x-generic")
         mitem.setIcon(icon)
 
     def showCodeCompletionMenu(self, l):

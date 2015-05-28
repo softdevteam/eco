@@ -407,7 +407,10 @@ class LanguageView(QtGui.QDialog):
         for l in newfile_langs:
             item = QListWidgetItem(self.ui.listWidget)
             item.setText(str(l))
-            icon = QIcon.fromTheme("text-x-" + l.base.lower())
+            if l.base.lower() == "html":
+                icon = QIcon.fromTheme("text-html")
+            else:
+                icon = QIcon.fromTheme("text-x-" + l.base.lower())
             if icon.isNull():
                 icon = QIcon.fromTheme("application-x-" + l.base.lower())
                 if icon.isNull():
