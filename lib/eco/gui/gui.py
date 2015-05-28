@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Fri May 22 15:53:46 2015
+# Created: Wed May 27 13:31:19 2015
 #      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -204,6 +204,8 @@ class Ui_MainWindow(object):
         self.actionShow_indentation.setObjectName(_fromUtf8("actionShow_indentation"))
         self.actionDummy = QtGui.QAction(MainWindow)
         self.actionDummy.setObjectName(_fromUtf8("actionDummy"))
+        self.actionInput_log = QtGui.QAction(MainWindow)
+        self.actionInput_log.setObjectName(_fromUtf8("actionInput_log"))
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addSeparator()
@@ -219,6 +221,7 @@ class Ui_MainWindow(object):
         self.menuView.addAction(self.actionParse_Tree)
         self.menuView.addAction(self.actionStateGraph)
         self.menuView.addAction(self.actionPreview)
+        self.menuView.addAction(self.actionInput_log)
         self.menuView.addSeparator()
         self.menuView.addAction(self.actionShow_language_boxes)
         self.menuView.addAction(self.actionShow_namebinding)
@@ -327,4 +330,5 @@ class Ui_MainWindow(object):
         self.actionShow_namebinding.setText(_translate("MainWindow", "Show namebinding", None))
         self.actionShow_indentation.setText(_translate("MainWindow", "Show indentation", None))
         self.actionDummy.setText(_translate("MainWindow", "dummy", None))
+        self.actionInput_log.setText(_translate("MainWindow", "Input log...", None))
 

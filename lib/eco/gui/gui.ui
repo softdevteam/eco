@@ -78,6 +78,7 @@
     <addaction name="actionParse_Tree"/>
     <addaction name="actionStateGraph"/>
     <addaction name="actionPreview"/>
+    <addaction name="actionInput_log"/>
     <addaction name="separator"/>
     <addaction name="actionShow_language_boxes"/>
     <addaction name="actionShow_namebinding"/>
@@ -98,7 +99,9 @@
       <string>Change language box</string>
      </property>
      <property name="icon">
-      <iconset theme="reload"/>
+      <iconset theme="reload">
+       <normaloff/>
+      </iconset>
      </property>
      <addaction name="actionDummy"/>
     </widget>
@@ -527,6 +530,11 @@
   <action name="actionDummy">
    <property name="text">
     <string>dummy</string>
+   </property>
+  </action>
+  <action name="actionInput_log">
+   <property name="text">
+    <string>Input log...</string>
    </property>
   </action>
  </widget>

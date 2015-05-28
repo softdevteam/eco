@@ -42,6 +42,7 @@ from gui.gui import Ui_MainWindow
 from gui.parsetree import Ui_MainWindow as Ui_ParseTree
 from gui.stateview import Ui_MainWindow as Ui_StateView
 from gui.about import Ui_Dialog as Ui_AboutDialog
+from gui.inputlog import Ui_Dialog as Ui_InputLog
 from gui.finddialog import Ui_Dialog as Ui_FindDialog
 from gui.languagedialog import Ui_Dialog as Ui_LanguageDialog
 from gui.settings import Ui_MainWindow as Ui_Settings
@@ -347,6 +348,19 @@ class SettingsView(QtGui.QMainWindow):
     def change_color(self, widget, color):
         widget.setStyleSheet("background-color: %s" % (color))
 
+class InputLogView(QtGui.QDialog):
+    def __init__(self):
+        QtGui.QDialog.__init__(self)
+        self.ui = Ui_InputLog()
+        self.ui.setupUi(self)
+
+        self.connect(self.ui.pushButton, SIGNAL("pressed()"), self.apply_log)
+
+    def apply_log(self):
+        log = self.ui.textEdit_2.toPlainText()
+        self.tm.apply_inputlog(str(log))
+        self.accept()
+
 class AboutView(QtGui.QDialog):
     def __init__(self):
         QtGui.QDialog.__init__(self)
@@ -465,6 +479,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionShow_namebinding, SIGNAL("triggered()"), self.update_editor)
         self.connect(self.ui.actionShow_indentation, SIGNAL("triggered()"), self.toogle_indentation)
         self.connect(self.ui.menuChange_language_box, SIGNAL("aboutToShow()"), self.showEditMenu)
+        self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
 
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
@@ -702,6 +717,13 @@ class Window(QtGui.QMainWindow):
         text = QApplication.clipboard().text()
         self.getEditor().tm.pasteText(text)
         self.getEditor().update()
+
+    def show_input_log(self):
+        if self.getEditor():
+            v = InputLogView()
+            v.tm = self.getEditor().tm
+            v.ui.textEdit.setText("\n".join(self.getEditor().tm.input_log))
+            v.exec_()
 
     def showAboutView(self):
         about = AboutView()

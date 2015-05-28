@@ -487,10 +487,13 @@ class NodeEditor(QFrame):
 
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
+            self.tm.input_log.append("# mousePressEvent")
             self.coordinate_to_cursor(e.x(), e.y())
            # self.tm.cursor = cursor
             self.tm.selection_start = self.tm.cursor.copy()
             self.tm.selection_end = self.tm.cursor.copy()
+            self.tm.input_log.append("self.selection_start = self.cursor.copy()")
+            self.tm.input_log.append("self.selection_end = self.cursor.copy()")
             #self.tm.fix_cursor_on_image()
             self.getWindow().showLookahead()
             self.update()
@@ -551,6 +554,9 @@ class NodeEditor(QFrame):
         cursor_x = int(round(float(x) / self.fontwt))
         self.tm.cursor.move_to_x(cursor_x, self.tm.lines)
 
+        self.tm.input_log.append("self.cursor.line = %s" % str(line))
+        self.tm.log_input("cursor.move_to_x", str(cursor_x), "self.lines")
+
         if mouse_y > y or self.tm.cursor.get_x() != cursor_x:
             return False
         return True
@@ -558,8 +564,14 @@ class NodeEditor(QFrame):
     def mouseMoveEvent(self, e):
         # apparaently this is only called when a mouse button is clicked while
         # the mouse is moving
+        if self.tm.input_log[-2].startswith("self.cursor.move_to_x"):
+            # only log the last move event
+            self.tm.input_log.pop()
+            self.tm.input_log.pop()
+            self.tm.input_log.pop()
         self.coordinate_to_cursor(e.x(), e.y())
         self.tm.selection_end = self.tm.cursor.copy()
+        self.tm.input_log.append("self.selection_end = self.cursor.copy()")
         self.update()
 
     def key_to_string(self, key):

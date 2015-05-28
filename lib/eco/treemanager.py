@@ -290,6 +290,11 @@ class TreeManager(object):
         self.saved_lines = {}
         self.saved_parsers = {}
 
+        self.input_log = []
+
+    def log_input(self, method, *args):
+        self.input_log.append("self.%s(%s)" % (method, ", ".join(args)))
+
     def set_font_test(self, width, height):
         # only needed for testing
         self.fontht = height
@@ -355,6 +360,7 @@ class TreeManager(object):
             lboxnode.symbol.ast = self.mainroot
             self.main_lbox = lboxnode
             self.save()
+            self.input_log.append("# Main language: %s" % language)
 
     def load_analyser(self, language):
         try:
@@ -516,6 +522,7 @@ class TreeManager(object):
         return lrp.get_next_symbols_list(selected_node.state)
 
     def find_next(self):
+        self.log_input("find_next")
         if self.last_search != "":
             self.find_text(self.last_search)
 
@@ -595,6 +602,7 @@ class TreeManager(object):
     # ============================ MODIFICATIONS ============================= #
 
     def key_shift_ctrl_z(self):
+        self.log_input("key_shift_ctrl_z")
         if self.get_max_version() > self.version:
             self.version += 1
             TreeManager.version = self.version
@@ -609,6 +617,7 @@ class TreeManager(object):
         return maxversion
 
     def key_ctrl_z(self):
+        self.log_input("key_ctrl_z")
         if self.mainroot.has_changes() and self.version == self.get_max_version():
             # if there are unsaved changes, save before undo so we can redo them again
             self.save_current_version()
@@ -767,6 +776,7 @@ class TreeManager(object):
                 node = self.pop_lookahead(node)
 
     def key_home(self, shift=False):
+        self.log_input("key_home", str(shift))
         self.unselect()
         self.cursor.node = self.lines[self.cursor.line].node
         self.cursor.pos = len(self.cursor.node.symbol.name)
@@ -774,6 +784,7 @@ class TreeManager(object):
             self.selection_end = self.cursor.copy()
 
     def key_end(self, shift=False):
+        self.log_input("key_end", str(shift))
         self.unselect()
         if self.cursor.line < len(self.lines)-1:
             self.cursor.node = self.cursor.find_previous_visible(self.lines[self.cursor.line+1].node)
@@ -784,10 +795,13 @@ class TreeManager(object):
             self.selection_end = self.cursor.copy()
 
     def key_normal(self, text):
+        self.log_input("key_normal", repr(str(text)))
         indentation = 0
 
         if self.hasSelection():
             self.deleteSelection()
+            self.input_log.pop()
+            self.input_log.pop()
 
         edited_node = self.cursor.node
 
@@ -864,6 +878,7 @@ class TreeManager(object):
         return indentation
 
     def key_backspace(self):
+        self.log_input("key_backspace")
         node = self.get_selected_node()
         if node is self.mainroot.children[0] and not self.hasSelection():
             return
@@ -876,8 +891,10 @@ class TreeManager(object):
         else:
             self.cursor.left()
         self.key_delete()
+        self.input_log.pop()
 
     def key_delete(self):
+        self.log_input("key_delete")
         node = self.get_node_from_cursor()
 
         if self.hasSelection():
@@ -932,15 +949,18 @@ class TreeManager(object):
         self.changed = True
 
     def key_shift(self):
+        self.log_input("key_shift")
         self.selection_start = self.cursor.copy()
         self.selection_end = self.cursor.copy()
 
     def key_escape(self):
+        self.log_input("key_escape")
         node = self.get_selected_node()
         if node.plain_mode:
             node.plain_mode = False
 
     def key_cursors(self, key, mod_shift=False):
+        self.log_input("key_cursors", repr(key), str(mod_shift))
         self.edit_rightnode = False
         self.cursor_movement(key)
         if mod_shift:
@@ -949,6 +969,7 @@ class TreeManager(object):
             self.unselect()
 
     def ctrl_cursor(self, key):
+        self.log_input("key_escape", repr(key))
         if key == "left":
             self.cursor.jump_left()
         if key == "right":
@@ -959,6 +980,10 @@ class TreeManager(object):
             self.selection_end = self.cursor.copy()
 
     def add_languagebox(self, language):
+        if isinstance(language, str):
+            # coming from apply_inputlog
+            language = lang_dict[language]
+        self.log_input("add_languagebox", repr(language.name))
         node = self.get_node_from_cursor()
         newnode = self.create_languagebox(language)
         root = self.cursor.node.get_root()
@@ -985,6 +1010,7 @@ class TreeManager(object):
         self.changed = True
 
     def leave_languagebox(self):
+        self.log_input("leave_languagebox")
         if isinstance(self.cursor.node.next_term.symbol, MagicTerminal) and self.cursor.isend():
             self.cursor.node = self.cursor.node.next_term.symbol.ast.children[0]
             self.cursor.pos = 0
@@ -1009,6 +1035,7 @@ class TreeManager(object):
         return lbox
 
     def surround_with_languagebox(self, language):
+        self.log_input("surround_with_languagebox", repr(language.name))
         #XXX if partly selected node, need to split it
         nodes, _, _ = self.get_nodes_from_selection()
         appendnode = nodes[0].prev_term
@@ -1018,9 +1045,13 @@ class TreeManager(object):
         self.deleteSelection()
         self.add_languagebox(language)
         self.pasteText(text)
+        self.input_log.pop()
+        self.input_log.pop()
+        self.input_log.pop()
         return
 
     def change_languagebox(self, language):
+        self.log_input("change_languagebox", repr(language.name))
         node = self.cursor.node
         root = node.get_root()
         lbox = root.get_magicterminal()
@@ -1090,6 +1121,7 @@ class TreeManager(object):
         return changed
 
     def copySelection(self):
+        self.log_input("copySelection")
         result = self.get_nodes_from_selection()
         if not result:
             return None
@@ -1115,6 +1147,7 @@ class TreeManager(object):
         return "".join(text)
 
     def pasteCompletion(self, text):
+        self.log_input("pasteCompletion", repr(text))
         node = self.cursor.node
         if text.startswith(node.symbol.name):
             node.symbol.name = text
@@ -1123,6 +1156,7 @@ class TreeManager(object):
             self.pasteText(text)
 
     def pasteText(self, text):
+        self.log_input("pasteText", repr(str(text)))
         oldpos = self.cursor.get_x()
         node = self.get_node_from_cursor()
         next_node = node.next_term
@@ -1161,8 +1195,10 @@ class TreeManager(object):
         self.changed = True
 
     def cutSelection(self):
+        self.log_input("cutSelection")
         if self.hasSelection():
             text = self.copySelection()
+            self.input_log.pop()
             self.deleteSelection()
             self.changed = True
             return text
@@ -1280,6 +1316,7 @@ class TreeManager(object):
     # ============================ FILE OPERATIONS ============================= #
 
     def import_file(self, text):
+        self.log_input("import_file", repr(text))
         TreeManager.version = 0
         self.version = 0
         # init
@@ -1508,6 +1545,7 @@ class TreeManager(object):
         TreeManager.version = self.version
 
     def save_current_version(self):
+        self.log_input("save_current_version")
         self.version += 1
         self.save()
         TreeManager.version = self.version
@@ -1515,3 +1553,13 @@ class TreeManager(object):
     def full_reparse(self):
         for p in self.parsers:
             p[0].reparse()
+
+    def apply_inputlog(self, inputlog):
+        for l in inputlog.split("\n"):
+            l = l.replace("\r", "\\r")
+            if l.startswith("#"):
+                continue
+            try:
+                eval(l) # expressions
+            except SyntaxError:
+                exec(l) # statements
