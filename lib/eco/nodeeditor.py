@@ -708,9 +708,19 @@ class NodeEditor(QFrame):
     def getScrollArea(self):
         return self.parent().parent()
 
-    def createSubgrammarMenu(self, menu):
+    def createSubgrammarMenu(self, menu, change=False):
         self.sublanguage = None
-        # Create menu
+
+        tmp = None
+        if change:
+            # try and find lbox and set cursor to previous node before getting
+            # lookahead list
+            root = self.tm.cursor.node.get_root()
+            lbox = root.get_magicterminal()
+            if lbox:
+                tmp = self.tm.cursor.node
+                self.tm.cursor.node = lbox.prev_term
+
         # Create actions
         bf = QFont()
         bf.setBold(True)
@@ -718,6 +728,10 @@ class NodeEditor(QFrame):
         for l in languages:
             if "<%s>" % l in self.tm.getLookaheadList():
                 valid_langs.append(l)
+
+        if tmp:
+            # undo cursor change
+            self.tm.cursor.node = tmp
         if len(valid_langs) > 0:
             for l in valid_langs:
                 item = QAction(str(l), menu)

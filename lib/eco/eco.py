@@ -520,7 +520,7 @@ class Window(QtGui.QMainWindow):
         # create language box menues
         changemenu = QMenu("Change languagebox", self)
         changemenu.setIcon(QtGui.QIcon.fromTheme("reload"))
-        self.getEditor().createSubgrammarMenu(changemenu)
+        self.getEditor().createSubgrammarMenu(changemenu, change=True)
 
         newmenu = QMenu("Add languagebox", self)
         newmenu.setIcon(QtGui.QIcon.fromTheme("list-add"))
