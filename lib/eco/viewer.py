@@ -153,8 +153,11 @@ class Viewer(object):
         self.countnodes += 1
         if node.changed:
             dotnode.set('color','green')
-        if node.has_changes(version):
-            dotnode.set('color','blue')
+        try:
+            if node.has_changes(version):
+                dotnode.set('color','blue')
+        except AttributeError:
+            pass
         dotnode.set('fontsize', '8')
         dotnode.set('fontname', 'Arial')
         graph.add_node(dotnode)

@@ -199,7 +199,7 @@ class ParseView(QtGui.QMainWindow):
             elif self.ui.rb_view_linetree.isChecked():
                 self.viewer.get_terminal_tree(editor.tm.main_lbox)
             elif self.ui.rb_view_ast.isChecked():
-                self.viewer.get_tree_image(editor.tm.main_lbox, [], whitespaces, ast=True)
+                self.viewer.get_tree_image(editor.tm.main_lbox, [], whitespaces, version=int(self.ui.comboBox.currentText()), ast=True)
             self.showImage(self.ui.graphicsView, self.viewer.image)
 
     def showImage(self, graphicsview, imagefile):
