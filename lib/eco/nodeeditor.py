@@ -67,6 +67,11 @@ class NodeEditor(QFrame):
         self.undotimer = QTimer(self)
         self.connect(self.undotimer, SIGNAL("timeout()"), self.trigger_undotimer)
 
+        self.blinktimer = QTimer(self)
+        self.blinktimer.start(500)
+        self.connect(self.blinktimer, SIGNAL("timeout()"), self.trigger_blinktimer)
+        self.show_cursor = True
+
         self.lightcolors = [QColor("#333333"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
         self.darkcolors = [QColor("#999999"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
         self.setCursor(Qt.IBeamCursor)
@@ -86,6 +91,13 @@ class NodeEditor(QFrame):
         filename = self.getEditorTab().filename
         if filename:
             self.saveToJson(filename + ".bak", True)
+
+    def trigger_blinktimer(self):
+        if self.timer.isActive():
+            self.show_cursor = True
+            return
+        self.show_cursor ^= True
+        self.update()
 
     def trigger_undotimer(self):
         self.tm.save_current_version()
@@ -359,7 +371,7 @@ class NodeEditor(QFrame):
                 self.lines[line].height = 1 # reset height
 
             # draw cursor
-            if node is self.cursor.node:
+            if node is self.cursor.node and self.show_cursor:
                 draw_x = max(0, x-dx)
                 cursor_pos = self.cursor.pos
 
@@ -588,15 +600,12 @@ class NodeEditor(QFrame):
 
         startundotimer = False
         self.timer.start(500)
+        self.show_cursor = True
 
         if e.key() in [Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Control, Qt.Key_Meta, Qt.Key_AltGr]:
             if e.key() == Qt.Key_Shift:
                 self.tm.key_shift()
             return
-
-        self.timer.start(500)
-
-        #selected_node, inbetween, x = self.tm.get_nodes_from_cursor()
 
         text = e.text()
 
