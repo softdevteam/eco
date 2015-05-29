@@ -30,6 +30,7 @@ BODY_FONT_SIZE = 9
 from treemanager import TreeManager, Cursor
 from grammars.grammars import submenu_langs as languages, lang_dict
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
+from grammar_parser.bootstrap import ListNode, AstNode
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from jsonmanager import JsonManager
 from astanalyser import AstAnalyser
@@ -788,8 +789,13 @@ class NodeEditor(QFrame):
             if n.vartype:
                 vartype = n.vartype
                 while vartype.children != []:
-                    vartype = vartype.children[0]
+                    try:
+                        vartype = vartype.children[0]
+                    except KeyError:
+                        vartype = vartype.children["name"]
                 text = "%s : %s - %s (%s)" % (n.name, vartype.symbol.name, ".".join(path), n.kind)
+            elif n.kind == "method":
+                text = self.cc_method(n) + " - %s" % (".".join(path))
             else:
                 text = "%s - %s (%s)" % (n.name, ".".join(path), n.kind)
             item = toolbar.addAction(text, self.createCCFunc(n.name))
@@ -797,6 +803,23 @@ class NodeEditor(QFrame):
             menu.addAction(item)
         x,y = self.cursor_to_coordinate()
         menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
+
+    def cc_method(self, n):
+        s = [n.name, "("]
+        param_ln = n.astnode.children["params"]
+        if isinstance(param_ln, ListNode):
+            for p in param_ln.children:
+                tmp = p.children["type"]
+                if isinstance(tmp, AstNode):
+                    s.append(tmp.children["name"].symbol.name)
+                else:
+                    s.append(tmp.symbol.name)
+                s.append(" ")
+                s.append(p.children["name"].symbol.name)
+                if p != param_ln.children[-1]:
+                    s.append(", ")
+        s.append(")")
+        return "".join(s)
 
     def createMenuFunction(self, l):
         def action():
