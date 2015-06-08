@@ -171,23 +171,26 @@ class IncParser(object):
                 else:
                     if not isinstance(la.symbol, FinishSymbol):
                         # check if ANYSYMBOL is allowed
-                        r = self.syntaxtable.lookup(self.current_state, AnySymbol())
-                        if r:
-                            # check if symbol is finishing symbol
-                            r2 = self.syntaxtable.lookup(r.action, Terminal(la.lookup))
-                            if r2:
-                                logging.debug("AnySymbol: end %s" % (la))
-                                self.current_state = r.action # switch to state after ANY and continue parsing normally
-                                logging.debug("AnySymbol: set state to %s", self.current_state)
-                                self.anycount[la] = anycount
-                                anycount = 0
+                        result, symbol = self.parse_anysymbol()
+                        if result:
+                            if la.lookup == "<return>" and symbol.name == "@ncr":
+                                pass # continue parsing normally, which will lead to a parsing error
                             else:
-                                logging.debug("AnySymbol: push %s" % (la))
-                                la.state = self.current_state # this node is now part of this comment state (needed to unvalidating)
-                                self.stack.append(la)
-                                anycount += 1
-                                la = self.pop_lookahead(la)
-                                continue
+                                # check if symbol is finishing symbol
+                                r2 = self.syntaxtable.lookup(result.action, Terminal(la.lookup))
+                                if r2:
+                                    logging.debug("AnySymbol: end %s" % (la))
+                                    self.current_state = result.action # switch to state after ANY and continue parsing normally
+                                    logging.debug("AnySymbol: set state to %s", self.current_state)
+                                    self.anycount[la] = anycount # store amount of pushed elements on last symbol
+                                    anycount = 0
+                                else:
+                                    logging.debug("AnySymbol: push %s" % (la))
+                                    la.state = self.current_state # this node is now part of this comment state (needed to unvalidating)
+                                    self.stack.append(la)
+                                    anycount += 1
+                                    la = self.pop_lookahead(la)
+                                    continue
                     if la.lookup == "XXXcmt_start":
                         # when we find a cmt_start token, we enter comment mode
                         self.comment_mode = True
@@ -295,6 +298,14 @@ class IncParser(object):
                 stack.append(la)
                 la = self.pop_lookahead(la)
                 continue
+
+    def parse_anysymbol(self):
+        symbol = AnySymbol()
+        result = self.syntaxtable.lookup(self.current_state, symbol)
+        if not result:
+            symbol = AnySymbol("@ncr")
+            result = self.syntaxtable.lookup(self.current_state, symbol)
+        return result, symbol
 
     def parse_terminal(self, la, lookup_symbol):
         if isinstance(lookup_symbol, IndentationTerminal):

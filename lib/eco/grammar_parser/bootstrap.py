@@ -252,6 +252,8 @@ class BootstrapParser(object):
             return MagicTerminal(node.symbol.name)
         elif node.lookup == "ANY":
             return AnySymbol()
+        elif node.lookup == "ANYNCR":
+            return AnySymbol("@ncr")
 
     def parse_annotation(self, node):
         a_options = node.children[2]

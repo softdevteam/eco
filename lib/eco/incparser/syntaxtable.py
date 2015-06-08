@@ -54,10 +54,11 @@ class Shift(SyntaxTableElement): pass
 class Reduce(SyntaxTableElement):
     def __init__(self, action):
         self.action = action
-        if AnySymbol() in self.action.right:
-            self.anysymbol = 1
-        else:
-            self.anysymbol = 0
+        self.anysymbol = 0
+        for s in self.action.right:
+            if isinstance(s, AnySymbol):
+                self.anysymbol = 1
+                break
 
     def amount(self):
         if not hasattr(self, 'anysymbol'):
