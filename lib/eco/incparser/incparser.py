@@ -242,6 +242,7 @@ class IncParser(object):
             logging.debug ("Accept")
             return "Accept"
         elif isinstance(element, Shift):
+            self.validating = False
             logging.debug("Shift: %s -> %s", la, element.action)
             # removing this makes "Valid tokens" correct, should not be needed
             # for incremental parser
