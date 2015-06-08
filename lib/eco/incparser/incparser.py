@@ -128,7 +128,6 @@ class IncParser(object):
         bos = self.previous_version.parent.children[0]
         la = self.pop_lookahead(bos)
         self.loopcount = 0
-        self.comment_mode = False
         self.anycount = {}
         anycount = 0
 
@@ -136,35 +135,6 @@ class IncParser(object):
 
         while(True):
             self.loopcount += 1
-            if self.comment_mode:
-                if la.lookup == "XXXcmt_end":
-                    # in comment mode we just add all subtrees as they are to a
-                    # subtree COMMENT subtrees that have changes are broken
-                    # apart, e.g. to be able to find an inserted */ the CMT
-                    # subtree is then added to the parsers stack without
-                    # changing its state when the parser later reduces stack
-                    # elements to a new subtree, CMT subtrees are added as
-                    # children
-                    next_la = self.pop_lookahead(la)
-                    self.comment_mode = False
-                    comment_stack.append(la)
-                    CMT = Node(Nonterminal("~COMMENT~"))
-                    for c in comment_stack:
-                        self.undo.append((c, 'parent', c.parent))
-                        self.undo.append((c, 'left', c.left))
-                        self.undo.append((c, 'right', c.right))
-                    CMT.set_children(comment_stack)
-                    CMT.state = self.current_state
-                    self.stack.append(CMT)
-                    la = next_la
-                    continue
-                if isinstance(la, EOS):
-                    self.comment_mode = False
-                    self.do_undo(la)
-                    self.last_status = False
-                    return False
-                la = self.add_to_stack(la, comment_stack)
-                continue
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
                 if la.changed:#self.has_changed(la):
                     assert False # with prelexing you should never end up here!
@@ -191,32 +161,6 @@ class IncParser(object):
                                     anycount += 1
                                     la = self.pop_lookahead(la)
                                     continue
-                    if la.lookup == "XXXcmt_start":
-                        # when we find a cmt_start token, we enter comment mode
-                        self.comment_mode = True
-                        comment_stack = []
-                        comment_stack.append(la)
-                        # since unchanged subtrees are left untouched, we
-                        # wouldn't find a cmt_end if it is part of another
-                        # comment, e.g. /* foo /* bar */ to be able to merge
-                        # two comment together, we need to find the next
-                        # cmt_end and mark its subtree as changed
-                        end = la
-                        # XXX configure these through the grammar, e.g. Java
-                        # needs /*@*/, Python """@""" (@ means, match anything)
-                        while True:
-                            end = end.next_term
-                            if isinstance(end, EOS):
-                                break
-                            if end.symbol.name.find("*/") > 0:
-                                # split token
-                                self.lexer.split_endcomment(end)
-                                break
-                            if end.lookup == "cmt_end":
-                                end.mark_changed()
-                                break
-                        la = self.pop_lookahead(la)
-                        continue
                     if la.lookup != "":
                         lookup_symbol = Terminal(la.lookup)
                     else:
@@ -277,27 +221,6 @@ class IncParser(object):
                         else:
                             la = self.left_breakdown(la)
         logging.debug("============ INCREMENTAL PARSE END ================= ")
-
-    def add_to_stack(self, la, stack):
-        # comment helper that adds elements to the comment stack and if la is a
-        # subtree with changes, recursively break it apart and adds its
-        # children
-
-        while True:
-            if isinstance(la.symbol, Terminal) and la.lookup == "cmt_end":
-                return la
-            if isinstance(la, EOS):
-                return la
-            if la.changed:
-                if la.children:
-                    la = la.children[0]
-                else:
-                    la = self.pop_lookahead(la)
-                continue
-            else:
-                stack.append(la)
-                la = self.pop_lookahead(la)
-                continue
 
     def parse_anysymbol(self):
         symbol = AnySymbol()
