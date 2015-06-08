@@ -149,6 +149,7 @@ class Viewer(object):
                 label.append(str(node.lookup))
         label = "%s" % ("".join(label))
         label = label.replace("\"", "\\\"")
+        label = label.replace("\\\\\"", "\\\\\\\"")
         dotnode = pydot.Node("\"%s\"" % id(node), label='"%s"' % label)
         self.countnodes += 1
         if node.changed:
