@@ -81,6 +81,8 @@ class IncParser(object):
         self.error_node = None
         self.whitespaces = whitespaces
         self.anycount = {}
+        self.status_by_version = {}
+        self.errornode_by_version = {}
 
         self.previous_version = None
         logging.debug("Incemental parser done")
@@ -114,6 +116,9 @@ class IncParser(object):
         eos.prev_term = bos
         root = Node(Nonterminal("Root"), 0, [bos, eos])
         self.previous_version = AST(root)
+        root.save(0)
+        bos.save(0)
+        eos.save(0)
 
     def reparse(self):
         self.inc_parse([], True)
@@ -161,11 +166,7 @@ class IncParser(object):
                                     anycount += 1
                                     la = self.pop_lookahead(la)
                                     continue
-                    if la.lookup != "":
-                        lookup_symbol = Terminal(la.lookup)
-                    else:
-                        lookup_symbol = la.symbol
-
+                    lookup_symbol = self.get_lookup(la)
                     result = self.parse_terminal(la, lookup_symbol)
                     if result == "Accept":
                         self.last_status = True
@@ -185,7 +186,7 @@ class IncParser(object):
                     if USE_OPT:
                         goto = self.syntaxtable.lookup(self.current_state, la.symbol)
                         if goto: # can we shift this Nonterminal in the current state?
-                            logging.debug("USE_POT: %s (validating = True)", la.symbol)
+                            logging.debug("OPTShift: %s in state %s -> %s", la.symbol, self.current_state, goto)
                             follow_id = goto.action
                             self.stack.append(la)
                             la.state = follow_id #XXX this fixed goto error (i should think about storing the states on the stack instead of inside the elements)
@@ -197,10 +198,8 @@ class IncParser(object):
                         else:
                             #XXX can be made faster by providing more information in syntax tables
                             first_term = la.find_first_terminal()
-                            if first_term.lookup != "":
-                                lookup_symbol = Terminal(first_term.lookup)
-                            else:
-                                lookup_symbol = first_term.symbol
+
+                            lookup_symbol = self.get_lookup(first_term)
                             element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
                             if isinstance(element, Reduce):
                                 self.reduce(element)
@@ -215,7 +214,8 @@ class IncParser(object):
                         element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
 
                         if self.shiftable(la):
-                            self.shift(la)
+                            self.stack.append(la)
+                            self.current_state = la.state
                             self.right_breakdown()
                             la = self.pop_lookahead(la)
                         else:
@@ -231,11 +231,8 @@ class IncParser(object):
         return result, symbol
 
     def parse_terminal(self, la, lookup_symbol):
-        if isinstance(lookup_symbol, IndentationTerminal):
-            #XXX hack: change parsing table to accept IndentationTerminals
-            lookup_symbol = Terminal(lookup_symbol.name)
         element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
-        logging.debug("parse_terminal: %s %s -> %s" % (self.current_state, lookup_symbol, element))
+        logging.debug("parse_terminal: %s in %s -> %s", lookup_symbol, self.current_state, element)
         if isinstance(element, Accept):
             #XXX change parse so that stack is [bos, startsymbol, eos]
             bos = self.previous_version.parent.children[0]
@@ -260,7 +257,7 @@ class IncParser(object):
             return self.pop_lookahead(la)
 
         elif isinstance(element, Reduce):
-            logging.debug("Reduce: %s -> %s", la, element.action)
+            logging.debug("Reduce: %s -> %s", la, element)
             self.reduce(element)
             return self.parse_terminal(la, lookup_symbol)
         elif element is None:
@@ -272,6 +269,16 @@ class IncParser(object):
                 self.validating = False
             else:
                 return self.do_undo(la)
+
+    def get_lookup(self, la):
+        if la.lookup != "":
+            lookup_symbol = Terminal(la.lookup)
+        else:
+            lookup_symbol = la.symbol
+        if isinstance(lookup_symbol, IndentationTerminal):
+            #XXX hack: change parsing table to accept IndentationTerminals
+            lookup_symbol = Terminal(lookup_symbol.name)
+        return lookup_symbol
 
     def do_undo(self, la):
         while len(self.undo) > 0:
@@ -304,6 +311,7 @@ class IncParser(object):
         if self.stack[-1].symbol.name == "~COMMENT~":
             c = self.stack.pop()
             children.insert(0, c)
+        logging.debug("   Element on stack: %s(%s)", self.stack[-1].symbol, self.stack[-1].state)
         self.current_state = self.stack[-1].state #XXX don't store on nodes, but on stack
         logging.debug("Reduce: set state to %s (%s)", self.current_state, self.stack[-1].symbol)
 
@@ -319,6 +327,7 @@ class IncParser(object):
             self.undo.append((c, 'right', c.right))
 
         new_node = Node(element.action.left.copy(), goto.action, children)
+        logging.debug("   Add %s to stack and goto state %s", new_node.symbol, new_node.state)
         self.stack.append(new_node)
         self.current_state = new_node.state # = goto.action
         logging.debug("Reduce: set state to %s (%s)", self.current_state, new_node.symbol)
@@ -375,14 +384,35 @@ class IncParser(object):
 
     def right_breakdown(self):
         node = self.stack.pop()
+        self.current_state = self.stack[-1].state
+        logging.debug("right breakdown: set state to %s", self.current_state)
         while(isinstance(node.symbol, Nonterminal)):
             for c in node.children:
                 self.shift(c)
             node = self.stack.pop()
+            # after undoing an optimistic shift (through pop) we need to revert
+            # back to the state before the shift (which can be found on the top
+            # of the stack after the "pop"
+            if isinstance(node.symbol, FinishSymbol):
+                # if we reached the end of the stack, reset to state 0 and push
+                # FinishSymbol pack onto the stack
+                self.current_state = 0
+                self.stack.append(node)
+                return
+            else:
+                self.current_state = self.stack[-1].state
         self.shift(node)
 
     def shift(self, la):
+        # after the breakdown, we need to properly shift the left over terminal
+        # using the (correct) current state from before the optimistic shift of
+        # it's parent tree
+        lookup_symbol = self.get_lookup(la)
+        element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
+        logging.debug("RBShift: la: %s state: %s element: %s", la, la.state, element)
+        la.state = element.action
         self.stack.append(la)
+        logging.debug("RBShift: set state to %s", la.state)
         self.current_state = la.state
 
     def pop_lookahead(self, la):
@@ -455,3 +485,17 @@ class IncParser(object):
         self.error_node = None
         self.previous_version = None
         self.init_ast()
+
+    def load_status(self, version):
+        try:
+            self.last_status = self.status_by_version[version]
+        except KeyError:
+            logging.warning("Could not find status for version %s", version)
+        try:
+            self.error_node = self.errornode_by_version[version]
+        except KeyError:
+            logging.warning("Could not find errornode for version %s", version)
+
+    def save_status(self, version):
+        self.status_by_version[version] = self.last_status
+        self.errornode_by_version[version] = self.error_node

@@ -164,39 +164,109 @@ class Node(object):
         self.next_term = None
         self.magic_parent = None
         self.set_children(children)
+        self.log = {}
+
+    def save_ns(self, setchildren=False):
+        from treemanager import TreeManager
+        self.log[("ns", TreeManager.version)] = True
 
     def mark_changed(self):
         node = self
-        #node.changed = True
-        while node.parent and node.parent.changed is False:
+        while True:
+            node.needs_saving = True
+            node.save_ns()
+            node.version = node.version + 0.000001
+            if not node.parent:
+                # if language box changed we need to update the version numbers
+                # in the parent parser as well
+                if node.get_magicterminal():
+                    node.get_magicterminal().mark_version()
+                break
+            if node.parent.changed is True and node.parent.has_changes() is True:
+                break
             node = node.parent
             node.changed = True
+
+    def mark_version(self):
+        node = self
+        while True:
+            node.needs_saving = True
+            node.save_ns()
+            node.version = node.version + 0.000001
+            if not node.parent:
+                if node.get_magicterminal():
+                    node.get_magicterminal().mark_version()
+                break
+            if node.parent.has_changes() is True:
+                break
+            node = node.parent
 
     def set_children(self, children):
         self.children = children
         last = None
         for c in children:
+            if c.parent:
+                c.parent.save_ns() # mark parent changed
             c.parent = self
             c.left = last
             if last is not None:
                 last.right = c
             last = c
+            c.needs_saving = True
+            c.save_ns(True)
         if last is not None:
             last.right = None # last child has no right sibling
+            #XXX need to save this?
+
+    def save(self, version):
+        self.log[("children", version)] = list(self.children)
+        self.log[("parent", version)] = self.parent
+        self.log[("left", version)] = self.left
+        self.log[("right", version)] = self.right
+        self.log[("next_term", version)] = self.next_term
+        self.log[("prev_term", version)] = self.prev_term
+        self.log[("deleted", version)] = self.deleted
+        self.version = version
+        self.needs_saving = False
+
+    def load(self, version):
+        while version >= 0:
+            if ("parent", version) in self.log:
+                self.parent = self.log[("parent", version)]
+                self.children = list(self.log[("children", version)])
+                self.left = self.log[("left", version)]
+                self.right = self.log[("right", version)]
+                self.next_term = self.log[("next_term", version)]
+                self.prev_term = self.log[("prev_term", version)]
+                self.deleted = self.log[("deleted", version)]
+                self.version = version
+                return
+            version -= 1
 
     def remove_child(self, child):
         for i in xrange(len(self.children)):
             if self.children[i] is child:
                 removed_child = self.children.pop(i)
                 removed_child.deleted = True
+                removed_child.save_ns()
                 # update siblings
                 if removed_child.left:
                     removed_child.left.right = removed_child.right
+                    removed_child.left.needs_saving = True
+                    removed_child.left.save_ns()
                 if removed_child.right:
                     removed_child.right.left = removed_child.left
+                    removed_child.right.needs_saving = True
+                    removed_child.right.save_ns()
                 # update terminal pointers
                 child.prev_term.next_term = child.next_term
+                child.prev_term.needs_saving = True
+                child.prev_term.save_ns()
+                child.prev_term.mark_version()
                 child.next_term.prev_term = child.prev_term
+                child.next_term.needs_saving = True
+                child.next_term.save_ns()
+                child.next_term.mark_version()
                 self.mark_changed()
                 self.changed = True
                 return
@@ -215,11 +285,17 @@ class Node(object):
                 newnode.left = c
                 newnode.right = c.right
                 c.right = newnode
+                c.needs_saving = True
+                c.save_ns()
                 if newnode.right:
                     newnode.right.left = newnode
+                    newnode.right.save_ns()
                 # update terminal pointers
                 newnode.prev_term = node
                 node.next_term.prev_term = newnode
+                node.next_term.needs_saving = True
+                node.next_term.save_ns()
+                node.next_term.mark_version()
                 newnode.next_term = node.next_term
                 node.next_term = newnode
                 newnode.magic_parent = node.magic_parent
@@ -355,24 +431,21 @@ uppercase = set(list(string.ascii_uppercase))
 digits = set(list(string.digits))
 
 class TextNode(Node):
-    __slots__ = ["pos", "position", "changed", "seen", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "regex", "text", "lookup", "priority", "parent_lbox", "magic_backpointer"]
+    __slots__ = ["log", "version", "position", "changed", "needs_saving", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookup", "parent_lbox", "magic_backpointer"]
     def __init__(self, symbol, state=-1, children=[], pos=-1, lookahead=0):
         Node.__init__(self, symbol, state, children)
-        self.pos = pos
         self.position = 0
         self.changed = False
-        self.seen = 0
+        self.needs_saving = True
         self.deleted = False
         self.image = None
         self.image_src = None
         self.plain_mode = False
         self.alternate = None
         self.lookahead = lookahead
-
-        self.regex = ""
-        self.text = ""
         self.lookup = ""
-        self.priority = 999999 # XXX change to maxint later or reverse priority
+        self.log = {}
+        self.version = 0
 
     def get_magicterminal(self):
         try:
@@ -420,7 +493,39 @@ class TextNode(Node):
     def change_text(self, text):
         _cls = self.symbol.__class__
         self.symbol = _cls(text)
-        self.mark_changed()
+        self.mark_version()
+
+    def save(self, version):
+        Node.save(self, version)
+        self.log[("symbol.name", version)] = self.symbol.name
+
+    def load(self, version):
+        Node.load(self, version)
+        if not isinstance(self.symbol, Terminal):
+            return
+        text = self.get_text(version)
+        if text:
+            self.symbol.name = text
+        else:
+            # remove ?
+            #self.parent.remove_child(self)
+            pass
+
+    def has_changes(self, version=None):
+        if version is None:
+            from treemanager import TreeManager
+            version = TreeManager.version
+        return self.log.has_key(("ns", version))
+
+    def get_text(self, version):
+        while True:
+            try:
+                return self.log[("symbol.name", version)]
+            except KeyError:
+                version -= 1
+                if version == -1:
+                    return None
+                continue
 
     def insert(self, char, pos):
         l = list(self.symbol.name)
@@ -456,7 +561,7 @@ class TextNode(Node):
             return delchar
 
     def __repr__(self):
-        return "%s(%s, %s, %s, %s)" % (self.__class__.__name__, self.symbol, self.state, self.children, self.lookup)
+        return "%s(%s, %s, %s, %s)" % (self.__class__.__name__, self.symbol, self.state, len(self.children), self.lookup)
 
 class SpecialTextNode(TextNode):
     def backspace(self, pos):

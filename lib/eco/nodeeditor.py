@@ -30,12 +30,17 @@ BODY_FONT_SIZE = 9
 from treemanager import TreeManager, Cursor
 from grammars.grammars import submenu_langs as languages, lang_dict
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
+from grammar_parser.bootstrap import ListNode, AstNode
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from jsonmanager import JsonManager
 from astanalyser import AstAnalyser
 
 import syntaxhighlighter
 import editor
+
+import logging
+
+whitelist = list(u"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!\"$%^&*()_-+=;:'@#~[]{},.<>/?|\\`\r ")
 
 class NodeEditor(QFrame):
 
@@ -60,6 +65,13 @@ class NodeEditor(QFrame):
         self.connect(self.timer, SIGNAL("timeout()"), self.analysis_timer)
         self.connect(self.backuptimer, SIGNAL("timeout()"), self.backup_timer)
         self.backuptimer.start(30000)
+        self.undotimer = QTimer(self)
+        self.connect(self.undotimer, SIGNAL("timeout()"), self.trigger_undotimer)
+
+        self.blinktimer = QTimer(self)
+        self.blinktimer.start(500)
+        self.connect(self.blinktimer, SIGNAL("timeout()"), self.trigger_blinktimer)
+        self.show_cursor = True
 
         self.lightcolors = [QColor("#333333"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
         self.darkcolors = [QColor("#999999"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
@@ -80,6 +92,17 @@ class NodeEditor(QFrame):
         filename = self.getEditorTab().filename
         if filename:
             self.saveToJson(filename + ".bak", True)
+
+    def trigger_blinktimer(self):
+        if self.timer.isActive():
+            self.show_cursor = True
+            return
+        self.show_cursor ^= True
+        self.update()
+
+    def trigger_undotimer(self):
+        self.tm.save_current_version()
+        self.undotimer.stop()
 
     def setImageMode(self, boolean):
         self.imagemode = boolean
@@ -106,7 +129,9 @@ class NodeEditor(QFrame):
             temp_cursor = self.tm.cursor.copy()
             result = self.coordinate_to_cursor(pos.x(), pos.y())
             node = self.tm.cursor.node
-            self.tm.cursor = temp_cursor
+            self.tm.cursor.line = temp_cursor.line
+            self.tm.cursor.node = temp_cursor.node
+            self.tm.cursor.pos = temp_cursor.pos
             if not result:
                 event.ignore()
                 return True
@@ -259,7 +284,7 @@ class NodeEditor(QFrame):
             # if we found a language box, continue drawing inside of it
             if isinstance(node.symbol, MagicTerminal):
                 #l_x.append(x)
-                node.pos = x
+                #node.pos = x
                 lbox += 1
                 lbnode = node.symbol.ast
                 if self.selected_lbox is node:
@@ -347,7 +372,7 @@ class NodeEditor(QFrame):
                 self.lines[line].height = 1 # reset height
 
             # draw cursor
-            if node is self.cursor.node:
+            if node is self.cursor.node and self.show_cursor:
                 draw_x = max(0, x-dx)
                 cursor_pos = self.cursor.pos
 
@@ -475,10 +500,13 @@ class NodeEditor(QFrame):
 
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
+            self.tm.input_log.append("# mousePressEvent")
             self.coordinate_to_cursor(e.x(), e.y())
            # self.tm.cursor = cursor
             self.tm.selection_start = self.tm.cursor.copy()
             self.tm.selection_end = self.tm.cursor.copy()
+            self.tm.input_log.append("self.selection_start = self.cursor.copy()")
+            self.tm.input_log.append("self.selection_end = self.cursor.copy()")
             #self.tm.fix_cursor_on_image()
             self.getWindow().showLookahead()
             self.update()
@@ -539,6 +567,9 @@ class NodeEditor(QFrame):
         cursor_x = int(round(float(x) / self.fontwt))
         self.tm.cursor.move_to_x(cursor_x, self.tm.lines)
 
+        self.tm.input_log.append("self.cursor.line = %s" % str(line))
+        self.tm.log_input("cursor.move_to_x", str(cursor_x), "self.lines")
+
         if mouse_y > y or self.tm.cursor.get_x() != cursor_x:
             return False
         return True
@@ -546,8 +577,14 @@ class NodeEditor(QFrame):
     def mouseMoveEvent(self, e):
         # apparaently this is only called when a mouse button is clicked while
         # the mouse is moving
+        if self.tm.input_log[-2].startswith("self.cursor.move_to_x"):
+            # only log the last move event
+            self.tm.input_log.pop()
+            self.tm.input_log.pop()
+            self.tm.input_log.pop()
         self.coordinate_to_cursor(e.x(), e.y())
         self.tm.selection_end = self.tm.cursor.copy()
+        self.tm.input_log.append("self.selection_end = self.cursor.copy()")
         self.update()
 
     def key_to_string(self, key):
@@ -562,14 +599,14 @@ class NodeEditor(QFrame):
 
     def keyPressEvent(self, e):
 
+        startundotimer = False
+        self.timer.start(500)
+        self.show_cursor = True
+
         if e.key() in [Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Control, Qt.Key_Meta, Qt.Key_AltGr]:
             if e.key() == Qt.Key_Shift:
                 self.tm.key_shift()
             return
-
-        self.timer.start(500)
-
-        #selected_node, inbetween, x = self.tm.get_nodes_from_cursor()
 
         text = e.text()
 
@@ -578,6 +615,7 @@ class NodeEditor(QFrame):
         if e.key() == Qt.Key_Escape:
             self.tm.key_escape()
         elif e.key() == Qt.Key_Backspace:
+            startundotimer = True
             self.tm.key_backspace()
         elif e.key() in [Qt.Key_Up, Qt.Key_Down, Qt.Key_Left, Qt.Key_Right]:
             if e.modifiers() == Qt.ShiftModifier:
@@ -591,6 +629,7 @@ class NodeEditor(QFrame):
         elif e.key() == Qt.Key_End:
             self.tm.key_end(e.modifiers() == Qt.ShiftModifier)
         elif e.key() == Qt.Key_Delete:
+            startundotimer = True
             self.tm.key_delete()
         elif e.key() == Qt.Key_F3:
             self.tm.find_next()
@@ -601,24 +640,37 @@ class NodeEditor(QFrame):
             # sensibly insert into the text.
             pass
         else:
+            startundotimer = True
             if e.key() == Qt.Key_Tab:
                 text = "    "
             else:
                 text = e.text()
+                if text.toUtf8() not in whitelist:
+                    logging.debug("Key %s not supported" % text)
+                    return
             self.tm.key_normal(text)
 
         self.getWindow().btReparse([])
         self.update()
         self.emit(SIGNAL("keypress(QKeyEvent)"), e)
         self.getWindow().showLookahead()
+        if startundotimer:
+            self.undotimer.start(500)
 
     def showLanguageBoxMenu(self):
         self.showSubgrammarMenu()
+        self.create_languagebox()
+
+    def create_languagebox(self):
         if self.sublanguage:
             if self.tm.hasSelection():
                 self.tm.surround_with_languagebox(self.sublanguage)
             else:
                 self.tm.add_languagebox(self.sublanguage)
+
+    def change_languagebox(self):
+        if self.sublanguage:
+            self.tm.change_languagebox(self.sublanguage)
 
     def showCodeCompletion(self):
         l = self.tm.getCompletion()
@@ -666,36 +718,63 @@ class NodeEditor(QFrame):
     def getScrollArea(self):
         return self.parent().parent()
 
-    def showSubgrammarMenu(self):
+    def createSubgrammarMenu(self, menu, change=False):
         self.sublanguage = None
-        # Create menu
-        menu = QtGui.QMenu( self )
+
+        tmp = None
+        if change:
+            # try and find lbox and set cursor to previous node before getting
+            # lookahead list
+            root = self.tm.cursor.node.get_root()
+            lbox = root.get_magicterminal()
+            if lbox:
+                tmp = self.tm.cursor.node
+                self.tm.cursor.node = lbox.prev_term
+
         # Create actions
-        toolbar = QtGui.QToolBar()
         bf = QFont()
         bf.setBold(True)
         valid_langs = []
         for l in languages:
             if "<%s>" % l in self.tm.getLookaheadList():
                 valid_langs.append(l)
+
+        if tmp:
+            # undo cursor change
+            self.tm.cursor.node = tmp
         if len(valid_langs) > 0:
             for l in valid_langs:
-                item = toolbar.addAction(str(l), self.createMenuFunction(l))
+                item = QAction(str(l), menu)
+                item.setData(l)
                 self._set_icon(item, l)
                 item.setFont(bf)
                 menu.addAction(item)
             menu.addSeparator()
         for l in languages:
-            item = toolbar.addAction(str(l), self.createMenuFunction(l))
+            item = QAction(str(l), menu)
+            item.setData(l)
             self._set_icon(item, l)
             menu.addAction(item)
+        return menu
+
+    def showSubgrammarMenu(self):
+        menu = QtGui.QMenu("Language", self)
+        self.createSubgrammarMenu(menu)
         x,y = self.cursor_to_coordinate()
-        menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
+        action = menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
+        if action:
+            self.sublanguage = action.data().toPyObject()
+            self.edit_rightnode = True
 
     def _set_icon(self, mitem, lang):
-        icon = QIcon.fromTheme("text-x-" + lang.base.lower())
+        if lang.base.lower() == "html":
+            icon = QIcon.fromTheme("text-xhtml+xml")
+        else:
+            icon = QIcon.fromTheme("text-x-" + lang.base.lower())
         if icon.isNull():
-            icon = QIcon.fromTheme("text-x-generic")
+            icon = QIcon.fromTheme("application-x-" + lang.base.lower())
+            if icon.isNull():
+                icon = QIcon.fromTheme("text-x-generic")
         mitem.setIcon(icon)
 
     def showCodeCompletionMenu(self, l):
@@ -710,8 +789,13 @@ class NodeEditor(QFrame):
             if n.vartype:
                 vartype = n.vartype
                 while vartype.children != []:
-                    vartype = vartype.children[0]
+                    try:
+                        vartype = vartype.children[0]
+                    except KeyError:
+                        vartype = vartype.children["name"]
                 text = "%s : %s - %s (%s)" % (n.name, vartype.symbol.name, ".".join(path), n.kind)
+            elif n.kind == "method":
+                text = self.cc_method(n) + " - %s" % (".".join(path))
             else:
                 text = "%s - %s (%s)" % (n.name, ".".join(path), n.kind)
             item = toolbar.addAction(text, self.createCCFunc(n.name))
@@ -719,6 +803,23 @@ class NodeEditor(QFrame):
             menu.addAction(item)
         x,y = self.cursor_to_coordinate()
         menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
+
+    def cc_method(self, n):
+        s = [n.name, "("]
+        param_ln = n.astnode.children["params"]
+        if isinstance(param_ln, ListNode):
+            for p in param_ln.children:
+                tmp = p.children["type"]
+                if isinstance(tmp, AstNode):
+                    s.append(tmp.children["name"].symbol.name)
+                else:
+                    s.append(tmp.symbol.name)
+                s.append(" ")
+                s.append(p.children["name"].symbol.name)
+                if p != param_ln.children[-1]:
+                    s.append(", ")
+        s.append(")")
+        return "".join(s)
 
     def createMenuFunction(self, l):
         def action():

@@ -42,6 +42,7 @@ from gui.gui import Ui_MainWindow
 from gui.parsetree import Ui_MainWindow as Ui_ParseTree
 from gui.stateview import Ui_MainWindow as Ui_StateView
 from gui.about import Ui_Dialog as Ui_AboutDialog
+from gui.inputlog import Ui_Dialog as Ui_InputLog
 from gui.finddialog import Ui_Dialog as Ui_FindDialog
 from gui.languagedialog import Ui_Dialog as Ui_LanguageDialog
 from gui.settings import Ui_MainWindow as Ui_Settings
@@ -168,6 +169,7 @@ class ParseView(QtGui.QMainWindow):
         self.connect(self.ui.rb_view_parsetree, SIGNAL("clicked()"), self.refresh)
         self.connect(self.ui.rb_view_linetree, SIGNAL("clicked()"), self.refresh)
         self.connect(self.ui.rb_view_ast, SIGNAL("clicked()"), self.refresh)
+        self.connect(self.ui.comboBox, SIGNAL("activated(const QString&)"), self.change_version)
 
         self.viewer = Viewer("pydot")
         self.ui.graphicsView.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform | QPainter.TextAntialiasing)
@@ -176,16 +178,28 @@ class ParseView(QtGui.QMainWindow):
 
         self.window = window
 
+    def change_version(self, text):
+        self.redraw()
+
     def refresh(self):
+        editor = self.window.getEditor()
+        self.version = editor.tm.version
+        self.ui.comboBox.clear()
+        for v in xrange(editor.tm.get_max_version()):
+            self.ui.comboBox.addItem(QString(str(v+1)))
+        self.ui.comboBox.setCurrentIndex(editor.tm.get_max_version()-1)
+        self.redraw()
+
+    def redraw(self):
         editor = self.window.getEditor()
         whitespaces = self.ui.cb_toggle_ws.isChecked()
         if self.ui.cb_toggle_ast.isChecked():
             if self.ui.rb_view_parsetree.isChecked():
-                self.viewer.get_tree_image(editor.tm.main_lbox, [], whitespaces)
+                self.viewer.get_tree_image(editor.tm.main_lbox, [], whitespaces, version=int(self.ui.comboBox.currentText()))
             elif self.ui.rb_view_linetree.isChecked():
                 self.viewer.get_terminal_tree(editor.tm.main_lbox)
             elif self.ui.rb_view_ast.isChecked():
-                self.viewer.get_tree_image(editor.tm.main_lbox, [], whitespaces, ast=True)
+                self.viewer.get_tree_image(editor.tm.main_lbox, [], whitespaces, version=int(self.ui.comboBox.currentText()), ast=True)
             self.showImage(self.ui.graphicsView, self.viewer.image)
 
     def showImage(self, graphicsview, imagefile):
@@ -334,6 +348,19 @@ class SettingsView(QtGui.QMainWindow):
     def change_color(self, widget, color):
         widget.setStyleSheet("background-color: %s" % (color))
 
+class InputLogView(QtGui.QDialog):
+    def __init__(self):
+        QtGui.QDialog.__init__(self)
+        self.ui = Ui_InputLog()
+        self.ui.setupUi(self)
+
+        self.connect(self.ui.pushButton, SIGNAL("pressed()"), self.apply_log)
+
+    def apply_log(self):
+        log = self.ui.textEdit_2.toPlainText()
+        self.tm.apply_inputlog(str(log))
+        self.accept()
+
 class AboutView(QtGui.QDialog):
     def __init__(self):
         QtGui.QDialog.__init__(self)
@@ -380,7 +407,10 @@ class LanguageView(QtGui.QDialog):
         for l in newfile_langs:
             item = QListWidgetItem(self.ui.listWidget)
             item.setText(str(l))
-            icon = QIcon.fromTheme("text-x-" + l.base.lower())
+            if l.base.lower() == "html":
+                icon = QIcon.fromTheme("text-html")
+            else:
+                icon = QIcon.fromTheme("text-x-" + l.base.lower())
             if icon.isNull():
                 icon = QIcon.fromTheme("application-x-" + l.base.lower())
                 if icon.isNull():
@@ -432,8 +462,8 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionUndo, SIGNAL("triggered()"), self.undo)
         self.connect(self.ui.actionRedo, SIGNAL("triggered()"), self.redo)
         # XXX temporarily disable undo/redo because it's buggy
-        self.ui.actionUndo.setEnabled(False)
-        self.ui.actionRedo.setEnabled(False)
+        #self.ui.actionUndo.setEnabled(False)
+        #self.ui.actionRedo.setEnabled(False)
         self.connect(self.ui.actionCopy, SIGNAL("triggered()"), self.copy)
         self.connect(self.ui.actionCut, SIGNAL("triggered()"), self.cut)
         self.connect(self.ui.actionPaste, SIGNAL("triggered()"), self.paste)
@@ -450,6 +480,9 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.treeWidget, SIGNAL("itemDoubleClicked(QTreeWidgetItem *, int)"), self.click_parsers)
         self.connect(self.ui.actionShow_language_boxes, SIGNAL("triggered()"), self.update_editor)
         self.connect(self.ui.actionShow_namebinding, SIGNAL("triggered()"), self.update_editor)
+        self.connect(self.ui.actionShow_indentation, SIGNAL("triggered()"), self.toogle_indentation)
+        self.connect(self.ui.menuChange_language_box, SIGNAL("aboutToShow()"), self.showEditMenu)
+        self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
 
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
@@ -469,12 +502,74 @@ class Window(QtGui.QMainWindow):
         if not settings.value("gen_showparsestatus", True).toBool():
             self.ui.dockWidget_2.hide()
 
+    def contextMenu(self, pos):
+        menu = QMenu(self)
+
+        # add other contextmenu actions, e.g. copy, paste
+        menu.addAction(self.ui.actionUndo)
+        menu.addAction(self.ui.actionRedo)
+        menu.addSeparator()
+        menu.addAction(self.ui.actionCut)
+        menu.addAction(self.ui.actionCopy)
+        menu.addAction(self.ui.actionPaste)
+        menu.addSeparator()
+        menu.addAction(self.ui.actionFind)
+        menu.addAction(self.ui.actionFind_next)
+        menu.addSeparator()
+
+        # create language box menues
+        changemenu = QMenu("Change languagebox", self)
+        changemenu.setIcon(QtGui.QIcon.fromTheme("reload"))
+        self.getEditor().createSubgrammarMenu(changemenu, change=True)
+
+        newmenu = QMenu("Add languagebox", self)
+        newmenu.setIcon(QtGui.QIcon.fromTheme("list-add"))
+        self.getEditor().createSubgrammarMenu(newmenu)
+
+        menu.addMenu(changemenu)
+        menu.addMenu(newmenu)
+        menu.addAction(self.ui.actionSelect_next_language_box)
+        menu.addSeparator()
+        menu.addAction(self.ui.actionCode_complete)
+
+        action = menu.exec_(self.getEditor().mapToGlobal(pos))
+        if not action:
+            return
+
+        self.getEditor().sublanguage = action.data().toPyObject()
+        self.getEditor().edit_rightnode = True
+        if action.parentWidget() is newmenu:
+            self.getEditor().create_languagebox()
+        elif action.parentWidget() is changemenu:
+            self.getEditor().change_languagebox()
+        else:
+            return
+        self.getEditor().update()
+        self.btReparse([])
+
+    def showEditMenu(self):
+        self.ui.menuChange_language_box.clear()
+        if self.getEditor():
+            self.getEditor().createSubgrammarMenu(self.ui.menuChange_language_box)
+            self.ui.menuChange_language_box.update()
+            for a in self.ui.menuChange_language_box.actions():
+                self.connect(a, SIGNAL("triggered()"), self.actionChangeLBoxMenu)
+
+    def actionChangeLBoxMenu(self):
+        action = self.sender()
+        if action:
+            self.getEditor().sublanguage = action.data().toPyObject()
+            self.getEditor().edit_rightnode = True
+            self.getEditor().change_languagebox()
+            self.getEditor().update()
+            self.btReparse([])
+
     def parse_options(self):
         # parse options
         parser = OptionParser(usage="usage: python2.7 %prog FILE [options]")
         parser.add_option("-p", "--preload", action="store_true", default=False, help="Preload grammars")
         parser.add_option("-v", "--verbose", action="store_true", default=False, help="Show output")
-        parser.add_option("-l", "--log", default="WARNING", help="Log level: INFO, WARNING, ERROR [default: %default]")
+        parser.add_option("-l", "--log", default="WARNING", help="Log level: INFO, WARNING, ERROR, DEBUG [default: %default]")
         parser.add_option("-e", "--export", action="store_true", default=False, help="Fast export files. Usage: --export [SOURCE] [DESTINATION]")
         parser.add_option("-f", "--fullexport", action="store_true", default=False, help="Export files. Usage: --fullexport [SOURCE] [DESTINATION]")
         (options, args) = parser.parse_args()
@@ -536,6 +631,13 @@ class Window(QtGui.QMainWindow):
             return True
         return False
 
+    def toogle_indentation(self):
+        if self.ui.actionShow_indentation.isChecked():
+            QApplication.instance().showindent = True
+        else:
+            QApplication.instance().showindent = False
+        self.getEditor().update()
+
     def refreshTheme(self):
         self.ui.teConsole.setFont(QApplication.instance().gfont.font)
         for i in range(self.ui.tabWidget.count()):
@@ -593,11 +695,14 @@ class Window(QtGui.QMainWindow):
         self.getEditor().tm.key_shift_ctrl_z()
         self.getEditor().update()
         self.btReparse([])
+        self.getEditorTab().keypress()
 
     def undo(self):
+        self.getEditor().undotimer.stop()
         self.getEditor().tm.key_ctrl_z()
         self.getEditor().update()
         self.btReparse([])
+        self.getEditorTab().keypress()
 
     def cut(self):
         text = self.getEditor().tm.cutSelection()
@@ -615,6 +720,13 @@ class Window(QtGui.QMainWindow):
         text = QApplication.clipboard().text()
         self.getEditor().tm.pasteText(text)
         self.getEditor().update()
+
+    def show_input_log(self):
+        if self.getEditor():
+            v = InputLogView()
+            v.tm = self.getEditor().tm
+            v.ui.textEdit.setText("\n".join(self.getEditor().tm.input_log))
+            v.exec_()
 
     def showAboutView(self):
         about = AboutView()
@@ -657,6 +769,8 @@ class Window(QtGui.QMainWindow):
             self.ui.tabWidget.addTab(etab, "[No name]")
             self.ui.tabWidget.setCurrentWidget(etab)
             etab.editor.setFocus(Qt.OtherFocusReason)
+            etab.editor.setContextMenuPolicy(Qt.CustomContextMenu)
+            etab.editor.customContextMenuRequested.connect(self.contextMenu)
             return True
         return False
 
@@ -868,6 +982,7 @@ def main():
         settings.setValue("font-size", 9)
 
     app.gfont = GlobalFont(settings.value("font-family").toString(), settings.value("font-size").toInt()[0])
+    app.showindent = False
 
     window=Window()
     t = SubProcessThread(window, app)

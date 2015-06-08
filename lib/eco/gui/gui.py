@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'gui.ui'
 #
-# Created: Tue Jan 20 17:26:33 2015
-#      by: PyQt4 UI code generator 4.10.3
+# Created: Wed May 27 13:31:19 2015
+#      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -46,7 +46,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.addWidget(self.tabWidget)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 23))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 979, 21))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
@@ -58,6 +58,10 @@ class Ui_MainWindow(object):
         self.menuInfo.setObjectName(_fromUtf8("menuInfo"))
         self.menuEdit = QtGui.QMenu(self.menubar)
         self.menuEdit.setObjectName(_fromUtf8("menuEdit"))
+        self.menuChange_language_box = QtGui.QMenu(self.menuEdit)
+        icon = QtGui.QIcon.fromTheme(_fromUtf8("reload"))
+        self.menuChange_language_box.setIcon(icon)
+        self.menuChange_language_box.setObjectName(_fromUtf8("menuChange_language_box"))
         self.menuWindow = QtGui.QMenu(self.menubar)
         self.menuWindow.setObjectName(_fromUtf8("menuWindow"))
         MainWindow.setMenuBar(self.menubar)
@@ -195,6 +199,13 @@ class Ui_MainWindow(object):
         self.actionShow_namebinding = QtGui.QAction(MainWindow)
         self.actionShow_namebinding.setCheckable(True)
         self.actionShow_namebinding.setObjectName(_fromUtf8("actionShow_namebinding"))
+        self.actionShow_indentation = QtGui.QAction(MainWindow)
+        self.actionShow_indentation.setCheckable(True)
+        self.actionShow_indentation.setObjectName(_fromUtf8("actionShow_indentation"))
+        self.actionDummy = QtGui.QAction(MainWindow)
+        self.actionDummy.setObjectName(_fromUtf8("actionDummy"))
+        self.actionInput_log = QtGui.QAction(MainWindow)
+        self.actionInput_log.setObjectName(_fromUtf8("actionInput_log"))
         self.menuFile.addAction(self.actionNew)
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addSeparator()
@@ -210,10 +221,13 @@ class Ui_MainWindow(object):
         self.menuView.addAction(self.actionParse_Tree)
         self.menuView.addAction(self.actionStateGraph)
         self.menuView.addAction(self.actionPreview)
+        self.menuView.addAction(self.actionInput_log)
         self.menuView.addSeparator()
         self.menuView.addAction(self.actionShow_language_boxes)
         self.menuView.addAction(self.actionShow_namebinding)
+        self.menuView.addAction(self.actionShow_indentation)
         self.menuInfo.addAction(self.actionAbout)
+        self.menuChange_language_box.addAction(self.actionDummy)
         self.menuEdit.addAction(self.actionUndo)
         self.menuEdit.addAction(self.actionRedo)
         self.menuEdit.addSeparator()
@@ -226,6 +240,7 @@ class Ui_MainWindow(object):
         self.menuEdit.addSeparator()
         self.menuEdit.addAction(self.actionAdd_language_box)
         self.menuEdit.addAction(self.actionSelect_next_language_box)
+        self.menuEdit.addAction(self.menuChange_language_box.menuAction())
         self.menuEdit.addSeparator()
         self.menuEdit.addAction(self.actionCode_complete)
         self.menubar.addAction(self.menuFile.menuAction())
@@ -265,6 +280,7 @@ class Ui_MainWindow(object):
         self.menuView.setTitle(_translate("MainWindow", "View", None))
         self.menuInfo.setTitle(_translate("MainWindow", "Help", None))
         self.menuEdit.setTitle(_translate("MainWindow", "Edit", None))
+        self.menuChange_language_box.setTitle(_translate("MainWindow", "Change language box", None))
         self.menuWindow.setTitle(_translate("MainWindow", "Window", None))
         self.toolBar.setWindowTitle(_translate("MainWindow", "toolBar", None))
         self.dockWidget_2.setWindowTitle(_translate("MainWindow", "Parsing Status", None))
@@ -312,4 +328,7 @@ class Ui_MainWindow(object):
         self.actionSettings.setText(_translate("MainWindow", "Settings...", None))
         self.actionPreview.setText(_translate("MainWindow", "Preview...", None))
         self.actionShow_namebinding.setText(_translate("MainWindow", "Show namebinding", None))
+        self.actionShow_indentation.setText(_translate("MainWindow", "Show indentation", None))
+        self.actionDummy.setText(_translate("MainWindow", "dummy", None))
+        self.actionInput_log.setText(_translate("MainWindow", "Input log...", None))
 

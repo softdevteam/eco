@@ -334,7 +334,7 @@ class IncrementalLexer(object):
 
         return
 
-    def relex_import(self, startnode):
+    def relex_import(self, startnode, version=0):
         success = self.lex(startnode.symbol.name)
         bos = startnode.prev_term # bos
         startnode.parent.remove_child(startnode)
@@ -343,6 +343,7 @@ class IncrementalLexer(object):
         last_node = bos
         for match in success:
             node = TextNode(Terminal(match[0]))
+            node.version = version
             node.lookup = match[1]
             parent.children.append(node)
             last_node.next_term = node
@@ -412,7 +413,7 @@ class IncrementalLexerCF(object):
             l.append((t.source, t.name))
         return l
 
-    def relex_import(self, startnode):
+    def relex_import(self, startnode, version = 0):
         success = self.lex(startnode.symbol.name)
         bos = startnode.prev_term # bos
         startnode.parent.remove_child(startnode)
@@ -421,6 +422,7 @@ class IncrementalLexerCF(object):
         last_node = bos
         for match in success:
             node = TextNode(Terminal(match[0]))
+            node.version = version
             node.lookup = match[1]
             parent.children.append(node)
             last_node.next_term = node
@@ -525,8 +527,8 @@ class IncrementalLexerCF(object):
             if node.lookup != t.name:
                 node.mark_changed()
                 any_changes = True
-            if t.source.find("*/") > 0:
-                any_changes = True
+            else:
+                node.mark_version()
             node.lookup = t.name
             node.lookahead = t.lookahead
         # delete left over nodes

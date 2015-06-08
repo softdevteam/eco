@@ -19,13 +19,16 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from grammars.grammars import calc, java, python, Language, sql, pythonprolog, lang_dict
+from grammars.grammars import calc, java, python, Language, sql, pythonprolog, lang_dict, phppython, pythonphp
 from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
 from incparser.astree import BOS, EOS
+from grammar_parser.gparser import MagicTerminal
 
 from PyQt4 import QtCore
+
+import programs
 
 import pytest
 slow = pytest.mark.slow
@@ -520,7 +523,78 @@ or_test ::= "1"^^
 
         assert parser.last_status == True
 
-class Test_Python:
+class Test_Helper:
+    def reset(self):
+        self.parser.reset()
+        self.treemanager = TreeManager()
+        self.treemanager.add_parser(self.parser, self.lexer, python.name)
+        self.treemanager.set_font_test(7, 17)
+
+    def move(self, direction, times):
+        for i in range(times): self.treemanager.cursor_movement(direction)
+
+    def tree_compare(self, node1, node2):
+        # XXX: test references (next_term, parent, lookup)
+        while True:
+            assert node1.symbol == node2.symbol
+            if node1.right:
+                assert node1.right.symbol == node2.right.symbol
+            if node1.next_term:
+                assert node1.next_term.symbol == node2.next_term.symbol
+            if isinstance(node1.symbol, MagicTerminal):
+                self.tree_compare(node1.symbol.ast, node2.symbol.ast)
+            if isinstance(node1, EOS) and isinstance(node2, EOS):
+                break
+            node1 = self.next_node(node1)
+            node2 = self.next_node(node2)
+
+    def next_node(self, node):
+        if node.children:
+            return node.children[0]
+        while(node.right_sibling() is None):
+            node = node.parent
+        return node.right_sibling()
+
+    def test_compare(self):
+        t = TreeManager()
+        parser, lexer = python.load()
+        t.add_parser(parser, lexer, python.name)
+        inputstring = "class Test:\r    def x():\r        pass\r"
+        t.import_file(inputstring)
+        self.tree_compare(parser.previous_version.parent, parser.previous_version.parent)
+
+    def test_compare2(self):
+        t1 = TreeManager()
+        parser1, lexer1 = python.load()
+        t1.add_parser(parser1, lexer1, python.name)
+        inputstring = "class Test:\r    def x():\r        pass\r"
+        t1.import_file(inputstring)
+
+        t2 = TreeManager()
+        parser2, lexer2 = python.load()
+        t2.add_parser(parser2, lexer2, python.name)
+        inputstring = "class Test:\r    def x():\r        pass\r"
+        t2.import_file(inputstring)
+
+        self.tree_compare(parser1.previous_version.parent, parser2.previous_version.parent)
+
+    def test_compare3(self):
+        t1 = TreeManager()
+        parser1, lexer1 = python.load()
+        t1.add_parser(parser1, lexer1, python.name)
+        inputstring = "class Test:\r    def x():\r    pass\r"
+        t1.import_file(inputstring)
+
+        t2 = TreeManager()
+        parser2, lexer2 = python.load()
+        t2.add_parser(parser2, lexer2, python.name)
+        inputstring = "class Test:\r    def y():\r    pass\r"
+        t2.import_file(inputstring)
+
+        with pytest.raises(AssertionError):
+            self.tree_compare(parser1.previous_version.parent, parser2.previous_version.parent)
+
+class Test_Python(Test_Helper):
     def setup_class(cls):
         parser, lexer = python.load()
         cls.lexer = lexer
@@ -531,15 +605,6 @@ class Test_Python:
         cls.treemanager.add_parser(cls.parser, cls.lexer, python.name)
 
         cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
-
-    def reset(self):
-        self.parser.reset()
-        self.treemanager = TreeManager()
-        self.treemanager.add_parser(self.parser, self.lexer, python.name)
-        self.treemanager.set_font_test(7, 17)
-
-    def move(self, direction, times):
-        for i in range(times): self.treemanager.cursor_movement(direction)
 
 class Test_Bugs(Test_Python):
 
@@ -585,6 +650,19 @@ class Test_Bugs(Test_Python):
         self.reset()
         self.treemanager.key_normal("c")
         self.treemanager.key_backspace() # shouldn't throw IndexError in repair_indentations
+
+    def test_delete_all(self):
+        self.reset()
+        source = "x = 1"
+        for c in source:
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
+        for c in source:
+            self.treemanager.key_backspace()
+        assert self.parser.last_status == True
+        for c in source:
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
 
 class Test_Indentation(Test_Python):
 
@@ -745,71 +823,8 @@ class Test_Indentation(Test_Python):
     def test_indentation_stresstest(self):
         import random
         self.reset()
-        inputstring = """class Connect4(object):
-    UI_DEPTH = 5 # lookahead for minimax
 
-    def __init__(self, p1_is_ai, p2_is_ai):
-        self.top = tk.Tk()
-        self.top.title("Unipycation: Connect 4 GUI (Python)")
-
-        self.pl_engine = uni.Engine()
-
-        # controls cpu/human players
-        self.turn = None # True for p1, False for p2
-        self.ai_players = { True : p1_is_ai, False : p2_is_ai }
-
-        self.cols = []
-        self.insert_buttons = []
-        for colno in range(COLS):
-            col = []
-            b = tk.Button(self.top, text=str(colno), command=token_click_closure(self, colno))
-            b.grid(column=colno, row=0)
-            self.insert_buttons.append(b)
-
-            for rowno in range(ROWS):
-                b = tk.Button(self.top, state=tk.DISABLED)
-                b.grid(column=colno, row=rowno + 1)
-                col.append(b)
-            self.cols.append(col)
-
-        self.new_game_button = tk.Button(self.top, text="Start New Game", command=self._new)
-        self.new_game_button.grid(column=COLS, row=0)
-
-        self.status_text = tk.Label(self.top, text="---")
-        self.status_text.grid(column=COLS, row=1)
-
-    def _set_status_text(self, text):
-        self.status_text["text"] = text
-
-    def _update_from_pos_one_colour(self, pylist, colour):
-        assert colour in ["red", "yellow"]
-
-        for c in pylist:
-            assert c.name == "c"
-            (x, y) = c
-            self.cols[x][y]["background"] = colour
-
-    def _turn(self):
-        # Not pretty, but works...
-        while True:
-            self.turn = not self.turn # flip turn
-            if self.ai_players[self.turn]:
-                self._set_status_text("%s AI thinking" % (self._player_colour().title()))
-                self._ai_turn()
-                if self._check_win(): break # did the AI player win?
-            else:
-                self._set_status_text("%s human move" % (self._player_colour().title()))
-                break # allow top loop to deal with human turn
-
-    def _end(self, winner_colour=None):
-        for i in self.insert_buttons:
-            i["state"] = tk.DISABLED
-
-        if winner_colour is not None:
-            self.new_game_button["background"] = winner_colour
-            self._set_status_text("%s wins" % winner_colour)"""
-
-        self.treemanager.import_file(inputstring)
+        self.treemanager.import_file(programs.connect4)
         assert self.parser.last_status == True
 
         deleted = {}
@@ -1011,6 +1026,30 @@ class Test_Languageboxes(Test_Python):
         self.treemanager.deleteSelection()
         assert lbox.symbol.name == "<Prolog>"
 
+    def test_auto_indent(self):
+        self.reset()
+        self.treemanager.add_languagebox(lang_dict["Prolog"])
+        for c in "abc:\r    def":
+            self.treemanager.key_normal(c)
+        self.treemanager.leave_languagebox()
+        self.treemanager.key_normal("\r")
+        self.treemanager.key_normal("a")
+        assert self.treemanager.export_as_text() == "abc:\n    def\na"
+
+    def test_auto_indent2(self):
+        self.reset()
+        self.treemanager.add_languagebox(lang_dict["Prolog"])
+        for c in "abc:\r    def":
+            self.treemanager.key_normal(c)
+        self.treemanager.key_normal("\r")
+        self.treemanager.add_languagebox(lang_dict["Python 2.7.5"])
+        for c in "def x():\r        pass":
+            self.treemanager.key_normal(c)
+        self.treemanager.leave_languagebox()
+        self.treemanager.key_normal("\r")
+        self.treemanager.key_normal("a")
+        assert self.treemanager.export_as_text() == "abc:\n    def\n    def x():\n        pass\n    a"
+
 class Test_Backslash(Test_Python):
 
     def test_parse(self):
@@ -1046,3 +1085,1121 @@ class Test_Backslash(Test_Python):
         assert self.parser.last_status == False
         self.treemanager.key_normal("\\")
         assert self.parser.last_status == True
+
+class Test_Java:
+    def setup_class(cls):
+        parser, lexer = java.load()
+        cls.lexer = lexer
+        cls.parser = parser
+        cls.parser.init_ast()
+        cls.ast = cls.parser.previous_version
+        cls.treemanager = TreeManager()
+        cls.treemanager.add_parser(cls.parser, cls.lexer, java.name)
+
+        cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+    def reset(self):
+        self.parser.reset()
+        self.treemanager = TreeManager()
+        self.treemanager.add_parser(self.parser, self.lexer, python.name)
+        self.treemanager.set_font_test(7, 17)
+
+    def move(self, direction, times):
+        for i in range(times): self.treemanager.cursor_movement(direction)
+
+    def test_incparse_optshift_bug(self):
+        prog = """class Test {\r    public static void main() {\r        String y = z;\r    }\r}"""
+        for c in prog:
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
+        self.move("left", 1)
+        self.move("up", 3)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("\r")
+        for c in "int x = 1;":
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
+
+class Test_Undo(Test_Python):
+
+    def reset(self):
+        Test_Python.reset(self)
+        self.treemanager.version = 1
+        self.treemanager.last_saved_version = 1
+
+    def compare(self, text):
+        import tempfile
+        f = tempfile.NamedTemporaryFile()
+        result = self.treemanager.export_as_text("/tmp/temp.py")
+        assert result == text
+        f.close()
+
+    def type_save(self, text):
+        self.treemanager.key_normal(text)
+        self.treemanager.save_current_version() # tells treemanager to save after the next operation and increase the version
+
+    def save(self):
+        self.treemanager.version += 1
+        self.treemanager.save()
+
+    def test_simple_undo_redo(self):
+        self.treemanager.key_normal("1")
+        self.treemanager.save_current_version()
+        self.treemanager.key_normal("+")
+        self.treemanager.save_current_version()
+        self.treemanager.key_normal("2")
+        self.compare("1+2")
+        self.treemanager.key_ctrl_z()
+        self.compare("1+")
+        self.treemanager.key_ctrl_z()
+        self.compare("1")
+        self.treemanager.key_ctrl_z()
+        self.compare("")
+
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("1")
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("1+")
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("1+2")
+
+    def test_undo_indentation(self):
+        self.reset()
+        self.type_save("class")
+        self.type_save(" X:")
+        self.type_save("\r    ")
+        self.type_save("pass")
+        self.compare("class X:\n    pass")
+
+        self.treemanager.key_ctrl_z()
+        self.compare("class X:\n    ")
+
+        self.treemanager.key_ctrl_z()
+        self.compare("class X:")
+        assert self.treemanager.cursor.node.next_term.symbol.name == "NEWLINE"
+        assert isinstance(self.treemanager.cursor.node.next_term.next_term, EOS)
+
+        self.treemanager.key_ctrl_z()
+        self.compare("class")
+
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("class X:\n    pass")
+        assert self.treemanager.cursor.node.next_term.symbol.name == "NEWLINE"
+        assert self.treemanager.cursor.node.next_term.next_term.symbol.name == "DEDENT"
+        assert isinstance(self.treemanager.cursor.node.next_term.next_term.next_term, EOS)
+
+    def test_undo_and_type(self):
+        self.reset()
+        self.type_save("12")
+        self.type_save("+")
+        self.type_save("34")
+        self.compare("12+34")
+
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.compare("12")
+        self.type_save("-56")
+        self.compare("12-56")
+
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("12-56")
+
+    def test_redo_bug(self):
+        self.reset()
+        self.type_save("1")
+        self.type_save("\r")
+        self.type_save("2")
+        self.move("up", 1)
+        self.compare("1\n2")
+        self.type_save("\r")
+        self.type_save("3")
+        self.compare("1\n3\n2")
+
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.compare("1")
+
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("1\n3\n2")
+
+        self.move("down", 1)
+        self.treemanager.key_backspace()
+        self.compare("1\n3\n")
+        self.treemanager.key_backspace()
+        self.compare("1\n3")
+        self.treemanager.key_backspace()
+        self.compare("1\n")
+        self.treemanager.key_backspace()
+        self.compare("1")
+
+    def test_redo_bug2(self):
+        self.reset()
+        self.type_save("1")
+        self.type_save("+")
+        self.type_save("2")
+        self.move("left", 2)
+        self.compare("1+2")
+        self.treemanager.key_delete()
+        self.treemanager.save_current_version()
+        self.compare("12")
+
+        self.treemanager.key_ctrl_z()
+        self.compare("1+2")
+        self.treemanager.key_ctrl_z()
+        self.compare("1+")
+        self.treemanager.key_ctrl_z()
+        self.compare("1")
+
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("1+")
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("1+2")
+        self.treemanager.key_shift_ctrl_z()
+        self.compare("12")
+
+    def test_bug_lingering_nodes(self):
+        self.reset()
+        p = """class X:
+    def foo():
+        return 23"""
+        self.treemanager.import_file(p)
+        self.treemanager.key_end()
+        self.move("left", 1)
+        self.treemanager.key_normal("s")
+        self.treemanager.save_current_version()
+        dp = self.copy()
+
+        self.move("down", 2)
+        self.treemanager.key_end()
+        self.move("left", 1)
+        self.treemanager.key_normal("+")
+        self.treemanager.save_current_version()
+
+        self.treemanager.key_ctrl_z()
+
+        self.text_compare("""class Xs:
+    def foo():
+        return 23""")
+        self.tree_compare(self.parser.previous_version.parent, dp)
+
+    def test_bug_lingering_after_redo(self):
+        self.reset()
+
+        p = """class X:
+    def x():
+        pass
+
+    def y():
+        pass"""
+
+        ast = self.parser.previous_version
+        self.treemanager.import_file(p)
+        imp = self.copy()
+        imptext = self.treemanager.export_as_text()
+
+        self.treemanager.key_end()
+        self.move("left", 1)
+        self.treemanager.key_normal("a")
+        self.treemanager.save_current_version()
+        a = self.copy()
+        atext = self.treemanager.export_as_text()
+
+        self.move("down", 1)
+        self.treemanager.key_end()
+        self.move("left", 3)
+        self.treemanager.key_normal("b")
+        self.treemanager.save_current_version()
+        b = self.copy()
+        btext = self.treemanager.export_as_text()
+
+        self.move("down", 1)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("c")
+        self.treemanager.save_current_version()
+        #c = self.copy()
+        ctext = self.treemanager.export_as_text()
+
+        self.move("down", 2)
+        self.treemanager.key_end()
+        self.move("left", 3)
+        self.treemanager.key_normal("d")
+        self.treemanager.save_current_version()
+        #d = self.copy()
+        dtext = self.treemanager.export_as_text()
+
+        self.move("down", 1)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("e")
+        self.treemanager.save_current_version()
+        #e = self.copy()
+        etext = self.treemanager.export_as_text()
+
+        self.treemanager.key_ctrl_z()
+        #self.tree_compare(ast.parent, d)
+        self.treemanager.key_ctrl_z()
+        #self.tree_compare(ast.parent, c)
+        self.treemanager.key_ctrl_z()
+        #self.tree_compare(ast.parent, b)
+        self.treemanager.key_ctrl_z()
+        #self.tree_compare(ast.parent, a)
+        self.treemanager.key_ctrl_z()
+        #self.tree_compare(ast.parent, imp)
+
+        self.treemanager.key_shift_ctrl_z()
+        #self.tree_compare(ast.parent, a)
+        self.treemanager.key_shift_ctrl_z()
+        #self.tree_compare(ast.parent, b)
+        self.treemanager.key_shift_ctrl_z()
+        #self.tree_compare(ast.parent, c)
+        self.treemanager.key_shift_ctrl_z()
+        #self.tree_compare(ast.parent, d)
+        self.treemanager.key_shift_ctrl_z()
+        #self.tree_compare(ast.parent, e)
+
+        self.text_compare(etext)
+        self.treemanager.key_ctrl_z()
+        self.text_compare(dtext)
+        #self.tree_compare(ast.parent, d)
+        self.treemanager.key_ctrl_z()
+        self.text_compare(ctext)
+        #self.tree_compare(ast.parent, c)
+        self.treemanager.key_ctrl_z()
+        self.text_compare(btext)
+        #self.tree_compare(ast.parent, b)
+        self.treemanager.key_ctrl_z()
+        self.text_compare(atext)
+        #self.tree_compare(ast.parent, a)
+        self.treemanager.key_ctrl_z()
+        self.text_compare(imptext)
+        #self.tree_compare(ast.parent, imp)
+
+    def text_compare(self, original):
+        original = original.replace("\r", "").split("\n")
+        current = self.treemanager.export_as_text("/dev/null").replace("\r", "").split("\n")
+
+        for i in xrange(len(current)):
+            assert original[i] == current[i]
+
+    def copy(self):
+        import copy
+        return copy.deepcopy(self.parser.previous_version.parent)
+
+    def test_import(self):
+        self.reset() # saves automatically
+
+        self.treemanager.import_file("class X:\n    def x():\n         pass") # saves automatically
+        self.move("down", 2)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("1")
+        self.compare("class X:\n    def x():\n         pass1")
+        self.treemanager.key_ctrl_z()
+        self.compare("class X:\n    def x():\n         pass")
+
+    def test_overflow(self):
+        self.reset() # this saves the inital version as 1
+        min_version = self.treemanager.version
+        self.treemanager.import_file("class X:\n    def x():\n        pass")
+        max_version = self.treemanager.version
+
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        assert self.treemanager.version == min_version
+
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+        assert self.treemanager.version == max_version
+
+    @slow
+    def test_undo_random_deletion(self):
+        import random
+        self.reset()
+
+        self.treemanager.import_file(programs.connect4)
+        assert self.parser.last_status == True
+
+        self.text_compare(programs.connect4)
+
+        line_count = len(self.treemanager.lines)
+        random_lines = range(line_count)
+        random.shuffle(random_lines)
+
+        start_version = self.treemanager.version
+        for linenr in random_lines:
+            cols = range(20)
+            random.shuffle(cols)
+            for col in cols:
+                self.treemanager.cursor_reset()
+                self.move('down', linenr)
+                self.move('right', col)
+                x = self.treemanager.key_delete()
+                if x == "eos":
+                    continue
+            self.treemanager.save_current_version()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.connect4)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+        self.text_compare(broken)
+
+        # undo again and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.connect4)
+
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        t1.add_parser(parser, lexer, python.name)
+        t1.import_file(programs.connect4)
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+    def get_random_key(self):
+        import random
+        keys = list("abcdefghijklmnopqrstuvwxyz0123456789 \r:,.[]{}()!$%^&*()_+=")
+        return random.choice(keys)
+
+    @slow
+    def test_undo_random_insertion(self):
+        import random
+        self.reset()
+
+        self.treemanager.import_file(programs.connect4)
+        assert self.parser.last_status == True
+
+        self.text_compare(programs.connect4)
+
+        line_count = len(self.treemanager.lines)
+        random_lines = range(line_count)
+        random.shuffle(random_lines)
+
+        start_version = self.treemanager.version
+        for linenr in random_lines:
+            cols = range(20)
+            random.shuffle(cols)
+            for col in cols:
+                self.treemanager.cursor_reset()
+                self.move('down', linenr)
+                self.move('right', col)
+                x = self.treemanager.key_normal(self.get_random_key())
+                if x == "eos":
+                    continue
+            self.treemanager.save_current_version()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.connect4)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+        self.text_compare(broken)
+
+        # undo again and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.connect4)
+
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        t1.add_parser(parser, lexer, python.name)
+        t1.import_file(programs.connect4)
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+    def test_undo_random_newlines(self):
+        import random
+        self.reset()
+
+        p = """class X:
+    def helloworld(x, y, z):
+        for x in range(0, 10):
+            if x == 1:
+                return 1
+            else:
+                return 12
+        return 13
+
+    def foo(x):
+        x = 1
+        y = 2
+        foo()
+        return 12"""
+        self.treemanager.import_file(p)
+        assert self.parser.last_status == True
+
+        self.text_compare(p)
+
+        line_count = len(self.treemanager.lines)
+        random_lines = range(line_count)
+        random.shuffle(random_lines)
+
+        start_version = self.treemanager.version
+        for linenr in random_lines[:2]:
+            cols = range(20)
+            random.shuffle(cols)
+            for col in cols[:1]: # add one newline per line
+                self.treemanager.cursor_reset()
+                self.move('down', linenr)
+                self.move('right', col)
+                x = self.treemanager.key_normal("\r")
+                if x == "eos":
+                    continue
+            self.treemanager.save_current_version()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(p)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+        self.text_compare(broken)
+
+        # undo again and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(p)
+
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        t1.add_parser(parser, lexer, python.name)
+        t1.import_file(p)
+
+        self.text_compare(t1.export_as_text())
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+    def test_bug_insert_newline_2(self):
+        import random
+        self.reset()
+
+        p = """class X:
+    def helloworld():
+        for x in y:
+            if x:
+                return 1
+            else:
+                return 12
+        return 13"""
+        self.treemanager.import_file(p)
+        assert self.parser.last_status == True
+
+        self.text_compare(p)
+
+        line_count = len(self.treemanager.lines)
+        random_lines = range(line_count)
+        random.shuffle(random_lines)
+
+        start_version = self.treemanager.version
+
+        self.treemanager.cursor_reset()
+        self.move("down", 4)
+        self.move("right", 1)
+        self.treemanager.key_normal("\r")
+        self.treemanager.save_current_version()
+
+        self.treemanager.cursor_reset()
+        self.move("down", 6)
+        self.move("right", 1)
+        self.treemanager.key_normal("\r")
+        self.treemanager.save_current_version()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(p)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+        self.text_compare(broken)
+
+        # undo again and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(p)
+
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        t1.add_parser(parser, lexer, python.name)
+        t1.import_file(p)
+
+        self.text_compare(t1.export_as_text())
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+    def test_bug_delete(self):
+        import random
+        self.reset()
+
+        p = """class X:
+    def helloworld():
+        for x in y:
+            if x:
+                return 1
+            else:
+                return 12
+        return 13"""
+        self.treemanager.import_file(p)
+        assert self.parser.last_status == True
+
+        self.text_compare(p)
+
+        line_count = len(self.treemanager.lines)
+        random_lines = range(line_count)
+        random.shuffle(random_lines)
+
+        start_version = self.treemanager.version
+
+        self.treemanager.cursor_reset()
+        self.move("down", 1)
+        self.move("right", 6)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.save_current_version()
+
+        self.treemanager.cursor_reset()
+        self.move("down", 2)
+        self.move("right", 7)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.save_current_version()
+
+        self.treemanager.cursor_reset()
+        self.move("down", 3)
+        self.move("right", 10)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.save_current_version()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(p)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+        self.text_compare(broken)
+
+        # undo again and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(p)
+
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        t1.add_parser(parser, lexer, python.name)
+        t1.import_file(p)
+
+        self.text_compare(t1.export_as_text())
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+    def test_bug_insert_newline(self):
+        self.reset()
+
+        p = """class X:
+    def helloworld(x, y, z):
+        for x in range(0, 10):
+            if x == 1:
+                return 1
+            else:
+                return 12
+        return 13
+
+    def foo(x):
+        x = 1
+        y = 2
+        foo()
+        return 12"""
+        self.treemanager.import_file(p)
+        assert self.parser.last_status == True
+
+        self.text_compare(p)
+
+        start_version = self.treemanager.version
+
+        self.treemanager.cursor_reset()
+        self.move("down", 7)
+        self.move("right", 10)
+        self.treemanager.key_normal("\r")
+        self.treemanager.save_current_version()
+
+        self.treemanager.cursor_reset()
+        self.move("down", 6)
+        self.move("right", 0)
+        self.treemanager.key_normal("\r") # this has to be \r not \n (Eco works with \r)
+        self.treemanager.save_current_version()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(p)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+        self.text_compare(broken)
+
+        # undo again and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(p)
+
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        t1.add_parser(parser, lexer, python.name)
+        t1.import_file(p)
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+    @slow
+    def test_undo_random_insertdelete(self):
+        import random
+        self.reset()
+        #self.save()
+
+        self.treemanager.import_file(programs.connect4)
+        assert self.parser.last_status == True
+        #self.save()
+
+        self.text_compare(programs.connect4)
+
+        line_count = len(self.treemanager.lines)
+        random_lines = range(line_count)
+        random.shuffle(random_lines)
+
+        start_version = self.treemanager.version
+        for linenr in random_lines:
+            cols = range(20)
+            random.shuffle(cols)
+            for col in cols:
+                self.treemanager.cursor_reset()
+                self.move('down', linenr)
+                self.move('right', col)
+                k = self.get_random_key()
+                if k in ["a", "c", "e", "g", "i", "k", "m", "1", "3", "5", "7"]:
+                    # for a few characters DELETE instead of INSERT
+                    x = self.treemanager.key_delete()
+                else:
+                    x = self.treemanager.key_normal(self.get_random_key())
+                if x == "eos":
+                    continue
+            self.treemanager.save_current_version()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.connect4)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+        self.text_compare(broken)
+
+        # undo again and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.connect4)
+
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        t1.add_parser(parser, lexer, python.name)
+        t1.import_file(programs.connect4)
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+    @slow
+    def test_undo_random_insertdeleteundo_slow(self):
+        self.random_insert_delete_undo(programs.connect4)
+
+    def test_undo_random_insertdeleteundo(self):
+        self.random_insert_delete_undo(programs.pythonsmall)
+
+    def random_insert_delete_undo(self, program):
+        import random
+        self.reset()
+        #self.save()
+
+        self.treemanager.import_file(program)
+        assert self.parser.last_status == True
+        #self.save()
+
+        self.text_compare(program)
+
+        line_count = len(self.treemanager.lines)
+        random_lines = range(line_count)
+        random.shuffle(random_lines)
+
+        start_version = self.treemanager.version
+        for linenr in random_lines:
+            cols = range(5)
+            random.shuffle(cols)
+            for col in cols:
+                last_was_undo = False
+                print("self.treemanager.cursor_reset()")
+                self.treemanager.cursor_reset()
+                print("self.move('down', %s)" % (linenr))
+                print("self.move('right', %s)" % (col))
+                self.move('down', linenr)
+                self.move('right', col)
+                k = self.get_random_key()
+                if k in ["a", "c", "e", "g", "i", "k", "m", "1", "3", "5", "7"]:
+                    # for a few characters DELETE instead of INSERT
+                    print("self.treemanager.key_delete()")
+                    x = self.treemanager.key_delete()
+                elif k in ["o", "q", "s", "u"]:
+                    print("self.treemanager.key_ctrl_z()")
+                    x = self.treemanager.key_ctrl_z()
+                    last_was_undo = True
+                else:
+                    key = self.get_random_key()
+                    print("self.treemanager.key_normal(%s)" % (repr(key)))
+                    x = self.treemanager.key_normal(key)
+                if x == "eos":
+                    continue
+            if not last_was_undo:
+                print("self.treemanager.save_current_version()")
+                self.treemanager.save_current_version()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(program)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+        self.text_compare(broken)
+
+        # undo again and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(program)
+
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        t1.add_parser(parser, lexer, python.name)
+        t1.import_file(program)
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+    def test_bug_infinite_loop(self):
+        self.reset()
+
+        self.treemanager.import_file(programs.pythonsmall)
+        assert self.parser.last_status == True
+
+        self.treemanager.cursor_reset()
+        self.move('down', 8)
+        self.move('right', 0)
+        self.treemanager.key_delete()
+        self.treemanager.save_current_version()
+        self.treemanager.cursor_reset()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.cursor_reset()
+        self.move('down', 9)
+        self.move('right', 0)
+        self.treemanager.key_delete()
+
+    def test_bug_undo_loop_2(self):
+
+        self.reset()
+
+        self.treemanager.import_file(programs.pythonsmall)
+        assert self.parser.last_status == True
+
+        start_version = self.treemanager.version
+
+        self.treemanager.cursor_reset()
+        self.move('down', 5)
+        self.move('right', 3)
+        self.treemanager.key_normal('#')
+        self.treemanager.cursor_reset()
+        self.move('down', 5)
+        self.move('right', 3)
+        self.treemanager.key_normal(')')
+        self.treemanager.save_current_version()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.pythonsmall)
+
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        t1.add_parser(parser, lexer, python.name)
+        t1.import_file(programs.pythonsmall)
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+    def test_bug_undo_typing(self):
+        self.reset()
+
+        self.treemanager.import_file(programs.pythonsmall)
+        assert self.parser.last_status == True
+
+        self.treemanager.cursor_reset()
+        self.move("down", 12)
+        self.move("right", 0)
+        self.treemanager.key_normal("g")
+        self.treemanager.key_ctrl_z()
+
+        self.treemanager.cursor_reset()
+        self.move("down", 12)
+        self.move("right", 2)
+        self.treemanager.key_normal("%")
+        self.treemanager.key_ctrl_z()
+
+        self.treemanager.cursor_reset()
+        self.move("down", 13)
+        self.move("right", 0)
+        self.treemanager.key_normal("y")
+
+
+class Test_Undo_LBoxes(Test_Helper):
+
+    def setup_class(cls):
+        parser, lexer = phppython.load()
+        cls.lexer = lexer
+        cls.parser = parser
+        cls.parser.init_ast()
+        cls.ast = cls.parser.previous_version
+        cls.treemanager = TreeManager()
+        cls.treemanager.add_parser(cls.parser, cls.lexer, phppython.name)
+
+        cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+    def test_simple(self):
+        self.reset()
+        self.treemanager.import_file(programs.phpclass)
+        self.move("up", 1)
+
+        self.treemanager.add_languagebox(lang_dict["Python + PHP"])
+
+        self.treemanager.key_normal("p")
+        self.treemanager.key_normal("a")
+        self.treemanager.key_normal("s")
+        self.treemanager.key_normal("s")
+        self.treemanager.save_current_version()
+
+        self.move("down", 1)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("a")
+        self.treemanager.save_current_version()
+
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+
+    def test_simple2(self):
+        self.versions = []
+        self.reset()
+        self.versions.append(self.treemanager.export_as_text())
+        self.treemanager.import_file(programs.phpclass)
+        self.versions.append(self.treemanager.export_as_text())
+        self.move("down", 1)
+
+        self.treemanager.add_languagebox(lang_dict["Python + PHP"])
+
+        text = "def x():\r    pass"
+        for c in text:
+            self.treemanager.key_normal(c)
+
+        self.treemanager.save_current_version()
+
+        import copy
+        dp = copy.deepcopy(self.parser.previous_version.parent)
+        self.versions.append(self.treemanager.export_as_text())
+        self.treemanager.key_normal("a")
+        self.treemanager.save_current_version()
+        self.versions.append(self.treemanager.export_as_text())
+
+        self.move("up", 2)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("\r")
+        self.treemanager.save_current_version()
+        self.versions.append(self.treemanager.export_as_text())
+        self.treemanager.key_normal("a")
+        self.treemanager.save_current_version()
+        self.versions.append(self.treemanager.export_as_text())
+
+        assert self.versions.pop() == self.treemanager.export_as_text()
+        self.treemanager.key_ctrl_z()
+        assert self.versions.pop() == self.treemanager.export_as_text()
+        self.treemanager.key_ctrl_z()
+        assert self.versions.pop() == self.treemanager.export_as_text()
+        self.treemanager.key_ctrl_z()
+        assert self.versions.pop() == self.treemanager.export_as_text()
+
+        self.tree_compare(self.parser.previous_version.parent, dp)
+
+    def test_clean_version_bug(self):
+        self.reset()
+        self.treemanager.import_file(programs.phpclass)
+        self.move("down", 1)
+
+        self.treemanager.add_languagebox(lang_dict["Python + PHP"])
+        self.treemanager.key_normal("p")
+        self.treemanager.key_normal("a")
+        self.treemanager.key_normal("s")
+        self.treemanager.key_normal("s")
+        self.treemanager.save_current_version()
+
+        import copy
+        dp = copy.deepcopy(self.parser.previous_version.parent)
+
+        self.treemanager.key_normal("a")
+        self.treemanager.save_current_version()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.save_current_version()
+
+        self.tree_compare(self.parser.previous_version.parent, dp)
+
+        self.move("up", 1)
+        self.treemanager.key_end()
+        self.move("left", 2)
+        self.treemanager.key_normal("x")
+        self.treemanager.save_current_version()
+
+        dp2 = copy.deepcopy(self.parser.previous_version.parent)
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_shift_ctrl_z()
+
+        self.tree_compare(self.parser.previous_version.parent, dp2)
+
+class Test_InputLogger(Test_Python):
+    def test_simple(self):
+        log = """self.key_normal('c')
+self.key_normal('l')
+self.key_normal('a')
+self.key_normal('s')
+self.key_normal('s')
+self.key_normal(' ')
+self.key_shift()
+self.key_normal('X')
+self.key_shift()
+self.key_normal(':')
+self.key_normal('\r')
+self.key_normal('    ')
+self.key_normal('d')
+self.key_normal('e')
+self.key_normal('f')
+self.key_normal(' ')
+self.key_normal('x')
+self.key_backspace()
+self.key_normal('y')
+self.key_shift()
+self.key_normal('o')
+self.key_normal('o')
+self.key_shift()
+self.key_normal('(')
+self.key_shift()
+self.key_normal(')')
+self.key_normal(':')
+self.key_normal('\r')
+self.key_normal('    ')
+self.key_normal('x')
+self.key_normal(' ')
+self.key_normal('=')
+self.key_normal(' ')
+self.key_normal('1')
+self.key_cursors('up', False)
+self.key_cursors('left', False)
+self.key_cursors('left', False)
+# mousePressEvent
+self.cursor.line = 1
+self.cursor.move_to_x(11, self.lines)
+self.selection_start = self.cursor.copy()
+self.selection_end = self.cursor.copy()
+self.cursor.line = 1
+self.cursor.move_to_x(8, self.lines)
+self.selection_end = self.cursor.copy()
+self.cursor.line = 2
+self.key_normal('f')
+self.key_normal('o')
+self.key_normal('o')
+# mousePressEvent
+self.cursor.line = 2
+self.cursor.move_to_x(16, self.lines)
+self.selection_start = self.cursor.copy()
+self.selection_end = self.cursor.copy()
+self.key_backspace()
+self.add_languagebox('SQL')
+self.key_shift()
+self.key_normal('S')
+self.key_normal('E')
+self.key_normal('L')
+self.key_normal('E')
+self.key_normal('C')
+self.key_normal('T')
+self.key_normal(' ')
+self.key_shift()
+self.key_normal('*')
+self.key_shift()
+self.key_normal(' ')
+self.key_normal('F')
+self.key_normal('R')
+self.key_normal('O')
+self.key_normal('M')
+self.key_normal(' ')
+self.key_normal('t')
+self.key_normal('a')
+self.key_normal('b')
+self.key_normal('l')
+self.key_normal('e')"""
+
+        self.treemanager.apply_inputlog(log)
+        assert self.treemanager.export_as_text() == """class X:
+    def foo():
+        x = SELECT * FROM table"""

@@ -46,7 +46,7 @@
      <x>0</x>
      <y>0</y>
      <width>979</width>
-     <height>23</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -78,9 +78,11 @@
     <addaction name="actionParse_Tree"/>
     <addaction name="actionStateGraph"/>
     <addaction name="actionPreview"/>
+    <addaction name="actionInput_log"/>
     <addaction name="separator"/>
     <addaction name="actionShow_language_boxes"/>
     <addaction name="actionShow_namebinding"/>
+    <addaction name="actionShow_indentation"/>
    </widget>
    <widget class="QMenu" name="menuInfo">
     <property name="title">
@@ -92,6 +94,17 @@
     <property name="title">
      <string>Edit</string>
     </property>
+    <widget class="QMenu" name="menuChange_language_box">
+     <property name="title">
+      <string>Change language box</string>
+     </property>
+     <property name="icon">
+      <iconset theme="reload">
+       <normaloff/>
+      </iconset>
+     </property>
+     <addaction name="actionDummy"/>
+    </widget>
     <addaction name="actionUndo"/>
     <addaction name="actionRedo"/>
     <addaction name="separator"/>
@@ -104,6 +117,7 @@
     <addaction name="separator"/>
     <addaction name="actionAdd_language_box"/>
     <addaction name="actionSelect_next_language_box"/>
+    <addaction name="menuChange_language_box"/>
     <addaction name="separator"/>
     <addaction name="actionCode_complete"/>
    </widget>
@@ -503,6 +517,24 @@
    </property>
    <property name="text">
     <string>Show namebinding</string>
+   </property>
+  </action>
+  <action name="actionShow_indentation">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show indentation</string>
+   </property>
+  </action>
+  <action name="actionDummy">
+   <property name="text">
+    <string>dummy</string>
+   </property>
+  </action>
+  <action name="actionInput_log">
+   <property name="text">
+    <string>Input log...</string>
    </property>
   </action>
  </widget>
