@@ -154,6 +154,7 @@ class BootstrapParser(object):
             ws_rule.add_alternative([Terminal("<ws>"), Nonterminal("WS")])
             ws_rule.add_alternative([Terminal("<return>"), Nonterminal("WS")])
             ws_rule.add_alternative([Terminal("<backslash>"), Terminal("<return>"), Nonterminal("WS")])
+            ws_rule.add_alternative([Nonterminal("comment"), Nonterminal("WS")])
             ws_rule.add_alternative([]) # or empty
             self.rules[ws_rule.symbol] = ws_rule
 
