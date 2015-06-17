@@ -342,7 +342,8 @@ class TreeManager(object):
     def add_parser(self, parser, lexer, language):
         analyser = self.load_analyser(language)
         if lexer.is_indentation_based():
-            im = IndentationManager(parser.previous_version.parent)
+            im = None#IndentationManager(parser.previous_version.parent)
+            parser.indentation_based = True
         else:
             im = None
         self.parsers.append((parser, lexer, language, analyser, im))
@@ -795,6 +796,7 @@ class TreeManager(object):
             self.selection_end = self.cursor.copy()
 
     def key_normal(self, text):
+        print("KEYNORMAL", text)
         self.log_input("key_normal", repr(str(text)))
         indentation = 0
 

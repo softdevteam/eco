@@ -306,6 +306,9 @@ class IndentationManager:
         while True:
             if node is self.eos:
                 return False
+            if node.lookup == "hash": # reached next line
+                print("hash means not logical")
+                return False
             if node.lookup == "<return>": # reached next line
                 return False
             if node.lookup == "<ws>":

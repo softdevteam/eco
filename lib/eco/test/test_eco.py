@@ -606,6 +606,11 @@ class Test_Python(Test_Helper):
 
         cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
 
+class Test_Boogie(Test_Python):
+    def test_simple(self):
+        for c in "class X:\r    p":
+            self.treemanager.key_normal(c)
+
 class Test_Bugs(Test_Python):
 
     def test_bug_goto(self):

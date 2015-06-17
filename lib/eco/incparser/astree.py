@@ -173,6 +173,7 @@ class Node(object):
     def mark_changed(self):
         node = self
         while True:
+            print("marked changed", node.symbol)
             node.needs_saving = True
             node.save_ns()
             node.version = node.version + 0.000001
@@ -243,38 +244,39 @@ class Node(object):
                 return
             version -= 1
 
-    def remove_child(self, child):
+    def remove_child(self, child, change = True):
         for i in xrange(len(self.children)):
             if self.children[i] is child:
                 removed_child = self.children.pop(i)
                 removed_child.deleted = True
-                removed_child.save_ns()
+                if change: removed_child.save_ns()
                 # update siblings
                 if removed_child.left:
                     removed_child.left.right = removed_child.right
-                    removed_child.left.needs_saving = True
-                    removed_child.left.save_ns()
+                    if change: removed_child.left.needs_saving = True
+                    if change: removed_child.left.save_ns()
                 if removed_child.right:
                     removed_child.right.left = removed_child.left
-                    removed_child.right.needs_saving = True
-                    removed_child.right.save_ns()
+                    if change: removed_child.right.needs_saving = True
+                    if change: removed_child.right.save_ns()
                 # update terminal pointers
                 child.prev_term.next_term = child.next_term
-                child.prev_term.needs_saving = True
-                child.prev_term.save_ns()
-                child.prev_term.mark_version()
+                if change: child.prev_term.needs_saving = True
+                if change: child.prev_term.save_ns()
+                if change: child.prev_term.mark_version()
                 child.next_term.prev_term = child.prev_term
-                child.next_term.needs_saving = True
-                child.next_term.save_ns()
-                child.next_term.mark_version()
-                self.mark_changed()
-                self.changed = True
+                if change: child.next_term.needs_saving = True
+                if change: child.next_term.save_ns()
+                if change: child.next_term.mark_version()
+                if change: self.mark_changed()
+                if change: self.changed = True
                 return
 
-    def insert_after(self, node):
-        self.parent.insert_after_node(self, node)
+    def insert_after(self, node, silent=False):
+        self.parent.insert_after_node(self, node, silent)
 
-    def insert_after_node(self, node, newnode):
+    def insert_after_node(self, node, newnode, silent=False):
+        # XXX don't mark/save stuff in silent mode
         i = 0
         for c in self.children:
             if c is node:
@@ -431,7 +433,7 @@ uppercase = set(list(string.ascii_uppercase))
 digits = set(list(string.digits))
 
 class TextNode(Node):
-    __slots__ = ["log", "version", "position", "changed", "needs_saving", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookup", "parent_lbox", "magic_backpointer"]
+    __slots__ = ["log", "version", "position", "changed", "needs_saving", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookup", "parent_lbox", "magic_backpointer", "indent"]
     def __init__(self, symbol, state=-1, children=[], pos=-1, lookahead=0):
         Node.__init__(self, symbol, state, children)
         self.position = 0
@@ -446,6 +448,7 @@ class TextNode(Node):
         self.lookup = ""
         self.log = {}
         self.version = 0
+        self.indent = None
 
     def get_magicterminal(self):
         try:

@@ -38,6 +38,10 @@ import logging
 
 Node = TextNode
 
+
+def printc(text, color):
+    print("\033[%sm%s\033[0m" % (color, text))
+
 class IncParser(object):
 
     def __init__(self, grammar=None, lr_type=LR0, whitespaces=False, startsymbol=None):
@@ -85,6 +89,9 @@ class IncParser(object):
         self.status_by_version = {}
         self.errornode_by_version = {}
 
+        self.indent_stack = None
+        self.indentation_based = False
+
         self.previous_version = None
         logging.debug("Incemental parser done")
 
@@ -125,21 +132,24 @@ class IncParser(object):
         self.inc_parse([], True)
 
     def inc_parse(self, line_indents=[], reparse=False):
+        print("============ new parse ===============")
         logging.debug("============ NEW INCREMENTAL PARSE ================= ")
         self.error_node = None
         self.stack = []
         self.undo = []
         self.current_state = 0
         self.stack.append(Node(FinishSymbol(), 0, []))
+        self.stack[0].indent = [0]
         bos = self.previous_version.parent.children[0]
         la = self.pop_lookahead(bos)
         self.loopcount = 0
         self.anycount = {}
         self.anycounter = 0
 
-        USE_OPT = True
+        USE_OPT = False
 
         while(True):
+            print("\x1b[35mProcessing\x1b[0m", la, la.changed, id(la))
             self.loopcount += 1
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
                 if la.changed:#self.has_changed(la):
@@ -160,6 +170,7 @@ class IncParser(object):
                 if la.changed or reparse:
                     la.changed = False
                     self.undo.append((la, 'changed', True))
+                    print("LEFT BREAKDOWN")
                     la = self.left_breakdown(la)
                 else:
                     if USE_OPT:
@@ -193,6 +204,7 @@ class IncParser(object):
                         element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
 
                         if self.shiftable(la):
+                            logging.debug("\x1b[37mis shiftable\x1b[0m")
                             self.stack.append(la)
                             self.current_state = la.state
                             self.right_breakdown()
@@ -209,21 +221,67 @@ class IncParser(object):
             result = self.syntaxtable.lookup(self.current_state, symbol)
         return result, symbol
 
+    def is_valid(self, symbol):
+        print("valid:", symbol, self.syntaxtable.lookup(self.current_state, symbol))
+        return self.syntaxtable.lookup(self.current_state, symbol)
+
     def parse_terminal(self, la, lookup_symbol):
         # try parsing ANYSYMBOL
+        element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
+
         if not isinstance(la.symbol, FinishSymbol):
             if self.process_any(la):
                 return self.pop_lookahead(la)
+        elif self.indentation_based:
+            # check if indenttokens are correct, if not update
+            last = list(self.get_last_indent(la))
+            needed = []
+            if not isinstance(la.prev_term, BOS) and (self.is_valid(Terminal("DEDENT")) or self.is_valid(Terminal("NEWLINE"))):
+                needed.append(IndentationTerminal("NEWLINE"))
+                while 0 < last[-1]:
+                    last.pop()
+                    needed.append(IndentationTerminal("DEDENT"))
 
-        element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
-        logging.debug("parse_terminal: %s in %s -> %s", lookup_symbol, self.current_state, element)
+            there = []
+            n = la.prev_term
+            while isinstance(n.symbol, IndentationTerminal):
+                there.insert(0, n.symbol)
+                n = n.prev_term
+
+            print(needed)
+            print(there)
+            if needed == there or needed == []:
+                printc("ALL IS WELL", 37)
+            else:
+                printc("UPDATING", 37)
+                # update
+                print("    tried parsing $ but dedent not finished")
+                # finish dedentation
+                n = la.prev_term
+               #while isinstance(n.symbol, IndentationTerminal):
+               #    print("    removing", n)
+               #    n.parent.remove_child(n, False)
+               #    n = n.prev_term
+               #    self.stack.pop()
+               #self.current_state = self.stack[-1].state
+                i = 0
+                last_added = la
+                for node in needed:
+                    if len(there) > i and there[i] == node:
+                        print("    skip", node)
+                    else:
+                        self.silent_insert(la.prev_term, Node(node))
+                    i += 1
+                return self.pop_lookahead(n)
+
+        logging.debug("\x1b[34mparse_terminal\x1b[0m: %s in %s -> %s", lookup_symbol, self.current_state, element)
         if isinstance(element, Accept):
             #XXX change parse so that stack is [bos, startsymbol, eos]
             bos = self.previous_version.parent.children[0]
             eos = self.previous_version.parent.children[-1]
             self.previous_version.parent.set_children([bos, self.stack[1], eos])
             logging.debug("loopcount: %s", self.loopcount)
-            logging.debug ("Accept")
+            logging.debug ("\x1b[32mAccept\x1b[0m")
             return "Accept"
         elif isinstance(element, Shift):
             self.validating = False
@@ -231,7 +289,7 @@ class IncParser(object):
             return self.pop_lookahead(la)
 
         elif isinstance(element, Reduce):
-            logging.debug("Reduce: %s -> %s", la, element)
+            logging.debug("\x1b[33mReduce\x1b[0m: %s -> %s", la, element)
             self.reduce(element)
             return self.parse_terminal(la, lookup_symbol)
         elif element is None:
@@ -243,6 +301,95 @@ class IncParser(object):
                 self.validating = False
             else:
                 return self.do_undo(la)
+
+    def parse_whitespace(self, la):
+        #XXX indentation logic here
+        if la.lookup == "<return>":
+            if isinstance(la.next_term, EOS):
+                n = la
+                while isinstance(n.symbol, IndentationTerminal):
+                    print("       remove eos indent", n)
+                    n.parent.remove_child(n, False)
+                    n = n.prev_term
+            else:
+                n = la.next_term
+                while isinstance(n.symbol, IndentationTerminal):
+                    print("       remove indent")
+                    n.parent.remove_child(n, False)
+                    n = n.next_term
+            if n.lookup == "<ws>":
+                ws = len(n.symbol.name)
+            else:
+                ws = 0
+
+            last = list(self.get_last_indent(la))
+            print("       last", last)
+            if ws > last[-1]:
+                self.silent_insert(la, Node(IndentationTerminal("INDENT")))
+                self.silent_insert(la, Node(IndentationTerminal("NEWLINE")))
+                la.indent = last + [ws]
+                print("       set indent", la, la.indent)
+            elif ws < last[-1]:
+                while ws < last[-1]:
+                    last.pop()
+                    print("       add dedent")
+                    self.silent_insert(la, Node(IndentationTerminal("DEDENT")))
+                self.silent_insert(la, Node(IndentationTerminal("NEWLINE")))
+                la.indent = list(last)
+                if ws != last[-1]:
+                    print("UNBALANCED", last)
+            else:
+                print("NEWLINE", last)
+                self.silent_insert(la, Node(IndentationTerminal("NEWLINE")))
+
+    def silent_insert(self, la, newnode):
+        print("       \x1b[36mINSERT\x1b[0m", newnode, id(newnode))
+        newnode.right = la.right
+        newnode.next_term = la.next_term
+        newnode.left = la
+        newnode.prev_term = la
+        newnode.parent = la.parent
+
+        if newnode.right:
+            self.undo.append((newnode.right, "left", newnode.right.left))
+            newnode.right.left = newnode
+        self.undo.append((newnode.next_term, "prev_term", newnode.next_term.prev_term))
+        newnode.next_term.prev_term = newnode
+
+        self.undo.append((la, "right", la.right))
+        la.right = newnode
+        self.undo.append((la, "next_term", la.next_term))
+        la.next_term = newnode
+
+    def parse_indent(self, la):
+        lookup = self.get_lookup(la)
+        element = self.syntaxtable.lookup(self.current_state, lookup)
+        print("NOPUSH:", lookup, element)
+        if isinstance(element, Shift):
+            self.stack[-1].state = element.action
+            self.current_state = element.action
+        elif isinstance(element, Reduce):
+            self.reduce(element)
+            self.parse_indent(la)
+        print("DONE")
+
+    def get_last_indent(self, la):
+        # XXX not the most performant solution as it iterates over all elements
+        # on the stack until one has it's indent level set, which will be
+        # either a return terminal or a Nonterminal with a return somewhere in
+        # its subtrees
+        for n in reversed(self.stack):
+            if n.indent and n is not la:
+                return n.indent
+
+    def set_total_indent(self, node):
+        l = []
+        if node.children:
+            for c in node.children:
+                if c.indent:
+                    l = c.indent
+        if l:
+            node.indent = l
 
     def get_lookup(self, la):
         if la.lookup != "":
@@ -259,7 +406,7 @@ class IncParser(object):
             node, attribute, value = self.undo.pop(-1)
             setattr(node, attribute, value)
         self.error_node = la
-        logging.debug ("Error: %s %s %s", la, la.prev_term, la.next_term)
+        logging.debug ("\x1b[31mError\x1b[0m: %s %s %s", la, la.prev_term, la.next_term)
         logging.debug("loopcount: %s", self.loopcount)
         return "Error"
 
@@ -302,6 +449,7 @@ class IncParser(object):
             self.undo.append((c, 'right', c.right))
 
         new_node = Node(element.action.left.copy(), goto.action, children)
+        self.set_total_indent(new_node)
         logging.debug("   Add %s to stack and goto state %s", new_node.symbol, new_node.state)
         self.stack.append(new_node)
         self.current_state = new_node.state # = goto.action
@@ -363,11 +511,12 @@ class IncParser(object):
         # using the (correct) current state from before the optimistic shift of
         # it's parent tree
         self.current_state = self.stack[-1].state
-        logging.debug("right breakdown: set state to %s", self.current_state)
+        logging.debug("right breakdown(%s): set state to %s", node.symbol.name, self.current_state)
         while(isinstance(node.symbol, Nonterminal)):
             for c in node.children:
                 if not self.process_any(c): # in breakdown we also have to take care of ANYSYMBOLs
-                    self.shift(c)
+                    self.shift(c, rb=True)
+                c = c.right
             node = self.stack.pop()
             # after undoing an optimistic shift (through pop) we need to revert
             # back to the state before the shift (which can be found on the top
@@ -379,16 +528,16 @@ class IncParser(object):
                 self.stack.append(node)
                 return
             else:
+                logging.debug("right breakdown else: set state to %s", self.stack[-1].state)
                 self.current_state = self.stack[-1].state
         if not self.process_any(node):
-            self.shift(node)
+            self.shift(node, rb=True) # pushes previously popped terminal back on stack
 
-    def shift(self, la, element=None):
+    def shift(self, la, element=None, rb=False):
         if not element:
             lookup_symbol = self.get_lookup(la)
             element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
-        logging.debug("Shift(%s): %s -> %s", self.current_state, la, element)
-        logging.debug("Shift: set state to %s", element.action)
+        logging.debug("\x1b[32m" + "%sShift(%s)" + "\x1b[0m" + ": %s -> %s", "rb" if rb else "", self.current_state, la, element)
         la.state = element.action
         self.stack.append(la)
         self.current_state = la.state
@@ -397,6 +546,9 @@ class IncParser(object):
             # last_shift_state is used to predict next symbol
             # whitespace destroys correct behaviour
             self.last_shift_state = element.action
+
+        if self.indentation_based and not rb:
+            return self.parse_whitespace(la)
 
     def process_any(self, la):
         result, symbol = self.parse_anysymbol()
@@ -431,8 +583,10 @@ class IncParser(object):
         self.anycounter = 0
 
     def pop_lookahead(self, la):
+        org = la
         while(la.right_sibling() is None):
             la = la.parent
+        logging.debug("pop_lookahead(%s): %s", org.symbol, la.right_sibling().symbol)
         return la.right_sibling()
 
     def shiftable(self, la):
