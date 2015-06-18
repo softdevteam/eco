@@ -148,8 +148,15 @@ class IncParser(object):
 
         USE_OPT = False
 
+        # for now ALWAYS delete the indentationtokens before EOS
+        eos = self.previous_version.parent.children[-1]
+        d = eos.prev_term
+        while isinstance(d.symbol, IndentationTerminal):
+            d.parent.remove_child(d, False)
+            d = d.prev_term
+
         while(True):
-            print("\x1b[35mProcessing\x1b[0m", la, la.changed, id(la))
+            print("\x1b[35mProcessing\x1b[0m", la, la.changed, id(la), la.indent)
             self.loopcount += 1
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
                 if la.changed:#self.has_changed(la):
@@ -250,7 +257,7 @@ class IncParser(object):
 
             print(needed)
             print(there)
-            if needed == there or needed == []:
+            if needed == there or len(needed) < len(there): #XXX why does this work?
                 printc("ALL IS WELL", 37)
             else:
                 printc("UPDATING", 37)
@@ -338,9 +345,12 @@ class IncParser(object):
                 la.indent = list(last)
                 if ws != last[-1]:
                     print("UNBALANCED", last)
+                    # XXX in future, just ERROR here
+                    self.silent_insert(la, Node(IndentationTerminal("UNBALANCED")))
             else:
                 print("NEWLINE", last)
                 self.silent_insert(la, Node(IndentationTerminal("NEWLINE")))
+                la.indent = list(last)
 
     def silent_insert(self, la, newnode):
         print("       \x1b[36mINSERT\x1b[0m", newnode, id(newnode))
