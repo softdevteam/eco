@@ -156,7 +156,7 @@ class IncParser(object):
             d = d.prev_term
 
         while(True):
-            print("\x1b[35mProcessing\x1b[0m", la, la.changed, id(la), la.indent)
+            logging.debug("\x1b[35mProcessing\x1b[0m %s %s %s %s", la, la.changed, id(la), la.indent)
             self.loopcount += 1
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
                 if la.changed:#self.has_changed(la):
@@ -177,7 +177,6 @@ class IncParser(object):
                 if la.changed or reparse:
                     la.changed = False
                     self.undo.append((la, 'changed', True))
-                    print("LEFT BREAKDOWN")
                     la = self.left_breakdown(la)
                 else:
                     if USE_OPT:
@@ -257,7 +256,10 @@ class IncParser(object):
 
             print(needed)
             print(there)
-            if needed == there or len(needed) < len(there): #XXX why does this work?
+            if needed == there or len(needed) < len(there):
+                # needed can be smaller than there, after we added tokens in a
+                # previous step (reduce). After reducing to startrule nothing
+                # is needed anymore, but the tokens are still there
                 printc("ALL IS WELL", 37)
             else:
                 printc("UPDATING", 37)
@@ -309,6 +311,28 @@ class IncParser(object):
             else:
                 return self.do_undo(la)
 
+    def is_logical_line(self, node):
+        # check if line is logical (i.e. doesn't only consist of whitespaces,
+        # comments, etc)
+        if node.symbol.name == "\r" and node.prev_term.symbol.name == "\\":
+            return False
+        node = node.next_term
+        while True:
+            if isinstance(node, EOS):
+                return False
+            if node.parent.symbol.name in ["multiline_string", "single_string", "comment"]:
+                return False
+            if node.lookup == "<return>": # reached next line
+                return False
+            if node.lookup == "<ws>":
+                node = node.next_term
+                continue
+            if  isinstance(node.symbol, IndentationTerminal):
+                node = node.next_term
+                continue
+            # if we are here, we reached a normal node
+            return True
+
     def parse_whitespace(self, la):
         #XXX indentation logic here
         if la.lookup == "<return>":
@@ -324,6 +348,11 @@ class IncParser(object):
                     print("       remove indent")
                     n.parent.remove_child(n, False)
                     n = n.next_term
+
+            # XXX only remove if not logical, otherwise try to update tokens instead of renewing them
+            if not self.is_logical_line(la):
+                return
+
             if n.lookup == "<ws>":
                 ws = len(n.symbol.name)
             else:
@@ -583,7 +612,7 @@ class IncParser(object):
         self.anycounter += 1
 
     def end_any(self, la, result, mode="@"):
-        logging.debug("AnySymbol: end %s" % (la))
+        logging.debug("AnySymbol: end %s (%s)" % (la, mode))
         self.current_state = result.action # switch to state after ANY and continue parsing normally
         logging.debug("AnySymbol: set state to %s", self.current_state)
         if mode == "@ncr":
