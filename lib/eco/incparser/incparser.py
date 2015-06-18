@@ -84,8 +84,7 @@ class IncParser(object):
         self.last_status = False
         self.error_node = None
         self.whitespaces = whitespaces
-        self.anycount = {}
-        self.anycounter = 0
+        self.anycount = set()
         self.status_by_version = {}
         self.errornode_by_version = {}
 
@@ -143,8 +142,7 @@ class IncParser(object):
         bos = self.previous_version.parent.children[0]
         la = self.pop_lookahead(bos)
         self.loopcount = 0
-        self.anycount = {}
-        self.anycounter = 0
+        self.anycount = set()
 
         USE_OPT = False
 
@@ -464,18 +462,13 @@ class IncParser(object):
             children.insert(0, c)
             if c.symbol.name != "~COMMENT~":
                 i += 1
-            if self.anycount.has_key(c):
-                # if this node is part of any, don't count it to reduce elements
+            if c in self.anycount:
+                # if this node is part of any, don't count it towards reduce elements
                 i -= 1
-               #print("%s has anycount %s" % (c, self.anycount[c]))
-               #for _ in range(self.anycount[c]):
-               #    c = self.stack.pop()
-               #    children.insert(0,c)
         if self.stack[-1].symbol.name == "~COMMENT~":
             c = self.stack.pop()
             children.insert(0, c)
 
-        print([x.symbol for x in children])
         logging.debug("   Element on stack: %s(%s)", self.stack[-1].symbol, self.stack[-1].state)
         self.current_state = self.stack[-1].state #XXX don't store on nodes, but on stack
         logging.debug("   Reduce: set state to %s (%s)", self.current_state, self.stack[-1].symbol)
@@ -613,20 +606,12 @@ class IncParser(object):
         logging.debug("AnySymbol: push %s" % (la))
         la.state = self.current_state # this node is now part of this comment state (needed to unvalidating)
         self.stack.append(la)
-        self.anycounter += 1
-        self.anycount[la] = 1
+        self.anycount.add(la)
 
     def end_any(self, la, result, mode="@"):
         logging.debug("AnySymbol: end %s (%s)" % (la, mode))
         self.current_state = result.action # switch to state after ANY and continue parsing normally
         logging.debug("AnySymbol: set state to %s", self.current_state)
-        if mode == "@ncr":
-            #self.anycount[self.stack[-1]] = self.anycounter # store amount of pushed elements on last symbol
-            logging.debug("AnySymbol: (%s) set anycount on %s to %s", self.current_state, self.stack[-1], self.anycounter)
-        else:
-            #self.anycount[la] = self.anycounter # store amount of pushed elements on last symbol
-            logging.debug("AnySymbol: (%s) set anycount on %s to %s", self.current_state, la, self.anycounter)
-        self.anycounter = 0
 
     def pop_lookahead(self, la):
         org = la
