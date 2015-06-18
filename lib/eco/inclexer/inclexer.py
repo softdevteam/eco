@@ -525,12 +525,22 @@ class IncrementalLexerCF(object):
             last_node = node
             node.symbol.name = t.source
             node.indent = None
-            if node.lookup != t.name or node.lookup == "<ws>":
+            if node.lookup != t.name:
                 node.mark_changed()
                 any_changes = True
             else:
                 node.mark_version()
             node.lookup = t.name
+            if node.lookup == "<ws>":
+                print("MARK newline as changed")
+                prev = node.prev_term
+                print("prev:", prev)
+                while isinstance(prev.symbol, IndentationTerminal):
+                    prev = prev.prev_term
+                print("prev:", prev)
+                if prev.lookup == "<return>":
+                    prev.mark_changed()
+                    any_changes = True
             node.lookahead = t.lookahead
         # delete left over nodes
         while True:
