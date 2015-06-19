@@ -710,6 +710,19 @@ class Test_Indentation(Test_Python):
         node = self.treemanager.lines[4].node
         check_next_nodes(node, ["NEWLINE", "INDENT", "        ", "pass", "NEWLINE", "DEDENT", "DEDENT", "eos"])
 
+    def test_indentation_last_line(self):
+        # change last line from unlogical to logical
+        # dedents are now being created after \r not before eos
+        self.reset()
+        inputstring = """if x:
+    x
+"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == True
+        self.move("down", 2)
+        self.treemanager.key_normal("z")
+        assert self.parser.last_status == True
+
     def test_indentation2(self):
         self.reset()
         assert self.parser.last_status == True
