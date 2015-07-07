@@ -42,6 +42,16 @@ Node = TextNode
 def printc(text, color):
     print("\033[%sm%s\033[0m" % (color, text))
 
+def printline(start):
+    start = start.next_term
+    l = []
+    while True:
+        l.append(start.symbol.name)
+        if start.lookup == "<return>" or isinstance(start, EOS):
+            break
+        start = start.next_term
+    return "".join(l)
+
 class IncParser(object):
 
     def __init__(self, grammar=None, lr_type=LR0, whitespaces=False, startsymbol=None):
@@ -140,19 +150,31 @@ class IncParser(object):
         self.stack.append(Node(FinishSymbol(), 0, []))
         self.stack[0].indent = [0]
         bos = self.previous_version.parent.children[0]
-        la = self.pop_lookahead(bos)
         self.loopcount = 0
         self.anycount = set()
 
-        USE_OPT = False
+        USE_OPT = True
 
-        # for now ALWAYS delete the indentationtokens before EOS
         eos = self.previous_version.parent.children[-1]
         d = eos.prev_term
         while isinstance(d.symbol, IndentationTerminal):
-            d.parent.remove_child(d, False)
             d = d.prev_term
+        self.last_token_before_eos = d
+        if isinstance(d, BOS):
+            # if file is empty, delete left over indentation tokens
+            n = d.next_term
+            while isinstance(n.symbol, IndentationTerminal):
+                n.parent.remove_child(n)
+                n = n.next_term
 
+        # fix indentation after bos. Should result in an error for whitespace
+        # at the beginning
+        if bos.next_term.lookup == "<ws>":
+            bos.insert_after(TextNode(IndentationTerminal("INDENT")))
+        elif isinstance(bos.next_term.symbol, IndentationTerminal):
+            bos.next_term.parent.remove_child(bos.next_term)
+
+        la = self.pop_lookahead(bos)
         while(True):
             logging.debug("\x1b[35mProcessing\x1b[0m %s %s %s %s", la, la.changed, id(la), la.indent)
             self.loopcount += 1
@@ -217,6 +239,61 @@ class IncParser(object):
                             la = self.left_breakdown(la)
         logging.debug("============ INCREMENTAL PARSE END ================= ")
 
+    def get_previous_ws(self, node):
+        """Returns the whitespace of the previous logical line"""
+        node = node.prev_term
+        while True:
+            if isinstance(node, BOS):
+                return 0
+            if node.lookup != "<return>":
+                node = node.prev_term
+                continue
+            if not self.is_logical_line(node):
+                node = node.prev_term
+                continue
+            if node.next_term.lookup == "<ws>":
+                return len(node.next_term.symbol.name)
+            else:
+                return 0
+
+    def indents_differ(self, this, other):
+        if len(this) != len(other):
+            return True
+        for i in range(len(this)):
+            if this[i].symbol != other[i].symbol:
+                return True
+        return False
+
+    def repair_indents(self, node, there, needed):
+        """Updates the indentation tokens of a line, given a list of needed
+        tokens and tokens already there"""
+        it = iter(there)
+        last = node
+        # update indentation tokens with new values or insert new ones
+        for e in needed:
+            try:
+                ne = it.next()
+                if e.symbol == ne.symbol:
+                    last = ne
+                    continue
+                else:
+                    print("overwrite indent")
+                    ne.symbol.name = e.symbol.name
+                    ne.mark_changed()
+                    continue
+            except StopIteration:
+                pass
+            last.insert_after(e)
+            last = e
+        # delete all leftovers
+        while True:
+            try:
+                x = it.next()
+                print("delete leftover", x)
+                x.parent.remove_child(x)
+            except StopIteration:
+                break
+
     def parse_anysymbol(self):
         symbol = AnySymbol()
         result = self.syntaxtable.lookup(self.current_state, symbol)
@@ -235,50 +312,6 @@ class IncParser(object):
         if not isinstance(la.symbol, FinishSymbol):
             if self.process_any(la):
                 return self.pop_lookahead(la)
-        elif self.indentation_based:
-            # check if indenttokens are correct, if not update
-            last = list(self.get_last_indent(la))
-            needed = []
-            if not isinstance(la.prev_term, BOS) and (self.is_valid(Terminal("DEDENT")) or self.is_valid(Terminal("NEWLINE"))):
-                needed.append(IndentationTerminal("NEWLINE"))
-                while 0 < last[-1]:
-                    last.pop()
-                    needed.append(IndentationTerminal("DEDENT"))
-
-            there = []
-            n = la.prev_term
-            while isinstance(n.symbol, IndentationTerminal):
-                there.insert(0, n.symbol)
-                n = n.prev_term
-
-            print(needed)
-            print(there)
-            if needed == there or len(needed) < len(there):
-                # needed can be smaller than there, after we added tokens in a
-                # previous step (reduce). After reducing to startrule nothing
-                # is needed anymore, but the tokens are still there
-                printc("ALL IS WELL", 37)
-            else:
-                printc("UPDATING", 37)
-                # update
-                print("    tried parsing $ but dedent not finished")
-                # finish dedentation
-                n = la.prev_term
-               #while isinstance(n.symbol, IndentationTerminal):
-               #    print("    removing", n)
-               #    n.parent.remove_child(n, False)
-               #    n = n.prev_term
-               #    self.stack.pop()
-               #self.current_state = self.stack[-1].state
-                i = 0
-                last_added = la
-                for node in needed:
-                    if len(there) > i and there[i] == node:
-                        print("    skip", node)
-                    else:
-                        self.silent_insert(la.prev_term, Node(node))
-                    i += 1
-                return self.pop_lookahead(n)
 
         element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
         logging.debug("\x1b[34mparse_terminal\x1b[0m: %s in %s -> %s", lookup_symbol, self.current_state, element)
@@ -310,8 +343,7 @@ class IncParser(object):
                 return self.do_undo(la)
 
     def is_logical_line(self, node):
-        # check if line is logical (i.e. doesn't only consist of whitespaces,
-        # comments, etc)
+        """Checks if a line is logical, i.e. doesn't only consist of whitespaces or comments"""
         if node.symbol.name == "\r" and node.prev_term.symbol.name == "\\":
             return False
         node = node.next_term
@@ -332,52 +364,128 @@ class IncParser(object):
             return True
 
     def parse_whitespace(self, la):
-        #XXX indentation logic here
-        if la.lookup == "<return>":
-            if isinstance(la.next_term, EOS):
-                n = la
-                while isinstance(n.symbol, IndentationTerminal):
-                    print("       remove eos indent", n)
-                    n.parent.remove_child(n, False)
-                    n = n.prev_term
-            else:
+        """Calculates and repairs indentation levels and tokens after parsing a <return> token.
+
+        Special case: The last token before EOS triggers the generation of the closing dedentations
+
+        1) Check if a line is logical or not
+           a) Logical: Update indent levels, compare needed indetation tokens
+              with current ones and update if needed
+           b) Not logical: Remove all indentation tokens and set indent level to None
+        2) Update succeeding lines that depend(ed) on this line
+        """
+        if la.lookup == "<return>" or isinstance(la, BOS) or la is self.last_token_before_eos:
+            if not self.is_logical_line(la) and not la is self.last_token_before_eos:
+                # delete indentation tokens and indent level
                 n = la.next_term
                 while isinstance(n.symbol, IndentationTerminal):
-                    print("       remove indent")
-                    n.parent.remove_child(n, False)
+                    n.parent.remove_child(n)
+                    n = n.next_term
+                la.indent = None
+                newindent = list(self.get_last_indent(la))
+                ws = self.get_previous_ws(la)
+            else:
+                there = []
+                n = la.next_term
+                while isinstance(n.symbol, IndentationTerminal):
+                    there.append(n)
                     n = n.next_term
 
-            # XXX only remove if not logical, otherwise try to update tokens instead of renewing them
-            if not self.is_logical_line(la):
-                return
+                if n.lookup == "<ws>":
+                    ws = len(n.symbol.name)
+                else:
+                    ws = 0
 
-            if n.lookup == "<ws>":
-                ws = len(n.symbol.name)
-            else:
-                ws = 0
+                last_indent = list(self.get_last_indent(la))
+                needed, newindent = self.get_indentation_tokens_and_indent(last_indent, ws)
+                if la is not self.last_token_before_eos:
+                    la.indent = list(newindent)
 
-            last = list(self.get_last_indent(la))
-            print("       last", last)
-            if ws > last[-1]:
-                self.silent_insert(la, Node(IndentationTerminal("INDENT")))
-                self.silent_insert(la, Node(IndentationTerminal("NEWLINE")))
-                la.indent = last + [ws]
-                print("       set indent", la, la.indent)
-            elif ws < last[-1]:
-                while ws < last[-1]:
-                    last.pop()
-                    print("       add dedent")
-                    self.silent_insert(la, Node(IndentationTerminal("DEDENT")))
-                self.silent_insert(la, Node(IndentationTerminal("NEWLINE")))
-                la.indent = list(last)
-                if ws != last[-1]:
-                    print("UNBALANCED", last)
-                    # XXX in future, just ERROR here
-                    self.silent_insert(la, Node(IndentationTerminal("UNBALANCED")))
-            else:
-                print("NEWLINE", last)
-                self.silent_insert(la, Node(IndentationTerminal("NEWLINE")))
-                la.indent = list(last)
+                if self.indents_differ(there, needed):
+                    self.repair_indents(la, there, needed)
+
+            # update succeeding lines
+            # XXX this causes a chain reaction iterating over some lines
+            # multiple times. we might only have to do this for the <return>
+            # that has actually changed during the parse
+            next_r = la.next_term
+            while True:
+                if isinstance(next_r, EOS):
+                    # if changes reach end of file, repair indentations now or
+                    # it will be too late
+                    eos_there = []
+                    d = next_r.prev_term
+                    while isinstance(d.symbol, IndentationTerminal):
+                        eos_there.insert(0, d)
+                        d = d.prev_term
+                    eos_needed, _ = self.get_indentation_tokens_and_indent(list(self.get_last_indent(d)), 0)
+                    if self.indents_differ(eos_needed, eos_there):
+                        self.repair_indents(d, eos_there, eos_needed)
+                    break
+                if next_r.lookup != "<return>":
+                    next_r = next_r.next_term
+                    continue
+
+                # XXX need to skip unlogical lines (what if don't know if unlogical yet)
+
+                # if tokens need to be updated, mark as changed, so the parser will go down this tree to update
+                next_ws = self.get_whitespace(next_r)
+                if next_ws is None:
+                    next_r = next_r.next_term
+                    continue
+                needed, newindent = self.get_indentation_tokens_and_indent(newindent, next_ws)
+                if not self.indents_match(next_r, needed):
+                    next_r.mark_changed()
+                if next_ws < ws:
+                    # if newline has smaller whitespace -> mark and break
+                    break
+
+                next_r = next_r.next_term
+
+    def get_indentation_tokens_and_indent(self, indent, ws):
+        needed = []
+        newindent = []
+        if ws > indent[-1]:
+            needed.append(Node(IndentationTerminal("NEWLINE")))
+            needed.append(Node(IndentationTerminal("INDENT")))
+            newindent = indent + [ws]
+        elif ws < indent[-1]:
+            needed.append(Node(IndentationTerminal("NEWLINE")))
+            while ws < indent[-1]:
+                indent.pop()
+                needed.append(Node(IndentationTerminal("DEDENT")))
+            newindent = list(indent)
+            if ws != indent[-1]:
+                # XXX in future, just ERROR here
+                needed.append(Node(IndentationTerminal("UNBALANCED")))
+        else:
+            needed.append(Node(IndentationTerminal("NEWLINE")))
+            newindent = list(indent)
+        return needed, newindent
+
+    def indents_match(self, node, needed):
+        there = []
+        n = node.next_term
+        while isinstance(n.symbol, IndentationTerminal):
+            there.append(n)
+            n = n.next_term
+
+        if there == needed:
+            return True
+        return False
+
+    def get_whitespace(self, node):
+        if not self.is_logical_line(node):
+            return None
+
+        node = node.next_term
+        while isinstance(node.symbol, IndentationTerminal):
+            node = node.next_term
+
+        if node.lookup == "<ws>":
+            return len(node.symbol.name)
+
+        return 0
 
     def silent_insert(self, la, newnode):
         print("       \x1b[36mINSERT\x1b[0m", newnode, id(newnode))
@@ -415,6 +523,7 @@ class IncParser(object):
         # on the stack until one has it's indent level set, which will be
         # either a return terminal or a Nonterminal with a return somewhere in
         # its subtrees
+        # -> replace with global variable
         for n in reversed(self.stack):
             if n.indent and n is not la:
                 return n.indent
