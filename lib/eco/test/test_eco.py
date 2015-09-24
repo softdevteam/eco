@@ -1567,8 +1567,13 @@ class Test_Undo(Test_Python):
 
         t1 = TreeManager()
         parser, lexer = python.load()
+        parser.init_ast()
         t1.add_parser(parser, lexer, python.name)
+        t1.set_font_test(7, 17)
         t1.import_file(programs.connect4)
+
+        assert self.parser.last_status == True
+        assert parser.last_status == True
 
         self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
 
@@ -1599,7 +1604,8 @@ class Test_Undo(Test_Python):
                 self.treemanager.cursor_reset()
                 self.move('down', linenr)
                 self.move('right', col)
-                x = self.treemanager.key_normal(self.get_random_key())
+                k = self.get_random_key()
+                x = self.treemanager.key_normal(k)
                 if x == "eos":
                     continue
             self.treemanager.save_current_version()
@@ -2299,3 +2305,26 @@ self.key_normal('e')"""
         assert self.treemanager.export_as_text() == """class X:
     def foo():
         x = SELECT * FROM table"""
+
+class Test_AnySymbol_Indents(Test_Python):
+
+    def test_newline(self):
+        for c in "y = 12 # blaz = 13":
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
+
+        self.move("left", 6)
+        self.treemanager.key_normal("\r")
+        assert self.parser.last_status == True
+
+    def test_single_line_comment(self):
+        for c in """x = 12
+y = 13""":
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
+
+        self.move("left", 6)
+        self.move("up", 1)
+        self.treemanager.key_normal("#")
+        assert self.parser.last_status == True
+        

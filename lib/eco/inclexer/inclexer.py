@@ -533,12 +533,9 @@ class IncrementalLexerCF(object):
             # we need to invalidate the newline if we changed whitespace or
             # logical nodes that come after it
             if node.lookup == "<ws>" or node.lookup != t.name:
-                print("MARK newline as changed")
                 prev = node.prev_term
-                print("prev:", prev)
                 while isinstance(prev.symbol, IndentationTerminal):
                     prev = prev.prev_term
-                print("prev:", prev)
                 if prev.lookup == "<return>":
                     prev.mark_changed()
                     any_changes = True

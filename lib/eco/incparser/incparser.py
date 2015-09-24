@@ -98,6 +98,8 @@ class IncParser(object):
         self.status_by_version = {}
         self.errornode_by_version = {}
 
+        self.comment_tokens = []
+
         self.indent_stack = None
         self.indentation_based = False
 
@@ -123,6 +125,12 @@ class IncParser(object):
                 pickle.dump(self.syntaxtable, open(filename, "w"))
 
         self.whitespaces = whitespaces
+        if not rules:
+            print("Warning: incparser has not access to comment tokens")
+        elif rules.has_key(Nonterminal("comment")):
+            rule = rules[Nonterminal("comment")]
+            for a in rule.alternatives:
+                self.comment_tokens.append(a[0].name)
 
     def init_ast(self, magic_parent=None):
         bos = BOS(Terminal(""), 0, [])
@@ -141,7 +149,6 @@ class IncParser(object):
         self.inc_parse([], True)
 
     def inc_parse(self, line_indents=[], reparse=False):
-        print("============ new parse ===============")
         logging.debug("============ NEW INCREMENTAL PARSE ================= ")
         self.error_node = None
         self.stack = []
@@ -195,7 +202,7 @@ class IncParser(object):
 
             else: # Nonterminal
                 if la.changed or reparse:
-                    la.changed = False
+                    #la.changed = False # as all nonterminals that have changed are being rebuild, there is no need to change this flag (this also solves problems with comments)
                     self.undo.append((la, 'changed', True))
                     la = self.left_breakdown(la)
                 else:
@@ -277,7 +284,6 @@ class IncParser(object):
                     last = ne
                     continue
                 else:
-                    print("overwrite indent")
                     ne.symbol.name = e.symbol.name
                     ne.mark_changed()
                     continue
@@ -289,7 +295,6 @@ class IncParser(object):
         while True:
             try:
                 x = it.next()
-                print("delete leftover", x)
                 x.parent.remove_child(x)
             except StopIteration:
                 break
@@ -350,7 +355,15 @@ class IncParser(object):
         while True:
             if isinstance(node, EOS):
                 return False
-            if node.parent.symbol.name in ["multiline_string", "single_string", "comment"]:
+            # this doesn't work as we only know if something is part of a
+            # comment AFTER we parsed it. But by this time it's too late to add
+            # indentation tokens:
+            # if node.parent.symbol.name in ["multiline_string", "single_string", "comment"] and not node.parent.changed:
+            #     return False
+            # instead we need to manually check if one of the known comment tokens appears
+            # in the line
+            if node.lookup in self.comment_tokens:
+                #XXX return false or continue?
                 return False
             if node.lookup == "<return>": # reached next line
                 return False

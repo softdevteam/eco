@@ -173,7 +173,6 @@ class Node(object):
     def mark_changed(self):
         node = self
         while True:
-            print("marked changed", node.symbol)
             node.needs_saving = True
             node.save_ns()
             node.version = node.version + 0.000001

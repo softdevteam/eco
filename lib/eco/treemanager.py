@@ -796,7 +796,6 @@ class TreeManager(object):
             self.selection_end = self.cursor.copy()
 
     def key_normal(self, text):
-        print("KEYNORMAL", text)
         self.log_input("key_normal", repr(str(text)))
         indentation = 0
 
