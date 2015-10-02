@@ -66,7 +66,7 @@ Move you cursor right after "<body>" hit ENTER and open up the language menu
 again by hitting CTRL+L. Again select "Python + HTML + SQL" from the list and
 then type:
 
-    for n in db:
+    for n, in db:
         print html, n
 
 In this code "db" and "html" are placeholders that we are going to replace with
@@ -92,7 +92,7 @@ Your code now should look somewhat like this:
     </head>
     <body>
     for n, in SELECT name FROM people:
-    print <li>, n
+        print <li>, n
     </body>
     </html>
 
