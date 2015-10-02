@@ -227,9 +227,9 @@ class LineNumbers(QFrame):
         gfont = QApplication.instance().gfont
         editor = self.parent().editor
         import math
-        if len(editor.lines) <= 10:
+        if len(editor.lines) < 10:
             digits = 1
         else:
-            digits = int(math.log10(len(editor.lines)-1))+1
+            digits = int(math.log10(len(editor.lines)))+1
         self.setMinimumWidth(gfont.fontwt * (digits + 1))
         QFrame.update(self)
