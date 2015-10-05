@@ -160,6 +160,8 @@ class NodeEditor(QFrame):
     def sliderXChanged(self, value):
         self.move(-value*self.fontwt,0)
         self.resize(self.parentWidget().geometry().width() + value*self.fontwt, self.geometry().height())
+        if self.x() == 0:
+            self.updateGeometry()
         self.update()
 
     def getScrollSizes(self):
