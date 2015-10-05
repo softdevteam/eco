@@ -37,16 +37,7 @@ from PyQt4 import QtCore
 from PyQt4.QtCore import *
 from PyQt4 import QtGui
 from PyQt4.QtGui import *
-
-from gui.gui import Ui_MainWindow
-from gui.parsetree import Ui_MainWindow as Ui_ParseTree
-from gui.stateview import Ui_MainWindow as Ui_StateView
-from gui.about import Ui_Dialog as Ui_AboutDialog
-from gui.inputlog import Ui_Dialog as Ui_InputLog
-from gui.finddialog import Ui_Dialog as Ui_FindDialog
-from gui.languagedialog import Ui_Dialog as Ui_LanguageDialog
-from gui.settings import Ui_MainWindow as Ui_Settings
-from gui.preview import Ui_Dialog as Ui_Preview
+from PyQt4 import uic
 
 from grammar_parser.plexer import PriorityLexer
 from incparser.incparser import IncParser
@@ -70,6 +61,16 @@ from nodeeditor import NodeEditor
 from editortab import EditorTab
 
 import logging
+
+Ui_MainWindow, _     = uic.loadUiType('gui/gui.ui')
+Ui_ParseTree, _      = uic.loadUiType('gui/parsetree.ui')
+Ui_StateView, _      = uic.loadUiType('gui/stateview.ui')
+Ui_About, _          = uic.loadUiType('gui/about.ui')
+Ui_InputLog, _       = uic.loadUiType('gui/inputlog.ui')
+Ui_FindDialog, _     = uic.loadUiType('gui/finddialog.ui')
+Ui_LanguageDialog, _ = uic.loadUiType('gui/languagedialog.ui')
+Ui_Settings, _       = uic.loadUiType('gui/settings.ui')
+Ui_Preview, _        = uic.loadUiType('gui/preview.ui')
 
 def print_var(name, value):
     print("%s: %s" % (name, value))
@@ -158,7 +159,7 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
 
 class ParseView(QtGui.QMainWindow):
     def __init__(self, window):
-        QtGui.QMainWindow.__init__(self)
+        QtGui.QMainWindow.__init__(self, window)
         self.ui = Ui_ParseTree()
         self.ui.setupUi(self)
 
@@ -349,8 +350,9 @@ class SettingsView(QtGui.QMainWindow):
         widget.setStyleSheet("background-color: %s" % (color))
 
 class InputLogView(QtGui.QDialog):
-    def __init__(self):
-        QtGui.QDialog.__init__(self)
+    def __init__(self, parent):
+        self.parent = parent
+        QtGui.QDialog.__init__(self, parent)
         self.ui = Ui_InputLog()
         self.ui.setupUi(self)
 
@@ -362,14 +364,16 @@ class InputLogView(QtGui.QDialog):
         self.accept()
 
 class AboutView(QtGui.QDialog):
-    def __init__(self):
-        QtGui.QDialog.__init__(self)
-        self.ui = Ui_AboutDialog()
+    def __init__(self, parent):
+        self.parent = parent
+        QtGui.QDialog.__init__(self, parent)
+        self.ui = Ui_About()
         self.ui.setupUi(self)
 
 class PreviewDialog(QtGui.QDialog):
-    def __init__(self):
-        QtGui.QDialog.__init__(self)
+    def __init__(self, parent):
+        self.parent = parent
+        QtGui.QDialog.__init__(self, parent)
         self.ui = Ui_Preview()
         self.ui.setupUi(self)
 
@@ -384,7 +388,8 @@ class PreviewDialog(QtGui.QDialog):
             self.ui.textEdit.setText(text)
 
 class FindDialog(QtGui.QDialog):
-    def __init__(self):
+    def __init__(self, parent):
+        self.parent = parent
         QtGui.QDialog.__init__(self)
         self.ui = Ui_FindDialog()
         self.ui.setupUi(self)
@@ -399,7 +404,8 @@ class FindDialog(QtGui.QDialog):
         self.ui.leText.selectAll()
 
 class LanguageView(QtGui.QDialog):
-    def __init__(self, languages):
+    def __init__(self, parent, languages):
+        self.parent = parent
         QtGui.QDialog.__init__(self)
         self.ui = Ui_LanguageDialog()
         self.ui.setupUi(self)
@@ -439,7 +445,7 @@ class Window(QtGui.QMainWindow):
         self.parseview = ParseView(self)
         self.stateview = StateView(self)
         self.settingsview = SettingsView(self)
-        self.previewdialog = PreviewDialog()
+        self.previewdialog = PreviewDialog(self)
 
         self.connect(self.ui.actionImport, SIGNAL("triggered()"), self.importfile)
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
@@ -491,7 +497,7 @@ class Window(QtGui.QMainWindow):
 
         self.viewer = Viewer("pydot")
 
-        self.finddialog = FindDialog()
+        self.finddialog = FindDialog(self)
 
         self.last_dir = None
 
@@ -723,13 +729,13 @@ class Window(QtGui.QMainWindow):
 
     def show_input_log(self):
         if self.getEditor():
-            v = InputLogView()
+            v = InputLogView(self)
             v.tm = self.getEditor().tm
             v.ui.textEdit.setText("\n".join(self.getEditor().tm.input_log))
             v.exec_()
 
     def showAboutView(self):
-        about = AboutView()
+        about = AboutView(self)
         about.exec_()
 
     def showStateView(self):
@@ -760,7 +766,7 @@ class Window(QtGui.QMainWindow):
 
     def newfile(self):
         # create new nodeeditor
-        lview = LanguageView(languages)
+        lview = LanguageView(self, languages)
         result = lview.exec_()
         if result:
             etab = EditorTab()
