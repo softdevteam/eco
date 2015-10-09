@@ -1422,6 +1422,13 @@ class TreeManager(object):
             self.export_html_python_sql(path)
         elif lang == "PHP + Python" or lang == "PHP":
             return self.export_php_python(path, run)
+        elif lang == "Python 2.7.5":
+            import tempfile
+            import os, sys, subprocess
+            f = tempfile.mkstemp()
+            self.export_as_text(f[1])
+            print "python " + f[1]
+            return subprocess.Popen(["python2", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
         else:
             return self.export_as_text(path)
 
