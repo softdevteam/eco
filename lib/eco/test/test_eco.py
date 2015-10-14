@@ -34,7 +34,7 @@ import pytest
 slow = pytest.mark.slow
 
 import logging
-#logging.getLogger().setLevel(logging.DEBUG)
+logging.getLogger().setLevel(logging.DEBUG)
 
 class Test_Typing:
 
@@ -1002,6 +1002,67 @@ string
         self.treemanager.key_normal("\"")
         self.treemanager.key_normal("\"")
         assert self.parser.last_status == True
+
+    def test_indentation_bug(self):
+        self.reset()
+        inputstring = """class X:
+    def x():
+      pass
+      def z():
+        pass  
+x()"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == True
+        self.move("down", 1)
+        self.move("right", 4)
+        self.treemanager.key_normal("    ")
+        assert self.parser.last_status == False
+        self.treemanager.key_shift()
+        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == True
+
+    def test_indentation_bug2(self):
+        self.reset()
+        inputstring = """class X:
+    def y():
+      if x:
+        def x():
+          pass
+x()
+"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == True
+        self.move("down", 3)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("p")
+        assert self.parser.last_status == False
+        self.move("down", 1)
+        self.move("left", 4)
+        self.treemanager.key_shift()
+        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == True
+
+    def test_indentation_bug3(self):
+        self.reset()
+        inputstring = """def x():
+    pass
+x()
+"""
+        for k in inputstring:
+            self.treemanager.key_normal(k)
+        self.move("up", 2)
+        self.treemanager.key_home()
+        assert self.parser.last_status == True
+        self.treemanager.key_normal("    ")
+        assert self.parser.last_status == False
 
 class Test_NestedLboxWithIndentation():
     def setup_class(cls):

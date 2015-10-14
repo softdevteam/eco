@@ -1230,8 +1230,14 @@ class TreeManager(object):
                 continue
             node.parent.remove_child(node)
             self.clean_empty_lbox(node)
-        if not isinstance(repair_node.next_term, EOS):
-            repair_node = repair_node.next_term # in case first node was deleted
+        while True: # in case first node was deleted
+            if isinstance(repair_node.next_term, EOS):
+                break
+            if isinstance(repair_node.next_term.symbol, IndentationTerminal):
+                repair_node = repair_node.next_term
+                continue
+            repair_node = repair_node.next_term
+            break
         self.relex(repair_node)
         cur_start = min(self.selection_start, self.selection_end)
         cur_end = max(self.selection_start, self.selection_end)
