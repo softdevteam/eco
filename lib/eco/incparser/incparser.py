@@ -150,6 +150,7 @@ class IncParser(object):
 
     def inc_parse(self, line_indents=[], reparse=False):
         logging.debug("============ NEW INCREMENTAL PARSE ================= ")
+        self.validating = False
         self.error_node = None
         self.stack = []
         self.undo = []
