@@ -431,7 +431,7 @@ class NodeEditor(QFrame):
         if not error_node:
             return
         while isinstance(error_node.symbol, IndentationTerminal):
-            error_node = error_node.prev_term
+            error_node = error_node.next_term
         return error_node
 
     def draw_cursor(self, paint, x, y):
