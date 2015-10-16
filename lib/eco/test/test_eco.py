@@ -34,7 +34,7 @@ import pytest
 slow = pytest.mark.slow
 
 import logging
-logging.getLogger().setLevel(logging.DEBUG)
+#logging.getLogger().setLevel(logging.DEBUG)
 
 class Test_Typing:
 

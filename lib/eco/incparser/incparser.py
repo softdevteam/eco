@@ -412,11 +412,14 @@ class IncParser(object):
 
                 last_indent = list(self.get_last_indent(la))
                 needed, newindent = self.get_indentation_tokens_and_indent(last_indent, ws)
+                indent_stack_eq = newindent == la.indent
                 if la is not self.last_token_before_eos:
                     la.indent = list(newindent)
 
                 if self.indents_differ(there, needed):
                     self.repair_indents(la, there, needed)
+                elif indent_stack_eq:
+                    return
 
             # update succeeding lines
             # XXX this causes a chain reaction iterating over some lines
@@ -433,8 +436,8 @@ class IncParser(object):
                         eos_there.insert(0, d)
                         d = d.prev_term
                     eos_needed, _ = self.get_indentation_tokens_and_indent(list(self.get_last_indent(d)), 0)
-                    if self.indents_differ(eos_needed, eos_there):
-                        self.repair_indents(d, eos_there, eos_needed)
+                    if self.indents_differ(eos_there, eos_needed):
+                        self.last_token_before_eos.mark_changed() # don't repair here, only mark and repair just before last token is parsed
                     break
                 if next_r.lookup != "<return>":
                     next_r = next_r.next_term
@@ -448,7 +451,7 @@ class IncParser(object):
                     next_r = next_r.next_term
                     continue
                 needed, newindent = self.get_indentation_tokens_and_indent(newindent, next_ws)
-                if not self.indents_match(next_r, needed):
+                if not self.indents_match(next_r, needed) or next_r.indent != newindent:
                     next_r.mark_changed()
                 if next_ws < ws:
                     # if newline has smaller whitespace -> mark and break
@@ -484,9 +487,12 @@ class IncParser(object):
             there.append(n)
             n = n.next_term
 
-        if there == needed:
-            return True
-        return False
+        if len(there) != len(needed):
+            return False
+        for i in range(len(there)):
+            if there[i].symbol != needed[i].symbol:
+                return False
+        return True
 
     def get_whitespace(self, node):
         if not self.is_logical_line(node):
