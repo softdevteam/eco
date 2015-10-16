@@ -361,6 +361,18 @@ class NodeEditor(QFrame):
             #y += dy
             self.lines[line].height = max(self.lines[line].height, dy)
 
+            # Draw profiling information.
+            if node in self.tm.profile_map:
+                prof = self.tm.profile_map[node]
+                if not self.tm.profile_is_dirty:
+                    self.infofont.setBold(True)
+                else:
+                    self.infofont.setBold(False)
+                paint.setFont(self.infofont)
+                paint.drawText(QtCore.QPointF(x  - len(prof)*self.infofontwt, self.fontht + (y+1)*self.fontht - self.infofontht + 5), prof)
+                self.lines[line].height = max(self.lines[line].height, 2)
+                paint.setFont(self.font)
+
             # after we drew a return, update line information
             if node.lookup == "<return>" and not node is first_node:
                 # draw lbox to end of line
@@ -416,8 +428,9 @@ class NodeEditor(QFrame):
 
         # paint infobox
         if False:
-            lang_name = self.parser_langs[selected_language]
-            lang_status = self.parsers[selected_language].last_status
+            lang_name = self.tm.parsers[selected_language]
+            parser = self.tmselected_language
+            lang_status = self.tm.get_parser[selected_language][0].last_status
             if lang_status is True:
                 color = QColor(100,255,100)
             else:

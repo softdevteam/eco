@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>979</width>
+    <width>920</width>
     <height>737</height>
    </rect>
   </property>
@@ -45,8 +45,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>979</width>
-     <height>21</height>
+     <width>920</width>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -70,6 +70,7 @@
      <string>Project</string>
     </property>
     <addaction name="actionRun"/>
+    <addaction name="actionProfile"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -167,7 +168,6 @@
    <addaction name="actionCode_complete"/>
    <addaction name="separator"/>
    <addaction name="actionRun"/>
-   <addaction name="separator"/>
    <addaction name="separator"/>
   </widget>
   <widget class="QDockWidget" name="dockWidget_2">
@@ -535,6 +535,11 @@
   <action name="actionInput_log">
    <property name="text">
     <string>Input log...</string>
+   </property>
+  </action>
+  <action name="actionProfile">
+   <property name="text">
+    <string>Profile</string>
    </property>
   </action>
  </widget>

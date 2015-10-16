@@ -484,6 +484,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionExport, SIGNAL("triggered()"), self.export)
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
+        self.connect(self.ui.actionProfile, SIGNAL("triggered()"), self.profile_subprocess)
         try:
             import pydot
             self.connect(self.ui.actionParse_Tree, SIGNAL("triggered()"), self.showParseView)
@@ -685,6 +686,10 @@ class Window(QtGui.QMainWindow):
     def run_subprocess(self):
         self.ui.teConsole.clear()
         self.thread.start()
+
+    def profile_subprocess(self):
+        self.ui.teConsole.clear()
+        self.thread_prof.start()
 
     def show_output(self, string):
         self.ui.teConsole.append(string)
@@ -1023,6 +1028,7 @@ def main():
     window=Window()
     t = SubProcessThread(window, app)
     window.thread = t
+    window.thread_prof = ProfileThread(window, app)
     window.connect(window.thread, t.signal, window.show_output)
 
     window.parse_options()
@@ -1038,6 +1044,18 @@ class SubProcessThread(QThread):
 
     def run(self):
         p = self.window.getEditor().export(run=True)
+        if p:
+            for line in iter(p.stdout.readline, b''):
+                self.emit(self.signal, line.rstrip())
+
+class ProfileThread(QThread):
+    def __init__(self, window, parent):
+        QThread.__init__(self, parent=parent)
+        self.window = window
+        self.signal = QtCore.SIGNAL("output")
+
+    def run(self):
+        p = self.window.getEditor().tm.export(profile=True)
         if p:
             for line in iter(p.stdout.readline, b''):
                 self.emit(self.signal, line.rstrip())
