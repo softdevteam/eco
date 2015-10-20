@@ -160,6 +160,8 @@ class IncParser(object):
         bos = self.previous_version.parent.children[0]
         self.loopcount = 0
         self.anycount = set()
+        self.any_newlines = []
+        self.last_indent = [0]
 
         USE_OPT = True
 
@@ -213,6 +215,8 @@ class IncParser(object):
                             logging.debug("OPTShift: %s in state %s -> %s", la.symbol, self.current_state, goto)
                             follow_id = goto.action
                             self.stack.append(la)
+                            if la.indent:
+                                self.last_indent = list(la.indent)
                             la.state = follow_id #XXX this fixed goto error (i should think about storing the states on the stack instead of inside the elements)
                             self.current_state = follow_id
                             logging.debug("USE_OPT: set state to %s", self.current_state)
@@ -415,12 +419,15 @@ class IncParser(object):
                 indent_stack_eq = newindent == la.indent
                 if la is not self.last_token_before_eos:
                     la.indent = list(newindent)
+                    self.last_indent = list(la.indent)
 
                 if self.indents_differ(there, needed):
                     self.repair_indents(la, there, needed)
                 elif indent_stack_eq:
                     return
+            self.update_succeeding_lines(la, ws, newindent)
 
+    def update_succeeding_lines(self, la, ws, newindent):
             # update succeeding lines
             # XXX this causes a chain reaction iterating over some lines
             # multiple times. we might only have to do this for the <return>
@@ -539,6 +546,7 @@ class IncParser(object):
         print("DONE")
 
     def get_last_indent(self, la):
+        return self.last_indent
         # XXX not the most performant solution as it iterates over all elements
         # on the stack until one has it's indent level set, which will be
         # either a return terminal or a Nonterminal with a return somewhere in
@@ -736,11 +744,19 @@ class IncParser(object):
         la.state = self.current_state # this node is now part of this comment state (needed to unvalidating)
         self.stack.append(la)
         self.anycount.add(la)
+        if la.lookup == "<return>" and self.indentation_based:
+            self.any_newlines.append(la)
 
     def end_any(self, la, result, mode="@"):
         logging.debug("AnySymbol: end %s (%s)" % (la, mode))
         self.current_state = result.action # switch to state after ANY and continue parsing normally
         logging.debug("AnySymbol: set state to %s", self.current_state)
+
+        # update succeeding
+        if self.indentation_based:
+            for n in self.any_newlines:
+                self.update_succeeding_lines(n, self.last_indent[-1], list(self.last_indent))
+        self.any_newlines = []
 
     def pop_lookahead(self, la):
         org = la

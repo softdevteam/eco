@@ -1064,6 +1064,31 @@ x()
         self.treemanager.key_normal("    ")
         assert self.parser.last_status == False
 
+    def test_indentation_multiline_bug(self):
+        self.reset()
+        inputstring = """class X:
+    def x():
+        s = 2
+        pass1
+    def x():
+        pass2
+def z():
+    z"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == True
+        self.move("down", 4)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+        self.move("up", 2)
+        self.treemanager.key_end()
+        self.move("left", 1)
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+        assert self.parser.last_status == True
+
 class Test_NestedLboxWithIndentation():
     def setup_class(cls):
         parser, lexer = calc.load()
