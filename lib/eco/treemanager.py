@@ -1142,7 +1142,10 @@ class TreeManager(object):
 
         text.append(start.symbol.name[diff_start:])
         for node in nodes:
-            text.append(node.symbol.name)
+            if node.lookup == "<return>":
+                text.append("\n")
+            else:
+                text.append(node.symbol.name)
         text.append(end.symbol.name[:diff_end])
         return "".join(text)
 
