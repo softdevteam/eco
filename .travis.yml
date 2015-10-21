@@ -1,0 +1,12 @@
+language: python
+python: "2.7"
+
+virtualenv:
+  system_site_packages: true
+
+install:
+    - "sudo apt-get install python-qt4"
+    - "pip install py"
+
+script: cd lib/eco; py.test test/test_eco.py --runslow
+
