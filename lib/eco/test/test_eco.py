@@ -2049,6 +2049,42 @@ class Test_Undo(Test_Python):
     def test_undo_random_insertdeleteundo(self):
         self.random_insert_delete_undo(programs.pythonsmall)
 
+    def test_undo_random_insertdeleteundo_bug1(self):
+        self.reset()
+
+        program = """class Connect4():
+    UI_DEPTH = 5
+
+    def __init__():
+        pass"""
+
+        self.treemanager.import_file(program)
+        assert self.parser.last_status == True
+
+        self.text_compare(program)
+        start_version = self.treemanager.version
+
+        self.treemanager.cursor_reset()
+        self.move('down', 2)
+        self.move('right', 0)
+        self.treemanager.key_normal(',')
+        self.treemanager.save_current_version()
+        self.treemanager.cursor_reset()
+        self.move('down', 1)
+        self.move('right', 3)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move('down', 1)
+        self.move('right', 4)
+        self.treemanager.key_normal(' ')
+        self.treemanager.save_current_version()
+
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(program)
+
     def random_insert_delete_undo(self, program):
         import random
         self.reset()
