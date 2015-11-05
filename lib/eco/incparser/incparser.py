@@ -28,7 +28,7 @@ except:
 
 import time, os
 
-from grammar_parser.gparser import Parser, Nonterminal, Terminal,MagicTerminal, Epsilon, IndentationTerminal
+from grammar_parser.gparser import Parser, Nonterminal, Terminal,MagicTerminal, Epsilon, IndentationTerminal, AnySymbol
 from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
 from stategraph import StateGraph
 from constants import LR0, LR1, LALR
@@ -80,6 +80,8 @@ class IncParser(object):
         self.last_status = False
         self.error_node = None
         self.whitespaces = whitespaces
+        self.anycount = {}
+        self.anycounter = 0
         self.status_by_version = {}
         self.errornode_by_version = {}
 
@@ -132,72 +134,17 @@ class IncParser(object):
         bos = self.previous_version.parent.children[0]
         la = self.pop_lookahead(bos)
         self.loopcount = 0
-        self.comment_mode = False
+        self.anycount = {}
+        self.anycounter = 0
 
         USE_OPT = True
 
         while(True):
             self.loopcount += 1
-            if self.comment_mode:
-                if la.lookup == "cmt_end":
-                    # in comment mode we just add all subtrees as they are to a
-                    # subtree COMMENT subtrees that have changes are broken
-                    # apart, e.g. to be able to find an inserted */ the CMT
-                    # subtree is then added to the parsers stack without
-                    # changing its state when the parser later reduces stack
-                    # elements to a new subtree, CMT subtrees are added as
-                    # children
-                    next_la = self.pop_lookahead(la)
-                    self.comment_mode = False
-                    comment_stack.append(la)
-                    CMT = Node(Nonterminal("~COMMENT~"))
-                    for c in comment_stack:
-                        self.undo.append((c, 'parent', c.parent))
-                        self.undo.append((c, 'left', c.left))
-                        self.undo.append((c, 'right', c.right))
-                    CMT.set_children(comment_stack)
-                    CMT.state = self.current_state
-                    self.stack.append(CMT)
-                    la = next_la
-                    continue
-                if isinstance(la, EOS):
-                    self.comment_mode = False
-                    self.do_undo(la)
-                    self.last_status = False
-                    return False
-                la = self.add_to_stack(la, comment_stack)
-                continue
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
                 if la.changed:#self.has_changed(la):
                     assert False # with prelexing you should never end up here!
                 else:
-                    if la.lookup == "cmt_start":
-                        # when we find a cmt_start token, we enter comment mode
-                        self.comment_mode = True
-                        comment_stack = []
-                        comment_stack.append(la)
-                        # since unchanged subtrees are left untouched, we
-                        # wouldn't find a cmt_end if it is part of another
-                        # comment, e.g. /* foo /* bar */ to be able to merge
-                        # two comment together, we need to find the next
-                        # cmt_end and mark its subtree as changed
-                        end = la
-                        # XXX configure these through the grammar, e.g. Java
-                        # needs /*@*/, Python """@""" (@ means, match anything)
-                        while True:
-                            end = end.next_term
-                            if isinstance(end, EOS):
-                                break
-                            if end.symbol.name.find("*/") > 0:
-                                # split token
-                                self.lexer.split_endcomment(end)
-                                break
-                            if end.lookup == "cmt_end":
-                                end.mark_changed()
-                                break
-                        la = self.pop_lookahead(la)
-                        continue
-
                     lookup_symbol = self.get_lookup(la)
                     result = self.parse_terminal(la, lookup_symbol)
                     if result == "Accept":
@@ -223,6 +170,7 @@ class IncParser(object):
                             self.stack.append(la)
                             la.state = follow_id #XXX this fixed goto error (i should think about storing the states on the stack instead of inside the elements)
                             self.current_state = follow_id
+                            logging.debug("USE_OPT: set state to %s", self.current_state)
                             la = self.pop_lookahead(la)
                             self.validating = True
                             continue
@@ -253,28 +201,20 @@ class IncParser(object):
                             la = self.left_breakdown(la)
         logging.debug("============ INCREMENTAL PARSE END ================= ")
 
-    def add_to_stack(self, la, stack):
-        # comment helper that adds elements to the comment stack and if la is a
-        # subtree with changes, recursively break it apart and adds its
-        # children
-
-        while True:
-            if isinstance(la.symbol, Terminal) and la.lookup == "cmt_end":
-                return la
-            if isinstance(la, EOS):
-                return la
-            if la.changed:
-                if la.children:
-                    la = la.children[0]
-                else:
-                    la = self.pop_lookahead(la)
-                continue
-            else:
-                stack.append(la)
-                la = self.pop_lookahead(la)
-                continue
+    def parse_anysymbol(self):
+        symbol = AnySymbol()
+        result = self.syntaxtable.lookup(self.current_state, symbol)
+        if not result:
+            symbol = AnySymbol("@ncr")
+            result = self.syntaxtable.lookup(self.current_state, symbol)
+        return result, symbol
 
     def parse_terminal(self, la, lookup_symbol):
+        # try parsing ANYSYMBOL
+        if not isinstance(la.symbol, FinishSymbol):
+            if self.process_any(la):
+                return self.pop_lookahead(la)
+
         element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
         logging.debug("parse_terminal: %s in %s -> %s", lookup_symbol, self.current_state, element)
         if isinstance(element, Accept):
@@ -286,17 +226,8 @@ class IncParser(object):
             logging.debug ("Accept")
             return "Accept"
         elif isinstance(element, Shift):
-            logging.debug("Shift: %s -> %s", la, element.action)
-            # removing this makes "Valid tokens" correct, should not be needed
-            # for incremental parser
-            #self.undo.append((la, "state", la.state))
-            la.state = element.action
-            self.stack.append(la)
-            self.current_state = element.action
-            if not la.lookup == "<ws>":
-                # last_shift_state is used to predict next symbol
-                # whitespace destroys correct behaviour
-                self.last_shift_state = element.action
+            self.validating = False
+            self.shift(la, element)
             return self.pop_lookahead(la)
 
         elif isinstance(element, Reduce):
@@ -305,7 +236,10 @@ class IncParser(object):
             return self.parse_terminal(la, lookup_symbol)
         elif element is None:
             if self.validating:
+                logging.debug("Was validating: Right breakdown and return to normal")
+                logging.debug("Before breakdown: %s", self.stack[-1])
                 self.right_breakdown()
+                logging.debug("After breakdown: %s", self.stack[-1])
                 self.validating = False
             else:
                 return self.do_undo(la)
@@ -344,11 +278,17 @@ class IncParser(object):
             children.insert(0, c)
             if c.symbol.name != "~COMMENT~":
                 i += 1
+            if self.anycount.has_key(c):
+                for _ in range(self.anycount[c]):
+                    c = self.stack.pop()
+                    children.insert(0,c)
         if self.stack[-1].symbol.name == "~COMMENT~":
             c = self.stack.pop()
             children.insert(0, c)
+
         logging.debug("   Element on stack: %s(%s)", self.stack[-1].symbol, self.stack[-1].state)
         self.current_state = self.stack[-1].state #XXX don't store on nodes, but on stack
+        logging.debug("   Reduce: set state to %s (%s)", self.current_state, self.stack[-1].symbol)
 
         goto = self.syntaxtable.lookup(self.current_state, element.action.left)
         if goto is None:
@@ -365,6 +305,7 @@ class IncParser(object):
         logging.debug("   Add %s to stack and goto state %s", new_node.symbol, new_node.state)
         self.stack.append(new_node)
         self.current_state = new_node.state # = goto.action
+        logging.debug("Reduce: set state to %s (%s)", self.current_state, new_node.symbol)
         if getattr(element.action.annotation, "interpret", None):
             # eco grammar annotations
             self.interpret_annotation(new_node, element.action)
@@ -417,12 +358,16 @@ class IncParser(object):
             return self.pop_lookahead(la)
 
     def right_breakdown(self):
-        node = self.stack.pop()
+        node = self.stack.pop() # optimistically shifted Nonterminal
+        # after the breakdown, we need to properly shift the left over terminal
+        # using the (correct) current state from before the optimistic shift of
+        # it's parent tree
         self.current_state = self.stack[-1].state
         logging.debug("right breakdown: set state to %s", self.current_state)
         while(isinstance(node.symbol, Nonterminal)):
             for c in node.children:
-                self.shift(c)
+                if not self.process_any(c): # in breakdown we also have to take care of ANYSYMBOLs
+                    self.shift(c)
             node = self.stack.pop()
             # after undoing an optimistic shift (through pop) we need to revert
             # back to the state before the shift (which can be found on the top
@@ -435,19 +380,55 @@ class IncParser(object):
                 return
             else:
                 self.current_state = self.stack[-1].state
-        self.shift(node)
+        if not self.process_any(node):
+            self.shift(node)
 
-    def shift(self, la):
-        # after the breakdown, we need to properly shift the left over terminal
-        # using the (correct) current state from before the optimistic shift of
-        # it's parent tree
-        lookup_symbol = self.get_lookup(la)
-        element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
-        logging.debug("RBShift: la: %s state: %s element: %s", la, la.state, element)
+    def shift(self, la, element=None):
+        if not element:
+            lookup_symbol = self.get_lookup(la)
+            element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
+        logging.debug("Shift(%s): %s -> %s", self.current_state, la, element)
+        logging.debug("Shift: set state to %s", element.action)
         la.state = element.action
         self.stack.append(la)
-        logging.debug("RBShift: set state to %s", la.state)
         self.current_state = la.state
+
+        if not la.lookup == "<ws>":
+            # last_shift_state is used to predict next symbol
+            # whitespace destroys correct behaviour
+            self.last_shift_state = element.action
+
+    def process_any(self, la):
+        result, symbol = self.parse_anysymbol()
+        if result:
+            # ANYSYMBOL with finishing symbol
+            r_finish = self.syntaxtable.lookup(result.action, self.get_lookup(la))
+            if isinstance(r_finish, Shift):
+                self.end_any(la, result)
+                return False
+            # ANY without finishing symbol
+            elif symbol.name == "@ncr" and (la.lookup == "<return>" or la.symbol == IndentationTerminal("NEWLINE") or isinstance(la, EOS)):
+                self.end_any(la, result, symbol.name)
+                return False
+            else:
+                self.push_any(la)
+                return True
+
+    def push_any(self, la):
+        logging.debug("AnySymbol: push %s" % (la))
+        la.state = self.current_state # this node is now part of this comment state (needed to unvalidating)
+        self.stack.append(la)
+        self.anycounter += 1
+
+    def end_any(self, la, result, mode="@"):
+        logging.debug("AnySymbol: end %s" % (la))
+        self.current_state = result.action # switch to state after ANY and continue parsing normally
+        logging.debug("AnySymbol: set state to %s", self.current_state)
+        if mode == "@ncr":
+            self.anycount[self.stack[-1]] = self.anycounter # store amount of pushed elements on last symbol
+        else:
+            self.anycount[la] = self.anycounter # store amount of pushed elements on last symbol
+        self.anycounter = 0
 
     def pop_lookahead(self, la):
         while(la.right_sibling() is None):

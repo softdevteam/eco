@@ -24,7 +24,7 @@ from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer, IncrementalLexerCF
 from incparser.astree import BOS, EOS
 
-from grammar_parser.gparser import Rule, Nonterminal, Terminal, Epsilon, MagicTerminal
+from grammar_parser.gparser import Rule, Nonterminal, Terminal, Epsilon, MagicTerminal, AnySymbol
 
 class BootstrapParser(object):
 
@@ -154,6 +154,7 @@ class BootstrapParser(object):
             ws_rule.add_alternative([Terminal("<ws>"), Nonterminal("WS")])
             ws_rule.add_alternative([Terminal("<return>"), Nonterminal("WS")])
             ws_rule.add_alternative([Terminal("<backslash>"), Terminal("<return>"), Nonterminal("WS")])
+            ws_rule.add_alternative([Nonterminal("comment"), Nonterminal("WS")])
             ws_rule.add_alternative([]) # or empty
             self.rules[ws_rule.symbol] = ws_rule
 
@@ -226,6 +227,8 @@ class BootstrapParser(object):
         if node.children[0].symbol.name == "symbols":
             symbols = self.parse_symbols(node.children[0])
             symbol = self.parse_symbol(node.children[1])
+            if isinstance(symbol, AnySymbol) and symbols[-1].name == "WS":
+                symbols.pop()
             symbols.append(symbol)
             if (isinstance(symbol, Terminal) or isinstance(symbol, MagicTerminal)) and self.implicit_ws():
                 symbols.append(Nonterminal("WS"))
@@ -247,6 +250,10 @@ class BootstrapParser(object):
             return Terminal(node.symbol.name[1:-1])
         elif node.lookup == "languagebox":
             return MagicTerminal(node.symbol.name)
+        elif node.lookup == "ANY":
+            return AnySymbol()
+        elif node.lookup == "ANYNCR":
+            return AnySymbol("@ncr")
 
     def parse_annotation(self, node):
         a_options = node.children[2]
