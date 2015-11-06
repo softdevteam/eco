@@ -219,6 +219,20 @@ class PhpHighlighter(SyntaxHighlighter):
         "int": "bold"
     }
 
+class SLHighlighter(SyntaxHighlighter):
+    keyword_colors = {
+        "id": "green",
+        "numericLiteral": "purple",
+        "stringLiteral": "blue",
+        "function": "red",
+        "while": "red",
+        "if": "red",
+        "else": "red",
+        "return": "red",
+        "break": "red",
+        "continue": "red",
+    }
+
 def get_highlighter(parent, palette):
     if parent == "Java":
         return JavaHighlighter(palette)
@@ -236,4 +250,6 @@ def get_highlighter(parent, palette):
         return HtmlHighlighter(palette)
     if parent == "Php":
         return PhpHighlighter(palette)
+    if parent == "SimpleLanguage":
+        return SLHighlighter(palette)
     return SyntaxHighlighter(palette)
