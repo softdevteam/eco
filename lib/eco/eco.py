@@ -578,6 +578,7 @@ class Window(QtGui.QMainWindow):
         parser.add_option("-l", "--log", default="WARNING", help="Log level: INFO, WARNING, ERROR, DEBUG [default: %default]")
         parser.add_option("-e", "--export", action="store_true", default=False, help="Fast export files. Usage: --export [SOURCE] [DESTINATION]")
         parser.add_option("-f", "--fullexport", action="store_true", default=False, help="Export files. Usage: --fullexport [SOURCE] [DESTINATION]")
+        parser.add_option("-d", "--diff3export", action="store_true", default=False, help="Export files for diff3. Usage: --diff3export [SOURCE] [DESTINATION]")
         (options, args) = parser.parse_args()
         if options.preload:
             self.preload()
@@ -585,6 +586,10 @@ class Window(QtGui.QMainWindow):
             source = args[0]
             dest = args[1]
             self.cli_export(source, dest, False)
+        if options.diff3export:
+            source = args[0]
+            dest = args[1]
+            self.cli_export_diff3(source, dest)
         if options.export:
             source = args[0]
             dest = args[1]
@@ -624,6 +629,23 @@ class Window(QtGui.QMainWindow):
         else:
             self.tm.load_file(language_boxes)
             self.tm.export(dest)
+        QApplication.quit()
+        sys.exit(1)
+
+    def cli_export_diff3(self, source, dest):
+        print("Exporting for diff3...")
+        print("    Source: %s" % source)
+        print("    Destination: %s" % dest)
+
+        from jsonmanager import JsonManager
+        manager = JsonManager()
+        language_boxes = manager.load(source)
+
+        from treemanager import TreeManager
+        self.tm = TreeManager()
+
+        self.tm.load_file(language_boxes)
+        self.tm.export_diff3(dest)
         QApplication.quit()
         sys.exit(1)
 

@@ -26,7 +26,7 @@ from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal,
 from PyQt4.QtGui import QApplication
 from grammars.grammars import lang_dict, Language, EcoFile
 from indentmanager import IndentationManager
-from export import HTMLPythonSQL, PHPPython, ATerms
+from export import HTMLPythonSQL, PHPPython, ATerms, version_control_export
 
 import math
 
@@ -1434,6 +1434,10 @@ class TreeManager(object):
             return subprocess.Popen(["python2", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
         else:
             return self.export_as_text(path)
+
+    def export_diff3(self, path):
+        with open(path, "w") as f:
+            f.write(version_control_export.export_diff3(self.get_bos()))
 
     def export_unipycation(self, path=None):
         import subprocess, sys
