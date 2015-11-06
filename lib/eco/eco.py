@@ -410,23 +410,53 @@ class LanguageView(QtGui.QDialog):
         self.ui = Ui_LanguageDialog()
         self.ui.setupUi(self)
 
+        # categorize languages
+        d = {}
+        self.d = d
         for l in newfile_langs:
-            item = QListWidgetItem(self.ui.listWidget)
-            item.setText(str(l))
-            if l.base.lower() == "html":
-                icon = QIcon.fromTheme("text-html")
+            if d.has_key(l.base):
+                d[l.base].append(l)
             else:
-                icon = QIcon.fromTheme("text-x-" + l.base.lower())
-            if icon.isNull():
-                icon = QIcon.fromTheme("application-x-" + l.base.lower())
-                if icon.isNull():
-                    icon = QIcon.fromTheme("text-x-generic")
-            item.setIcon(icon)
+                d[l.base] = [l]
 
+        for k in sorted(d.keys()):
+            self.addLangItem(self.ui.listWidget, k)
         self.ui.listWidget.item(0).setSelected(True)
 
+        for l in d[str(self.ui.listWidget.item(0).text())]:
+            self.addLangItem(self.ui.listWidget_2, l)
+        self.ui.listWidget_2.item(0).setSelected(True)
+
+        self.connect(self.ui.listWidget, SIGNAL("currentRowChanged(int)"), self.row_changed)
+
+    def row_changed(self, index):
+        self.ui.listWidget_2.clear()
+        for l in self.d[str(self.ui.listWidget.item(index).text())]:
+            self.addLangItem(self.ui.listWidget_2, l)
+        self.ui.listWidget_2.item(0).setSelected(True)
+        self.ui.listWidget_2.setCurrentRow(0)
+
+    def addLangItem(self, widget, name):
+        item = QListWidgetItem(widget)
+        item.setText(str(name))
+        try:
+            base = name.base
+        except AttributeError:
+            base = name
+        if base.lower() == "html":
+            icon = QIcon.fromTheme("text-html")
+        else:
+            icon = QIcon.fromTheme("text-x-" + base.lower())
+        if icon.isNull():
+            icon = QIcon.fromTheme("application-x-" + base.lower())
+            if icon.isNull():
+                icon = QIcon.fromTheme("text-x-generic")
+        item.setIcon(icon)
+ 
     def getLanguage(self):
-        return self.ui.listWidget.currentRow()
+        row = self.ui.listWidget_2.currentRow()
+        item = self.ui.listWidget_2.item(row).text()
+        return lang_dict[str(item)]
 
     def getWhitespace(self):
         return True
@@ -770,7 +800,7 @@ class Window(QtGui.QMainWindow):
         result = lview.exec_()
         if result:
             etab = EditorTab()
-            lang = newfile_langs[lview.getLanguage()]
+            lang = lview.getLanguage()
             etab.set_language(lang, lview.getWhitespace())
             self.ui.tabWidget.addTab(etab, "[No name]")
             self.ui.tabWidget.setCurrentWidget(etab)
