@@ -1,6 +1,8 @@
 *.pyc
 __pycache__
 *.pcl
+*.swp
+*.bak
 java_examples/
 python_examples/
 prolog_examples/
