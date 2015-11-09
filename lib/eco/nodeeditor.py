@@ -244,7 +244,7 @@ class NodeEditor(QFrame):
     def paint_nodes(self, paint, node, x, y, line, max_y, lbox=0):
 
         settings = QSettings("softdev", "Eco")
-        if settings.value("app_theme", "Light").toString() == "Dark":
+        if settings.value("app_theme", "Light").toString() in ["Dark", "Gruvbox"]:
             alpha = 100
             colors = self.darkcolors
         else:

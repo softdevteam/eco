@@ -20,6 +20,7 @@
 # IN THE SOFTWARE.
 
 from PyQt4.Qt import QPalette
+from PyQt4.QtCore import QSettings
 
 class SyntaxHighlighter(object):
     colors = {
@@ -32,11 +33,25 @@ class SyntaxHighlighter(object):
         "purple": "#D33682",
         "default": "#333333"
     }
+
+    gb_colors = {
+        "red": "#FB4934",
+        "green": "#B8BB26",
+        "yellow": "#FABD2F",
+        "blue": "#83A598",
+        "purple": "#83A598",
+        "cyan": "#8EC07C",
+        "grey": "#A89984",
+    }
     keyword_colors = {}
     keyword_style = {}
 
     def __init__(self, palette):
         self.palette = palette
+        settings = QSettings("softdev", "Eco")
+        theme = settings.value("app_theme", "Light (Default)")
+        if theme == "Gruvbox":
+            self.colors = self.gb_colors
 
     def get_color(self, node):
         if node.symbol.name in self.keyword_colors:

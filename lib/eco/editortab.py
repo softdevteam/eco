@@ -175,9 +175,12 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
             if theme == "Dark":
                 pal.setColor(QPalette.Base, QColor(0, 43, 54))
                 pal.setColor(QPalette.Text, QColor("#93A1A1"))
+            elif theme == "Gruvbox":
+                pal.setColor(QPalette.Base, QColor("#32302F"))
+                pal.setColor(QPalette.Text, QColor("#EBDBB2"))
             else:
                 pal.setColor(QPalette.Base, QPalette().color(QPalette.Base))
-                pal.setColor(QPalette.Text, QColor("#333333"))
+                pal.setColor(QPalette.Text, QPalette().color(QPalette.Text))
         self.viewport().setPalette(pal)
 
     def incHSlider(self):
