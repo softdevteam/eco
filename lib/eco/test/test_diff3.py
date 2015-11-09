@@ -19,6 +19,7 @@ class Test_diff3:
         assert diff3_driver.diff3(['a', 'b'], ['c', 'b'], ['c', 'b']) == [{'base': ['a'], 'derived2': ['c']}, 'b']
         assert diff3_driver.diff3(['c', 'b'], ['a', 'b'], ['c', 'b']) == ['a', 'b']
         assert diff3_driver.diff3(['c', 'b'], ['c', 'b'], ['a', 'b']) == ['a', 'b']
+        assert diff3_driver.diff3(['a'], ['b'], ['c']) == [{'base': ['a'], 'derived1': ['b'], 'derived2': ['c']}]
 
     def test_insert(self):
         assert diff3_driver.diff3(['x', 'a', 'b'], ['a', 'b'], ['a', 'b']) == [{'base': ['x'], 'derived2': []}, 'a', 'b']
@@ -30,6 +31,7 @@ class Test_diff3:
         assert diff3_driver.diff3(['a', 'b', 'x'], ['a', 'b'], ['a', 'b']) == ['a', 'b', {'base': ['x'], 'derived2': []}]
         assert diff3_driver.diff3(['a', 'b'], ['a', 'b', 'x'], ['a', 'b']) == ['a', 'b', 'x']
         assert diff3_driver.diff3(['a', 'b'], ['a', 'b'], ['a', 'b', 'x']) == ['a', 'b', 'x']
+        assert diff3_driver.diff3(['a', 'b'], ['a', 'b', 'x'], ['a', 'b', 'c']) == ['a', 'b', {'base': [], 'derived1': ['x'], 'derived2': ['c']}]
 
     def test_remove(self):
         assert diff3_driver.diff3(['a', 'b'], ['x', 'a', 'b'], ['x', 'a', 'b']) == [{'base': [], 'derived2': ['x']}, 'a', 'b']
@@ -41,4 +43,6 @@ class Test_diff3:
         assert diff3_driver.diff3(['a', 'b'], ['a', 'b', 'x'], ['a', 'b', 'x']) == ['a', 'b', {'base': [], 'derived2': ['x']}]
         assert diff3_driver.diff3(['a', 'b', 'x'], ['a', 'b'], ['a', 'b', 'x']) == ['a', 'b']
         assert diff3_driver.diff3(['a', 'b', 'x'], ['a', 'b', 'x'], ['a', 'b']) == ['a', 'b']
+        assert diff3_driver.diff3(['a', 'b', 'x'], ['a', 'b'], ['a', 'b', 'c']) == ['a', 'b', {'base': ['x'], 'derived2': ['c'], 'derived1': []}]
+        assert diff3_driver.diff3(['a', 'b', 'x'], ['a', 'b', 'c'], ['a', 'b']) == ['a', 'b', {'base': ['x'], 'derived2': [], 'derived1': ['c']}]
 
