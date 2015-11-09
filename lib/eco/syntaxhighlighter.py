@@ -262,6 +262,39 @@ class SLHighlighter(SyntaxHighlighter):
         "comment": "grey"
     }
 
+class RubyHighlighter(SyntaxHighlighter):
+    keyword_colors = {
+        "alias": "blue",
+        "class": "blue",
+        "module": "blue",
+        "def": "blue",
+        "undef": "blue",
+        "begin": "blue",
+        "rescue": "blue",
+        "ensure": "blue",
+        "end": "blue",
+        "if": "blue",
+        "unless": "blue",
+        "then": "blue",
+        "elseif": "blue",
+        "else": "blue",
+        "case": "blue",
+        "when": "blue",
+        "while": "blue",
+        "until": "blue",
+        "for": "blue",
+        "break": "blue",
+        "next": "blue",
+        "redo": "blue",
+        "retry": "blue",
+        "in": "blue",
+        "do": "blue",
+        "super": "blue",
+        "self": "blue",
+        "tIDENTIFIER": "yellow",
+        "tCONSTANT": "green",
+    }
+
 def get_highlighter(parent, palette):
     if parent == "Java":
         return JavaHighlighter(palette)
@@ -281,4 +314,6 @@ def get_highlighter(parent, palette):
         return PhpHighlighter(palette)
     if parent == "SimpleLanguage":
         return SLHighlighter(palette)
+    if parent == "Ruby":
+        return RubyHighlighter(palette)
     return SyntaxHighlighter(palette)
