@@ -1427,13 +1427,39 @@ class TreeManager(object):
             return self.export_php_python(path, run)
         elif lang == "Python 2.7.5":
             import tempfile
-            import os, sys, subprocess
+            import subprocess
             f = tempfile.mkstemp()
             self.export_as_text(f[1])
             print "python " + f[1]
             return subprocess.Popen(["python2", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
+        elif lang == "SimpleLanguage":
+            return self.export_simple_language(path, run)
         else:
             return self.export_as_text(path)
+
+    def export_simple_language(self, path=None, run=False):
+        import os
+        import os.path
+        import tempfile
+        import subprocess
+        import sys
+        if run:
+            if not os.environ.has_key("GRAAL_WORKSPACE"):
+                sys.stderr.write("GRAAL_WORKSPACE environment not set")
+                return
+            working_dir = os.path.join(os.environ["GRAAL_WORKSPACE"], "graal-compiler")
+            f = tempfile.mkstemp(suffix=".sl")
+            self.export_as_text(f[1])
+            # Run this command:
+            #     $ cd $GRAAL_WORKSPACE/graal-compiler
+            #     $ ../../mx/mx --vm graal sl sl_hello_world.sl
+            return subprocess.Popen(["../../mx/mx", "--vm", "graal", "sl", f[1]],
+                                    cwd=working_dir,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT,
+                                    bufsize=0)
+        elif path:
+            self.export_as_text(path)
 
     def export_unipycation(self, path=None):
         import subprocess, sys
