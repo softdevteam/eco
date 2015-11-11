@@ -312,10 +312,6 @@ class IncParser(object):
             result = self.syntaxtable.lookup(self.current_state, symbol)
         return result, symbol
 
-    def is_valid(self, symbol):
-        print("valid:", symbol, self.syntaxtable.lookup(self.current_state, symbol))
-        return self.syntaxtable.lookup(self.current_state, symbol)
-
     def parse_terminal(self, la, lookup_symbol):
         # try parsing ANYSYMBOL
 
@@ -514,37 +510,6 @@ class IncParser(object):
 
         return 0
 
-    def silent_insert(self, la, newnode):
-        print("       \x1b[36mINSERT\x1b[0m", newnode, id(newnode))
-        newnode.right = la.right
-        newnode.next_term = la.next_term
-        newnode.left = la
-        newnode.prev_term = la
-        newnode.parent = la.parent
-
-        if newnode.right:
-            self.undo.append((newnode.right, "left", newnode.right.left))
-            newnode.right.left = newnode
-        self.undo.append((newnode.next_term, "prev_term", newnode.next_term.prev_term))
-        newnode.next_term.prev_term = newnode
-
-        self.undo.append((la, "right", la.right))
-        la.right = newnode
-        self.undo.append((la, "next_term", la.next_term))
-        la.next_term = newnode
-
-    def parse_indent(self, la):
-        lookup = self.get_lookup(la)
-        element = self.syntaxtable.lookup(self.current_state, lookup)
-        print("NOPUSH:", lookup, element)
-        if isinstance(element, Shift):
-            self.stack[-1].state = element.action
-            self.current_state = element.action
-        elif isinstance(element, Reduce):
-            self.reduce(element)
-            self.parse_indent(la)
-        print("DONE")
-
     def get_last_indent(self, la):
         return self.last_indent
         # XXX not the most performant solution as it iterates over all elements
@@ -597,14 +562,9 @@ class IncParser(object):
             fold = element.action.right[element.amount()-i-1].folding
             c.symbol.folding = fold
             children.insert(0, c)
-            if c.symbol.name != "~COMMENT~":
-                i += 1
-            if c in self.anycount:
+            if c not in self.anycount:
                 # if this node is part of any, don't count it towards reduce elements
-                i -= 1
-        if self.stack[-1].symbol.name == "~COMMENT~":
-            c = self.stack.pop()
-            children.insert(0, c)
+                i += 1
 
         logging.debug("   Element on stack: %s(%s)", self.stack[-1].symbol, self.stack[-1].state)
         self.current_state = self.stack[-1].state #XXX don't store on nodes, but on stack

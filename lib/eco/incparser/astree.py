@@ -173,7 +173,6 @@ class Node(object):
     def mark_changed(self):
         node = self
         while True:
-            node.needs_saving = True
             node.save_ns()
             node.version = node.version + 0.000001
             if not node.parent:
@@ -190,7 +189,6 @@ class Node(object):
     def mark_version(self):
         node = self
         while True:
-            node.needs_saving = True
             node.save_ns()
             node.version = node.version + 0.000001
             if not node.parent:
@@ -202,7 +200,6 @@ class Node(object):
             node = node.parent
 
     def set_children(self, children):
-        # XXX needs_saving is deprecated
         self.children = children
         last = None
         for c in children:
@@ -211,7 +208,6 @@ class Node(object):
             if last is not None:
                 last.right = c
             last = c
-            c.needs_saving = True
             c.save_ns(True)
         if last is not None:
             last.right = None # last child has no right sibling
@@ -227,7 +223,6 @@ class Node(object):
         self.log[("deleted", version)] = self.deleted
         self.log[("indent", version)] = self.indent
         self.version = version
-        self.needs_saving = False
 
     def load(self, version):
         while version >= 0:
@@ -244,32 +239,28 @@ class Node(object):
                 return
             version -= 1
 
-    def remove_child(self, child, change = True):
+    def remove_child(self, child):
         for i in xrange(len(self.children)):
             if self.children[i] is child:
                 removed_child = self.children.pop(i)
                 removed_child.deleted = True
-                if change: removed_child.save_ns()
+                removed_child.save_ns()
                 # update siblings
                 if removed_child.left:
                     removed_child.left.right = removed_child.right
-                    if change: removed_child.left.needs_saving = True
-                    if change: removed_child.left.save_ns()
+                    removed_child.left.save_ns()
                 if removed_child.right:
                     removed_child.right.left = removed_child.left
-                    if change: removed_child.right.needs_saving = True
-                    if change: removed_child.right.save_ns()
+                    removed_child.right.save_ns()
                 # update terminal pointers
                 child.prev_term.next_term = child.next_term
-                if change: child.prev_term.needs_saving = True
-                if change: child.prev_term.save_ns()
-                if change: child.prev_term.mark_version()
+                child.prev_term.save_ns()
+                child.prev_term.mark_version()
                 child.next_term.prev_term = child.prev_term
-                if change: child.next_term.needs_saving = True
-                if change: child.next_term.save_ns()
-                if change: child.next_term.mark_version()
-                if change: self.mark_changed()
-                if change: self.changed = True
+                child.next_term.save_ns()
+                child.next_term.mark_version()
+                self.mark_changed()
+                self.changed = True
                 return
 
     def insert_after(self, node, silent=False):
@@ -287,7 +278,6 @@ class Node(object):
                 newnode.left = c
                 newnode.right = c.right
                 c.right = newnode
-                c.needs_saving = True
                 c.save_ns()
                 if newnode.right:
                     newnode.right.left = newnode
@@ -295,7 +285,6 @@ class Node(object):
                 # update terminal pointers
                 newnode.prev_term = node
                 node.next_term.prev_term = newnode
-                node.next_term.needs_saving = True
                 node.next_term.save_ns()
                 node.next_term.mark_version()
                 newnode.next_term = node.next_term
@@ -433,12 +422,11 @@ uppercase = set(list(string.ascii_uppercase))
 digits = set(list(string.digits))
 
 class TextNode(Node):
-    __slots__ = ["log", "version", "position", "changed", "needs_saving", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookup", "parent_lbox", "magic_backpointer", "indent"]
+    __slots__ = ["log", "version", "position", "changed", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookup", "parent_lbox", "magic_backpointer", "indent"]
     def __init__(self, symbol, state=-1, children=[], pos=-1, lookahead=0):
         Node.__init__(self, symbol, state, children)
         self.position = 0
         self.changed = False
-        self.needs_saving = True
         self.deleted = False
         self.image = None
         self.image_src = None
