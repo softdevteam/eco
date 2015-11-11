@@ -292,8 +292,22 @@ class TreeManager(object):
         self.saved_parsers = {}
         self.profile_map = {}  # node -> str
         self.profile_is_dirty = False
-
+        # This code and the can_profile() method should probably be refactored.
+        self.langs_with_profiler = {
+            "Python + Prolog" : False,
+            "HTML + Python + SQL" : False,
+            "PHP + Python" : False,
+            "PHP" : False,
+            "Python 2.7.5" : True,
+            "SimpleLanguage" : False,
+        }
         self.input_log = []
+
+    def can_profile(self):
+        lang_name = self.parsers[0][2]
+        if lang_name in self.langs_with_profiler:
+            return self.langs_with_profiler[lang_name]
+        return False
 
     def log_input(self, method, *args):
         self.input_log.append("self.%s(%s)" % (method, ", ".join(args)))

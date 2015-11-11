@@ -521,6 +521,10 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.menuChange_language_box, SIGNAL("aboutToShow()"), self.showEditMenu)
         self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
 
+        # Make sure the Project -> Profile menu item only appears for
+        # languages that support it.
+        self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.set_profiler_enabled)
+
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
 
@@ -538,6 +542,11 @@ class Window(QtGui.QMainWindow):
             self.ui.dockWidget.hide()
         if not settings.value("gen_showparsestatus", True).toBool():
             self.ui.dockWidget_2.hide()
+
+    def set_profiler_enabled(self):
+        ed = self.getEditor()
+        if (ed is not None) and (ed.tm is not None):
+            self.ui.actionProfile.setEnabled(ed.tm.can_profile())
 
     def contextMenu(self, pos):
         menu = QMenu(self)
