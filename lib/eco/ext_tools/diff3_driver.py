@@ -10,48 +10,51 @@ def extract_conflict_lines_from_iter(it):
     return lines, line
 
 
-def diff3(base, derived1, derived2):
+def diff3(base, derived_local, derived_main):
     """
-    Invoke the external `diff3` tool to merge three sequences; the base sequence `base` and two derived sequences
-    `derived1` and `derived2`.
+    Invoke the external `diff3` tool to merge three sequences; the base sequence `base` or parent sequence and two
+    sequences derived from it; a local derived version and a main derived version. The changes from `base` to
+    `derived_local` are applied to `derived_main`.
     :param base: [str] the base version
-    :param derived1: [str] derived version
-    :param derived2: [str] derived version
-    :return:
+    :param derived_local: [str] local derived version
+    :param derived_main: [str] main-line derived version
+    :return: the merged sequence, with possible conflicts. Conflict regions are represented as dictionaries
+    `{version: sequence}` where `version` is one of `'base'`, `'derived_local'` or `'derived_main'` and `sequence` is
+    a list of strings that represents the content in that version.
     """
     for x in base:
         if not isinstance(x, (str, unicode)):
             raise TypeError('base should be a list of strings; should not contain a {0}'.format(type(x)))
-    for x in derived1:
+    for x in derived_local:
         if not isinstance(x, (str, unicode)):
-            raise TypeError('derived1 should be a list of strings; should not contain a {0}'.format(type(x)))
-    for x in derived2:
+            raise TypeError('derived_local should be a list of strings; should not contain a {0}'.format(type(x)))
+    for x in derived_main:
         if not isinstance(x, (str, unicode)):
             raise TypeError('derived2 should be a list of strings; should not contain a {0}'.format(type(x)))
 
     base_fd, base_path = tempfile.mkstemp()
     base_f = os.fdopen(base_fd, 'w')
 
-    d1_fd, d1_path = tempfile.mkstemp()
-    d1_f = os.fdopen(d1_fd, 'w')
+    dlocal_fd, dlocal_path = tempfile.mkstemp()
+    dlocal_f = os.fdopen(dlocal_fd, 'w')
 
-    d2_fd, d2_path = tempfile.mkstemp()
-    d2_f = os.fdopen(d2_fd, 'w')
+    dmain_fd, dmain_path = tempfile.mkstemp()
+    dmain_f = os.fdopen(dmain_fd, 'w')
 
     base_f.write('\n'.join([repr(x) for x in base]) + '\n')
-    d1_f.write('\n'.join([repr(x) for x in derived1]) + '\n')
-    d2_f.write('\n'.join([repr(x) for x in derived2]) + '\n')
+    dlocal_f.write('\n'.join([repr(x) for x in derived_local]) + '\n')
+    dmain_f.write('\n'.join([repr(x) for x in derived_main]) + '\n')
 
     base_f.close()
-    d1_f.close()
-    d2_f.close()
+    dlocal_f.close()
+    dmain_f.close()
 
-    proc = subprocess.Popen(['diff3', '-m', d1_path, base_path, d2_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(['diff3', '-m', dlocal_path, base_path, dmain_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
 
     os.remove(base_path)
-    os.remove(d1_path)
-    os.remove(d2_path)
+    os.remove(dlocal_path)
+    os.remove(dmain_path)
 
     out_lines = out.split('\n')
 
@@ -59,8 +62,8 @@ def diff3(base, derived1, derived2):
 
     file_path_to_name = {
         base_path: 'base',
-        d1_path: 'derived1',
-        d2_path: 'derived2',
+        dlocal_path: 'derived_local',
+        dmain_path: 'derived_main',
     }
 
     i = 0
