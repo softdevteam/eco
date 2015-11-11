@@ -170,9 +170,7 @@ pythonphp.add_alternative("atom", phppython)
 pythonipython = EcoFile("Python + IPython", "grammars/python275.eco", "Python")
 pythonipython.add_alternative("atom", ipython)
 
-anytest = EcoFile("Anytest", "grammars/anytest.eco", "any")
-
-languages = [calc, java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar, python_expr, ipython, pythonipython, anytest]
+languages = [calc, java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar, python_expr, ipython, pythonipython]
 newfile_langs = [java, javasqlchemical, php, phppython, python, pythonhtmlsql, pythonprolog, prolog, sql, html, htmlpythonsql, pythonipython, calc]
 submenu_langs = [java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, python_expr, prolog, sql, sql_ref_java, html, htmlpythonsql, img, chemical, ipython]
 
