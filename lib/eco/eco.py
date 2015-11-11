@@ -452,7 +452,7 @@ class LanguageView(QtGui.QDialog):
             if icon.isNull():
                 icon = QIcon.fromTheme("text-x-generic")
         item.setIcon(icon)
- 
+
     def getLanguage(self):
         row = self.ui.listWidget_2.currentRow()
         item = self.ui.listWidget_2.item(row).text()
@@ -689,6 +689,7 @@ class Window(QtGui.QMainWindow):
 
     def profile_subprocess(self):
         self.ui.teConsole.clear()
+        self.profile_throbber.show(self.ui.tabWidget.currentIndex())
         self.thread_prof.start()
 
     def show_output(self, string):
@@ -1029,7 +1030,9 @@ def main():
     t = SubProcessThread(window, app)
     window.thread = t
     window.thread_prof = ProfileThread(window, app)
+    window.profile_throbber = Throbber(window.ui.tabWidget)
     window.connect(window.thread, t.signal, window.show_output)
+    window.connect(window.thread_prof, window.thread_prof.signal, window.profile_throbber.hide)
 
     window.parse_options()
     window.show()
@@ -1048,17 +1051,46 @@ class SubProcessThread(QThread):
             for line in iter(p.stdout.readline, b''):
                 self.emit(self.signal, line.rstrip())
 
+
 class ProfileThread(QThread):
     def __init__(self, window, parent):
         QThread.__init__(self, parent=parent)
         self.window = window
-        self.signal = QtCore.SIGNAL("output")
+        self.signal = QtCore.SIGNAL("finished")
 
     def run(self):
-        p = self.window.getEditor().tm.export(profile=True)
-        if p:
-            for line in iter(p.stdout.readline, b''):
-                self.emit(self.signal, line.rstrip())
+        _ = self.window.getEditor().tm.export(profile=True)
+        # The profiler should add its own visualisation to the GUI, so
+        # we do not process the output and append it to the console here.
+        self.emit(self.signal, None)
+
+
+class Throbber(QLabel):
+    """Throbber which displays in the left-hand corner of the tabbed notebook.
+    Used to alert the user that a potentially long-running background
+    profile is taking place.
+    """
+    def __init__(self, tab_bar):
+        super(Throbber, self).__init__()
+        self.tab_bar = tab_bar
+        self.setAlignment(Qt.AlignCenter)
+        self._movie = QMovie("gui/throbber.gif")
+        self.setMovie(self._movie)
+
+    def hide(self):
+        """Hide throbber in left hand corner of tabbed notebook.
+        """
+        self._movie.stop()
+        self.tab_bar.setCornerWidget(None, corner=Qt.TopLeftCorner)
+        super(Throbber, self).hide()
+
+    def show(self, tab_index):
+        """Display throbber in left hand corner of tabbed notebook.
+        """
+        self.tab_bar.setCornerWidget(self, corner=Qt.TopLeftCorner)
+        self._movie.start()
+        super(Throbber, self).show()
+
 
 if __name__ == "__main__":
     main()

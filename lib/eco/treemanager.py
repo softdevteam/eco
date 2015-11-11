@@ -1513,6 +1513,7 @@ class TreeManager(object):
                     temp_cursor.move_to_x(len(msg) *  30, self.lines)
                     temp_cursor.right()
                     self.profile_map[temp_cursor.node] = msg
+            return proc
         elif run:
             return subprocess.Popen(["python2", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
 
