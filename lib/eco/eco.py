@@ -1032,12 +1032,16 @@ def main():
     window.thread_prof = ProfileThread(window, app)
     window.profile_throbber = Throbber(window.ui.tabWidget)
     window.connect(window.thread, t.signal, window.show_output)
-    window.connect(window.thread_prof, window.thread_prof.signal, window.profile_throbber.hide)
+    window.connect(window.thread_prof, window.thread_prof.signal, window.show_output)
+    window.connect(window.thread_prof,
+                   window.thread_prof.signal_done,
+                   window.profile_throbber.hide)
 
     window.parse_options()
     window.show()
     t.wait()
     sys.exit(app.exec_())
+
 
 class SubProcessThread(QThread):
     def __init__(self, window, parent):
@@ -1056,17 +1060,20 @@ class ProfileThread(QThread):
     def __init__(self, window, parent):
         QThread.__init__(self, parent=parent)
         self.window = window
-        self.signal = QtCore.SIGNAL("finished")
+        self.signal_done = QtCore.SIGNAL("finished")
+        self.signal = QtCore.SIGNAL("output")
 
     def run(self):
-        _ = self.window.getEditor().tm.export(profile=True)
-        # The profiler should add its own visualisation to the GUI, so
-        # we do not process the output and append it to the console here.
-        self.emit(self.signal, None)
-
+        p = self.window.getEditor().tm.export(profile=True)
+        # Using read() here, rather than readline() because profiler output
+        # often includes blank lines in the middle of the output.
+        if p:
+            text = p.stdout.read()
+            self.emit(self.signal, text.strip())
+        self.emit(self.signal_done, None)
 
 class Throbber(QLabel):
-    """Throbber which displays in the left-hand corner of the tabbed notebook.
+    """Throbber which displays in the right-hand corner of the tabbed notebook.
     Used to alert the user that a potentially long-running background
     profile is taking place.
     """
@@ -1078,16 +1085,16 @@ class Throbber(QLabel):
         self.setMovie(self._movie)
 
     def hide(self):
-        """Hide throbber in left hand corner of tabbed notebook.
+        """Hide throbber in right hand corner of tabbed notebook.
         """
         self._movie.stop()
-        self.tab_bar.setCornerWidget(None, corner=Qt.TopLeftCorner)
+        self.tab_bar.setCornerWidget(None, corner=Qt.TopRightCorner)
         super(Throbber, self).hide()
 
     def show(self, tab_index):
-        """Display throbber in left hand corner of tabbed notebook.
+        """Display throbber in right hand corner of tabbed notebook.
         """
-        self.tab_bar.setCornerWidget(self, corner=Qt.TopLeftCorner)
+        self.tab_bar.setCornerWidget(self, corner=Qt.TopRightCorner)
         self._movie.start()
         super(Throbber, self).show()
 
