@@ -49,7 +49,7 @@ class NodeEditor(QFrame):
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
 
-        self.infofont = QtGui.QFont('Courier', 6)
+        self.infofont = QtGui.QFont('Courier', 9)
         self.infofontht = QtGui.QFontMetrics(self.infofont).height() + 3
         self.infofontwt = QtGui.QFontMetrics(self.infofont).width(" ")
 
@@ -361,6 +361,21 @@ class NodeEditor(QFrame):
             #y += dy
             self.lines[line].height = max(self.lines[line].height, dy)
 
+            # Draw profiling information.
+            if node in self.tm.profile_map:
+                prof = self.tm.profile_map[node]
+                if not self.tm.profile_is_dirty:
+                    self.infofont.setBold(True)
+                else:
+                    self.infofont.setBold(False)
+                paint.setFont(self.infofont)
+                start_x = (0 if (x - len(prof) * self.infofontwt) < 0
+                             else x - len(prof) * self.infofontwt)
+                start_y = self.fontht + ((y + 1) * self.fontht)
+                paint.drawText(QtCore.QPointF(start_x, start_y), prof)
+                self.lines[line].height = max(self.lines[line].height, 2)
+                paint.setFont(self.font)
+
             # after we drew a return, update line information
             if node.lookup == "<return>" and not node is first_node:
                 # draw lbox to end of line
@@ -416,8 +431,9 @@ class NodeEditor(QFrame):
 
         # paint infobox
         if False:
-            lang_name = self.parser_langs[selected_language]
-            lang_status = self.parsers[selected_language].last_status
+            lang_name = self.tm.parsers[selected_language]
+            parser = self.tmselected_language
+            lang_status = self.tm.get_parser[selected_language][0].last_status
             if lang_status is True:
                 color = QColor(100,255,100)
             else:
@@ -856,5 +872,5 @@ class NodeEditor(QFrame):
         self.tm.load_file(language_boxes)
         self.reset()
 
-    def export(self, run=False):
-        return self.tm.export(None, run)
+    def export(self, run=False, profile=False):
+        return self.tm.export(None, run, profile)

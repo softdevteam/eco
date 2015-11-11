@@ -452,7 +452,7 @@ class LanguageView(QtGui.QDialog):
             if icon.isNull():
                 icon = QIcon.fromTheme("text-x-generic")
         item.setIcon(icon)
- 
+
     def getLanguage(self):
         row = self.ui.listWidget_2.currentRow()
         item = self.ui.listWidget_2.item(row).text()
@@ -484,6 +484,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionExport, SIGNAL("triggered()"), self.export)
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
+        self.connect(self.ui.actionProfile, SIGNAL("triggered()"), self.profile_subprocess)
         try:
             import pydot
             self.connect(self.ui.actionParse_Tree, SIGNAL("triggered()"), self.showParseView)
@@ -520,6 +521,10 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.menuChange_language_box, SIGNAL("aboutToShow()"), self.showEditMenu)
         self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
 
+        # Make sure the Project -> Profile menu item only appears for
+        # languages that support it.
+        self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.set_profiler_enabled)
+
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
 
@@ -537,6 +542,11 @@ class Window(QtGui.QMainWindow):
             self.ui.dockWidget.hide()
         if not settings.value("gen_showparsestatus", True).toBool():
             self.ui.dockWidget_2.hide()
+
+    def set_profiler_enabled(self):
+        ed = self.getEditor()
+        if (ed is not None) and (ed.tm is not None):
+            self.ui.actionProfile.setEnabled(ed.tm.can_profile())
 
     def contextMenu(self, pos):
         menu = QMenu(self)
@@ -685,6 +695,11 @@ class Window(QtGui.QMainWindow):
     def run_subprocess(self):
         self.ui.teConsole.clear()
         self.thread.start()
+
+    def profile_subprocess(self):
+        self.ui.teConsole.clear()
+        self.profile_throbber.show(self.ui.tabWidget.currentIndex())
+        self.thread_prof.start()
 
     def show_output(self, string):
         self.ui.teConsole.append(string)
@@ -1023,12 +1038,19 @@ def main():
     window=Window()
     t = SubProcessThread(window, app)
     window.thread = t
+    window.thread_prof = ProfileThread(window, app)
+    window.profile_throbber = Throbber(window.ui.tabWidget)
     window.connect(window.thread, t.signal, window.show_output)
+    window.connect(window.thread_prof, window.thread_prof.signal, window.show_output)
+    window.connect(window.thread_prof,
+                   window.thread_prof.signal_done,
+                   window.profile_throbber.hide)
 
     window.parse_options()
     window.show()
     t.wait()
     sys.exit(app.exec_())
+
 
 class SubProcessThread(QThread):
     def __init__(self, window, parent):
@@ -1041,6 +1063,50 @@ class SubProcessThread(QThread):
         if p:
             for line in iter(p.stdout.readline, b''):
                 self.emit(self.signal, line.rstrip())
+
+
+class ProfileThread(QThread):
+    def __init__(self, window, parent):
+        QThread.__init__(self, parent=parent)
+        self.window = window
+        self.signal_done = QtCore.SIGNAL("finished")
+        self.signal = QtCore.SIGNAL("output")
+
+    def run(self):
+        p = self.window.getEditor().tm.export(profile=True)
+        # Using read() here, rather than readline() because profiler output
+        # often includes blank lines in the middle of the output.
+        if p:
+            text = p.stdout.read()
+            self.emit(self.signal, text.strip())
+        self.emit(self.signal_done, None)
+
+class Throbber(QLabel):
+    """Throbber which displays in the right-hand corner of the tabbed notebook.
+    Used to alert the user that a potentially long-running background
+    profile is taking place.
+    """
+    def __init__(self, tab_bar):
+        super(Throbber, self).__init__()
+        self.tab_bar = tab_bar
+        self.setAlignment(Qt.AlignCenter)
+        self._movie = QMovie("gui/throbber.gif")
+        self.setMovie(self._movie)
+
+    def hide(self):
+        """Hide throbber in right hand corner of tabbed notebook.
+        """
+        self._movie.stop()
+        self.tab_bar.setCornerWidget(None, corner=Qt.TopRightCorner)
+        super(Throbber, self).hide()
+
+    def show(self, tab_index):
+        """Display throbber in right hand corner of tabbed notebook.
+        """
+        self.tab_bar.setCornerWidget(self, corner=Qt.TopRightCorner)
+        self._movie.start()
+        super(Throbber, self).show()
+
 
 if __name__ == "__main__":
     main()
