@@ -1510,10 +1510,11 @@ class TreeManager(object):
                     fname, loc = words[5].split(':')
                     if not (fname == os.path.basename(f[1]) or fname == f[1]):
                         continue
+                    ncalls = words[0]
                     lineno = int(loc.split('(')[0])
                     func = loc.split('(')[1][:-1]
                     # Move cursor to correct line and character
-                    msg = ('%s: %ss / call' % (func, words[2]))
+                    msg = ('%s: called %s times ran at %ss / call' % (func, ncalls, words[2]))
                     temp_cursor.line = lineno - 1
                     temp_cursor.move_to_x(len(msg) *  30, self.lines)
                     temp_cursor.right()

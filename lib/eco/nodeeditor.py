@@ -49,7 +49,7 @@ class NodeEditor(QFrame):
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
 
-        self.infofont = QtGui.QFont('Courier', 6)
+        self.infofont = QtGui.QFont('Courier', 9)
         self.infofontht = QtGui.QFontMetrics(self.infofont).height() + 3
         self.infofontwt = QtGui.QFontMetrics(self.infofont).width(" ")
 
@@ -369,7 +369,10 @@ class NodeEditor(QFrame):
                 else:
                     self.infofont.setBold(False)
                 paint.setFont(self.infofont)
-                paint.drawText(QtCore.QPointF(x  - len(prof)*self.infofontwt, self.fontht + (y+1)*self.fontht - self.infofontht + 5), prof)
+                start_x = (0 if (x - len(prof) * self.infofontwt) < 0
+                             else x - len(prof) * self.infofontwt)
+                start_y = self.fontht + ((y + 1) * self.fontht)
+                paint.drawText(QtCore.QPointF(start_x, start_y), prof)
                 self.lines[line].height = max(self.lines[line].height, 2)
                 paint.setFont(self.font)
 
@@ -869,5 +872,5 @@ class NodeEditor(QFrame):
         self.tm.load_file(language_boxes)
         self.reset()
 
-    def export(self, run=False):
-        return self.tm.export(None, run)
+    def export(self, run=False, profile=False):
+        return self.tm.export(None, run, profile)
