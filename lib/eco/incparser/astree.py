@@ -263,10 +263,10 @@ class Node(object):
                 self.changed = True
                 return
 
-    def insert_after(self, node, silent=False):
-        self.parent.insert_after_node(self, node, silent)
+    def insert_after(self, node):
+        self.parent.insert_after_node(self, node)
 
-    def insert_after_node(self, node, newnode, silent=False):
+    def insert_after_node(self, node, newnode):
         # XXX don't mark/save stuff in silent mode
         i = 0
         for c in self.children:
