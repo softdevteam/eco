@@ -620,6 +620,7 @@ class IncParser(object):
             self.undo.append((c, 'parent', c.parent))
             self.undo.append((c, 'left', c.left))
             self.undo.append((c, 'right', c.right))
+            self.undo.append((c, 'log', c.log.copy()))
 
         new_node = Node(element.action.left.copy(), goto.action, children)
         self.set_total_indent(new_node)

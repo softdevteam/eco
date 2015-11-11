@@ -202,11 +202,10 @@ class Node(object):
             node = node.parent
 
     def set_children(self, children):
+        # XXX needs_saving is deprecated
         self.children = children
         last = None
         for c in children:
-            if c.parent:
-                c.parent.save_ns() # mark parent changed
             c.parent = self
             c.left = last
             if last is not None:

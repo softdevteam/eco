@@ -770,8 +770,6 @@ class TreeManager(object):
                     node.save(self.version)
                     break
                 if node.has_changes():
-                    if isinstance(node.symbol, Terminal):
-                        print("Save", node.symbol.name)
                     node.save(self.version)
                     if len(node.children) > 0:
                         node = node.children[0]
