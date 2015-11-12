@@ -1547,9 +1547,12 @@ class TreeManager(object):
                     # Move cursor to correct line and character
                     msg = ('%s: called %s times ran at %ss / call' % (func, ncalls, tokens[2]))
                     temp_cursor.line = lineno - 1
-                    temp_cursor.move_to_x(len(msg) *  30, self.lines)
-                    temp_cursor.right()
-                    self.profile_map[temp_cursor.node] = msg
+                    temp_cursor.move_to_x(0, self.lines)
+                    #temp_cursor.right()
+                    node = temp_cursor.find_next_visible(temp_cursor.node)
+                    if node.lookup == "<ws>":
+                        node = node.next_term
+                    self.profile_map[node] = msg
             return mock
         elif run:
             return subprocess.Popen(["python2", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)

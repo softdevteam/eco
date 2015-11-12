@@ -369,10 +369,11 @@ class NodeEditor(QFrame):
                 else:
                     self.infofont.setBold(False)
                 paint.setFont(self.infofont)
+                paint.setPen(QPen(QColor((highlighter.get_default_color()))))
                 start_x = (0 if (x - len(prof) * self.infofontwt) < 0
                              else x - len(prof) * self.infofontwt)
                 start_y = self.fontht + ((y + 1) * self.fontht)
-                paint.drawText(QtCore.QPointF(start_x, start_y), prof)
+                paint.drawText(QtCore.QPointF(x-dx, start_y), prof)
                 self.lines[line].height = max(self.lines[line].height, 2)
                 paint.setFont(self.font)
 
