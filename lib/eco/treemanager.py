@@ -25,7 +25,6 @@ from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from PyQt4.QtGui import QApplication
 from grammars.grammars import lang_dict, Language, EcoFile
-from indentmanager import IndentationManager
 from export import HTMLPythonSQL, PHPPython, ATerms
 
 import math
@@ -337,33 +336,25 @@ class TreeManager(object):
                 self.parsers.remove(p)
 
     def get_parser(self, root):
-        for parser, lexer, lang, _, im in self.parsers:
+        for parser, lexer, lang, _ in self.parsers:
             if parser.previous_version.parent is root:
                 return parser
 
     def get_lexer(self, root):
-        for parser, lexer, lang, _, im in self.parsers:
+        for parser, lexer, lang, _ in self.parsers:
             if parser.previous_version.parent is root:
                 return lexer
 
     def get_language(self, root):
-        for parser, lexer, lang, _, im in self.parsers:
+        for parser, lexer, lang, _ in self.parsers:
             if parser.previous_version.parent is root:
                 return lang
-
-    def get_indentmanager(self, root):
-        for parser, lexer, lang, _, im in self.parsers:
-            if parser.previous_version.parent is root:
-                return im
 
     def add_parser(self, parser, lexer, language):
         analyser = self.load_analyser(language)
         if lexer.is_indentation_based():
-            im = None#IndentationManager(parser.previous_version.parent)
             parser.indentation_based = True
-        else:
-            im = None
-        self.parsers.append((parser, lexer, language, analyser, im))
+        self.parsers.append((parser, lexer, language, analyser))
         parser.inc_parse()
         if len(self.parsers) == 1:
             self.lines.append(Line(parser.previous_version.parent.children[0]))
@@ -838,22 +829,17 @@ class TreeManager(object):
 
         if text == "\r":
             root = self.cursor.node.get_root()
-            im = self.get_indentmanager(root)
-            if im:
-                bol = im.get_line_start(self.cursor.node)
-                indentation = im.count_whitespace(bol)
-            else:
-                # if previous line is a language box, don't use its indentation
-                y = self.cursor.line
+            # if previous line is a language box, don't use its indentation
+            y = self.cursor.line
+            node = self.lines[y].node
+            current_root = self.cursor.node.get_root()
+            while node.get_root() is not current_root:
+                y -= 1
+                if y < 0:
+                    y = 0
+                    break
                 node = self.lines[y].node
-                current_root = self.cursor.node.get_root()
-                while node.get_root() is not current_root:
-                    y -= 1
-                    if y < 0:
-                        y = 0
-                        break
-                    node = self.lines[y].node
-                indentation = self.get_indentation(y)
+            indentation = self.get_indentation(y)
             if indentation is None:
                 indentation = 0
             text += " " * indentation
@@ -1098,17 +1084,13 @@ class TreeManager(object):
             lbox.symbol.name = "<%s>" % language
 
             # reparse outer and inner box
-            im = self.get_indentmanager(root)
             node = root.children[0].next_term
             while not isinstance(node, EOS):
                 if isinstance(node.symbol, IndentationTerminal):
-                    if not im:
-                        node.parent.remove_child(node)
+                    node.parent.remove_child(node)
                 else:
                     self.relex(node)
                 node = node.next_term
-            if im:
-                im.repair_full()
             self.post_keypress("")
             self.reparse(root.children[0], True)
             self.reparse(lbox, True)
@@ -1144,11 +1126,6 @@ class TreeManager(object):
         node = self.cursor.node
         root = node.get_root()
         changed = False
-        im = self.get_indentmanager(root)
-        if im:
-            for i in range(new_lines+1):
-                changed |= im.repair(node)
-                node = im.next_line(node)
 
         if text != "" and text[0] == "\r":
             self.cursor.line += 1
@@ -1383,9 +1360,6 @@ class TreeManager(object):
         root = new.get_root()
         lexer.relex_import(new, self.version+1)
         self.rescan_linebreaks(0)
-        im = self.parsers[0][4]
-        if im:
-            im.repair_full()
         self.reparse(bos)
         self.save_current_version()
         self.changed = True
@@ -1401,7 +1375,7 @@ class TreeManager(object):
                 bos = root.children[0]
                 class X:
                     last_status = True
-                self.parsers = [[X, None, language, None, None]]
+                self.parsers = [[X, None, language, None]]
         def x():
             return bos
         self.get_bos = x
@@ -1425,10 +1399,6 @@ class TreeManager(object):
 
         self.rescan_linebreaks(0)
 
-        for p in self.parsers:
-            im = p[4]
-            if im:
-                im.repair_full()
         self.savenextparse = True
         self.version = 1
         self.last_saved_version = 1
@@ -1453,7 +1423,7 @@ class TreeManager(object):
             return
 
     def export(self, path=None, run=False, profile=False):
-        for p, _, _, _, _ in self.parsers:
+        for p, _, _, _ in self.parsers:
             if p.last_status == False:
                 print("Cannot export a syntacially incorrect grammar")
                 return
