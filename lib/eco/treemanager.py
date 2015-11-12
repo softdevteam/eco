@@ -1502,7 +1502,7 @@ class TreeManager(object):
                     lineno = int(tokens[2][:-1])
                     msg = ('Line %s ran %s times' % (lineno, ncalls))
                     temp_cursor.line = lineno - 1
-                    temp_cursor.move_to_x(len(msg) *  30, self.lines)
+                    temp_cursor.move_to_x(0, self.lines)
                     temp_cursor.right()
                     self.profile_map[temp_cursor.node] = msg
             return mock
