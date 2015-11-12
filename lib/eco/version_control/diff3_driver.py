@@ -38,7 +38,10 @@ class Diff3ConflictRegion (object):
             return True
 
     def __hash__(self):
-        return hash((type(self), self.base, self.derived_local, self.derived_main))
+        return hash((type(self),
+                     tuple(self.base) if self.base is not None else None,
+                     tuple(self.derived_local) if self.derived_local is not None else None,
+                     tuple(self.derived_main) if self.derived_main is not None else None))
 
 
 
