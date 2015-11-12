@@ -591,10 +591,18 @@ class StringWrapper(object):
     def __getitem__(self, index):
         startindex = index
         node = self.node
+        if isinstance(node.symbol, IndentationTerminal):
+            node = node.next_term
+        if isinstance(node, EOS):
+            raise IndexError
         while index > len(node.symbol.name) - 1:
             index -= len(node.symbol.name)
             node = node.next_term
             if node is None:
+                raise IndexError
+            if isinstance(node.symbol, IndentationTerminal):
+                node = node.next_term
+            if isinstance(node, EOS):
                 raise IndexError
         if node.next_term and (isinstance(node.next_term, EOS) or isinstance(node.next_term.symbol, IndentationTerminal) or node.next_term.symbol.name == "\r" or isinstance(node.next_term.symbol, MagicTerminal)):
             self.length = startindex + len(node.symbol.name[index:])

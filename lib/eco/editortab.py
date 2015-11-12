@@ -175,9 +175,12 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
             if theme == "Dark":
                 pal.setColor(QPalette.Base, QColor(0, 43, 54))
                 pal.setColor(QPalette.Text, QColor("#93A1A1"))
+            elif theme == "Gruvbox":
+                pal.setColor(QPalette.Base, QColor("#32302F"))
+                pal.setColor(QPalette.Text, QColor("#EBDBB2"))
             else:
                 pal.setColor(QPalette.Base, QPalette().color(QPalette.Base))
-                pal.setColor(QPalette.Text, QColor("#333333"))
+                pal.setColor(QPalette.Text, QPalette().color(QPalette.Text))
         self.viewport().setPalette(pal)
 
     def incHSlider(self):
@@ -227,9 +230,9 @@ class LineNumbers(QFrame):
         gfont = QApplication.instance().gfont
         editor = self.parent().editor
         import math
-        if len(editor.lines) <= 10:
+        if len(editor.lines) < 10:
             digits = 1
         else:
-            digits = int(math.log10(len(editor.lines)-1))+1
+            digits = int(math.log10(len(editor.lines)))+1
         self.setMinimumWidth(gfont.fontwt * (digits + 1))
         QFrame.update(self)

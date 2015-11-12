@@ -21,7 +21,7 @@
 
 from inclexer.inclexer import IncrementalLexer, StringWrapper
 from incparser.astree import AST
-from grammars.grammars import calc1
+from grammars.grammars import calc
 from incparser.astree import TextNode, BOS, EOS
 from grammar_parser.gparser import Terminal, Nonterminal
 
@@ -39,18 +39,18 @@ class Test_IncrementalLexer:
 class Test_CalcLexer(Test_IncrementalLexer):
 
     def setup_class(cls):
-        cls.lexer = IncrementalLexer(calc1.priorities)
+        _, cls.lexer = calc.load()
 
     def test_lex(self):
         tokens = self.lex("1 + 2 * 3")
         expected = []
         expected.append(("1", "INT"))
         expected.append((" ", "<ws>"))
-        expected.append(("+", "+"))
+        expected.append(("+", "plus"))
         expected.append((" ", "<ws>"))
         expected.append(("2", "INT"))
         expected.append((" ", "<ws>"))
-        expected.append(("*", "*"))
+        expected.append(("*", "mul"))
         expected.append((" ", "<ws>"))
         expected.append(("3", "INT"))
         assert tokens == expected
@@ -58,7 +58,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
     def test_lex2(self):
         tokens = self.lex("+2")
         expected = []
-        expected.append(("+", "+"))
+        expected.append(("+", "plus"))
         expected.append(("2", "INT"))
         assert tokens == expected
 

@@ -37,16 +37,7 @@ from PyQt4 import QtCore
 from PyQt4.QtCore import *
 from PyQt4 import QtGui
 from PyQt4.QtGui import *
-
-from gui.gui import Ui_MainWindow
-from gui.parsetree import Ui_MainWindow as Ui_ParseTree
-from gui.stateview import Ui_MainWindow as Ui_StateView
-from gui.about import Ui_Dialog as Ui_AboutDialog
-from gui.inputlog import Ui_Dialog as Ui_InputLog
-from gui.finddialog import Ui_Dialog as Ui_FindDialog
-from gui.languagedialog import Ui_Dialog as Ui_LanguageDialog
-from gui.settings import Ui_MainWindow as Ui_Settings
-from gui.preview import Ui_Dialog as Ui_Preview
+from PyQt4 import uic
 
 from grammar_parser.plexer import PriorityLexer
 from incparser.incparser import IncParser
@@ -70,6 +61,16 @@ from nodeeditor import NodeEditor
 from editortab import EditorTab
 
 import logging
+
+Ui_MainWindow, _     = uic.loadUiType('gui/gui.ui')
+Ui_ParseTree, _      = uic.loadUiType('gui/parsetree.ui')
+Ui_StateView, _      = uic.loadUiType('gui/stateview.ui')
+Ui_About, _          = uic.loadUiType('gui/about.ui')
+Ui_InputLog, _       = uic.loadUiType('gui/inputlog.ui')
+Ui_FindDialog, _     = uic.loadUiType('gui/finddialog.ui')
+Ui_LanguageDialog, _ = uic.loadUiType('gui/languagedialog.ui')
+Ui_Settings, _       = uic.loadUiType('gui/settings.ui')
+Ui_Preview, _        = uic.loadUiType('gui/preview.ui')
 
 def print_var(name, value):
     print("%s: %s" % (name, value))
@@ -158,7 +159,7 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
 
 class ParseView(QtGui.QMainWindow):
     def __init__(self, window):
-        QtGui.QMainWindow.__init__(self)
+        QtGui.QMainWindow.__init__(self, window)
         self.ui = Ui_ParseTree()
         self.ui.setupUi(self)
 
@@ -349,8 +350,9 @@ class SettingsView(QtGui.QMainWindow):
         widget.setStyleSheet("background-color: %s" % (color))
 
 class InputLogView(QtGui.QDialog):
-    def __init__(self):
-        QtGui.QDialog.__init__(self)
+    def __init__(self, parent):
+        self.parent = parent
+        QtGui.QDialog.__init__(self, parent)
         self.ui = Ui_InputLog()
         self.ui.setupUi(self)
 
@@ -362,14 +364,16 @@ class InputLogView(QtGui.QDialog):
         self.accept()
 
 class AboutView(QtGui.QDialog):
-    def __init__(self):
-        QtGui.QDialog.__init__(self)
-        self.ui = Ui_AboutDialog()
+    def __init__(self, parent):
+        self.parent = parent
+        QtGui.QDialog.__init__(self, parent)
+        self.ui = Ui_About()
         self.ui.setupUi(self)
 
 class PreviewDialog(QtGui.QDialog):
-    def __init__(self):
-        QtGui.QDialog.__init__(self)
+    def __init__(self, parent):
+        self.parent = parent
+        QtGui.QDialog.__init__(self, parent)
         self.ui = Ui_Preview()
         self.ui.setupUi(self)
 
@@ -384,7 +388,8 @@ class PreviewDialog(QtGui.QDialog):
             self.ui.textEdit.setText(text)
 
 class FindDialog(QtGui.QDialog):
-    def __init__(self):
+    def __init__(self, parent):
+        self.parent = parent
         QtGui.QDialog.__init__(self)
         self.ui = Ui_FindDialog()
         self.ui.setupUi(self)
@@ -399,28 +404,59 @@ class FindDialog(QtGui.QDialog):
         self.ui.leText.selectAll()
 
 class LanguageView(QtGui.QDialog):
-    def __init__(self, languages):
+    def __init__(self, parent, languages):
+        self.parent = parent
         QtGui.QDialog.__init__(self)
         self.ui = Ui_LanguageDialog()
         self.ui.setupUi(self)
 
+        # categorize languages
+        d = {}
+        self.d = d
         for l in newfile_langs:
-            item = QListWidgetItem(self.ui.listWidget)
-            item.setText(str(l))
-            if l.base.lower() == "html":
-                icon = QIcon.fromTheme("text-html")
+            if d.has_key(l.base):
+                d[l.base].append(l)
             else:
-                icon = QIcon.fromTheme("text-x-" + l.base.lower())
-            if icon.isNull():
-                icon = QIcon.fromTheme("application-x-" + l.base.lower())
-                if icon.isNull():
-                    icon = QIcon.fromTheme("text-x-generic")
-            item.setIcon(icon)
+                d[l.base] = [l]
 
+        for k in sorted(d.keys()):
+            self.addLangItem(self.ui.listWidget, k)
         self.ui.listWidget.item(0).setSelected(True)
 
+        for l in d[str(self.ui.listWidget.item(0).text())]:
+            self.addLangItem(self.ui.listWidget_2, l)
+        self.ui.listWidget_2.item(0).setSelected(True)
+
+        self.connect(self.ui.listWidget, SIGNAL("currentRowChanged(int)"), self.row_changed)
+
+    def row_changed(self, index):
+        self.ui.listWidget_2.clear()
+        for l in self.d[str(self.ui.listWidget.item(index).text())]:
+            self.addLangItem(self.ui.listWidget_2, l)
+        self.ui.listWidget_2.item(0).setSelected(True)
+        self.ui.listWidget_2.setCurrentRow(0)
+
+    def addLangItem(self, widget, name):
+        item = QListWidgetItem(widget)
+        item.setText(str(name))
+        try:
+            base = name.base
+        except AttributeError:
+            base = name
+        if base.lower() == "html":
+            icon = QIcon.fromTheme("text-html")
+        else:
+            icon = QIcon.fromTheme("text-x-" + base.lower())
+        if icon.isNull():
+            icon = QIcon.fromTheme("application-x-" + base.lower())
+            if icon.isNull():
+                icon = QIcon.fromTheme("text-x-generic")
+        item.setIcon(icon)
+
     def getLanguage(self):
-        return self.ui.listWidget.currentRow()
+        row = self.ui.listWidget_2.currentRow()
+        item = self.ui.listWidget_2.item(row).text()
+        return lang_dict[str(item)]
 
     def getWhitespace(self):
         return True
@@ -439,7 +475,7 @@ class Window(QtGui.QMainWindow):
         self.parseview = ParseView(self)
         self.stateview = StateView(self)
         self.settingsview = SettingsView(self)
-        self.previewdialog = PreviewDialog()
+        self.previewdialog = PreviewDialog(self)
 
         self.connect(self.ui.actionImport, SIGNAL("triggered()"), self.importfile)
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
@@ -448,6 +484,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionExport, SIGNAL("triggered()"), self.export)
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
+        self.connect(self.ui.actionProfile, SIGNAL("triggered()"), self.profile_subprocess)
         try:
             import pydot
             self.connect(self.ui.actionParse_Tree, SIGNAL("triggered()"), self.showParseView)
@@ -484,6 +521,10 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.menuChange_language_box, SIGNAL("aboutToShow()"), self.showEditMenu)
         self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
 
+        # Make sure the Project -> Profile menu item only appears for
+        # languages that support it.
+        self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.set_profiler_enabled)
+
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
 
@@ -491,7 +532,7 @@ class Window(QtGui.QMainWindow):
 
         self.viewer = Viewer("pydot")
 
-        self.finddialog = FindDialog()
+        self.finddialog = FindDialog(self)
 
         self.last_dir = None
 
@@ -501,6 +542,11 @@ class Window(QtGui.QMainWindow):
             self.ui.dockWidget.hide()
         if not settings.value("gen_showparsestatus", True).toBool():
             self.ui.dockWidget_2.hide()
+
+    def set_profiler_enabled(self):
+        ed = self.getEditor()
+        if (ed is not None) and (ed.tm is not None):
+            self.ui.actionProfile.setEnabled(ed.tm.can_profile())
 
     def contextMenu(self, pos):
         menu = QMenu(self)
@@ -650,6 +696,11 @@ class Window(QtGui.QMainWindow):
         self.ui.teConsole.clear()
         self.thread.start()
 
+    def profile_subprocess(self):
+        self.ui.teConsole.clear()
+        self.profile_throbber.show(self.ui.tabWidget.currentIndex())
+        self.thread_prof.start()
+
     def show_output(self, string):
         self.ui.teConsole.append(string)
 
@@ -723,13 +774,13 @@ class Window(QtGui.QMainWindow):
 
     def show_input_log(self):
         if self.getEditor():
-            v = InputLogView()
+            v = InputLogView(self)
             v.tm = self.getEditor().tm
             v.ui.textEdit.setText("\n".join(self.getEditor().tm.input_log))
             v.exec_()
 
     def showAboutView(self):
-        about = AboutView()
+        about = AboutView(self)
         about.exec_()
 
     def showStateView(self):
@@ -760,11 +811,11 @@ class Window(QtGui.QMainWindow):
 
     def newfile(self):
         # create new nodeeditor
-        lview = LanguageView(languages)
+        lview = LanguageView(self, languages)
         result = lview.exec_()
         if result:
             etab = EditorTab()
-            lang = newfile_langs[lview.getLanguage()]
+            lang = lview.getLanguage()
             etab.set_language(lang, lview.getWhitespace())
             self.ui.tabWidget.addTab(etab, "[No name]")
             self.ui.tabWidget.setCurrentWidget(etab)
@@ -987,12 +1038,19 @@ def main():
     window=Window()
     t = SubProcessThread(window, app)
     window.thread = t
+    window.thread_prof = ProfileThread(window, app)
+    window.profile_throbber = Throbber(window.ui.tabWidget)
     window.connect(window.thread, t.signal, window.show_output)
+    window.connect(window.thread_prof, window.thread_prof.signal, window.show_output)
+    window.connect(window.thread_prof,
+                   window.thread_prof.signal_done,
+                   window.profile_throbber.hide)
 
     window.parse_options()
     window.show()
     t.wait()
     sys.exit(app.exec_())
+
 
 class SubProcessThread(QThread):
     def __init__(self, window, parent):
@@ -1005,6 +1063,50 @@ class SubProcessThread(QThread):
         if p:
             for line in iter(p.stdout.readline, b''):
                 self.emit(self.signal, line.rstrip())
+
+
+class ProfileThread(QThread):
+    def __init__(self, window, parent):
+        QThread.__init__(self, parent=parent)
+        self.window = window
+        self.signal_done = QtCore.SIGNAL("finished")
+        self.signal = QtCore.SIGNAL("output")
+
+    def run(self):
+        p = self.window.getEditor().tm.export(profile=True)
+        # Using read() here, rather than readline() because profiler output
+        # often includes blank lines in the middle of the output.
+        if p:
+            text = p.stdout.read()
+            self.emit(self.signal, text.strip())
+        self.emit(self.signal_done, None)
+
+class Throbber(QLabel):
+    """Throbber which displays in the right-hand corner of the tabbed notebook.
+    Used to alert the user that a potentially long-running background
+    profile is taking place.
+    """
+    def __init__(self, tab_bar):
+        super(Throbber, self).__init__()
+        self.tab_bar = tab_bar
+        self.setAlignment(Qt.AlignCenter)
+        self._movie = QMovie("gui/throbber.gif")
+        self.setMovie(self._movie)
+
+    def hide(self):
+        """Hide throbber in right hand corner of tabbed notebook.
+        """
+        self._movie.stop()
+        self.tab_bar.setCornerWidget(None, corner=Qt.TopRightCorner)
+        super(Throbber, self).hide()
+
+    def show(self, tab_index):
+        """Display throbber in right hand corner of tabbed notebook.
+        """
+        self.tab_bar.setCornerWidget(self, corner=Qt.TopRightCorner)
+        self._movie.start()
+        super(Throbber, self).show()
+
 
 if __name__ == "__main__":
     main()

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>317</width>
+    <width>378</width>
     <height>412</height>
    </rect>
   </property>
@@ -14,14 +14,16 @@
    <string>Settings</string>
   </property>
   <property name="windowIcon">
-   <iconset theme="gnome-settings"/>
+   <iconset theme="gnome-settings">
+    <normaloff/>
+   </iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_3" stretch="0,0">
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -118,6 +120,11 @@
                <string>Dark</string>
               </property>
              </item>
+             <item>
+              <property name="text">
+               <string>Gruvbox</string>
+              </property>
+             </item>
             </widget>
            </item>
           </layout>
@@ -205,8 +212,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>317</width>
-     <height>21</height>
+     <width>378</width>
+     <height>27</height>
     </rect>
    </property>
   </widget>

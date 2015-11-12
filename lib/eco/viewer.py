@@ -46,42 +46,6 @@ class Viewer(object):
         if os.path.isdir(tempdir):
             shutil.rmtree(tempdir)
 
-    def show_ast(self, grammar, _input):
-        from incparser import IncParser
-        from constants import LR1
-        lrp = IncParser(grammar, LR1)
-        lrp.init_ast()
-        start_node = lrp.previous_version.find_node_at_pos(0)
-        start_node.insert(_input, 0)
-        start_node.mark_changed()
-        lrp.inc_parse()
-        self.show(self.get_tree_image(lrp.previous_version.parent))
-
-    def show_graph(self, grammar):
-        import urllib.request
-        from gparser import Parser
-        from stategraph import StateGraph
-        parser = Parser(grammar)
-        parser.parse()
-
-        from constants import LR1
-        graph = StateGraph(parser.start_symbol, parser.rules, LR1)
-        graph.build()
-
-        if self.dot_type == 'google':
-            s = self.create_graph_string(graph)
-            url = "https://chart.googleapis.com/chart?cht=gv&chl=digraph{%s}" % (s,)
-            temp = urllib.request.urlretrieve(url)
-            self.show(temp[0])
-        elif self.dot_type == 'pydot':
-            self.show(self.create_pydot_graph(graph))
-
-    def show_tree(self, tree):
-        s = self.create_ast_string(tree)
-        url = "https://chart.googleapis.com/chart?cht=gv&chl=graph{%s}" % (s,)
-        temp = urllib.request.urlretrieve(url)
-        self.show(temp[0])
-
     def get_terminal_tree(self, tree):
         node = tree
         while not isinstance(node.symbol, Terminal):
@@ -256,22 +220,3 @@ class Viewer(object):
             s.append("%s->%s [label=\"%s\"]" % (start, end, key[1].name.strip("\"")))
 
         return ";".join(s)
-
-    def show(self, image):
-        import pygame
-
-        w = 640
-        h = 480
-        screen = pygame.display.set_mode((w,h))
-        graphic = pygame.image.load(image).convert()
-        screen = pygame.display.set_mode((graphic.get_width(),graphic.get_height()))
-        #screen2 = pygame.transform.scale(screen, (graphic.get_width(), graphic.get_height()))
-
-        running = 1
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = 0
-            screen.blit(graphic, (0,0))
-            pygame.display.flip()
-

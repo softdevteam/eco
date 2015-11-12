@@ -29,6 +29,7 @@ from indentmanager import IndentationManager
 from export import HTMLPythonSQL, PHPPython, ATerms
 
 import math
+import os
 
 class FontManager(object):
     def __init__(self):
@@ -289,8 +290,24 @@ class TreeManager(object):
         self.savenextparse = False
         self.saved_lines = {}
         self.saved_parsers = {}
-
+        self.profile_map = {}  # node -> str
+        self.profile_is_dirty = False
+        # This code and the can_profile() method should probably be refactored.
+        self.langs_with_profiler = {
+            "Python + Prolog" : False,
+            "HTML + Python + SQL" : False,
+            "PHP + Python" : False,
+            "PHP" : False,
+            "Python 2.7.5" : True,
+            "SimpleLanguage" : False,
+        }
         self.input_log = []
+
+    def can_profile(self):
+        lang_name = self.parsers[0][2]
+        if lang_name in self.langs_with_profiler:
+            return self.langs_with_profiler[lang_name]
+        return False
 
     def log_input(self, method, *args):
         self.input_log.append("self.%s(%s)" % (method, ", ".join(args)))
@@ -526,6 +543,18 @@ class TreeManager(object):
         self.log_input("find_next")
         if self.last_search != "":
             self.find_text(self.last_search)
+
+    def find_text_no_cursor(self, text, parent_name='funcdef'):
+        # FIXME - infinite loop!
+        temp = self.cursor.copy()
+        while True:
+            self.find_text(text)
+            if self.cursor.node.parent.symbol.name != parent_name:
+                continue
+            node = self.cursor.node
+            break
+        self.cursor = temp
+        return node
 
     def find_text(self, text):
         startnode = self.cursor.node
@@ -798,6 +827,7 @@ class TreeManager(object):
     def key_normal(self, text):
         self.log_input("key_normal", repr(str(text)))
         indentation = 0
+        self.profile_is_dirty = True
 
         if self.hasSelection():
             self.deleteSelection()
@@ -880,6 +910,7 @@ class TreeManager(object):
 
     def key_backspace(self):
         self.log_input("key_backspace")
+        self.profile_is_dirty = True
         node = self.get_selected_node()
         if node is self.mainroot.children[0] and not self.hasSelection():
             return
@@ -896,6 +927,7 @@ class TreeManager(object):
 
     def key_delete(self):
         self.log_input("key_delete")
+        self.profile_is_dirty = True
         node = self.get_node_from_cursor()
 
         if self.hasSelection():
@@ -1105,6 +1137,7 @@ class TreeManager(object):
         return node
 
     def post_keypress(self, text):
+        self.profile_is_dirty = True
         lines_before = len(self.lines)
         self.rescan_linebreaks(self.cursor.line)
         new_lines = len(self.lines) - lines_before
@@ -1143,7 +1176,10 @@ class TreeManager(object):
 
         text.append(start.symbol.name[diff_start:])
         for node in nodes:
-            text.append(node.symbol.name)
+            if node.lookup == "<return>":
+                text.append("\n")
+            else:
+                text.append(node.symbol.name)
         text.append(end.symbol.name[:diff_end])
         return "".join(text)
 
@@ -1158,6 +1194,7 @@ class TreeManager(object):
 
     def pasteText(self, text):
         self.log_input("pasteText", repr(str(text)))
+        self.profile_is_dirty = True
         oldpos = self.cursor.get_x()
         node = self.get_node_from_cursor()
         next_node = node.next_term
@@ -1197,6 +1234,7 @@ class TreeManager(object):
 
     def cutSelection(self):
         self.log_input("cutSelection")
+        self.profile_is_dirty = True
         if self.hasSelection():
             text = self.copySelection()
             self.input_log.pop()
@@ -1206,6 +1244,7 @@ class TreeManager(object):
 
     def deleteSelection(self):
         #XXX simple version: later we might want to modify the nodes directly
+        self.profile_is_dirty = True
         nodes, diff_start, diff_end = self.get_nodes_from_selection()
         if nodes == []:
             return
@@ -1413,7 +1452,7 @@ class TreeManager(object):
             print("Grammar Error: could not determine grammar type")
             return
 
-    def export(self, path=None, run=False):
+    def export(self, path=None, run=False, profile=False):
         for p, _, _, _, _ in self.parsers:
             if p.last_status == False:
                 print("Cannot export a syntacially incorrect grammar")
@@ -1429,8 +1468,81 @@ class TreeManager(object):
             self.export_html_python_sql(path)
         elif lang == "PHP + Python" or lang == "PHP":
             return self.export_php_python(path, run)
+        elif lang == "Python 2.7.5":
+            return self.export_cpython(path, run, profile)
+        elif lang == "SimpleLanguage":
+            return self.export_simple_language(path, run)
         else:
             return self.export_as_text(path)
+
+    def export_simple_language(self, path=None, run=False):
+        import os
+        import os.path
+        import tempfile
+        import subprocess
+        import sys
+        if run:
+            if not os.environ.has_key("GRAAL_WORKSPACE"):
+                sys.stderr.write("GRAAL_WORKSPACE environment not set")
+                return
+            working_dir = os.path.join(os.environ["GRAAL_WORKSPACE"], "graal-compiler")
+            f = tempfile.mkstemp(suffix=".sl")
+            self.export_as_text(f[1])
+            # Run this command:
+            #     $ cd $GRAAL_WORKSPACE/graal-compiler
+            #     $ ../../mx/mx --vm graal sl sl_hello_world.sl
+            return subprocess.Popen(["../../mx/mx", "--vm", "graal", "sl", f[1]],
+                                    cwd=working_dir,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT,
+                                    bufsize=0)
+        elif path:
+            self.export_as_text(path)
+
+    def export_cpython(self, path, run, profile):
+        import copy, os, os.path, subprocess, tempfile
+        f = tempfile.mkstemp()
+        self.export_as_text(f[1])
+        if profile:
+            # Delete any stale profile info
+            self.profile_is_dirty = False
+            self.profile_map = dict()
+            # python -m cProfile [-o output_file] [-s sort_order] myscript.py
+            proc = subprocess.Popen(["python2", "-m", "cProfile", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
+            stdout_value, stderr_value = proc.communicate()
+            # Mock Popen here, so that we can return a Popen-like object.
+            # This allows Eco to append the output of the profiler
+            # to the console.
+            mock = MockPopen(copy.copy(stdout_value), copy.copy(stderr_value))
+            # Lex profiler output:
+            # ncalls  tottime  percall  cumtime  percall fname:lineno(fn)
+            table = False
+            temp_cursor = self.cursor.copy()
+            for line in stdout_value.split('\n'):
+                words = line.strip().split()
+                if not words:
+                    continue
+                elif not table:
+                    if words[0] == 'ncalls':
+                        table = True
+                else:
+                    if not ':' in words[5]:
+                        continue
+                    fname, loc = words[5].split(':')
+                    if not (fname == os.path.basename(f[1]) or fname == f[1]):
+                        continue
+                    ncalls = words[0]
+                    lineno = int(loc.split('(')[0])
+                    func = loc.split('(')[1][:-1]
+                    # Move cursor to correct line and character
+                    msg = ('%s: called %s times ran at %ss / call' % (func, ncalls, words[2]))
+                    temp_cursor.line = lineno - 1
+                    temp_cursor.move_to_x(len(msg) *  30, self.lines)
+                    temp_cursor.right()
+                    self.profile_map[temp_cursor.node] = msg
+            return mock
+        elif run:
+            return subprocess.Popen(["python2", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
 
     def export_unipycation(self, path=None):
         import subprocess, sys
@@ -1570,3 +1682,37 @@ class TreeManager(object):
                 eval(l) # expressions
             except SyntaxError:
                 exec(l) # statements
+
+
+class MockFile(object):
+    """Mock the readline() method of a file object.
+    Used by MockPopen.
+    """
+    def __init__(self, text):
+        if text:
+            self.text = text.split(os.linesep)
+        else:
+            self.text = ""
+        self.index = 0
+
+    def read(self):
+        return os.linesep.join(self.text)
+
+    def readline(self):
+        if self.index >= len(self.text):
+            return ""
+        line = self.text[self.index]
+        self.index += 1
+        return line
+
+
+class MockPopen(object):
+    """Mock a Popen object.
+    Used by profilers which need to call communicate() on a real Popen object,
+    but also need to return the same Popen, so that its contents can be
+    appended to the Eco console.
+    """
+    def __init__(self, out, err=""):
+        self.stdout = MockFile(out)
+        self.stderr = MockFile(err)
+        self.rc = 0
