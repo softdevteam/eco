@@ -33,8 +33,9 @@ import programs
 import pytest
 slow = pytest.mark.slow
 
-import logging
-#logging.getLogger().setLevel(logging.DEBUG)
+if pytest.config.option.log:
+    import logging
+    logging.getLogger().setLevel(logging.DEBUG)
 
 class Test_Typing:
 
@@ -2429,7 +2430,6 @@ self.key_normal('e')"""
         x = SELECT * FROM table"""
 
 class Test_AnySymbol_Indents(Test_Python):
-
     def test_newline(self):
         for c in "y = 12 # blaz = 13":
             self.treemanager.key_normal(c)

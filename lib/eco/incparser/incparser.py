@@ -424,43 +424,43 @@ class IncParser(object):
             self.update_succeeding_lines(la, ws, newindent)
 
     def update_succeeding_lines(self, la, ws, newindent):
-            # update succeeding lines
-            # XXX this causes a chain reaction iterating over some lines
-            # multiple times. we might only have to do this for the <return>
-            # that has actually changed during the parse
-            next_r = la.next_term
-            while True:
-                if isinstance(next_r, EOS):
-                    # if changes reach end of file, repair indentations now or
-                    # it will be too late
-                    eos_there = []
-                    d = next_r.prev_term
-                    while isinstance(d.symbol, IndentationTerminal):
-                        eos_there.insert(0, d)
-                        d = d.prev_term
-                    eos_needed, _ = self.get_indentation_tokens_and_indent(list(self.get_last_indent(d)), 0)
-                    if self.indents_differ(eos_there, eos_needed):
-                        self.last_token_before_eos.mark_changed() # don't repair here, only mark and repair just before last token is parsed
-                    break
-                if next_r.lookup != "<return>":
-                    next_r = next_r.next_term
-                    continue
-
-                # XXX need to skip unlogical lines (what if don't know if unlogical yet)
-
-                # if tokens need to be updated, mark as changed, so the parser will go down this tree to update
-                next_ws = self.get_whitespace(next_r)
-                if next_ws is None:
-                    next_r = next_r.next_term
-                    continue
-                needed, newindent = self.get_indentation_tokens_and_indent(newindent, next_ws)
-                if not self.indents_match(next_r, needed) or next_r.indent != newindent:
-                    next_r.mark_changed()
-                if next_ws < ws:
-                    # if newline has smaller whitespace -> mark and break
-                    break
-
+        # update succeeding lines
+        # XXX this causes a chain reaction iterating over some lines
+        # multiple times. we might only have to do this for the <return>
+        # that has actually changed during the parse
+        next_r = la.next_term
+        while True:
+            if isinstance(next_r, EOS):
+                # if changes reach end of file, repair indentations now or
+                # it will be too late
+                eos_there = []
+                d = next_r.prev_term
+                while isinstance(d.symbol, IndentationTerminal):
+                    eos_there.insert(0, d)
+                    d = d.prev_term
+                eos_needed, _ = self.get_indentation_tokens_and_indent(list(self.get_last_indent(d)), 0)
+                if self.indents_differ(eos_there, eos_needed):
+                    self.last_token_before_eos.mark_changed() # don't repair here, only mark and repair just before last token is parsed
+                break
+            if next_r.lookup != "<return>":
                 next_r = next_r.next_term
+                continue
+
+            # XXX need to skip unlogical lines (what if don't know if unlogical yet)
+
+            # if tokens need to be updated, mark as changed, so the parser will go down this tree to update
+            next_ws = self.get_whitespace(next_r)
+            if next_ws is None:
+                next_r = next_r.next_term
+                continue
+            needed, newindent = self.get_indentation_tokens_and_indent(newindent, next_ws)
+            if not self.indents_match(next_r, needed) or next_r.indent != newindent:
+                next_r.mark_changed()
+            if next_ws < ws:
+                # if newline has smaller whitespace -> mark and break
+                break
+
+            next_r = next_r.next_term
 
     def get_indentation_tokens_and_indent(self, indent, ws):
         needed = []
