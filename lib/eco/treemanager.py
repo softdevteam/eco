@@ -1501,11 +1501,22 @@ class TreeManager(object):
                     ncalls = int(tokens[1][:-1])
                     lineno = int(tokens[2][:-1])
                     msg = ('Line %s ran %s times' % (lineno, ncalls))
+
                     temp_cursor.line = lineno - 1
                     temp_cursor.move_to_x(0, self.lines)
-                    temp_cursor.right()
-                    self.profile_map[temp_cursor.node] = msg
+                    #temp_cursor.right()
+                    node = temp_cursor.find_next_visible(temp_cursor.node)
+                    if node.lookup == "<ws>":
+                        node = node.next_term
+                    self.profile_map[node] = msg
             return mock
+
+                    # temp_cursor.line = lineno - 1
+                    # temp_cursor.move_to_x(0, self.lines)
+                    # temp_cursor.right()
+                    # self.profile_map[temp_cursor.node] = msg
+            # return mock
+
         elif path:
             self.export_as_text(path)
 
@@ -1531,6 +1542,8 @@ class TreeManager(object):
             for line in stdout_value.split('\n'):
                 tokens = line.strip().split()
                 if not tokens:
+                    continue
+                elif len(tokens) < 6:
                     continue
                 elif not table:
                     if tokens[0] == 'ncalls':
