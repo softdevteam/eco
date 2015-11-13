@@ -67,6 +67,9 @@ class SyntaxHighlighter(object):
             hexcode = self.colors[color]
         return hexcode
 
+    def get_default_color(self):
+        return self.palette.color(QPalette.Text)
+
     def get_style(self, node):
         if node.symbol.name in self.keyword_style:
             return self.keyword_style[node.symbol.name]

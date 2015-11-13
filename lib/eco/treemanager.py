@@ -298,7 +298,7 @@ class TreeManager(object):
             "PHP + Python" : False,
             "PHP" : False,
             "Python 2.7.5" : True,
-            "SimpleLanguage" : False,
+            "SimpleLanguage" : True,
         }
         self.input_log = []
 
@@ -1441,31 +1441,82 @@ class TreeManager(object):
         elif lang == "Python 2.7.5":
             return self.export_cpython(path, run, profile)
         elif lang == "SimpleLanguage":
-            return self.export_simple_language(path, run)
+            return self.export_simple_language(path, run, profile)
         else:
             return self.export_as_text(path)
 
-    def export_simple_language(self, path=None, run=False):
+    def export_simple_language(self, path=None, run=False, profile=False):
+        import copy
         import os
         import os.path
         import tempfile
         import subprocess
         import sys
-        if run:
+        if run or profile:
             if not os.environ.has_key("GRAAL_WORKSPACE"):
                 sys.stderr.write("GRAAL_WORKSPACE environment not set")
                 return
+        if run:
             working_dir = os.path.join(os.environ["GRAAL_WORKSPACE"], "graal-compiler")
             f = tempfile.mkstemp(suffix=".sl")
             self.export_as_text(f[1])
             # Run this command:
             #     $ cd $GRAAL_WORKSPACE/graal-compiler
-            #     $ ../../mx/mx --vm graal sl sl_hello_world.sl
+            #     $ ../../mx/mx --vm graal sl tempfile.sl
             return subprocess.Popen(["../../mx/mx", "--vm", "graal", "sl", f[1]],
                                     cwd=working_dir,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT,
                                     bufsize=0)
+        if profile:
+            self.profile_is_dirty = False
+            self.profile_map = dict()
+            working_dir = os.path.join(os.environ["GRAAL_WORKSPACE"], "graal-compiler")
+            f = tempfile.mkstemp(suffix=".sl")
+            self.export_as_text(f[1])
+            # Run this command:
+            #     $ cd $GRAAL_WORKSPACE/graal-compiler
+            #     $ ../../mx/mx --vm graal slcoverage tempfile.sl
+            proc = subprocess.Popen(["../../mx/mx", "--vm", "graal", "slcoverage", f[1]],
+                                    cwd=working_dir,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT,
+                                    bufsize=0)
+            stdout_value, stderr_value = proc.communicate()
+            # Mock Popen here, so that we can return a Popen-like object.
+            # This allows Eco to append the output of the profiler
+            # to the console.
+            mock = MockPopen(copy.copy(stdout_value), copy.copy(stderr_value))
+            # Lex the result of the profiler. Lines look like this:
+            #                 11: function main() {
+            # (    20000000)   5:     sum = sum + i;
+            temp_cursor = self.cursor.copy()
+            for line in stdout_value.split('\n'):
+                tokens = line.strip().split()
+                if not tokens:
+                    continue
+                if ((tokens[0] == '(') and
+                    tokens[1].endswith(')') and
+                    tokens[2].endswith(':')):
+                    ncalls = int(tokens[1][:-1])
+                    lineno = int(tokens[2][:-1])
+                    msg = ('Line %s ran %s times' % (lineno, ncalls))
+
+                    temp_cursor.line = lineno - 1
+                    temp_cursor.move_to_x(0, self.lines)
+                    #temp_cursor.right()
+                    node = temp_cursor.find_next_visible(temp_cursor.node)
+                    if node.lookup == "<ws>":
+                        node = node.next_term
+                    self.profile_map[node] = msg
+            return mock
+
+                    # temp_cursor.line = lineno - 1
+                    # temp_cursor.move_to_x(0, self.lines)
+                    # temp_cursor.right()
+                    # self.profile_map[temp_cursor.node] = msg
+            # return mock
+
         elif path:
             self.export_as_text(path)
 
@@ -1489,27 +1540,32 @@ class TreeManager(object):
             table = False
             temp_cursor = self.cursor.copy()
             for line in stdout_value.split('\n'):
-                words = line.strip().split()
-                if not words:
+                tokens = line.strip().split()
+                if not tokens:
+                    continue
+                elif len(tokens) < 6:
                     continue
                 elif not table:
-                    if words[0] == 'ncalls':
+                    if tokens[0] == 'ncalls':
                         table = True
                 else:
-                    if not ':' in words[5]:
+                    if not ':' in tokens[5]:
                         continue
-                    fname, loc = words[5].split(':')
+                    fname, loc = tokens[5].split(':')
                     if not (fname == os.path.basename(f[1]) or fname == f[1]):
                         continue
-                    ncalls = words[0]
+                    ncalls = tokens[0]
                     lineno = int(loc.split('(')[0])
                     func = loc.split('(')[1][:-1]
                     # Move cursor to correct line and character
-                    msg = ('%s: called %s times ran at %ss / call' % (func, ncalls, words[2]))
+                    msg = ('%s: called %s times ran at %ss / call' % (func, ncalls, tokens[2]))
                     temp_cursor.line = lineno - 1
-                    temp_cursor.move_to_x(len(msg) *  30, self.lines)
-                    temp_cursor.right()
-                    self.profile_map[temp_cursor.node] = msg
+                    temp_cursor.move_to_x(0, self.lines)
+                    #temp_cursor.right()
+                    node = temp_cursor.find_next_visible(temp_cursor.node)
+                    if node.lookup == "<ws>":
+                        node = node.next_term
+                    self.profile_map[node] = msg
             return mock
         elif run:
             return subprocess.Popen(["python2", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
