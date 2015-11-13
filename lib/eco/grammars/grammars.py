@@ -57,10 +57,21 @@ class EcoFile(object):
 
             root, language, whitespaces = _cache[self.name + "::json"]
 
+            # parse rules as they are needed by the incremental parser to
+            # detect comments
+
+            manager = JsonManager(unescape=True)
+            root, language, whitespaces = manager.load(self.filename)[0]
+
+            pickle_id = hash(self)
+            bootstrap = BootstrapParser(lr_type=1, whitespaces=whitespaces)
+            bootstrap.ast = root
+            bootstrap.parse_rules(root.children[1].children[1].children[0])
+
             pickle_id, whitespace = _cache[self.name + "::parser"]
             from incparser.incparser import IncParser
             incparser = IncParser()
-            incparser.from_dict(None, None, None, whitespace, pickle_id, None)
+            incparser.from_dict(bootstrap.rules, None, None, whitespace, pickle_id, None)
             incparser.init_ast()
 
             inclexer = _cache[self.name + "::lexer"]

@@ -33,6 +33,10 @@ import programs
 import pytest
 slow = pytest.mark.slow
 
+if pytest.config.option.log:
+    import logging
+    logging.getLogger().setLevel(logging.DEBUG)
+
 class Test_Typing:
 
     def setup_class(cls):
@@ -536,6 +540,7 @@ class Test_Helper:
     def tree_compare(self, node1, node2):
         # XXX: test references (next_term, parent, lookup)
         while True:
+            print("comparing", node1.symbol, node2.symbol)
             assert node1.symbol == node2.symbol
             if node1.right:
                 assert node1.right.symbol == node2.right.symbol
@@ -605,6 +610,11 @@ class Test_Python(Test_Helper):
         cls.treemanager.add_parser(cls.parser, cls.lexer, python.name)
 
         cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+class Test_Boogie(Test_Python):
+    def test_simple(self):
+        for c in "class X:\r    p":
+            self.treemanager.key_normal(c)
 
 class Test_Bugs(Test_Python):
 
@@ -704,6 +714,32 @@ class Test_Indentation(Test_Python):
 
         node = self.treemanager.lines[4].node
         check_next_nodes(node, ["NEWLINE", "INDENT", "        ", "pass", "NEWLINE", "DEDENT", "DEDENT", "eos"])
+
+    def test_unexpected_indentation_after_bos(self):
+        self.reset()
+        inputstring = """test"""
+        for i in inputstring:
+            self.treemanager.key_normal(i)
+
+        assert self.parser.last_status == True
+        self.treemanager.key_home()
+        self.treemanager.key_normal(" ")
+        assert self.parser.last_status == False
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == True
+
+    def test_indentation_last_line(self):
+        # change last line from unlogical to logical
+        # dedents are now being created after \r not before eos
+        self.reset()
+        inputstring = """if x:
+    x
+"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == True
+        self.move("down", 2)
+        self.treemanager.key_normal("z")
+        assert self.parser.last_status == True
 
     def test_indentation2(self):
         self.reset()
@@ -906,6 +942,152 @@ if b:
         self.treemanager.cursor_movement("down")
         self.treemanager.key_home()
         self.treemanager.key_normal(" ")
+        assert self.parser.last_status == True
+
+    def test_opt_push_last_before_eos_1(self):
+        self.reset()
+        inputstring = """class X:\r    def x():\r        pass\r    def y():\r        pass"""
+        self.treemanager.import_file(inputstring)
+        self.move("down", 3)
+        assert self.parser.last_status == True
+        # delete whitespace before def y():
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        assert self.parser.last_status == False
+        self.treemanager.key_delete()
+        assert self.parser.last_status == True
+        # put whitespace back in
+        self.treemanager.key_normal(" ")
+        self.treemanager.key_normal(" ")
+        self.treemanager.key_normal(" ")
+        assert self.parser.last_status == False
+        self.treemanager.key_normal(" ")
+        assert self.parser.last_status == True
+
+    def test_opt_push_last_before_eos_2(self):
+        self.reset()
+        inputstring = """class X:\r    def x():\r        pass\rdef y():\r        pass"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == True
+        self.move("down", 3)
+        # insert whitespace before def y()
+        self.treemanager.key_normal(" ")
+        self.treemanager.key_normal(" ")
+        self.treemanager.key_normal(" ")
+        assert self.parser.last_status == False
+        self.treemanager.key_normal(" ")
+        assert self.parser.last_status == True
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == False
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == True
+
+    def test_indentation_and_any_symbol(self):
+        # when making a line unlogical, need to mark all newlines afterwards as changed
+        # ??? only mark the first and last line as changed, and update the indent-attribute on all other <return>
+        self.reset()
+        inputstring = """def x():
+    if x:
+        x = \"\"\"
+string
+    else:
+        y"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == False
+        self.move("down", 3)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+        assert self.parser.last_status == True
+
+    def test_indentation_bug(self):
+        self.reset()
+        inputstring = """class X:
+    def x():
+      pass
+      def z():
+        pass  
+x()"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == True
+        self.move("down", 1)
+        self.move("right", 4)
+        self.treemanager.key_normal("    ")
+        assert self.parser.last_status == False
+        self.treemanager.key_shift()
+        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == True
+
+    def test_indentation_bug2(self):
+        self.reset()
+        inputstring = """class X:
+    def y():
+      if x:
+        def x():
+          pass
+x()
+"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == True
+        self.move("down", 3)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("p")
+        assert self.parser.last_status == False
+        self.move("down", 1)
+        self.move("left", 4)
+        self.treemanager.key_shift()
+        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == True
+
+    def test_indentation_bug3(self):
+        self.reset()
+        inputstring = """def x():
+    pass
+x()
+"""
+        for k in inputstring:
+            self.treemanager.key_normal(k)
+        self.move("up", 2)
+        self.treemanager.key_home()
+        assert self.parser.last_status == True
+        self.treemanager.key_normal("    ")
+        assert self.parser.last_status == False
+
+    def test_indentation_multiline_bug(self):
+        self.reset()
+        inputstring = """class X:
+    def x():
+        s = 2
+        pass1
+    def x():
+        pass2
+def z():
+    z"""
+        self.treemanager.import_file(inputstring)
+        assert self.parser.last_status == True
+        self.move("down", 4)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+        self.move("up", 2)
+        self.treemanager.key_end()
+        self.move("left", 1)
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
         assert self.parser.last_status == True
 
 class Test_NestedLboxWithIndentation():
@@ -1176,8 +1358,9 @@ class Test_Undo(Test_Python):
 
         self.treemanager.key_ctrl_z()
         self.compare("class X:")
-        assert self.treemanager.cursor.node.next_term.symbol.name == "NEWLINE"
-        assert isinstance(self.treemanager.cursor.node.next_term.next_term, EOS)
+        # with the new indentation that NEWLINE is only added after a successful parse
+        #assert self.treemanager.cursor.node.next_term.symbol.name == "NEWLINE"
+        #assert isinstance(self.treemanager.cursor.node.next_term.next_term, EOS)
 
         self.treemanager.key_ctrl_z()
         self.compare("class")
@@ -1471,8 +1654,13 @@ class Test_Undo(Test_Python):
 
         t1 = TreeManager()
         parser, lexer = python.load()
+        parser.init_ast()
         t1.add_parser(parser, lexer, python.name)
+        t1.set_font_test(7, 17)
         t1.import_file(programs.connect4)
+
+        assert self.parser.last_status == True
+        assert parser.last_status == True
 
         self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
 
@@ -1503,7 +1691,8 @@ class Test_Undo(Test_Python):
                 self.treemanager.cursor_reset()
                 self.move('down', linenr)
                 self.move('right', col)
-                x = self.treemanager.key_normal(self.get_random_key())
+                k = self.get_random_key()
+                x = self.treemanager.key_normal(k)
                 if x == "eos":
                     continue
             self.treemanager.save_current_version()
@@ -1861,6 +2050,42 @@ class Test_Undo(Test_Python):
     def test_undo_random_insertdeleteundo(self):
         self.random_insert_delete_undo(programs.pythonsmall)
 
+    def test_undo_random_insertdeleteundo_bug1(self):
+        self.reset()
+
+        program = """class Connect4():
+    UI_DEPTH = 5
+
+    def __init__():
+        pass"""
+
+        self.treemanager.import_file(program)
+        assert self.parser.last_status == True
+
+        self.text_compare(program)
+        start_version = self.treemanager.version
+
+        self.treemanager.cursor_reset()
+        self.move('down', 2)
+        self.move('right', 0)
+        self.treemanager.key_normal(',')
+        self.treemanager.save_current_version()
+        self.treemanager.cursor_reset()
+        self.move('down', 1)
+        self.move('right', 3)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move('down', 1)
+        self.move('right', 4)
+        self.treemanager.key_normal(' ')
+        self.treemanager.save_current_version()
+
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(program)
+
     def random_insert_delete_undo(self, program):
         import random
         self.reset()
@@ -2203,3 +2428,25 @@ self.key_normal('e')"""
         assert self.treemanager.export_as_text() == """class X:
     def foo():
         x = SELECT * FROM table"""
+
+class Test_AnySymbol_Indents(Test_Python):
+    def test_newline(self):
+        for c in "y = 12 # blaz = 13":
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
+
+        self.move("left", 6)
+        self.treemanager.key_normal("\r")
+        assert self.parser.last_status == True
+
+    def test_single_line_comment(self):
+        for c in """x = 12
+y = 13""":
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
+
+        self.move("left", 6)
+        self.move("up", 1)
+        self.treemanager.key_normal("#")
+        assert self.parser.last_status == True
+        

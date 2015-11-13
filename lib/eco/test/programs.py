@@ -49,7 +49,7 @@ connect4 = """class Connect4(object):
             if self.ai_players[self.turn]:
                 self._set_status_text("%s AI thinking" % (self._player_colour().title()))
                 self._ai_turn()
-                if self._check_win(): break # did the AI player win?
+                if self._check_win(): break # did the AI player win
             else:
                 self._set_status_text("%s human move" % (self._player_colour().title()))
                 break # allow top loop to deal with human turn

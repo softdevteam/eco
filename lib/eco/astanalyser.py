@@ -299,7 +299,7 @@ class AstAnalyser(object):
     def get_lboxanalyser(self, root):
         if not self.parsers:
             return
-        for parser, lexer, lang, analyser, im in self.parsers:
+        for parser, lexer, lang, analyser in self.parsers:
             if parser.previous_version.parent is root:
                 return analyser
 

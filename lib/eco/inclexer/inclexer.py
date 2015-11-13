@@ -475,8 +475,8 @@ class IncrementalLexerCF(object):
         # relex
         read_nodes = []
         generated_tokens = []
-        pos = 0
-        read = 0
+        pos = 0  # read tokens
+        read = 0 # generated tokens
         current_node = node
         next_token = self.lexer.get_token_iter(StringWrapper(node))
         while True:
@@ -524,11 +524,30 @@ class IncrementalLexerCF(object):
                 any_changes = True
             last_node = node
             node.symbol.name = t.source
-            if node.lookup != t.name or t.source.find("*/") > 0:
-                any_changes = True
+            node.indent = None
+            if node.lookup != t.name:
                 node.mark_changed()
+                any_changes = True
             else:
                 node.mark_version()
+            # we need to invalidate the newline if we changed whitespace or
+            # logical nodes that come after it
+            if node.lookup == "<ws>" or node.lookup != t.name:
+                prev = node.prev_term
+                while isinstance(prev.symbol, IndentationTerminal):
+                    prev = prev.prev_term
+                if prev.lookup == "<return>":
+                    prev.mark_changed()
+                    any_changes = True
+                elif isinstance(prev, BOS):
+                    # if there is no return, re-indentation won't be triggered
+                    # in the incremental parser so we have to mark the next
+                    # terminal. possibly only use case: bos <ws> pass DEDENT eos
+                    node.next_term.mark_changed()
+            # XXX this should become neccessary with incparse optimisations turned on
+            if node.lookup == "\\" and node.next_term.lookup == "<return>":
+                node.next_term.mark_changed()
+                any_changes = True
             node.lookup = t.name
             node.lookahead = t.lookahead
         # delete left over nodes

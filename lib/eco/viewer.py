@@ -104,22 +104,28 @@ class Viewer(object):
             label.append("[" + node.symbol.name + "]")
         else:
             label.append(node.symbol.name)
-        label.append(addtext)
         if isinstance(node.symbol, Terminal) and node.lookup != "":
             label.append("\n")
             if node.lookup.startswith("0,"):
                 label.append("?")
             else:
                 label.append(str(node.lookup))
+        if node.indent:
+            label.append("\n")
+            label.append(repr(node.indent))
+        if node.parent:
+            label.append("\n")
+            label.append("parent: " + str(node.parent.symbol.name))
         label = "%s" % ("".join(label))
         label = label.replace("\"", "\\\"")
+        label = label.replace("\\\\\"", "\\\\\\\"")
         dotnode = pydot.Node("\"%s\"" % id(node), label='"%s"' % label)
         self.countnodes += 1
         if node.changed:
             dotnode.set('color','green')
         try:
             if node.has_changes(version):
-                dotnode.set('color','blue')
+                pass#dotnode.set('color','blue')
         except AttributeError:
             pass
         dotnode.set('fontsize', '8')

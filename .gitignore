@@ -11,3 +11,4 @@ save/
 lib/eco/save/
 temp/
 lib/eco/test/php/
+*.swp
