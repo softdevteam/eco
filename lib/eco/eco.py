@@ -485,6 +485,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
         self.connect(self.ui.actionProfile, SIGNAL("triggered()"), self.profile_subprocess)
+
         try:
             import pydot
             self.connect(self.ui.actionParse_Tree, SIGNAL("triggered()"), self.showParseView)
@@ -520,6 +521,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionShow_indentation, SIGNAL("triggered()"), self.toogle_indentation)
         self.connect(self.ui.menuChange_language_box, SIGNAL("aboutToShow()"), self.showEditMenu)
         self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
+        self.connect(self.ui.actionShow_tool_visualisations, SIGNAL("triggered()"), self.toggle_overlay)
 
         # Make sure the Project -> Profile menu item only appears for
         # languages that support it.
@@ -549,6 +551,29 @@ class Window(QtGui.QMainWindow):
         ed = self.getEditor()
         if (ed is not None) and (ed.tm is not None):
             self.ui.actionProfile.setEnabled(ed.tm.can_profile())
+
+    def draw_overlay(self, tool_data):
+        """Send profiler or tool information to the overlay object.
+        """
+        ed_tab = self.getEditor()
+        ed_tab.set_tool_data(tool_data)
+        self.ui.actionShow_tool_visualisations.setChecked(True)
+        ed_tab.show_overlay()
+
+    def toggle_overlay(self):
+        ed_tab = self.getEditorTab()
+        ed_tab.editor.toggle_overlay()
+
+    def show_overlay(self):
+        self.ui.actionShow_tool_visualisations.setChecked(True)
+        ed_tab = self.getEditorTab()
+        ed_tab.editor.show_overlay()
+
+    def hide_overlay(self):
+        self.ui.actionShow_tool_visualisations.setChecked(False)
+        ed_tab = self.getEditorTab()
+        ed_tab.editor.hide_overlay()
+
 
     def consoleContextMenu(self, pos):
         def clear():
@@ -1052,9 +1077,15 @@ def main():
     window.profile_throbber = Throbber(window.ui.tabWidget)
     window.connect(window.thread, t.signal, window.show_output)
     window.connect(window.thread_prof, window.thread_prof.signal, window.show_output)
+    # Connect the profiler (tool) thread to the throbber.
     window.connect(window.thread_prof,
                    window.thread_prof.signal_done,
                    window.profile_throbber.hide)
+    # Connect the profiler(tool) thread to the overlay which draws a heatmap
+    # or other visualisation.
+    window.connect(window.thread_prof,
+                   window.thread_prof.signal_overlay,
+                   window.draw_overlay)
 
     window.parse_options()
     window.show()
@@ -1081,6 +1112,7 @@ class ProfileThread(QThread):
         self.window = window
         self.signal_done = QtCore.SIGNAL("finished")
         self.signal = QtCore.SIGNAL("output")
+        self.signal_overlay = QtCore.SIGNAL("profile_overlay")
 
     def run(self):
         p = self.window.getEditor().tm.export(profile=True)
@@ -1089,7 +1121,9 @@ class ProfileThread(QThread):
         if p:
             text = p.stdout.read()
             self.emit(self.signal, text.strip())
+            self.emit(self.signal_overlay, self.window.getEditor().tm.profile_data)
         self.emit(self.signal_done, None)
+
 
 class Throbber(QLabel):
     """Throbber which displays in the right-hand corner of the tabbed notebook.

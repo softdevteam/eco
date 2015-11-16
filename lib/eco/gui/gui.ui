@@ -84,6 +84,7 @@
     <addaction name="actionShow_language_boxes"/>
     <addaction name="actionShow_namebinding"/>
     <addaction name="actionShow_indentation"/>
+    <addaction name="actionShow_tool_visualisations"/>
    </widget>
    <widget class="QMenu" name="menuInfo">
     <property name="title">
@@ -540,6 +541,14 @@
   <action name="actionProfile">
    <property name="text">
     <string>Profile</string>
+   </property>
+  </action>
+  <action name="actionShow_tool_visualisations">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show tool visualisations</string>
    </property>
   </action>
  </widget>

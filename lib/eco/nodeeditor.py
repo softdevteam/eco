@@ -35,6 +35,8 @@ from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from jsonmanager import JsonManager
 from astanalyser import AstAnalyser
 
+from overlay import Overlay
+
 import syntaxhighlighter
 import editor
 
@@ -76,6 +78,31 @@ class NodeEditor(QFrame):
         self.lightcolors = [QColor("#333333"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
         self.darkcolors = [QColor("#999999"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
         self.setCursor(Qt.IBeamCursor)
+
+        # Semi-transparent overlay.
+        # Used to display heat-map visualisation of profiler info, etc.
+        self.overlay = Overlay(self)
+        # Start hidden, make (in)visible with self.toggle_overlay().
+        self.overlay.hide()
+
+    def toggle_overlay(self):
+        self.hide_overlay() if self.overlay.isVisible() else self.show_overlay()
+
+    def show_overlay(self):
+        self.overlay.show()
+
+    def hide_overlay(self):
+        self.overlay.hide()
+
+    def set_tool_data(self, tool_data):
+        """Receive data form a profiler or tool, visualise and display.
+        """
+        self.overlay.data = tool_data
+        self.show_overlay()
+
+    def resizeEvent(self, event):
+        self.overlay.resize(event.size())
+        event.accept()
 
     def analysis_timer(self):
         if self.getWindow().show_namebinding():
