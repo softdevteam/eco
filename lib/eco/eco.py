@@ -529,6 +529,8 @@ class Window(QtGui.QMainWindow):
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
 
         self.ui.teConsole.setFont(QApplication.instance().gfont.font)
+        self.connect(self.ui.teConsole, SIGNAL("customContextMenuRequested(QPoint)"), self.consoleContextMenu)
+        self.ui.teConsole.setContextMenuPolicy(Qt.CustomContextMenu)
 
         self.viewer = Viewer("pydot")
 
@@ -547,6 +549,14 @@ class Window(QtGui.QMainWindow):
         ed = self.getEditor()
         if (ed is not None) and (ed.tm is not None):
             self.ui.actionProfile.setEnabled(ed.tm.can_profile())
+
+    def consoleContextMenu(self, pos):
+        def clear():
+            self.ui.teConsole.clear()
+        menu = self.ui.teConsole.createStandardContextMenu()
+        menu.addSeparator()
+        menu.addAction("Clear", clear)
+        menu.exec_(self.ui.teConsole.mapToGlobal(pos))
 
     def contextMenu(self, pos):
         menu = QMenu(self)
