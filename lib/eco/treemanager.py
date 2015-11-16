@@ -1530,6 +1530,36 @@ class TreeManager(object):
             f.write(text)
             return text
 
+
+    def export_version_control(self):
+        root_node = self.get_mainparser().previous_version.parent
+        node_types = set()
+        symbol_types = set()
+        self._handle_node(root_node, 0, node_types, symbol_types)
+        print 'NODE TYPES:'
+        print node_types
+        print 'SYMBOL TYPES:'
+        print symbol_types
+
+
+    def _handle_node(self, node, level, node_types, symbol_types):
+        node_types.add(type(node))
+        symbol_types.add(type(node.symbol))
+        name = node.symbol.name if node.symbol is not None else ''
+        is_terminal = isinstance(node.symbol, Terminal)
+        indent = ' ' * (level*2)
+        if len(node.children) > 0:
+            if is_terminal:
+                print('{0}-->{1} ({2}: {3})'.format(indent, name, type(node).__name__, type(node.symbol).__name__))
+            for child in node.children:
+                self._handle_node(child, level+1, node_types, symbol_types)
+            if is_terminal:
+                print('{0}<--{1} ({2}: {3})'.format(indent, name, type(node).__name__, type(node.symbol).__name__))
+        else:
+            if is_terminal:
+                print('{0}==={1} ({2}: {3})'.format(indent, name, type(node).__name__, type(node.symbol).__name__))
+
+
     def relex(self, node):
         if node is None:
             return
