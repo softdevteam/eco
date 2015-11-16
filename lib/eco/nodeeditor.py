@@ -98,6 +98,7 @@ class NodeEditor(QFrame):
         """Receive data form a profiler or tool, visualise and display.
         """
         self.overlay.data = tool_data
+        self.overlay.lines = self.lines
         self.show_overlay()
 
     def resizeEvent(self, event):
@@ -182,6 +183,7 @@ class NodeEditor(QFrame):
     def sliderChanged(self, value):
         change = self.viewport_y - value
         self.viewport_y = value
+        self.overlay.start_line = self.viewport_y
         self.update()
 
     def sliderXChanged(self, value):
