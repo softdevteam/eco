@@ -51,10 +51,6 @@ class NodeEditor(QFrame):
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
 
-        self.infofont = QtGui.QFont('Courier', 9)
-        self.infofontht = QtGui.QFontMetrics(self.infofont).height() + 3
-        self.infofontwt = QtGui.QFontMetrics(self.infofont).width(" ")
-
         self.viewport_y = 0 # top visible line
         self.imagemode = False
         self.image = None
@@ -394,16 +390,18 @@ class NodeEditor(QFrame):
             self.lines[line].height = max(self.lines[line].height, dy)
 
             # Draw profiling information.
+            infofont = QApplication.instance().tool_info_font
+
             if node in self.tm.profile_map:
                 prof = self.tm.profile_map[node]
                 if not self.tm.profile_is_dirty:
-                    self.infofont.setBold(True)
+                    infofont.font.setBold(True)
                 else:
-                    self.infofont.setBold(False)
-                paint.setFont(self.infofont)
+                    infofont.font.setBold(False)
+                paint.setFont(infofont.font)
                 paint.setPen(QPen(QColor((highlighter.get_default_color()))))
-                start_x = (0 if (x - len(prof) * self.infofontwt) < 0
-                             else x - len(prof) * self.infofontwt)
+                start_x = (0 if (x - len(prof) * infofont.fontwt) < 0
+                             else x - len(prof) * infofont.fontwt)
                 start_y = self.fontht + ((y + 1) * self.fontht)
                 paint.drawText(QtCore.QPointF(x-dx, start_y), prof)
                 self.lines[line].height = max(self.lines[line].height, 2)
@@ -471,8 +469,8 @@ class NodeEditor(QFrame):
                 color = QColor(100,255,100)
             else:
                 color = QColor(255,100,100)
-            paint.setFont(self.infofont)
-            paint.fillRect(QRect(infobox_coordinates[0], 5 + infobox_coordinates[1], len(lang_name)*self.infofontwt, self.infofontht), color)
+            paint.setFont(infofont)
+            paint.fillRect(QRect(infobox_coordinates[0], 5 + infobox_coordinates[1], len(lang_name)*infofontwt, infofontht), color)
             paint.drawText(QtCore.QPointF(infobox_coordinates[0], -3 + self.fontht + infobox_coordinates[1]), lang_name)
             paint.setFont(self.font)
 

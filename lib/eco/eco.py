@@ -306,6 +306,12 @@ class SettingsView(QtGui.QMainWindow):
         size = settings.value("font-size").toInt()[0]
         self.ui.app_fontfamily.setCurrentFont(QtGui.QFont(family, size))
         self.ui.app_fontsize.setValue(size)
+
+        tool_info_family = settings.value("tool-font-family").toString()
+        tool_info_size = settings.value("tool-font-size").toInt()[0]
+        self.ui.tool_info_fontfamily.setCurrentFont(QtGui.QFont(tool_info_family, tool_info_size))
+        self.ui.tool_info_fontsize.setValue(size)
+
         self.ui.app_theme.setCurrentIndex(settings.value("app_themeindex", 0).toInt()[0])
         self.ui.app_custom.setChecked(settings.value("app_custom", False).toBool())
         self.foreground = settings.value("app_foreground", "#000000").toString()
@@ -320,6 +326,10 @@ class SettingsView(QtGui.QMainWindow):
 
         settings.setValue("font-family", self.ui.app_fontfamily.currentFont().family())
         settings.setValue("font-size", self.ui.app_fontsize.value())
+
+        settings.setValue("tool-font-family", self.ui.tool_info_fontfamily.currentFont().family())
+        settings.setValue("tool-font-size", self.ui.tool_info_fontsize.value())
+
         settings.setValue("app_theme", self.ui.app_theme.currentText())
         settings.setValue("app_themeindex", self.ui.app_theme.currentIndex())
         settings.setValue("app_custom", self.ui.app_custom.isChecked())
@@ -331,6 +341,8 @@ class SettingsView(QtGui.QMainWindow):
         settings = QSettings("softdev", "Eco")
         gfont = QApplication.instance().gfont
         gfont.setfont(QFont(settings.value("font-family").toString(), settings.value("font-size").toInt()[0]))
+        tool_info_font = QApplication.instance().tool_info_font
+        tool_info_font.setfont(QFont(settings.value("tool-font-family").toString(), settings.value("tool-font-size").toInt()[0]))
         self.window.refreshTheme()
         self.close()
 
@@ -1071,8 +1083,12 @@ def main():
     if not settings.contains("font-family"):
         settings.setValue("font-family", "Monospace")
         settings.setValue("font-size", 9)
+    if not settings.contains("tool-font-family"):
+        settings.setValue("tool-font-family", "Monospace")
+        settings.setValue("tool-font-size", 9)
 
     app.gfont = GlobalFont(settings.value("font-family").toString(), settings.value("font-size").toInt()[0])
+    app.tool_info_font = GlobalFont(settings.value("tool-font-family").toString(), settings.value("tool-font-size").toInt()[0])
     app.showindent = False
 
     window=Window()
