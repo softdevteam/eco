@@ -8,21 +8,14 @@ class Overlay(QWidget):
 
     def __init__(self, parent=None):
         super(Overlay, self).__init__(parent)
+        self.node_editor = parent
         palette = QPalette(self.palette())
         palette.setColor(palette.Background, Qt.transparent)
         self.setPalette(palette)
-
-        self.node_editor = parent
-
-        # Start and end colours in the gradient
-        self.alpha = 100
-        self.colour_low  = (222.0, 235.0, 247.0)
-        self.colour_high = (49.0, 130.0, 189.0)
-
         # line no -> (float, node)
         self._data = dict()
-        # line no -> QColor
-        self._colours = dict()
+        # line no -> normalised float [0.0, 1.0]
+        self._norms = dict()
 
     @property
     def data(self):
@@ -38,14 +31,20 @@ class Overlay(QWidget):
         for lineno in self._data:
             val, node = self._data[lineno]
             # Linear normalisation:
-            normed = (val - val_min) / val_diff
-            self._colours[lineno] = self.get_colour(normed)
+            self._norms[lineno] = (val - val_min) / val_diff
 
     def get_colour(self, value):
-        red   = float(self.colour_high[0] - self.colour_low[0]) * value + self.colour_low[0]
-        green = float(self.colour_high[1] - self.colour_low[1]) * value + self.colour_low[1]
-        blue  = float(self.colour_high[2] - self.colour_low[2]) * value + self.colour_low[2]
-        return QColor(int(red), int(green), int(blue), self.alpha)
+        """Map a normalised value [0.0, 0.1] to a QColor.
+        """
+        low = QColor(QApplication.instance().heatmap_low)
+        high = QColor(QApplication.instance().heatmap_high)
+        transparency = QApplication.instance().heatmap_alpha.toInt()[0]
+
+        red   = float(high.red() - low.red()) * value + low.red()
+        green = float(high.green() - low.green()) * value + low.green()
+        blue  = float(high.blue() - low.blue()) * value + low.blue()
+
+        return QColor(int(red), int(green), int(blue), alpha=transparency)
 
     def paintEvent(self, event):
         """Paint the visualisation of current tool data.
@@ -63,15 +62,15 @@ class Overlay(QWidget):
         # Draw the visualisation.
         x_top = event.rect().top() + 3 + self.node_editor.paint_start[1] * gfont.fontht  # Start a top of widget.
         lineno = self.node_editor.paint_start[0] + 1
-        last_lineno = max(self._colours.keys())
+        last_lineno = max(self._norms.keys())
         lines = self.node_editor.lines
         while lineno <= last_lineno:
-            if lineno in self._colours:
+            if lineno in self._norms:
                 # __init__ (self, int aleft, int atop, int awidth, int aheight)
                 rect = QRect(0,
                              x_top,
                              event.rect().width(),
                              gfont.fontht * lines[lineno - 1].height)
-                painter.fillRect(rect, QBrush(self._colours[lineno]))
+                painter.fillRect(rect, QBrush(self.get_colour(self._norms[lineno])))
             x_top += gfont.fontht * lines[lineno - 1].height
             lineno += 1

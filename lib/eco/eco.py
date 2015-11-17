@@ -290,12 +290,18 @@ class SettingsView(QtGui.QMainWindow):
         self.connect(self.ui.app_foreground, SIGNAL("clicked()"), self.pick_color)
         self.connect(self.ui.app_background, SIGNAL("clicked()"), self.pick_color)
 
+        self.connect(self.ui.heatmap_low, SIGNAL("clicked()"), self.pick_color)
+        self.connect(self.ui.heatmap_high, SIGNAL("clicked()"), self.pick_color)
+
         self.foreground = None
         self.background = None
+
+        self.heatmap_low = None
+        self.heatmap_high = None
+
         self.window = window
 
         self.loadSettings()
-
 
     def loadSettings(self):
         settings = QSettings("softdev", "Eco")
@@ -310,14 +316,22 @@ class SettingsView(QtGui.QMainWindow):
         tool_info_family = settings.value("tool-font-family").toString()
         tool_info_size = settings.value("tool-font-size").toInt()[0]
         self.ui.tool_info_fontfamily.setCurrentFont(QtGui.QFont(tool_info_family, tool_info_size))
-        self.ui.tool_info_fontsize.setValue(size)
+        self.ui.tool_info_fontsize.setValue(tool_info_size)
 
         self.ui.app_theme.setCurrentIndex(settings.value("app_themeindex", 0).toInt()[0])
         self.ui.app_custom.setChecked(settings.value("app_custom", False).toBool())
+
         self.foreground = settings.value("app_foreground", "#000000").toString()
         self.background = settings.value("app_background", "#ffffff").toString()
+
+        self.heatmap_low = settings.value("heatmap_low", "#deebf7").toString()
+        self.heatmap_high = settings.value("heatmap_high", "#3182bd").toString()
+        self.ui.heatmap_alpha.setValue(settings.value("heatmap_alpha", 100).toInt()[0])
+
         self.change_color(self.ui.app_foreground, self.foreground)
         self.change_color(self.ui.app_background, self.background)
+        self.change_color(self.ui.heatmap_low, self.heatmap_low)
+        self.change_color(self.ui.heatmap_high, self.heatmap_high)
 
     def saveSettings(self):
         settings = QSettings("softdev", "Eco")
@@ -333,16 +347,28 @@ class SettingsView(QtGui.QMainWindow):
         settings.setValue("app_theme", self.ui.app_theme.currentText())
         settings.setValue("app_themeindex", self.ui.app_theme.currentIndex())
         settings.setValue("app_custom", self.ui.app_custom.isChecked())
+
         settings.setValue("app_foreground", self.foreground)
         settings.setValue("app_background", self.background)
+
+        settings.setValue("heatmap_low", self.heatmap_low)
+        settings.setValue("heatmap_high", self.heatmap_high)
+        settings.setValue("heatmap_alpha", self.ui.heatmap_alpha.value())
 
     def accept(self):
         self.saveSettings()
         settings = QSettings("softdev", "Eco")
+
         gfont = QApplication.instance().gfont
         gfont.setfont(QFont(settings.value("font-family").toString(), settings.value("font-size").toInt()[0]))
         tool_info_font = QApplication.instance().tool_info_font
         tool_info_font.setfont(QFont(settings.value("tool-font-family").toString(), settings.value("tool-font-size").toInt()[0]))
+
+        app = QApplication.instance()
+        app.heatmap_low = settings.value("heatmap_low")
+        app.heatmap_high = settings.value("heatmap_high")
+        app.heatmap_alpha = settings.value("heatmap_alpha")
+
         self.window.refreshTheme()
         self.close()
 
@@ -351,14 +377,21 @@ class SettingsView(QtGui.QMainWindow):
 
     def pick_color(self):
         color = QColorDialog.getColor()
+        self.change_color(self.sender(), color.name())
         if self.sender() is self.ui.app_foreground:
-            self.change_color(self.ui.app_foreground, color.name())
             self.foreground = color.name()
         elif self.sender() is self.ui.app_background:
-            self.change_color(self.ui.app_background, color.name())
             self.background = color.name()
+        elif self.sender() is self.ui.heatmap_low:
+            self.heatmap_low = QColor(color.name())
+        elif self.sender() is self.ui.heatmap_high:
+            self.heatmap_high = QColor(color.name())
 
     def change_color(self, widget, color):
+        """Change the background color of a widget.
+        Used to ensure that the color picker widgets display the color
+        that the user picked.
+        """
         widget.setStyleSheet("background-color: %s" % (color))
 
 class InputLogView(QtGui.QDialog):
@@ -1089,6 +1122,18 @@ def main():
 
     app.gfont = GlobalFont(settings.value("font-family").toString(), settings.value("font-size").toInt()[0])
     app.tool_info_font = GlobalFont(settings.value("tool-font-family").toString(), settings.value("tool-font-size").toInt()[0])
+
+    if not settings.contains("heatmap_low"):
+        settings.setValue("heatmap_low", QColor(222, 235, 247))
+    if not settings.contains("heatmap_high"):
+        settings.setValue("heatmap_high", QColor(49, 130, 189))
+    if not settings.contains("heatmap_alpha"):
+        settings.setValue("heatmap_alpha", 100)
+
+    app.heatmap_low = settings.value("heatmap_low")
+    app.heatmap_high = settings.value("heatmap_high")
+    app.heatmap_alpha = settings.value("heatmap_alpha")
+
     app.showindent = False
 
     window=Window()
