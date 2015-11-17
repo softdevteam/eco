@@ -94,6 +94,9 @@ class NodeEditor(QFrame):
     def hide_overlay(self):
         self.overlay.hide()
 
+    def is_overlay_visible(self):
+        return self.overlay.isVisible()
+
     def set_tool_data(self, tool_data):
         """Receive data form a profiler or tool, visualise and display.
         """

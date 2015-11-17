@@ -980,6 +980,11 @@ class Window(QtGui.QMainWindow):
             self.ui.tabWidget.removeTab(index)
 
     def tabChanged(self, index):
+        ed_tab = self.getEditorTab()
+        if (ed_tab is not None) and ed_tab.editor.is_overlay_visible():
+            self.ui.actionShow_tool_visualisations.setChecked(True)
+        else:
+            self.ui.actionShow_tool_visualisations.setChecked(False)
         self.btReparse()
 
     def closeEvent(self, event):
