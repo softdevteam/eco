@@ -59,6 +59,7 @@ import editor
 
 from nodeeditor import NodeEditor
 from editortab import EditorTab
+from version_control import vcs_tree_export
 
 import logging
 
@@ -453,6 +454,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionSave_as, SIGNAL("triggered()"), self.savefileAs)
         self.connect(self.ui.actionExport, SIGNAL("triggered()"), self.export)
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
+        self.connect(self.ui.actionThreeWayMerge, SIGNAL("triggered()"), self.three_way_merge)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
         try:
             import pydot
@@ -887,6 +889,17 @@ class Window(QtGui.QMainWindow):
             self.save_last_dir(str(path))
             ed.export_path = path
             self.getEditor().tm.export(path)
+
+    def three_way_merge(self):
+        base_filename = QFileDialog.getOpenFileName(self, "Base version")
+        derived_main_filename = QFileDialog.getOpenFileName(self, "Other version")
+
+        base_tm = vcs_tree_export.load_tm(base_filename)
+        derived_local_tm = self.getEditor().tm
+        derived_main_tm = vcs_tree_export.load_tm(derived_main_filename)
+
+        vcs_tree_export.three_way_merge(base_tm, derived_local_tm, derived_main_tm)
+
 
     def get_last_dir(self):
         settings = QSettings("softdev", "Eco")

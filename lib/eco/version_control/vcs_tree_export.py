@@ -3,27 +3,8 @@ from incparser.astree import BOS, EOS, TextNode
 from grammar_parser.gparser import MagicTerminal, IndentationTerminal, Terminal
 from version_control import diff3_driver
 
-
-
-def _handle_node(node, contents, id_to_bounds):
-    start = len(contents)
-    if isinstance(node.symbol, Terminal):
-        contents.append(node.symbol.name)
-    for child in node.children:
-        _handle_node(child, contents, id_to_bounds)
-    end = len(contents)
-    id_to_bounds[id(node)] = (start, end)
-
-
-def vcs_export_tree(root_node):
-    contents = []
-    id_to_bounds = {}
-    _handle_node(root_node, contents, id_to_bounds)
-
-
-
-
-
+from treemanager import TreeManager
+from jsonmanager import JsonManager
 
 
 
@@ -99,18 +80,19 @@ class VCSTreeWalker (object):
 
             # Get the parent node and its ID
             parent = n.parent
-            parent_id = id(parent)
+            if parent is not None:
+                parent_id = id(parent)
 
-            if parent_id in node_id_to_bounds:
-                # Already encountered this node; enlarge its bounds to encompass those of `n` if necessary
-                p_bounds = node_id_to_bounds[parent_id]
-                p_bounds = (min(p_bounds[0], n_bounds[0]), max(p_bounds[1], n_bounds[1]))
-                node_id_to_bounds[parent_id] = p_bounds
-            else:
-                # Newly discovered node; propagate bounds from child (`n`)
-                node_id_to_bounds[parent_id] = n_bounds
-                # Add the parent node to the queue
-                node_queue.append(parent)
+                if parent_id in node_id_to_bounds:
+                    # Already encountered this node; enlarge its bounds to encompass those of `n` if necessary
+                    p_bounds = node_id_to_bounds[parent_id]
+                    p_bounds = (min(p_bounds[0], n_bounds[0]), max(p_bounds[1], n_bounds[1]))
+                    node_id_to_bounds[parent_id] = p_bounds
+                else:
+                    # Newly discovered node; propagate bounds from child (`n`)
+                    node_id_to_bounds[parent_id] = n_bounds
+                    # Add the parent node to the queue
+                    node_queue.append(parent)
 
         return node_id_to_bounds
 
@@ -127,12 +109,16 @@ class VCSTreeWalker (object):
         """
 
         # STEP 1: perform 3-way merge on token sequences
-        merged = diff3_driver.diff3(base.terminals, derived_local.terminals, derived_main.terminals,
+        merged = diff3_driver.diff3(base.buf, derived_local.buf, derived_main.buf,
                                     automerge_two_way_conflicts=True)
 
+        print('MERGED: {0}'.format(merged))
+
         # STEP 2: compute changes from `derived_local` to merged sequence; use difflib for this
-        sm = difflib.SequenceMatcher(a=derived_local.terminals, b=merged)
+        sm = difflib.SequenceMatcher(a=derived_local.buf, b=merged)
         changes = sm.get_opcodes()
+
+        print('CHANGES: {0}'.format(changes))
 
         # STEP 3: walk the list of opcodes from difflib and determine the minimum set of subtrees that encompass
         # the changes
@@ -160,6 +146,11 @@ class VCSTreeWalker (object):
                     # Get the set of the parent nodes; as we go up the tree this set should decrease in size
                     # until we get to one parent
                     parents = set([node.parent for node in node_set])
+                    try:
+                        parents.remove(None)
+                    except KeyError:
+                        pass
+
                     # Remove any nodes that have been previously visited
                     parents = parents.difference(visited_nodes)
                     # Mark remaining nodes as visited
@@ -178,12 +169,14 @@ class VCSTreeWalker (object):
         # Convert to list
         modified_subtrees = list(modified_subtrees)
 
+        print('SUBTREES TO UPDATE: {0}'.format([subtree.symbol.name for subtree in modified_subtrees]))
+
         # STEP 4: compute the replacement content for each modified subtree
 
         # Compute the bounds of the nodes
         node_id_to_bounds = derived_local._compute_node_bounds()
         start_indices = [i1 for tag, i1, i2, j1, j2 in changes]
-        subtree_content = []
+        subtrees_with_content = []
 
         for subtree in modified_subtrees:
             # The the sub-tree bounds
@@ -192,9 +185,9 @@ class VCSTreeWalker (object):
             # Locate the change regions that are underneath the start and end of the subtree
             start_op_ndx = bisect.bisect_left(start_indices, bounds[0])
             end_op_ndx = bisect.bisect_left(start_indices, bounds[1])
-            if bounds[0] < changes[start_op_ndx][1]:
+            if start_op_ndx >= len(changes) or bounds[0] < changes[start_op_ndx][1]:
                 start_op_ndx = max(start_op_ndx - 1, 0)
-            if bounds[1] < changes[end_op_ndx][1]:
+            if end_op_ndx >= len(changes) or bounds[1] < changes[end_op_ndx][1]:
                 end_op_ndx = max(end_op_ndx - 1, 0)
             st_tag, st_i1, st_i2, st_j1, st_j2 = changes[start_op_ndx]
             en_tag, en_i1, en_i2, en_j1, en_j2 = changes[end_op_ndx]
@@ -217,25 +210,25 @@ class VCSTreeWalker (object):
                 else:
                     subtree_end_index = en_j1
 
-            subtree_content.append(merged[subtree_start_index:subtree_end_index])
+            print('The subtree {0} will have the content:'.format(subtree.symbol.name))
+            print(merged[subtree_start_index:subtree_end_index])
 
-        return modified_subtrees, subtree_content
+            subtrees_with_content.append((subtree, merged[subtree_start_index:subtree_end_index]))
+
+        return subtrees_with_content
 
 
 
-
-
-
-class VCSDocumentExporter (object):
+class VCSDocument (object):
     NODE_REF_START = u'\ue000'
     NODE_REF_END = u'\ue001'
 
     def __init__(self):
-        self.node_id_to_buffer = {}
+        self.node_id_to_walker = {}
         self.root_node_id = None
 
 
-    def export_document(self, node):
+    def handle_node(self, node):
         # Set the ID of the root node to `node`
         node_id = id(node)
         self.root_node_id = node_id
@@ -248,17 +241,17 @@ class VCSDocumentExporter (object):
         if node_id != self.root_node_id:
             raise NotImplementedError('Language boxes cannot be exported for version control purposes yet')
         try:
-            buffer = self.node_id_to_buffer[node_id]
+            walker = self.node_id_to_walker[node_id]
         except KeyError:
             # We haven't handled this node / language box yet; create a new buffer
-            buffer = VCSTreeWalker(node, self)
+            walker = VCSTreeWalker(node, self)
             # Register it
-            self.node_id_to_buffer[node_id] = buffer
+            self.node_id_to_walker[node_id] = walker
             # Export its content
-            tokens = buffer.pp(node)
+            tokens = walker.pp(node)
         else:
             # Node already exported; just get the content
-            tokens = buffer.content
+            tokens = walker.buf
 
         # Generate the control sequence for a reference to this node
         ref = self.node_ref_control_sequence(node_id)
@@ -269,18 +262,56 @@ class VCSDocumentExporter (object):
         return self.NODE_REF_START + str(node_id) + self.NODE_REF_END
 
 
-def export_diff3(node):
-    exporter = VCSDocumentExporter()
-    exporter.export_document(node)
-
-    # Get the root buffer (just for now)
-    roof_buffer = exporter.node_id_to_buffer[exporter.root_node_id]
-    if len(exporter.node_id_to_buffer) > 1:
-            raise NotImplementedError('Language boxes cannot be exported for version control purposes yet')
-
-    # Export each token as a repr on a separate line
-    tokens_as_python_strings_on_lines = '\n'.join([repr(x) for x in roof_buffer.buf])
-
-    return tokens_as_python_strings_on_lines
 
 
+def three_way_merge(base_tm, derived_local_tm, derived_main_tm):
+    base_doc = VCSDocument()
+    base_doc.handle_node(base_tm.get_bos())
+
+    derived_local_doc = VCSDocument()
+    derived_local_doc.handle_node(derived_local_tm.get_bos())
+
+    derived_main_doc = VCSDocument()
+    derived_main_doc.handle_node(derived_main_tm.get_bos())
+
+    if len(base_doc.node_id_to_walker) > 1:
+        raise NotImplementedError('Language boxes cannot be used for version control purposes yet')
+    if len(derived_local_doc.node_id_to_walker) > 1:
+        raise NotImplementedError('Language boxes cannot be used for version control purposes yet')
+    if len(derived_main_doc.node_id_to_walker) > 1:
+        raise NotImplementedError('Language boxes cannot be used for version control purposes yet')
+
+    base_walker = base_doc.node_id_to_walker[base_doc.root_node_id]
+    derived_local_walker = derived_local_doc.node_id_to_walker[derived_local_doc.root_node_id]
+    derived_main_walker = derived_main_doc.node_id_to_walker[derived_main_doc.root_node_id]
+
+    subtrees_with_content = VCSTreeWalker.three_way_merge(base_walker, derived_local_walker, derived_main_walker)
+
+    print 'Updating subtrees...'
+
+    for subtree, content in subtrees_with_content:
+        for x in content:
+            if isinstance(x, diff3_driver.Diff3ConflictRegion):
+                raise NotImplementedError('Conflicts not yet correctly handled by three-way merge')
+        text = ''.join(content)
+
+        print 'Giving subtree {0} the text {1}'.format(subtree.symbol.name, repr(text))
+
+        subtree.replace_content(text)
+
+        print 'Relexing...'
+
+        derived_local_tm.relex(subtree)
+        print 'Reparsing...'
+        derived_local_tm.reparse(subtree)
+
+
+
+def load_tm(filename):
+    manager = JsonManager()
+    language_boxes = manager.load(filename)
+
+    tm = TreeManager()
+    tm.load_file(language_boxes)
+
+    return tm

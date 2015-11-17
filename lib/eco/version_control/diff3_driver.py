@@ -45,6 +45,8 @@ class Diff3ConflictRegion (object):
 
 
 
+def _back_to_string(x):
+    return ast.literal_eval(x)
 
 def diff3(base, derived_local, derived_main, automerge_two_way_conflicts=False):
     """
@@ -141,7 +143,7 @@ def diff3(base, derived_local, derived_main, automerge_two_way_conflicts=False):
             conflict_content = out_lines[conflict_part_start:conflict_part_end]
             conflict.append((conflict_file, conflict_content))
 
-            conflict = Diff3ConflictRegion(**{conflict_file: [ast.literal_eval(x) for x in conflict_content]
+            conflict = Diff3ConflictRegion(**{conflict_file: [_back_to_string(x) for x in conflict_content]
                                               for conflict_file, conflict_content in conflict})
 
             if automerge_two_way_conflicts and conflict.derived_local is None:
@@ -150,7 +152,7 @@ def diff3(base, derived_local, derived_main, automerge_two_way_conflicts=False):
             else:
                 merged.append(conflict)
         else:
-            merged.append(ast.literal_eval(line))
+            merged.append(_back_to_string(line))
         i += 1
 
     return merged

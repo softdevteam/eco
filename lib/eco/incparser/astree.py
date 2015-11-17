@@ -243,6 +243,29 @@ class Node(object):
                 return
             version -= 1
 
+    def replace_content(self, text):
+        self.symbol = Terminal(text)
+        # if subtree.parent is not None:
+        #     pos = subtree.parent.children.index(subtree)
+        #     subtree.left = subtree.parent.children[pos-1] if pos-1 >= 0 else None
+        #     subtree.right = subtree.parent.children[pos+1] if pos+1 < len(subtree.parent.children) else None
+        #     if subtree.left is not None:
+        #         subtree.left.right = subtree
+        #     if subtree.right is not None:
+        #         subtree.right.left = subtree
+
+
+        next_term = self.find_first_terminal()
+        previous_term = self.find_last_terminal()
+
+        previous_term.next_term = self
+        next_term.prev_term = self
+        self.next_term = next_term
+        self.prev_term = previous_term
+
+        self.mark_changed()
+
+
     def remove_child(self, child):
         for i in xrange(len(self.children)):
             if self.children[i] is child:
@@ -344,6 +367,17 @@ class Node(object):
                 node = node.right
             else:
                 node = node.children[0]
+        return node
+
+    def find_last_terminal(self):
+        node = self
+        while isinstance(node.symbol, Nonterminal):
+            if node.children == []:
+                while node.left is None:
+                    node = node.parent
+                node = node.left
+            else:
+                node = node.children[-1]
         return node
 
     def next_terminal(self, skip_indent=False):
