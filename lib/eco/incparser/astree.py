@@ -244,6 +244,17 @@ class Node(object):
             version -= 1
 
     def replace_content(self, text):
+        first_term_in_subtree = self.find_first_terminal_in_subtree()
+        last_term_in_subtree = self.find_last_terminal_in_subtree()
+
+        if first_term_in_subtree is not None and last_term_in_subtree is None:
+            raise ValueError('Found first terminal in subtree but no last terminal')
+        if first_term_in_subtree is None and last_term_in_subtree is not None:
+            raise ValueError('Found no first terminal in subtree but found last terminal')
+
+        prev_term = first_term_in_subtree.prev_term if first_term_in_subtree is not None else None
+        next_term = last_term_in_subtree.next_term if last_term_in_subtree is not None else None
+
         self.symbol = Terminal(text)
         # if subtree.parent is not None:
         #     pos = subtree.parent.children.index(subtree)
@@ -254,14 +265,12 @@ class Node(object):
         #     if subtree.right is not None:
         #         subtree.right.left = subtree
 
-
-        next_term = self.find_first_terminal()
-        previous_term = self.find_last_terminal()
-
-        previous_term.next_term = self
-        next_term.prev_term = self
+        if prev_term is not None:
+            prev_term.next_term = self
+        if next_term is not None:
+            next_term.prev_term = self
+        self.prev_term = prev_term
         self.next_term = next_term
-        self.prev_term = previous_term
 
         self.mark_changed()
 
@@ -357,6 +366,24 @@ class Node(object):
                 return last
             else:
                 last = siblings[i]
+
+    def find_first_terminal_in_subtree(self):
+        node = self
+        while isinstance(node.symbol, Nonterminal):
+            if len(node.children) > 0:
+                node = node.children[0]
+            else:
+                return None
+        return node
+
+    def find_last_terminal_in_subtree(self):
+        node = self
+        while isinstance(node.symbol, Nonterminal):
+            if len(node.children) > 0:
+                node = node.children[-1]
+            else:
+                return None
+        return node
 
     def find_first_terminal(self):
         node = self
