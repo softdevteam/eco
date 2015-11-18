@@ -35,6 +35,8 @@ from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from jsonmanager import JsonManager
 from astanalyser import AstAnalyser
 
+from overlay import Overlay
+
 import syntaxhighlighter
 import editor
 
@@ -48,10 +50,6 @@ class NodeEditor(QFrame):
 
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
-
-        self.infofont = QtGui.QFont('Courier', 9)
-        self.infofontht = QtGui.QFontMetrics(self.infofont).height() + 3
-        self.infofontwt = QtGui.QFontMetrics(self.infofont).width(" ")
 
         self.viewport_y = 0 # top visible line
         self.imagemode = False
@@ -76,6 +74,39 @@ class NodeEditor(QFrame):
         self.lightcolors = [QColor("#333333"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
         self.darkcolors = [QColor("#999999"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
         self.setCursor(Qt.IBeamCursor)
+
+        # Semi-transparent overlay.
+        # Used to display heat-map visualisation of profiler info, etc.
+        self.overlay = Overlay(self)
+        # Start hidden, make (in)visible with self.toggle_overlay().
+        self.overlay.hide()
+
+        # Set True if Eco should be running profiler and other tools,
+        # continuously in the background.
+        self.run_background_tools = False
+
+    def toggle_overlay(self):
+        self.hide_overlay() if self.overlay.isVisible() else self.show_overlay()
+
+    def show_overlay(self):
+        self.overlay.show()
+
+    def hide_overlay(self):
+        self.overlay.hide()
+
+    def is_overlay_visible(self):
+        return self.overlay.isVisible()
+
+    def set_tool_data(self, tool_data):
+        """Receive data form a profiler or tool, visualise and display.
+        """
+        self.overlay.data = tool_data
+        self.overlay.lines = self.lines
+        self.show_overlay()
+
+    def resizeEvent(self, event):
+        self.overlay.resize(event.size())
+        event.accept()
 
     def analysis_timer(self):
         if self.getWindow().show_namebinding():
@@ -155,6 +186,7 @@ class NodeEditor(QFrame):
     def sliderChanged(self, value):
         change = self.viewport_y - value
         self.viewport_y = value
+        self.overlay.start_line = self.viewport_y
         self.update()
 
     def sliderXChanged(self, value):
@@ -362,16 +394,18 @@ class NodeEditor(QFrame):
             self.lines[line].height = max(self.lines[line].height, dy)
 
             # Draw profiling information.
+            infofont = QApplication.instance().tool_info_font
+
             if node in self.tm.profile_map:
                 prof = self.tm.profile_map[node]
                 if not self.tm.profile_is_dirty:
-                    self.infofont.setBold(True)
+                    infofont.font.setBold(True)
                 else:
-                    self.infofont.setBold(False)
-                paint.setFont(self.infofont)
+                    infofont.font.setBold(False)
+                paint.setFont(infofont.font)
                 paint.setPen(QPen(QColor((highlighter.get_default_color()))))
-                start_x = (0 if (x - len(prof) * self.infofontwt) < 0
-                             else x - len(prof) * self.infofontwt)
+                start_x = (0 if (x - len(prof) * infofont.fontwt) < 0
+                             else x - len(prof) * infofont.fontwt)
                 start_y = self.fontht + ((y + 1) * self.fontht)
                 paint.drawText(QtCore.QPointF(x-dx, start_y), prof)
                 self.lines[line].height = max(self.lines[line].height, 2)
@@ -439,8 +473,8 @@ class NodeEditor(QFrame):
                 color = QColor(100,255,100)
             else:
                 color = QColor(255,100,100)
-            paint.setFont(self.infofont)
-            paint.fillRect(QRect(infobox_coordinates[0], 5 + infobox_coordinates[1], len(lang_name)*self.infofontwt, self.infofontht), color)
+            paint.setFont(infofont)
+            paint.fillRect(QRect(infobox_coordinates[0], 5 + infobox_coordinates[1], len(lang_name)*infofontwt, infofontht), color)
             paint.drawText(QtCore.QPointF(infobox_coordinates[0], -3 + self.fontht + infobox_coordinates[1]), lang_name)
             paint.setFont(self.font)
 

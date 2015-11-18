@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>378</width>
-    <height>412</height>
+    <width>413</width>
+    <height>626</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -62,7 +62,7 @@
        <attribute name="title">
         <string>Appearance</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,1">
+       <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,1,0">
         <property name="sizeConstraint">
          <enum>QLayout::SetDefaultConstraint</enum>
         </property>
@@ -76,6 +76,9 @@
             <widget class="QLabel" name="label_3">
              <property name="text">
               <string>Family</string>
+             </property>
+             <property name="buddy">
+              <cstring>app_fontfamily</cstring>
              </property>
             </widget>
            </item>
@@ -93,6 +96,51 @@
             <widget class="QLabel" name="label_4">
              <property name="text">
               <string>Size</string>
+             </property>
+             <property name="buddy">
+              <cstring>app_fontsize</cstring>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox">
+          <property name="title">
+           <string>Font (profiler and tool information)</string>
+          </property>
+          <layout class="QFormLayout" name="formLayout_6">
+           <property name="fieldGrowthPolicy">
+            <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+           </property>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_7">
+             <property name="text">
+              <string>Size</string>
+             </property>
+             <property name="buddy">
+              <cstring>tool_info_fontsize</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QSpinBox" name="tool_info_fontsize"/>
+           </item>
+           <item row="1" column="1">
+            <widget class="QFontComboBox" name="tool_info_fontfamily">
+             <property name="fontFilters">
+              <set>QFontComboBox::MonospacedFonts</set>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_8">
+             <property name="text">
+              <string>Family</string>
+             </property>
+             <property name="buddy">
+              <cstring>tool_info_fontfamily</cstring>
              </property>
             </widget>
            </item>
@@ -159,6 +207,9 @@
              <property name="text">
               <string>Foreground:</string>
              </property>
+             <property name="buddy">
+              <cstring>app_foreground</cstring>
+             </property>
             </widget>
            </item>
            <item row="0" column="1">
@@ -179,6 +230,9 @@
              <property name="text">
               <string>Background:</string>
              </property>
+             <property name="buddy">
+              <cstring>app_background</cstring>
+             </property>
             </widget>
            </item>
            <item row="1" column="1">
@@ -188,6 +242,75 @@
              </property>
              <property name="text">
               <string/>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupbox_5">
+          <property name="title">
+           <string>Heatmap gradient</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout">
+           <item row="1" column="1">
+            <widget class="QPushButton" name="heatmap_low">
+             <property name="styleSheet">
+              <string notr="true">background-color: rgb(255, 255, 255)</string>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QPushButton" name="heatmap_high">
+             <property name="autoFillBackground">
+              <bool>false</bool>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">background-color:  rgb(72, 72, 72)</string>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_10">
+             <property name="text">
+              <string>Lowest value:</string>
+             </property>
+             <property name="buddy">
+              <cstring>heatmap_low</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_9">
+             <property name="text">
+              <string>Highest value:</string>
+             </property>
+             <property name="buddy">
+              <cstring>heatmap_high</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_11">
+             <property name="text">
+              <string>Transparency:</string>
+             </property>
+             <property name="buddy">
+              <cstring>heatmap_alpha</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QSpinBox" name="heatmap_alpha">
+             <property name="maximum">
+              <number>255</number>
              </property>
             </widget>
            </item>
@@ -212,8 +335,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>378</width>
-     <height>27</height>
+     <width>413</width>
+     <height>26</height>
     </rect>
    </property>
   </widget>
@@ -221,4 +344,21 @@
  </widget>
  <resources/>
  <connections/>
+ <designerdata>
+  <property name="gridDeltaX">
+   <number>10</number>
+  </property>
+  <property name="gridDeltaY">
+   <number>10</number>
+  </property>
+  <property name="gridSnapX">
+   <bool>true</bool>
+  </property>
+  <property name="gridSnapY">
+   <bool>true</bool>
+  </property>
+  <property name="gridVisible">
+   <bool>true</bool>
+  </property>
+ </designerdata>
 </ui>

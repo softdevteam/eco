@@ -290,12 +290,18 @@ class SettingsView(QtGui.QMainWindow):
         self.connect(self.ui.app_foreground, SIGNAL("clicked()"), self.pick_color)
         self.connect(self.ui.app_background, SIGNAL("clicked()"), self.pick_color)
 
+        self.connect(self.ui.heatmap_low, SIGNAL("clicked()"), self.pick_color)
+        self.connect(self.ui.heatmap_high, SIGNAL("clicked()"), self.pick_color)
+
         self.foreground = None
         self.background = None
+
+        self.heatmap_low = None
+        self.heatmap_high = None
+
         self.window = window
 
         self.loadSettings()
-
 
     def loadSettings(self):
         settings = QSettings("softdev", "Eco")
@@ -306,12 +312,26 @@ class SettingsView(QtGui.QMainWindow):
         size = settings.value("font-size").toInt()[0]
         self.ui.app_fontfamily.setCurrentFont(QtGui.QFont(family, size))
         self.ui.app_fontsize.setValue(size)
+
+        tool_info_family = settings.value("tool-font-family").toString()
+        tool_info_size = settings.value("tool-font-size").toInt()[0]
+        self.ui.tool_info_fontfamily.setCurrentFont(QtGui.QFont(tool_info_family, tool_info_size))
+        self.ui.tool_info_fontsize.setValue(tool_info_size)
+
         self.ui.app_theme.setCurrentIndex(settings.value("app_themeindex", 0).toInt()[0])
         self.ui.app_custom.setChecked(settings.value("app_custom", False).toBool())
+
         self.foreground = settings.value("app_foreground", "#000000").toString()
         self.background = settings.value("app_background", "#ffffff").toString()
+
+        self.heatmap_low = settings.value("heatmap_low", "#deebf7").toString()
+        self.heatmap_high = settings.value("heatmap_high", "#3182bd").toString()
+        self.ui.heatmap_alpha.setValue(settings.value("heatmap_alpha", 100).toInt()[0])
+
         self.change_color(self.ui.app_foreground, self.foreground)
         self.change_color(self.ui.app_background, self.background)
+        self.change_color(self.ui.heatmap_low, self.heatmap_low)
+        self.change_color(self.ui.heatmap_high, self.heatmap_high)
 
     def saveSettings(self):
         settings = QSettings("softdev", "Eco")
@@ -320,17 +340,35 @@ class SettingsView(QtGui.QMainWindow):
 
         settings.setValue("font-family", self.ui.app_fontfamily.currentFont().family())
         settings.setValue("font-size", self.ui.app_fontsize.value())
+
+        settings.setValue("tool-font-family", self.ui.tool_info_fontfamily.currentFont().family())
+        settings.setValue("tool-font-size", self.ui.tool_info_fontsize.value())
+
         settings.setValue("app_theme", self.ui.app_theme.currentText())
         settings.setValue("app_themeindex", self.ui.app_theme.currentIndex())
         settings.setValue("app_custom", self.ui.app_custom.isChecked())
+
         settings.setValue("app_foreground", self.foreground)
         settings.setValue("app_background", self.background)
+
+        settings.setValue("heatmap_low", self.heatmap_low)
+        settings.setValue("heatmap_high", self.heatmap_high)
+        settings.setValue("heatmap_alpha", self.ui.heatmap_alpha.value())
 
     def accept(self):
         self.saveSettings()
         settings = QSettings("softdev", "Eco")
+
         gfont = QApplication.instance().gfont
         gfont.setfont(QFont(settings.value("font-family").toString(), settings.value("font-size").toInt()[0]))
+        tool_info_font = QApplication.instance().tool_info_font
+        tool_info_font.setfont(QFont(settings.value("tool-font-family").toString(), settings.value("tool-font-size").toInt()[0]))
+
+        app = QApplication.instance()
+        app.heatmap_low = settings.value("heatmap_low")
+        app.heatmap_high = settings.value("heatmap_high")
+        app.heatmap_alpha = settings.value("heatmap_alpha")
+
         self.window.refreshTheme()
         self.close()
 
@@ -339,14 +377,21 @@ class SettingsView(QtGui.QMainWindow):
 
     def pick_color(self):
         color = QColorDialog.getColor()
+        self.change_color(self.sender(), color.name())
         if self.sender() is self.ui.app_foreground:
-            self.change_color(self.ui.app_foreground, color.name())
             self.foreground = color.name()
         elif self.sender() is self.ui.app_background:
-            self.change_color(self.ui.app_background, color.name())
             self.background = color.name()
+        elif self.sender() is self.ui.heatmap_low:
+            self.heatmap_low = QColor(color.name())
+        elif self.sender() is self.ui.heatmap_high:
+            self.heatmap_high = QColor(color.name())
 
     def change_color(self, widget, color):
+        """Change the background color of a widget.
+        Used to ensure that the color picker widgets display the color
+        that the user picked.
+        """
         widget.setStyleSheet("background-color: %s" % (color))
 
 class InputLogView(QtGui.QDialog):
@@ -485,6 +530,8 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
         self.connect(self.ui.actionProfile, SIGNAL("triggered()"), self.profile_subprocess)
+        self.connect(self.ui.actionVisualise_automatically, SIGNAL("triggered()"), self.run_background_tools)
+
         try:
             import pydot
             self.connect(self.ui.actionParse_Tree, SIGNAL("triggered()"), self.showParseView)
@@ -520,6 +567,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionShow_indentation, SIGNAL("triggered()"), self.toogle_indentation)
         self.connect(self.ui.menuChange_language_box, SIGNAL("aboutToShow()"), self.showEditMenu)
         self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
+        self.connect(self.ui.actionShow_tool_visualisations, SIGNAL("triggered()"), self.toggle_overlay)
 
         # Make sure the Project -> Profile menu item only appears for
         # languages that support it.
@@ -549,6 +597,46 @@ class Window(QtGui.QMainWindow):
         ed = self.getEditor()
         if (ed is not None) and (ed.tm is not None):
             self.ui.actionProfile.setEnabled(ed.tm.can_profile())
+
+    def run_background_tools(self):
+        self.ui.actionShow_tool_visualisations.setChecked(True)
+        ed_tab = self.getEditor()
+        if ed_tab is not None:
+            ed_tab.run_background_tools = True
+        self.profiler_finished()
+
+    def profiler_finished(self):
+        self.profile_throbber.hide()
+        ed_tab = self.getEditor()
+        if ed_tab is None:
+            return
+        if self.ui.actionVisualise_automatically.isChecked():
+            ed_tab.run_background_tools = True
+            self.profile_subprocess()
+        else:
+            ed_tab.run_background_tools = False
+
+    def draw_overlay(self, tool_data):
+        """Send profiler or tool information to the overlay object."""
+        ed_tab = self.getEditor()
+        ed_tab.set_tool_data(tool_data)
+        if self.ui.actionShow_tool_visualisations.isChecked():
+            ed_tab.show_overlay()
+
+    def toggle_overlay(self):
+        ed_tab = self.getEditorTab()
+        ed_tab.editor.toggle_overlay()
+
+    def show_overlay(self):
+        self.ui.actionShow_tool_visualisations.setChecked(True)
+        ed_tab = self.getEditorTab()
+        ed_tab.editor.show_overlay()
+
+    def hide_overlay(self):
+        self.ui.actionShow_tool_visualisations.setChecked(False)
+        ed_tab = self.getEditorTab()
+        ed_tab.editor.hide_overlay()
+
 
     def consoleContextMenu(self, pos):
         def clear():
@@ -844,6 +932,11 @@ class Window(QtGui.QMainWindow):
             self.delete_swap()
         else:
             self.savefileAs()
+        ed_ = self.getEditor()
+        if ed_.run_background_tools:
+            if self.thread_prof.isRunning():
+                self.thread_prof.quit()
+            self.profile_subprocess()
 
     def savefileAs(self):
         ed = self.getEditorTab()
@@ -855,6 +948,11 @@ class Window(QtGui.QMainWindow):
             self.save_last_dir(str(filename))
             self.getEditor().saveToJson(filename)
             self.getEditorTab().filename = filename
+        ed_ = self.getEditor()
+        if ed_.run_background_tools:
+            if self.thread_prof.isRunning():
+                self.thread_prof.quit()
+            self.profile_subprocess()
 
     def delete_swap(self):
         if self.getEditorTab().filename is None:
@@ -955,6 +1053,13 @@ class Window(QtGui.QMainWindow):
             self.ui.tabWidget.removeTab(index)
 
     def tabChanged(self, index):
+        ed_tab = self.getEditorTab()
+        if ed_tab is not None:
+            if ed_tab.editor.is_overlay_visible():
+                self.ui.actionShow_tool_visualisations.setChecked(True)
+            else:
+                self.ui.actionShow_tool_visualisations.setChecked(False)
+            self.ui.actionVisualise_automatically.setChecked(ed_tab.editor.run_background_tools)
         self.btReparse()
 
     def closeEvent(self, event):
@@ -1041,8 +1146,24 @@ def main():
     if not settings.contains("font-family"):
         settings.setValue("font-family", "Monospace")
         settings.setValue("font-size", 9)
+    if not settings.contains("tool-font-family"):
+        settings.setValue("tool-font-family", "Monospace")
+        settings.setValue("tool-font-size", 9)
 
     app.gfont = GlobalFont(settings.value("font-family").toString(), settings.value("font-size").toInt()[0])
+    app.tool_info_font = GlobalFont(settings.value("tool-font-family").toString(), settings.value("tool-font-size").toInt()[0])
+
+    if not settings.contains("heatmap_low"):
+        settings.setValue("heatmap_low", QColor(222, 235, 247))
+    if not settings.contains("heatmap_high"):
+        settings.setValue("heatmap_high", QColor(49, 130, 189))
+    if not settings.contains("heatmap_alpha"):
+        settings.setValue("heatmap_alpha", 100)
+
+    app.heatmap_low = settings.value("heatmap_low")
+    app.heatmap_high = settings.value("heatmap_high")
+    app.heatmap_alpha = settings.value("heatmap_alpha")
+
     app.showindent = False
 
     window=Window()
@@ -1052,9 +1173,15 @@ def main():
     window.profile_throbber = Throbber(window.ui.tabWidget)
     window.connect(window.thread, t.signal, window.show_output)
     window.connect(window.thread_prof, window.thread_prof.signal, window.show_output)
+    # Connect the profiler (tool) thread to the throbber.
     window.connect(window.thread_prof,
                    window.thread_prof.signal_done,
-                   window.profile_throbber.hide)
+                   window.profiler_finished)
+    # Connect the profiler(tool) thread to the overlay which draws a heatmap
+    # or other visualisation.
+    window.connect(window.thread_prof,
+                   window.thread_prof.signal_overlay,
+                   window.draw_overlay)
 
     window.parse_options()
     window.show()
@@ -1081,6 +1208,7 @@ class ProfileThread(QThread):
         self.window = window
         self.signal_done = QtCore.SIGNAL("finished")
         self.signal = QtCore.SIGNAL("output")
+        self.signal_overlay = QtCore.SIGNAL("profile_overlay")
 
     def run(self):
         p = self.window.getEditor().tm.export(profile=True)
@@ -1089,7 +1217,9 @@ class ProfileThread(QThread):
         if p:
             text = p.stdout.read()
             self.emit(self.signal, text.strip())
+            self.emit(self.signal_overlay, self.window.getEditor().tm.profile_data)
         self.emit(self.signal_done, None)
+
 
 class Throbber(QLabel):
     """Throbber which displays in the right-hand corner of the tabbed notebook.

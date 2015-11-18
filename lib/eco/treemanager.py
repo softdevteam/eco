@@ -289,6 +289,7 @@ class TreeManager(object):
         self.savenextparse = False
         self.saved_lines = {}
         self.saved_parsers = {}
+        self.profile_data = {} # line no -> (float, node) (raw data)
         self.profile_map = {}  # node -> str
         self.profile_is_dirty = False
         # This code and the can_profile() method should probably be refactored.
@@ -1471,6 +1472,7 @@ class TreeManager(object):
         if profile:
             self.profile_is_dirty = False
             self.profile_map = dict()
+            self.profile_data = dict()
             working_dir = os.path.join(os.environ["GRAAL_WORKSPACE"], "graal-compiler")
             f = tempfile.mkstemp(suffix=".sl")
             self.export_as_text(f[1])
@@ -1509,13 +1511,8 @@ class TreeManager(object):
                     if node.lookup == "<ws>":
                         node = node.next_term
                     self.profile_map[node] = msg
+                    self.profile_data[lineno] = (float(ncalls), node)
             return mock
-
-                    # temp_cursor.line = lineno - 1
-                    # temp_cursor.move_to_x(0, self.lines)
-                    # temp_cursor.right()
-                    # self.profile_map[temp_cursor.node] = msg
-            # return mock
 
         elif path:
             self.export_as_text(path)
@@ -1528,6 +1525,7 @@ class TreeManager(object):
             # Delete any stale profile info
             self.profile_is_dirty = False
             self.profile_map = dict()
+            self.profile_data = dict()
             # python -m cProfile [-o output_file] [-s sort_order] myscript.py
             proc = subprocess.Popen(["python2", "-m", "cProfile", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
             stdout_value, stderr_value = proc.communicate()
@@ -1566,6 +1564,7 @@ class TreeManager(object):
                     if node.lookup == "<ws>":
                         node = node.next_term
                     self.profile_map[node] = msg
+                    self.profile_data[lineno] = (float(ncalls), node)
             return mock
         elif run:
             return subprocess.Popen(["python2", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
