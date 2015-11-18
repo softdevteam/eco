@@ -42,6 +42,7 @@ class BootstrapParser(object):
         self.change_startrule = None
         self.options = {}
         self.precedences = []
+        self.current_rulename = ""
 
     def implicit_ws(self):
         if self.options.has_key("implicit_ws"):
@@ -180,6 +181,7 @@ class BootstrapParser(object):
 
     def parse_rule(self, node):
         name = node.children[0].symbol.name
+        self.current_rulename = name
         alternatives = self.parse_alternatives(node.children[4])
         symbol = Nonterminal(name)
         if self.start_symbol is None:
@@ -231,14 +233,14 @@ class BootstrapParser(object):
             if isinstance(symbol, AnySymbol) and symbols[-1].name == "WS":
                 symbols.pop()
             symbols.append(symbol)
-            if (isinstance(symbol, Terminal) or isinstance(symbol, MagicTerminal)) and self.implicit_ws():
+            if (isinstance(symbol, Terminal) or isinstance(symbol, MagicTerminal)) and self.implicit_ws() and self.current_rulename != "comment":
                 symbols.append(Nonterminal("WS"))
             return symbols
         elif node.children[0].symbol.name == "symbol":
             l = []
             symbol = self.parse_symbol(node.children[0])
             l.append(symbol)
-            if isinstance(symbol, Terminal) and self.implicit_ws():
+            if isinstance(symbol, Terminal) and self.implicit_ws() and self.current_rulename != "comment":
                 l.append(Nonterminal("WS"))
             return l
 
