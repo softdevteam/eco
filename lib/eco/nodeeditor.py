@@ -81,6 +81,10 @@ class NodeEditor(QFrame):
         # Start hidden, make (in)visible with self.toggle_overlay().
         self.overlay.hide()
 
+        # Set True if Eco should be running profiler and other tools,
+        # continuously in the background.
+        self.run_background_tools = False
+
     def toggle_overlay(self):
         self.hide_overlay() if self.overlay.isVisible() else self.show_overlay()
 

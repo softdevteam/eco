@@ -71,6 +71,7 @@
     </property>
     <addaction name="actionRun"/>
     <addaction name="actionProfile"/>
+    <addaction name="actionVisualise_automatically"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -549,6 +550,14 @@
    </property>
    <property name="text">
     <string>Show tool visualisations</string>
+   </property>
+  </action>
+  <action name="actionVisualise_automatically">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Visualise automatically</string>
    </property>
   </action>
  </widget>

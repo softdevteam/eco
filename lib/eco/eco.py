@@ -530,6 +530,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
         self.connect(self.ui.actionProfile, SIGNAL("triggered()"), self.profile_subprocess)
+        self.connect(self.ui.actionVisualise_automatically, SIGNAL("triggered()"), self.run_background_tools)
 
         try:
             import pydot
@@ -597,13 +598,30 @@ class Window(QtGui.QMainWindow):
         if (ed is not None) and (ed.tm is not None):
             self.ui.actionProfile.setEnabled(ed.tm.can_profile())
 
+    def run_background_tools(self):
+        self.ui.actionShow_tool_visualisations.setChecked(True)
+        ed_tab = self.getEditor()
+        if ed_tab is not None:
+            ed_tab.run_background_tools = True
+        self.profiler_finished()
+
+    def profiler_finished(self):
+        self.profile_throbber.hide()
+        ed_tab = self.getEditor()
+        if ed_tab is None:
+            return
+        if self.ui.actionVisualise_automatically.isChecked():
+            ed_tab.run_background_tools = True
+            self.profile_subprocess()
+        else:
+            ed_tab.run_background_tools = False
+
     def draw_overlay(self, tool_data):
-        """Send profiler or tool information to the overlay object.
-        """
+        """Send profiler or tool information to the overlay object."""
         ed_tab = self.getEditor()
         ed_tab.set_tool_data(tool_data)
-        self.ui.actionShow_tool_visualisations.setChecked(True)
-        ed_tab.show_overlay()
+        if self.ui.actionShow_tool_visualisations.isChecked():
+            ed_tab.show_overlay()
 
     def toggle_overlay(self):
         ed_tab = self.getEditorTab()
@@ -914,6 +932,11 @@ class Window(QtGui.QMainWindow):
             self.delete_swap()
         else:
             self.savefileAs()
+        ed_ = self.getEditor()
+        if ed_.run_background_tools:
+            if self.thread_prof.isRunning():
+                self.thread_prof.quit()
+            self.profile_subprocess()
 
     def savefileAs(self):
         ed = self.getEditorTab()
@@ -925,6 +948,11 @@ class Window(QtGui.QMainWindow):
             self.save_last_dir(str(filename))
             self.getEditor().saveToJson(filename)
             self.getEditorTab().filename = filename
+        ed_ = self.getEditor()
+        if ed_.run_background_tools:
+            if self.thread_prof.isRunning():
+                self.thread_prof.quit()
+            self.profile_subprocess()
 
     def delete_swap(self):
         if self.getEditorTab().filename is None:
@@ -1026,10 +1054,12 @@ class Window(QtGui.QMainWindow):
 
     def tabChanged(self, index):
         ed_tab = self.getEditorTab()
-        if (ed_tab is not None) and ed_tab.editor.is_overlay_visible():
-            self.ui.actionShow_tool_visualisations.setChecked(True)
-        else:
-            self.ui.actionShow_tool_visualisations.setChecked(False)
+        if ed_tab is not None:
+            if ed_tab.editor.is_overlay_visible():
+                self.ui.actionShow_tool_visualisations.setChecked(True)
+            else:
+                self.ui.actionShow_tool_visualisations.setChecked(False)
+            self.ui.actionVisualise_automatically.setChecked(ed_tab.editor.run_background_tools)
         self.btReparse()
 
     def closeEvent(self, event):
@@ -1146,7 +1176,7 @@ def main():
     # Connect the profiler (tool) thread to the throbber.
     window.connect(window.thread_prof,
                    window.thread_prof.signal_done,
-                   window.profile_throbber.hide)
+                   window.profiler_finished)
     # Connect the profiler(tool) thread to the overlay which draws a heatmap
     # or other visualisation.
     window.connect(window.thread_prof,
