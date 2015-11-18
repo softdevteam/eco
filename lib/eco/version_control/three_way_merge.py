@@ -264,7 +264,7 @@ class VCSDocument (object):
 
 
 
-def three_way_merge(base_tm, derived_local_tm, derived_main_tm):
+def merge3_tree_managers(base_tm, derived_local_tm, derived_main_tm):
     base_doc = VCSDocument()
     base_doc.handle_node(base_tm.get_bos())
 

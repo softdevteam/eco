@@ -59,7 +59,7 @@ import editor
 
 from nodeeditor import NodeEditor
 from editortab import EditorTab
-from version_control import vcs_tree_export
+from version_control import three_way_merge
 
 import logging
 
@@ -894,11 +894,11 @@ class Window(QtGui.QMainWindow):
         base_filename = QFileDialog.getOpenFileName(self, "Base version")
         derived_main_filename = QFileDialog.getOpenFileName(self, "Other version")
 
-        base_tm = vcs_tree_export.load_tm(base_filename)
+        base_tm = three_way_merge.load_tm(base_filename)
         derived_local_tm = self.getEditor().tm
-        derived_main_tm = vcs_tree_export.load_tm(derived_main_filename)
+        derived_main_tm = three_way_merge.load_tm(derived_main_filename)
 
-        vcs_tree_export.three_way_merge(base_tm, derived_local_tm, derived_main_tm)
+        three_way_merge.merge3_tree_managers(base_tm, derived_local_tm, derived_main_tm)
 
 
     def get_last_dir(self):
