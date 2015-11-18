@@ -45,6 +45,7 @@ class SyntaxHighlighter(object):
     }
     keyword_colors = {}
     keyword_style = {}
+    parent_colors = {}
 
     def __init__(self, palette):
         self.palette = palette
@@ -54,7 +55,9 @@ class SyntaxHighlighter(object):
             self.colors = self.gb_colors
 
     def get_color(self, node):
-        if node.symbol.name in self.keyword_colors:
+        if node.parent and node.parent.symbol.name in self.parent_colors:
+            color = self.parent_colors[node.parent.symbol.name]
+        elif node.symbol.name in self.keyword_colors:
             color = self.keyword_colors[node.symbol.name]
         elif node.lookup in self.keyword_colors:
             color = self.keyword_colors[node.lookup]
@@ -109,6 +112,10 @@ class PythonHighlighter(SyntaxHighlighter):
         "print":"blue",
         "True":"blue",
         "False":"blue",
+    }
+
+    parent_colors = {
+        "comment": "grey"
     }
 
 class JavaHighlighter(SyntaxHighlighter):
@@ -249,6 +256,10 @@ class SLHighlighter(SyntaxHighlighter):
         "return": "red",
         "break": "red",
         "continue": "red",
+    }
+
+    parent_colors = {
+        "comment": "grey"
     }
 
 def get_highlighter(parent, palette):
