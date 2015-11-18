@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-import re
+import re, collections
 from grammar_parser.gparser import Nonterminal, Terminal, IndentationTerminal
 from syntaxtable import FinishSymbol
 
@@ -243,6 +243,16 @@ class Node(object):
                 return
             version -= 1
 
+    def is_in_subtree_rooted_at(self, subtree_root):
+        if len(subtree_root.children) == 0:
+            return False
+        node = self
+        while node is not None:
+            if node is subtree_root:
+                return True
+            node = node.parent
+        return False
+
     def replace_content(self, text):
         first_term_in_subtree = self.find_first_terminal_in_subtree()
         last_term_in_subtree = self.find_last_terminal_in_subtree()
@@ -255,6 +265,10 @@ class Node(object):
         prev_term = first_term_in_subtree.prev_term if first_term_in_subtree is not None else None
         next_term = last_term_in_subtree.next_term if last_term_in_subtree is not None else None
 
+        existing_texts = [repr(term.symbol.name) for term in self.find_terminals_in_subtree()]
+
+        print('replace_content: self.symbol={0}, existing={1}, children={2}, parent={3}, text={4}'.format(
+            self.symbol, existing_texts, self.children, self.parent, text))
         self.symbol = Terminal(text)
         # if subtree.parent is not None:
         #     pos = subtree.parent.children.index(subtree)
@@ -265,6 +279,9 @@ class Node(object):
         #     if subtree.right is not None:
         #         subtree.right.left = subtree
 
+        for child in self.children:
+            child.parent = None
+        self.children = []
         if prev_term is not None:
             prev_term.next_term = self
         if next_term is not None:
@@ -273,6 +290,7 @@ class Node(object):
         self.next_term = next_term
 
         self.mark_changed()
+        self.changed = False
 
 
     def remove_child(self, child):
@@ -368,22 +386,46 @@ class Node(object):
                 last = siblings[i]
 
     def find_first_terminal_in_subtree(self):
-        node = self
-        while isinstance(node.symbol, Nonterminal):
-            if len(node.children) > 0:
-                node = node.children[0]
+        node_q = collections.deque()
+        node_q.append(self)
+        while len(node_q) > 0:
+            x = node_q.popleft()
+            if isinstance(x.symbol, Nonterminal):
+                node_q.extend(x.children)
             else:
-                return None
-        return node
+                return x
+        return None
 
     def find_last_terminal_in_subtree(self):
-        node = self
-        while isinstance(node.symbol, Nonterminal):
-            if len(node.children) > 0:
-                node = node.children[-1]
+        node_q = collections.deque()
+        node_q.append(self)
+        while len(node_q) > 0:
+            x = node_q.popleft()
+            if isinstance(x.symbol, Nonterminal):
+                node_q.extend(x.children[::-1])
             else:
-                return None
-        return node
+                return x
+        return None
+
+    def find_terminals_in_subtree(self):
+        terms = []
+        node_q = collections.deque()
+        node_q.append(self)
+        while len(node_q) > 0:
+            x = node_q.popleft()
+            if isinstance(x.symbol, Nonterminal):
+                node_q.extend(x.children)
+            else:
+                terms.append(x)
+        return terms
+
+    def all_ancestors(self):
+        node = self
+        ancestors = []
+        while node is not None:
+            ancestors.append(node)
+            node = node.parent
+        return ancestors
 
     def find_first_terminal(self):
         node = self

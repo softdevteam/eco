@@ -12,7 +12,6 @@ from jsonmanager import JsonManager
 class VCSTreeWalker (object):
     def __init__(self, root_node, exporter):
         self.buf = []
-        self.terminal_positions = {}
         self.terminals = []
         self.root_node = root_node
         self.exporter = exporter
@@ -20,6 +19,7 @@ class VCSTreeWalker (object):
     def pp(self, node):
         # Clear the buffer first
         self.buf = []
+        self.terminals = []
         # Walk the tree
         self.walk(node)
         # Return the buffer
@@ -42,7 +42,6 @@ class VCSTreeWalker (object):
                 self.text(sym.name, node)
 
     def language_box(self, name, node):
-        self.terminal_positions[id(node)] = len(self.buf)
         # Export the contents of the language box
         ref, box_content = self.exporter._export_node(node)
         # Append the reference text to the buffer
@@ -50,7 +49,6 @@ class VCSTreeWalker (object):
         self.terminals.append(node)
 
     def text(self, text, node):
-        self.terminal_positions[id(node)] = len(self.buf)
         self.buf.append(text)
         self.terminals.append(node)
 
@@ -117,6 +115,7 @@ class VCSTreeWalker (object):
         # STEP 2: compute changes from `derived_local` to merged sequence; use difflib for this
         sm = difflib.SequenceMatcher(a=derived_local.buf, b=merged)
         changes = sm.get_opcodes()
+        changes.append(('equal', len(derived_local.buf), len(derived_local.buf), len(merged), len(merged)))
 
         print('CHANGES: {0}'.format(changes))
 
@@ -125,8 +124,6 @@ class VCSTreeWalker (object):
 
         # List of nodes that are the roots of the modified subtrees
         modified_subtrees = set()
-        # List of nodes encountered so far, to ensure we don't walk nodes multiple times
-        visited_nodes = set()
 
         # For each change region
         for tag, i1, i2, j1, j2 in changes:
@@ -135,36 +132,40 @@ class VCSTreeWalker (object):
                 if tag == 'insert':
                     # Expand the range of insert options so that it is not zero-length
                     i1 = max(i1 - 1, 0)
-                    i2 = min(i2 + 1, len(derived_local.terminals))
+                    i2 = min(i2 + 1, len(derived_local.buf))
                 # Start with the set of terminals in the changed region
-                node_set = set(derived_local.terminals[i1:i2])
-                # Mark the nodes as visited
-                visited_nodes = visited_nodes.union(node_set)
+                # node_set = set(derived_local.terminals[i1:i2])
+                node_set = derived_local.terminals[i1:i2]
 
-                # Until we reach the node that is the subtree root
-                while len(node_set) > 1:
-                    # Get the set of the parent nodes; as we go up the tree this set should decrease in size
-                    # until we get to one parent
-                    parents = set([node.parent for node in node_set])
-                    try:
-                        parents.remove(None)
-                    except KeyError:
-                        pass
+                ancestors = None
+                for node in node_set:
+                    ancs = set(node.all_ancestors())
+                    if ancestors is None:
+                        ancestors = ancs
+                    else:
+                        ancestors = ancestors.intersection(ancs)
 
-                    # Remove any nodes that have been previously visited
-                    parents = parents.difference(visited_nodes)
-                    # Mark remaining nodes as visited
-                    visited_nodes = visited_nodes.union(parents)
-                    # Remove the nodes in `parents` from `modified_subtrees`, so that `modified_subtrees`
-                    # will not contain nodes that within the subtrees of other nodes
-                    modified_subtrees = modified_subtrees.difference(parents)
-                    # Next iteration
-                    node_set = parents
+                ancestor_parents = set([anc.parent for anc in ancestors])
+                ancestors = ancestors.difference(ancestor_parents)
 
-                # If one node remains (could be 0 if this part of the tree has already been visited)...
-                if len(node_set) == 1:
-                    # Add into `modified_subtrees`
-                    modified_subtrees = modified_subtrees.union(node_set)
+                if len(ancestors) == 1:
+                    common_root = list(ancestors)[0]
+                    ancestors = set()
+
+                    for s in modified_subtrees:
+                        if common_root.is_in_subtree_rooted_at(s):
+                            common_root = None
+                            break
+                        if s.is_in_subtree_rooted_at(common_root):
+                            ancestors.add(s)
+
+                    crtexts = [repr(node.symbol.name) for node in common_root.find_terminals_in_subtree()]
+                    print 'Ended at common root: {0} with content {1}'.format(common_root, crtexts)
+
+                    if common_root is not None:
+                        # Add into `modified_subtrees`
+                        modified_subtrees = modified_subtrees.difference(ancestors)
+                        modified_subtrees.add(common_root)
 
         # Convert to list
         modified_subtrees = list(modified_subtrees)
@@ -194,6 +195,8 @@ class VCSTreeWalker (object):
 
             if bounds[0] == st_i1:
                 subtree_start_index = st_j1
+            elif bounds[0] == st_i2:
+                subtree_start_index = st_j2
             else:
                 if st_tag == 'equal':
                     # Offset the start point into the index-space of the merged token list
@@ -203,6 +206,8 @@ class VCSTreeWalker (object):
 
             if bounds[1] == en_i1:
                 subtree_end_index = en_j1
+            elif bounds[1] == en_i2:
+                subtree_end_index = en_j2
             else:
                 if st_tag == 'equal':
                     # Offset the start point into the index-space of the merged token list
@@ -289,7 +294,11 @@ def merge3_tree_managers(base_tm, derived_local_tm, derived_main_tm):
 
     print 'Updating subtrees...'
 
+    roots = set()
+
     for subtree, content in subtrees_with_content:
+        roots.add(subtree.get_root())
+
         for x in content:
             if isinstance(x, diff3_driver.Diff3ConflictRegion):
                 raise NotImplementedError('Conflicts not yet correctly handled by three-way merge')
@@ -302,8 +311,15 @@ def merge3_tree_managers(base_tm, derived_local_tm, derived_main_tm):
         print 'Relexing...'
 
         derived_local_tm.relex(subtree)
-        print 'Reparsing...'
-        derived_local_tm.reparse(subtree)
+
+    print 'Final text after re-lexing:'
+    print derived_local_tm.export_as_text(None)
+
+    print 'Reparsing roots ({0})'.format(len(roots))
+    for root in roots:
+        derived_local_tm.reparse(root)
+
+    derived_local_tm.changed = True
 
 
 
