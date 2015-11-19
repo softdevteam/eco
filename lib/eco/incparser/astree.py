@@ -386,35 +386,35 @@ class Node(object):
                 last = siblings[i]
 
     def find_first_terminal_in_subtree(self):
-        node_q = collections.deque()
-        node_q.append(self)
-        while len(node_q) > 0:
-            x = node_q.popleft()
+        node_stack = []
+        node_stack.append(self)
+        while len(node_stack) > 0:
+            x = node_stack.pop()
             if isinstance(x.symbol, Nonterminal):
-                node_q.extend(x.children)
+                node_stack.extend(x.children[::-1])
             else:
                 return x
         return None
 
     def find_last_terminal_in_subtree(self):
-        node_q = collections.deque()
-        node_q.append(self)
-        while len(node_q) > 0:
-            x = node_q.popleft()
+        node_stack = []
+        node_stack.append(self)
+        while len(node_stack) > 0:
+            x = node_stack.pop()
             if isinstance(x.symbol, Nonterminal):
-                node_q.extend(x.children[::-1])
+                node_stack.extend(x.children)
             else:
                 return x
         return None
 
     def find_terminals_in_subtree(self):
         terms = []
-        node_q = collections.deque()
-        node_q.append(self)
-        while len(node_q) > 0:
-            x = node_q.popleft()
+        node_stack = []
+        node_stack.append(self)
+        while len(node_stack) > 0:
+            x = node_stack.pop()
             if isinstance(x.symbol, Nonterminal):
-                node_q.extend(x.children)
+                node_stack.extend(x.children[::-1])
             else:
                 terms.append(x)
         return terms

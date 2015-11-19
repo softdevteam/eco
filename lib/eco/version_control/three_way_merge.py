@@ -53,48 +53,6 @@ class VCSTreeWalker (object):
         self.terminals.append(node)
 
 
-    def _compute_node_bounds(self):
-        """
-        Compute the bounds of every node in a parse tree, where the bounds describe the region of
-        a flattened token sequence that is contained within the subtree rooted at each node.
-
-        :param tree_walker: a `VCSTreeWalker` that has walked the parse tree
-        :return: a dictionary mapping node ID `id(node)` to bounds `(start,end)`
-        """
-        # Initialise the `node_id_to_bounds` dictionary with the bounds of the terminals/leaves
-        node_id_to_bounds = {}
-        # Build a queue of nodes that we must handle as we go
-        node_queue = collections.deque()
-        for i, node in enumerate(self.terminals):
-            node_id_to_bounds[id(node)] = (i, i+1)
-            node_queue.append(node)
-
-        # For each node in the queue, propagate its bounds to its parent, one level up, adding newly discovered
-        # parent nodes. This should results in bounds for every node in the tree.
-        while len(node_queue) > 0:
-            # Get node from queue and get its bounds (should already have been computed)
-            n = node_queue.popleft()
-            n_bounds = node_id_to_bounds[id(n)]
-
-            # Get the parent node and its ID
-            parent = n.parent
-            if parent is not None:
-                parent_id = id(parent)
-
-                if parent_id in node_id_to_bounds:
-                    # Already encountered this node; enlarge its bounds to encompass those of `n` if necessary
-                    p_bounds = node_id_to_bounds[parent_id]
-                    p_bounds = (min(p_bounds[0], n_bounds[0]), max(p_bounds[1], n_bounds[1]))
-                    node_id_to_bounds[parent_id] = p_bounds
-                else:
-                    # Newly discovered node; propagate bounds from child (`n`)
-                    node_id_to_bounds[parent_id] = n_bounds
-                    # Add the parent node to the queue
-                    node_queue.append(parent)
-
-        return node_id_to_bounds
-
-
     @staticmethod
     def three_way_merge(base, derived_local, derived_main):
         """
@@ -115,7 +73,6 @@ class VCSTreeWalker (object):
         # STEP 2: compute changes from `derived_local` to merged sequence; use difflib for this
         sm = difflib.SequenceMatcher(a=derived_local.buf, b=merged)
         changes = sm.get_opcodes()
-        changes.append(('equal', len(derived_local.buf), len(derived_local.buf), len(merged), len(merged)))
 
         print('CHANGES: {0}'.format(changes))
 
@@ -136,6 +93,9 @@ class VCSTreeWalker (object):
                 # Start with the set of terminals in the changed region
                 # node_set = set(derived_local.terminals[i1:i2])
                 node_set = derived_local.terminals[i1:i2]
+
+                print 'Started with terminals {0} with content {1}'.format(derived_local.terminals[i1:i2],
+                                                                           derived_local.buf[i1:i2])
 
                 ancestors = None
                 for node in node_set:
@@ -175,21 +135,24 @@ class VCSTreeWalker (object):
         # STEP 4: compute the replacement content for each modified subtree
 
         # Compute the bounds of the nodes
-        node_id_to_bounds = derived_local._compute_node_bounds()
-        start_indices = [i1 for tag, i1, i2, j1, j2 in changes]
+        term_id_to_pos = {id(term): i for i, term in enumerate(derived_local.terminals)}
+        start_indices = [i1 for tag, i1, i2, j1, j2 in changes] + [changes[0][2]]
         subtrees_with_content = []
 
         for subtree in modified_subtrees:
             # The the sub-tree bounds
-            bounds = node_id_to_bounds[id(subtree)]
+            terms_in_subtree = subtree.find_terminals_in_subtree()
+            bounds_lower = min([term_id_to_pos[id(term)] for term in terms_in_subtree])
+            bounds_upper = max([term_id_to_pos[id(term)] for term in terms_in_subtree])+1
+            bounds = bounds_lower, bounds_upper
 
             # Locate the change regions that are underneath the start and end of the subtree
             start_op_ndx = bisect.bisect_left(start_indices, bounds[0])
             end_op_ndx = bisect.bisect_left(start_indices, bounds[1])
             if start_op_ndx >= len(changes) or bounds[0] < changes[start_op_ndx][1]:
-                start_op_ndx = max(start_op_ndx - 1, 0)
+                start_op_ndx = min(max(start_op_ndx - 1, 0), len(changes) - 1)
             if end_op_ndx >= len(changes) or bounds[1] < changes[end_op_ndx][1]:
-                end_op_ndx = max(end_op_ndx - 1, 0)
+                end_op_ndx = min(max(end_op_ndx - 1, 0), len(changes) - 1)
             st_tag, st_i1, st_i2, st_j1, st_j2 = changes[start_op_ndx]
             en_tag, en_i1, en_i2, en_j1, en_j2 = changes[end_op_ndx]
 
