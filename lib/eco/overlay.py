@@ -24,6 +24,11 @@ class Overlay(QWidget):
     @data.setter
     def data(self, data):
         self._data = data
+        if len(self._data) == 0:
+            return
+        elif len(self._data) == 1:
+            self._norms[self._data.keys()[0]] = 1.0
+            return
         vals = [self._data[lineno][0] for lineno in self._data]
         val_min = float(min(vals))
         val_max = float(max(vals))
@@ -49,7 +54,7 @@ class Overlay(QWidget):
     def paintEvent(self, event):
         """Paint the visualisation of current tool data.
         """
-        if self._data is None:
+        if not self._data:
             return
 
         painter = QPainter()
