@@ -71,8 +71,7 @@ class NodeEditor(QFrame):
         self.connect(self.blinktimer, SIGNAL("timeout()"), self.trigger_blinktimer)
         self.show_cursor = True
 
-        self.lightcolors = [QColor("#333333"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
-        self.darkcolors = [QColor("#999999"), QColor("#859900"), QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198")]
+        self.boxcolors = [QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198"), QColor("#859900")]
         self.setCursor(Qt.IBeamCursor)
 
         # Semi-transparent overlay.
@@ -276,12 +275,13 @@ class NodeEditor(QFrame):
     def paint_nodes(self, paint, node, x, y, line, max_y, lbox=0):
 
         settings = QSettings("softdev", "Eco")
-        if settings.value("app_theme", "Light").toString() in ["Dark", "Gruvbox"]:
+        colors = self.boxcolors
+        if settings.value("app_theme", "Light").toString() in ["Dark"]:
             alpha = 100
-            colors = self.darkcolors
+        elif settings.value("app_theme", "Light").toString() in ["Gruvbox"]:
+            alpha = 100
         else:
             alpha = 40
-            colors = self.lightcolors
 
         first_node = node
         selected_language = self.tm.mainroot
@@ -322,6 +322,7 @@ class NodeEditor(QFrame):
                 lbox += 1
                 lbnode = node.symbol.ast
                 if self.selected_lbox is node:
+                    self.draw_lbox_bracket(paint, '[', node, x, y)
                     draw_lbox = True
                     selected_language = lbnode
                 else:
@@ -345,6 +346,8 @@ class NodeEditor(QFrame):
                     highlighter = self.get_highlighter(node)
                     editor = self.get_editor(node)
                     if self.selected_lbox is lbnode:
+                        # draw bracket
+                        self.draw_lbox_bracket(paint, ']', node, x, y)
                         draw_lbox = False
                     lbnode = self.get_languagebox(node)
                     if lbnode and self.selected_lbox is lbnode:
@@ -369,8 +372,7 @@ class NodeEditor(QFrame):
                     color = colors[0]
                     color.setAlpha(alpha)
                 if draw_lbox and draw_all_boxes: # we are drawing the currently selected language box
-                    color = colors[-1] # overwrite color
-                    color.setAlpha(alpha)
+                    color.setAlpha(20)
                 editor.update_image(node)
                 if node.symbol.name != "\r" and not isinstance(node.symbol, IndentationTerminal):
                     if not node.image or node.plain_mode:
@@ -479,6 +481,35 @@ class NodeEditor(QFrame):
             paint.setFont(self.font)
 
         return x, y, line
+
+    def draw_lbox_bracket(self, paint, bracket, node, x, y):
+        assert bracket in ['[',']']
+        oldpen = paint.pen()
+        newpen = QPen()
+        color = self.get_highlighter(node).get_default_color()
+        newpen.setColor(color)
+        newpen.setWidth(2)
+        paint.setPen(newpen)
+
+        # paint brackets
+        tmpy = y
+        path = QPainterPath()
+        if bracket == '[':
+            tmpx = x + 1 # adjust bracket position
+            path.moveTo(tmpx,   3+y*self.fontht)
+            path.lineTo(tmpx-2, 3+y*self.fontht)
+            path.moveTo(tmpx-2, 3+y*self.fontht)
+            path.lineTo(tmpx-2, 3+y*self.fontht + self.fontht)
+        else:
+            tmpx = x - 1
+            path.moveTo(tmpx,   3+y*self.fontht)
+            path.lineTo(tmpx+2, 3+y*self.fontht)
+            path.moveTo(tmpx+2, 3+y*self.fontht)
+            path.lineTo(tmpx+2, 3+y*self.fontht + self.fontht)
+        path.lineTo(tmpx, 3+y*self.fontht + self.fontht)
+        paint.drawPath(path)
+
+        paint.setPen(oldpen)
 
     def fix_errornode(self, error_node):
         if not error_node:
