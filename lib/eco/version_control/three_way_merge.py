@@ -119,10 +119,10 @@ class VCSTreeWalker (object):
                         if s.is_in_subtree_rooted_at(common_root):
                             ancestors.add(s)
 
-                    crtexts = [repr(node.symbol.name) for node in common_root.find_terminals_in_subtree()]
-                    print 'Ended at common root: {0} with content {1}'.format(common_root, crtexts)
-
                     if common_root is not None:
+                        crtexts = [repr(node.symbol.name) for node in common_root.find_terminals_in_subtree()]
+                        print 'Ended at common root: {0} with content {1}'.format(common_root, crtexts)
+
                         # Add into `modified_subtrees`
                         modified_subtrees = modified_subtrees.difference(ancestors)
                         modified_subtrees.add(common_root)
@@ -142,8 +142,10 @@ class VCSTreeWalker (object):
         for subtree in modified_subtrees:
             # The the sub-tree bounds
             terms_in_subtree = subtree.find_terminals_in_subtree()
-            bounds_lower = min([term_id_to_pos[id(term)] for term in terms_in_subtree])
-            bounds_upper = max([term_id_to_pos[id(term)] for term in terms_in_subtree])+1
+            terminal_positions = [term_id_to_pos.get(id(term)) for term in terms_in_subtree]
+            terminal_positions = [p for p in terminal_positions if p is not None]
+            bounds_lower = min(terminal_positions)
+            bounds_upper = max(terminal_positions) + 1
             bounds = bounds_lower, bounds_upper
 
             # Locate the change regions that are underneath the start and end of the subtree
