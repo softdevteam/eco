@@ -171,6 +171,8 @@ class NodeEditor(QFrame):
                 annotes = [annote.annotation for annote in node.get_annotations_with_hint(ToolTip)]
                 msg = "\n".join(annotes)
                 if msg.strip() != "":
+                    if self.tm.tool_data_is_dirty:
+                        msg += "\n[Warning: Information may be out of date.]"
                     QToolTip.showText(event.globalPos(), msg)
             return True
         return QFrame.event(self, event)

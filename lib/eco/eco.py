@@ -798,6 +798,7 @@ class Window(QtGui.QMainWindow):
         self.ui.teConsole.clear()
         self.ui.actionShow_tool_visualisations.setChecked(True)
         ed = self.getEditor()
+        ed.tm.tool_data_is_dirty = False
         ed.overlay.clear_data()
         self.profile_throbber.show(self.ui.tabWidget.currentIndex())
         self.thread_prof.start()

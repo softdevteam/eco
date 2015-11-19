@@ -28,6 +28,12 @@ class Overlay(QWidget):
         high = QColor(QApplication.instance().heatmap_high)
         transparency = QApplication.instance().heatmap_alpha.toInt()[0]
 
+        # If data is out of date, draw the heatmap with 10% less opacity
+        if self.node_editor.tm.tool_data_is_dirty:
+            transparency_new = int(transparency * 0.8)
+            if transparency_new > 0:
+                transparency = transparency_new
+
         red   = float(high.red() - low.red()) * value + low.red()
         green = float(high.green() - low.green()) * value + low.green()
         blue  = float(high.blue() - low.blue()) * value + low.blue()
