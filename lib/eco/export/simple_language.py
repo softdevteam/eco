@@ -5,11 +5,28 @@ import tempfile
 import subprocess
 import sys
 
+from incparser.annotation import Annotation, ToolTip, Footnote, Heatmap
 from mocks import MockPopen
+
+class SLCoverageCounterMsg(Annotation):
+    def __init__(self, annotation):
+        self._hints = [ToolTip(), Footnote()]
+        super(SLCoverageCounterMsg, self).__init__(annotation)
+
+    def get_hints(self):
+        return self._hints
+
+
+class SLCoverageCounterVal(Annotation):
+    def __init__(self, annotation):
+        self._hints = [Heatmap()]
+        super(SLCoverageCounterVal, self).__init__(annotation)
+
+    def get_hints(self):
+        return self._hints
 
 
 class SimpleLanguageExporter(object):
-
     def __init__(self, tm):
         self.tm = tm  # TreeManager object.
 
@@ -43,44 +60,60 @@ class SimpleLanguageExporter(object):
                                 bufsize=0)
 
     def _profile(self):
-            self.tm.profile_is_dirty = False
-            self.tm.profile_map = dict()
-            self.tm.profile_data = dict()
-            working_dir = os.path.join(os.environ["GRAAL_WORKSPACE"], "graal-compiler")
-            f = tempfile.mkstemp(suffix=".sl")
-            self.tm.export_as_text(f[1])
-            # Run this command:
-            #     $ cd $GRAAL_WORKSPACE/graal-compiler
-            #     $ ../../mx/mx --vm graal slcoverage tempfile.sl
-            proc = subprocess.Popen(["../../mx/mx", "--vm", "graal", "slcoverage", f[1]],
-                                    cwd=working_dir,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.STDOUT,
-                                    bufsize=0)
-            stdout_value, stderr_value = proc.communicate()
-            # Mock Popen here, so that we can return a Popen-like object.
-            # This allows Eco to append the output of the profiler
-            # to the console.
-            mock = MockPopen(copy.copy(stdout_value), copy.copy(stderr_value))
-            # Lex the result of the profiler. Lines look like this:
-            #                 11: function main() {
-            # (    20000000)   5:     sum = sum + i;
-            temp_cursor = self.tm.cursor.copy()
-            for line in stdout_value.split('\n'):
-                tokens = line.strip().split()
-                if not tokens:
-                    continue
-                if ((tokens[0] == '(') and
-                    tokens[1].endswith(')') and
-                    tokens[2].endswith(':')):
-                    ncalls = int(tokens[1][:-1])
-                    lineno = int(tokens[2][:-1])
-                    msg = ('Line %s ran %s times' % (lineno, ncalls))
-                    temp_cursor.line = lineno - 1
-                    temp_cursor.move_to_x(0, self.tm.lines)
-                    node = temp_cursor.find_next_visible(temp_cursor.node)
-                    if node.lookup == "<ws>":
-                        node = node.next_term
-                    self.tm.profile_map[node] = msg
-                    self.tm.profile_data[lineno] = (float(ncalls), node)
-            return mock
+        self.tm.profile_is_dirty = False
+        self.tm.profile_map = dict()
+        self.tm.profile_data = dict()
+        working_dir = os.path.join(os.environ["GRAAL_WORKSPACE"], "graal-compiler")
+        f = tempfile.mkstemp(suffix=".sl")
+        self.tm.export_as_text(f[1])
+        # Run this command:
+        #     $ cd $GRAAL_WORKSPACE/graal-compiler
+        #     $ ../../mx/mx --vm graal slcoverage tempfile.sl
+        proc = subprocess.Popen(["../../mx/mx", "--vm", "graal", "slcoverage", f[1]],
+                                cwd=working_dir,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT,
+                                bufsize=0)
+        stdout_value, stderr_value = proc.communicate()
+        # Mock Popen here, so that we can return a Popen-like object.
+        # This allows Eco to append the output of the profiler
+        # to the console.
+        mock = MockPopen(copy.copy(stdout_value), copy.copy(stderr_value))
+        # Lex the result of the profiler. Lines look like this:
+        #                 11: function main() {
+        # (    20000000)   5:     sum = sum + i;
+        temp_cursor = self.tm.cursor.copy()
+        ncalls_dict = dict()
+        for line in stdout_value.split('\n'):
+            tokens = line.strip().split()
+            if not tokens:
+                continue
+            if ((tokens[0] == '(') and
+                tokens[1].endswith(')') and
+                tokens[2].endswith(':')):
+                ncalls = int(tokens[1][:-1])
+                lineno = int(tokens[2][:-1])
+                msg = ('Line %s ran %s times' % (lineno, ncalls))
+                temp_cursor.line = lineno - 1
+                temp_cursor.move_to_x(0, self.tm.lines)
+                node = temp_cursor.find_next_visible(temp_cursor.node)
+                if node.lookup == "<ws>":
+                    node = node.next_term
+                # Remove old annotation
+                node.remove_annotations_by_class(SLCoverageCounterMsg)
+                # Add new annotation
+                node.add_annotation(SLCoverageCounterMsg(msg))
+                ncalls_dict[node] = ncalls
+
+        # Normalise profiler information.
+        vals = ncalls_dict.values()
+        val_min = float(min(vals))
+        val_max = float(max(vals))
+        val_diff = val_max - val_min
+        for node in ncalls_dict:
+            ncalls_dict[node] = (ncalls_dict[node] - val_min) / val_diff
+        for node in ncalls_dict:
+            node.remove_annotations_by_class(SLCoverageCounterVal)
+            node.add_annotation(SLCoverageCounterVal(ncalls_dict[node]))
+
+        return mock
