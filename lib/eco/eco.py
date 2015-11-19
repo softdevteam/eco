@@ -1060,6 +1060,11 @@ class Window(QtGui.QMainWindow):
             else:
                 self.ui.actionShow_tool_visualisations.setChecked(False)
             self.ui.actionVisualise_automatically.setChecked(ed_tab.editor.run_background_tools)
+
+            if ed_tab.editor.tm.get_mainparser().graph:
+                self.ui.actionStateGraph.setEnabled(True)
+            else:
+                self.ui.actionStateGraph.setEnabled(False)
         self.btReparse()
 
     def closeEvent(self, event):
