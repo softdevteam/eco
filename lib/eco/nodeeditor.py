@@ -36,6 +36,7 @@ from jsonmanager import JsonManager
 from astanalyser import AstAnalyser
 
 from overlay import Overlay
+from incparser.annotation import Footnote, Heatmap, ToolTip
 
 import syntaxhighlighter
 import editor
@@ -80,6 +81,9 @@ class NodeEditor(QFrame):
         # Start hidden, make (in)visible with self.toggle_overlay().
         self.overlay.hide()
 
+        # Set to True if the user wants to see tool visualisations.
+        self.show_tool_visualisations = True
+
         # Set True if Eco should be running profiler and other tools,
         # continuously in the background.
         self.run_background_tools = False
@@ -95,13 +99,6 @@ class NodeEditor(QFrame):
 
     def is_overlay_visible(self):
         return self.overlay.isVisible()
-
-    def set_tool_data(self, tool_data):
-        """Receive data form a profiler or tool, visualise and display.
-        """
-        self.overlay.data = tool_data
-        self.overlay.lines = self.lines
-        self.show_overlay()
 
     def resizeEvent(self, event):
         self.overlay.resize(event.size())
@@ -165,11 +162,16 @@ class NodeEditor(QFrame):
             if not result:
                 event.ignore()
                 return True
+            # Draw errors, if there are any.
             msg = self.tm.get_error(node)
-            if not msg:
-                msg = self.tm.get_error(node)
             if msg:
-                QToolTip.showText(event.globalPos(), msg);
+                QToolTip.showText(event.globalPos(), msg)
+            # Draw annotations if there are any.
+            elif self.show_tool_visualisations:
+                annotes = [annote.annotation for annote in node.get_annotations_with_hint(ToolTip)]
+                msg = "\n".join(annotes)
+                if msg.strip() != "":
+                    QToolTip.showText(event.globalPos(), msg)
             return True
         return QFrame.event(self, event)
 
@@ -208,6 +210,9 @@ class NodeEditor(QFrame):
         self.scroll_width = max(0, max_width - current_width)
 
     def paintEvent(self, event):
+        # Clear data in the heatmap overlay
+        self.overlay.clear_data()
+
         gfont = QApplication.instance().gfont
         self.font = gfont.font
         self.fontwt = gfont.fontwt
@@ -395,23 +400,28 @@ class NodeEditor(QFrame):
             #y += dy
             self.lines[line].height = max(self.lines[line].height, dy)
 
-            # Draw profiling information.
-            infofont = QApplication.instance().tool_info_font
-
-            if node in self.tm.profile_map:
-                prof = self.tm.profile_map[node]
-                if not self.tm.profile_is_dirty:
-                    infofont.font.setBold(True)
-                else:
-                    infofont.font.setBold(False)
-                paint.setFont(infofont.font)
-                paint.setPen(QPen(QColor((highlighter.get_default_color()))))
-                start_x = (0 if (x - len(prof) * infofont.fontwt) < 0
-                             else x - len(prof) * infofont.fontwt)
-                start_y = self.fontht + ((y + 1) * self.fontht)
-                paint.drawText(QtCore.QPointF(x-dx, start_y), prof)
-                self.lines[line].height = max(self.lines[line].height, 2)
-                paint.setFont(self.font)
+            # Draw footnotes and add data to heatmap.
+            annotes = [annote.annotation for annote in node.get_annotations_with_hint(Heatmap)]
+            for annote in annotes:
+                self.overlay.add_datum(line + 1, annote)
+            if self.show_tool_visualisations:
+                # Draw footnotes.
+                infofont = QApplication.instance().tool_info_font
+                annotes = [annote.annotation for annote in node.get_annotations_with_hint(Footnote)]
+                footnote = " ".join(annotes)
+                if footnote.strip() != "":
+                    if not self.tm.tool_data_is_dirty:
+                        infofont.font.setBold(True)
+                    else:
+                        infofont.font.setBold(False)
+                    paint.setFont(infofont.font)
+                    paint.setPen(QPen(QColor((highlighter.get_default_color()))))
+                    start_x = (0 if (x - len(footnote) * infofont.fontwt) < 0
+                                 else x - len(footnote) * infofont.fontwt)
+                    start_y = self.fontht + ((y + 1) * self.fontht)
+                    paint.drawText(QtCore.QPointF(x-dx, start_y), footnote)
+                    self.lines[line].height = max(self.lines[line].height, 2)
+                    paint.setFont(self.font)
 
             # after we drew a return, update line information
             if node.lookup == "<return>" and not node is first_node:

@@ -153,7 +153,7 @@ class AST(object):
         return "\n".join(output)
 
 class Node(object):
-    __slots__ = ["symbol", "state", "parent", "left", "right", "prev_term", "next_term", "magic_parent", "children"]
+    __slots__ = ["symbol", "state", "parent", "left", "right", "prev_term", "next_term", "magic_parent", "children", "annotations"]
     def __init__(self, symbol, state, children):
         self.symbol = symbol
         self.state = state
@@ -165,6 +165,23 @@ class Node(object):
         self.magic_parent = None
         self.set_children(children)
         self.log = {}
+        self.annotations = []
+
+    def add_annotation(self, annotation):
+        self.annotations.append(annotation)
+
+    def remove_annotations_by_class(self, klass):
+        for annotation in self.annotations:
+            if isinstance(annotation, klass):
+                self.annotations.remove(annotation)
+
+    def get_annotations_with_hint(self, klass):
+        matching = []
+        for annotation in self.annotations:
+            for hint in annotation.get_hints():
+                if isinstance(hint, klass):
+                    matching.append(annotation)
+        return matching
 
     def save_ns(self, setchildren=False):
         from treemanager import TreeManager

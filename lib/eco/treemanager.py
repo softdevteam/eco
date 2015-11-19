@@ -26,9 +26,10 @@ from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal,
 from PyQt4.QtGui import QApplication
 from grammars.grammars import lang_dict, Language, EcoFile
 from export import HTMLPythonSQL, PHPPython, ATerms
+from export.simple_language import SimpleLanguageExporter
+from export.cpython import CPythonExporter
 
 import math
-import os
 
 class FontManager(object):
     def __init__(self):
@@ -289,9 +290,9 @@ class TreeManager(object):
         self.savenextparse = False
         self.saved_lines = {}
         self.saved_parsers = {}
-        self.profile_data = {} # line no -> (float, node) (raw data)
-        self.profile_map = {}  # node -> str
-        self.profile_is_dirty = False
+
+        self.tool_data_is_dirty = False
+
         # This code and the can_profile() method should probably be refactored.
         self.langs_with_profiler = {
             "Python + Prolog" : False,
@@ -819,7 +820,7 @@ class TreeManager(object):
     def key_normal(self, text):
         self.log_input("key_normal", repr(str(text)))
         indentation = 0
-        self.profile_is_dirty = True
+        self.tool_data_is_dirty = True
 
         if self.hasSelection():
             self.deleteSelection()
@@ -897,7 +898,7 @@ class TreeManager(object):
 
     def key_backspace(self):
         self.log_input("key_backspace")
-        self.profile_is_dirty = True
+        self.tool_data_is_dirty = True
         node = self.get_selected_node()
         if node is self.mainroot.children[0] and not self.hasSelection():
             return
@@ -914,7 +915,7 @@ class TreeManager(object):
 
     def key_delete(self):
         self.log_input("key_delete")
-        self.profile_is_dirty = True
+        self.tool_data_is_dirty = True
         node = self.get_node_from_cursor()
 
         if self.hasSelection():
@@ -1120,7 +1121,7 @@ class TreeManager(object):
         return node
 
     def post_keypress(self, text):
-        self.profile_is_dirty = True
+        self.tool_data_is_dirty = True
         lines_before = len(self.lines)
         self.rescan_linebreaks(self.cursor.line)
         new_lines = len(self.lines) - lines_before
@@ -1172,7 +1173,7 @@ class TreeManager(object):
 
     def pasteText(self, text):
         self.log_input("pasteText", repr(str(text)))
-        self.profile_is_dirty = True
+        self.tool_data_is_dirty = True
         oldpos = self.cursor.get_x()
         node = self.get_node_from_cursor()
         next_node = node.next_term
@@ -1212,7 +1213,7 @@ class TreeManager(object):
 
     def cutSelection(self):
         self.log_input("cutSelection")
-        self.profile_is_dirty = True
+        self.tool_data_is_dirty = True
         if self.hasSelection():
             text = self.copySelection()
             self.input_log.pop()
@@ -1222,7 +1223,7 @@ class TreeManager(object):
 
     def deleteSelection(self):
         #XXX simple version: later we might want to modify the nodes directly
-        self.profile_is_dirty = True
+        self.tool_data_is_dirty = True
         nodes, diff_start, diff_end = self.get_nodes_from_selection()
         if nodes == []:
             return
@@ -1440,134 +1441,11 @@ class TreeManager(object):
         elif lang == "PHP + Python" or lang == "PHP":
             return self.export_php_python(path, run)
         elif lang == "Python 2.7.5":
-            return self.export_cpython(path, run, profile)
+            return CPythonExporter(self).export(path, run, profile)
         elif lang == "SimpleLanguage":
-            return self.export_simple_language(path, run, profile)
+            return SimpleLanguageExporter(self).export(path=path, run=run, profile=profile)
         else:
             return self.export_as_text(path)
-
-    def export_simple_language(self, path=None, run=False, profile=False):
-        import copy
-        import os
-        import os.path
-        import tempfile
-        import subprocess
-        import sys
-        if run or profile:
-            if not os.environ.has_key("GRAAL_WORKSPACE"):
-                sys.stderr.write("GRAAL_WORKSPACE environment not set")
-                return
-        if run:
-            working_dir = os.path.join(os.environ["GRAAL_WORKSPACE"], "graal-compiler")
-            f = tempfile.mkstemp(suffix=".sl")
-            self.export_as_text(f[1])
-            # Run this command:
-            #     $ cd $GRAAL_WORKSPACE/graal-compiler
-            #     $ ../../mx/mx --vm graal sl tempfile.sl
-            return subprocess.Popen(["../../mx/mx", "--vm", "graal", "sl", f[1]],
-                                    cwd=working_dir,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.STDOUT,
-                                    bufsize=0)
-        if profile:
-            self.profile_is_dirty = False
-            self.profile_map = dict()
-            self.profile_data = dict()
-            working_dir = os.path.join(os.environ["GRAAL_WORKSPACE"], "graal-compiler")
-            f = tempfile.mkstemp(suffix=".sl")
-            self.export_as_text(f[1])
-            # Run this command:
-            #     $ cd $GRAAL_WORKSPACE/graal-compiler
-            #     $ ../../mx/mx --vm graal slcoverage tempfile.sl
-            proc = subprocess.Popen(["../../mx/mx", "--vm", "graal", "slcoverage", f[1]],
-                                    cwd=working_dir,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.STDOUT,
-                                    bufsize=0)
-            stdout_value, stderr_value = proc.communicate()
-            # Mock Popen here, so that we can return a Popen-like object.
-            # This allows Eco to append the output of the profiler
-            # to the console.
-            mock = MockPopen(copy.copy(stdout_value), copy.copy(stderr_value))
-            # Lex the result of the profiler. Lines look like this:
-            #                 11: function main() {
-            # (    20000000)   5:     sum = sum + i;
-            temp_cursor = self.cursor.copy()
-            for line in stdout_value.split('\n'):
-                tokens = line.strip().split()
-                if not tokens:
-                    continue
-                if ((tokens[0] == '(') and
-                    tokens[1].endswith(')') and
-                    tokens[2].endswith(':')):
-                    ncalls = int(tokens[1][:-1])
-                    lineno = int(tokens[2][:-1])
-                    msg = ('Line %s ran %s times' % (lineno, ncalls))
-
-                    temp_cursor.line = lineno - 1
-                    temp_cursor.move_to_x(0, self.lines)
-                    #temp_cursor.right()
-                    node = temp_cursor.find_next_visible(temp_cursor.node)
-                    if node.lookup == "<ws>":
-                        node = node.next_term
-                    self.profile_map[node] = msg
-                    self.profile_data[lineno] = (float(ncalls), node)
-            return mock
-
-        elif path:
-            self.export_as_text(path)
-
-    def export_cpython(self, path, run, profile):
-        import copy, os, os.path, subprocess, tempfile
-        f = tempfile.mkstemp()
-        self.export_as_text(f[1])
-        if profile:
-            # Delete any stale profile info
-            self.profile_is_dirty = False
-            self.profile_map = dict()
-            self.profile_data = dict()
-            # python -m cProfile [-o output_file] [-s sort_order] myscript.py
-            proc = subprocess.Popen(["python2", "-m", "cProfile", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
-            stdout_value, stderr_value = proc.communicate()
-            # Mock Popen here, so that we can return a Popen-like object.
-            # This allows Eco to append the output of the profiler
-            # to the console.
-            mock = MockPopen(copy.copy(stdout_value), copy.copy(stderr_value))
-            # Lex profiler output:
-            # ncalls  tottime  percall  cumtime  percall fname:lineno(fn)
-            table = False
-            temp_cursor = self.cursor.copy()
-            for line in stdout_value.split('\n'):
-                tokens = line.strip().split()
-                if not tokens:
-                    continue
-                elif len(tokens) < 6:
-                    continue
-                elif not table:
-                    if tokens[0] == 'ncalls':
-                        table = True
-                else:
-                    if not ':' in tokens[5]:
-                        continue
-                    fname, loc = tokens[5].split(':')
-                    if not (fname == os.path.basename(f[1]) or fname == f[1]):
-                        continue
-                    ncalls = tokens[0]
-                    lineno = int(loc.split('(')[0])
-                    func = loc.split('(')[1][:-1]
-                    # Move cursor to correct line and character
-                    msg = ('%s: called %s times ran at %ss / call' % (func, ncalls, tokens[2]))
-                    temp_cursor.line = lineno - 1
-                    temp_cursor.move_to_x(0, self.lines)
-                    #temp_cursor.right()
-                    node = temp_cursor.find_next_visible(temp_cursor.node)
-                    if node.lookup == "<ws>":
-                        node = node.next_term
-                    self.profile_map[node] = msg
-                    self.profile_data[lineno] = (float(ncalls), node)
-            return mock
-        elif run:
-            return subprocess.Popen(["python2", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
 
     def export_unipycation(self, path=None):
         import subprocess, sys
@@ -1707,37 +1585,3 @@ class TreeManager(object):
                 eval(l) # expressions
             except SyntaxError:
                 exec(l) # statements
-
-
-class MockFile(object):
-    """Mock the readline() method of a file object.
-    Used by MockPopen.
-    """
-    def __init__(self, text):
-        if text:
-            self.text = text.split(os.linesep)
-        else:
-            self.text = ""
-        self.index = 0
-
-    def read(self):
-        return os.linesep.join(self.text)
-
-    def readline(self):
-        if self.index >= len(self.text):
-            return ""
-        line = self.text[self.index]
-        self.index += 1
-        return line
-
-
-class MockPopen(object):
-    """Mock a Popen object.
-    Used by profilers which need to call communicate() on a real Popen object,
-    but also need to return the same Popen, so that its contents can be
-    appended to the Eco console.
-    """
-    def __init__(self, out, err=""):
-        self.stdout = MockFile(out)
-        self.stderr = MockFile(err)
-        self.rc = 0
