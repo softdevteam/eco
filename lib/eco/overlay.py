@@ -12,31 +12,14 @@ class Overlay(QWidget):
         palette = QPalette(self.palette())
         palette.setColor(palette.Background, Qt.transparent)
         self.setPalette(palette)
-        # line no -> (float, node)
-        self._data = dict()
         # line no -> normalised float [0.0, 1.0]
-        self._norms = dict()
+        self._data = dict()
 
-    @property
-    def data(self):
-        return self._data
+    def add_datum(self, lineno, datum):
+        self._data[lineno] = datum
 
-    @data.setter
-    def data(self, data):
-        self._data = data
-        if len(self._data) == 0:
-            return
-        elif len(self._data) == 1:
-            self._norms[self._data.keys()[0]] = 1.0
-            return
-        vals = [self._data[lineno][0] for lineno in self._data]
-        val_min = float(min(vals))
-        val_max = float(max(vals))
-        val_diff = val_max - val_min
-        for lineno in self._data:
-            val, node = self._data[lineno]
-            # Linear normalisation:
-            self._norms[lineno] = (val - val_min) / val_diff
+    def clear_data(self):
+        self._data = dict()
 
     def get_colour(self, value):
         """Map a normalised value [0.0, 0.1] to a QColor.
@@ -67,15 +50,15 @@ class Overlay(QWidget):
         # Draw the visualisation.
         x_top = event.rect().top() + 3 + self.node_editor.paint_start[1] * gfont.fontht  # Start a top of widget.
         lineno = self.node_editor.paint_start[0] + 1
-        last_lineno = max(self._norms.keys())
+        last_lineno = max(self._data.keys())
         lines = self.node_editor.lines
         while lineno <= last_lineno:
-            if lineno in self._norms:
+            if lineno in self._data:
                 # __init__ (self, int aleft, int atop, int awidth, int aheight)
                 rect = QRect(0,
                              x_top,
                              event.rect().width(),
                              gfont.fontht * lines[lineno - 1].height)
-                painter.fillRect(rect, QBrush(self.get_colour(self._norms[lineno])))
+                painter.fillRect(rect, QBrush(self.get_colour(self._data[lineno])))
             x_top += gfont.fontht * lines[lineno - 1].height
             lineno += 1

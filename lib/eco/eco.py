@@ -619,12 +619,12 @@ class Window(QtGui.QMainWindow):
     def draw_overlay(self, tool_data):
         """Send profiler or tool information to the overlay object."""
         ed_tab = self.getEditor()
-        ed_tab.set_tool_data(tool_data)
         if self.ui.actionShow_tool_visualisations.isChecked():
             ed_tab.show_overlay()
 
     def toggle_overlay(self):
         ed_tab = self.getEditorTab()
+        ed_tab.show_tool_visualisation = self.ui.actionShow_tool_visualisations.isChecked()
         ed_tab.editor.toggle_overlay()
 
     def show_overlay(self):
@@ -796,6 +796,9 @@ class Window(QtGui.QMainWindow):
 
     def profile_subprocess(self):
         self.ui.teConsole.clear()
+        self.ui.actionShow_tool_visualisations.setChecked(True)
+        ed = self.getEditor()
+        ed.overlay.clear_data()
         self.profile_throbber.show(self.ui.tabWidget.currentIndex())
         self.thread_prof.start()
 

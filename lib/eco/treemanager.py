@@ -30,7 +30,6 @@ from export.simple_language import SimpleLanguageExporter
 from export.cpython import CPythonExporter
 
 import math
-import os
 
 class FontManager(object):
     def __init__(self):
@@ -291,9 +290,9 @@ class TreeManager(object):
         self.savenextparse = False
         self.saved_lines = {}
         self.saved_parsers = {}
-        self.profile_data = {} # line no -> (float, node) (raw data)
-        self.profile_map = {}  # node -> str
-        self.profile_is_dirty = False
+
+        self.tool_data_is_dirty = False
+
         # This code and the can_profile() method should probably be refactored.
         self.langs_with_profiler = {
             "Python + Prolog" : False,
@@ -821,7 +820,7 @@ class TreeManager(object):
     def key_normal(self, text):
         self.log_input("key_normal", repr(str(text)))
         indentation = 0
-        self.profile_is_dirty = True
+        self.tool_data_is_dirty = True
 
         if self.hasSelection():
             self.deleteSelection()
@@ -899,7 +898,7 @@ class TreeManager(object):
 
     def key_backspace(self):
         self.log_input("key_backspace")
-        self.profile_is_dirty = True
+        self.tool_data_is_dirty = True
         node = self.get_selected_node()
         if node is self.mainroot.children[0] and not self.hasSelection():
             return
@@ -916,7 +915,7 @@ class TreeManager(object):
 
     def key_delete(self):
         self.log_input("key_delete")
-        self.profile_is_dirty = True
+        self.tool_data_is_dirty = True
         node = self.get_node_from_cursor()
 
         if self.hasSelection():
@@ -1122,7 +1121,7 @@ class TreeManager(object):
         return node
 
     def post_keypress(self, text):
-        self.profile_is_dirty = True
+        self.tool_data_is_dirty = True
         lines_before = len(self.lines)
         self.rescan_linebreaks(self.cursor.line)
         new_lines = len(self.lines) - lines_before
@@ -1174,7 +1173,7 @@ class TreeManager(object):
 
     def pasteText(self, text):
         self.log_input("pasteText", repr(str(text)))
-        self.profile_is_dirty = True
+        self.tool_data_is_dirty = True
         oldpos = self.cursor.get_x()
         node = self.get_node_from_cursor()
         next_node = node.next_term
@@ -1214,7 +1213,7 @@ class TreeManager(object):
 
     def cutSelection(self):
         self.log_input("cutSelection")
-        self.profile_is_dirty = True
+        self.tool_data_is_dirty = True
         if self.hasSelection():
             text = self.copySelection()
             self.input_log.pop()
@@ -1224,7 +1223,7 @@ class TreeManager(object):
 
     def deleteSelection(self):
         #XXX simple version: later we might want to modify the nodes directly
-        self.profile_is_dirty = True
+        self.tool_data_is_dirty = True
         nodes, diff_start, diff_end = self.get_nodes_from_selection()
         if nodes == []:
             return
