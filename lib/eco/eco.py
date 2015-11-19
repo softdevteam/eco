@@ -899,6 +899,7 @@ class Window(QtGui.QMainWindow):
         derived_main_tm = three_way_merge.load_tm(derived_main_filename)
 
         three_way_merge.merge3_tree_managers(base_tm, derived_local_tm, derived_main_tm)
+        derived_local_tm.rescan_all_linebreaks()
 
 
     def get_last_dir(self):

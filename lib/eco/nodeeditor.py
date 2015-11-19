@@ -198,9 +198,10 @@ class NodeEditor(QFrame):
         # calculate how many lines we need to show
         self.init_height = self.geometry().height()
 
-        self.paintLines(paint, self.viewport_y)
-
-        paint.end()
+        try:
+            self.paintLines(paint, self.viewport_y)
+        finally:
+            paint.end()
 
         total_lines = 0
         max_width = 0
@@ -371,6 +372,8 @@ class NodeEditor(QFrame):
                 x = 0#l_x[-1]
                 y += self.lines[line].height
                 line += 1
+                if line >= len(self.lines):
+                    print 'Attempting to access non-existant line {0}/{1}'.format(line, len(self.lines))
                 self.lines[line].height = 1 # reset height
 
             # draw cursor

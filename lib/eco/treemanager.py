@@ -1274,6 +1274,7 @@ class TreeManager(object):
             self.cursor.x = x
 
     def rescan_linebreaks(self, y):
+
         """ Scan all nodes between this return node and the next lines return
         node. All other return nodes you find that are not the next lines
         return node are new and must be inserted into self.lines """
@@ -1286,7 +1287,7 @@ class TreeManager(object):
 
         current = current.next_term
         while current is not next:
-            if current.symbol.name == "\r":
+            if current.lookup == "<return>":
                 y += 1
                 self.lines.insert(y, Line(current))
             if isinstance(current.symbol, MagicTerminal):
@@ -1298,6 +1299,33 @@ class TreeManager(object):
                     current = lbox.next_term
             else:
                 current = current.next_term
+
+    def rescan_all_linebreaks(self):
+
+        """ Scan all nodes between this return node and the next lines return
+        node. All other return nodes you find that are not the next lines
+        return node are new and must be inserted into self.lines """
+
+        current = self.get_bos()
+        next = self.get_eos()
+
+        current = current.next_term
+        self.lines = [Line(current)]
+        while current is not next:
+            if current.lookup == "<return>":
+                self.lines.append(Line(current))
+            if isinstance(current.symbol, MagicTerminal):
+                current = current.symbol.ast.children[0]
+            elif isinstance(current, EOS):
+                root = current.get_root()
+                lbox = root.get_magicterminal()
+                if lbox:
+                    current = lbox.next_term
+            else:
+                current = current.next_term
+        # self.lines.append(Line(self.get_eos()))
+
+
 
     def delete_linebreak(self, y, node):
         current = self.lines[y].node

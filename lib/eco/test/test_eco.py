@@ -2311,16 +2311,16 @@ def bbb(yyy):
 
 def eee(rrr, mmm):
     mmm -= 3
-    return mmm, rrr / 2/7
+    return mmm, rrr * 2/7
 """)
         assert base_tm.get_mainparser().last_status
         assert d_local_tm.get_mainparser().last_status
         assert d_main_tm.get_mainparser().last_status
-        for i in range(8):
-            d_main_tm.key_cursors("down")
-        for i in range(22):
-            d_main_tm.key_cursors("right")
-        d_main_tm.key_normal('/')
+        # for i in range(8):
+        #     d_main_tm.key_cursors("down")
+        # for i in range(22):
+        #     d_main_tm.key_cursors("right")
+        # d_main_tm.key_normal('/')
 
         three_way_merge.merge3_tree_managers(base_tm, d_local_tm, d_main_tm)
 
@@ -2336,6 +2336,8 @@ def ddd(qqq, ggg):
 
 def eee(rrr, mmm):
     mmm -= 3
-    return mmm, rrr / /2/7
+    return mmm, rrr * 2/7
 """
+
+        assert d_local_tm.get_mainparser().last_status
 
