@@ -428,7 +428,7 @@ class NodeEditor(QFrame):
             node = node.next_term
 
         if selection_start != selection_end:
-            self.draw_selection(paint, draw_selection_start, draw_selection_end)
+            self.draw_selection(paint, draw_selection_start, draw_selection_end, max_y)
 
         # paint infobox
         if False:
@@ -484,16 +484,28 @@ class NodeEditor(QFrame):
         paint.drawLine(x+2, y+1, x+2+length, y+1)
         paint.setPen(Qt.SolidLine)
 
-    def draw_selection(self, paint, draw_selection_start, draw_selection_end):
+    def draw_selection(self, paint, draw_selection_start, draw_selection_end, max_y):
         x1, y1, line1 = draw_selection_start
         x2, y2, line2 = draw_selection_end
+        if x1 + y1 + line1 == 0:
+            # start outside of viewport
+            line1 = self.paint_start[0]
+        if line2 == 0:
+            # end outside of viewport
+            line2 = self.paint_start[0] + max_y
+        if y1 + y2 == 0:
+            # start and end outside of viewport
+            y2 = max_y
         if y1 == y2:
             paint.fillRect(QRectF(x1, 3 + y1 * self.fontht, x2-x1, self.fontht), QColor(0,0,255,100))
         else:
             paint.fillRect(QRectF(x1, 3 + y1 * self.fontht, self.tm.lines[line1].width*self.fontwt - x1, self.fontht), QColor(0,0,255,100))
             y = y1 + self.tm.lines[line1].height
             for i in range(line1+1, line2):
-                paint.fillRect(QRectF(0, 3 + y * self.fontht, self.tm.lines[i].width*self.fontwt, self.fontht), QColor(0,0,255,100))
+                width = self.tm.lines[i].width*self.fontwt
+                if width == 0:
+                    width = self.fontwt
+                paint.fillRect(QRectF(0, 3 + y * self.fontht, width, self.fontht), QColor(0,0,255,100))
                 y = y + self.tm.lines[i].height
             paint.fillRect(QRectF(0, 3 + y2 * self.fontht, x2, self.fontht), QColor(0,0,255,100))
 
@@ -576,11 +588,18 @@ class NodeEditor(QFrame):
 
         y = y_offset
         line = first_line
-        while line < len(self.tm.lines) - 1:
-            y += self.tm.lines[line].height
-            if y > mouse_y:
-                break
-            line += 1
+        if mouse_y < 0:
+            while line > 0:
+                y -= self.tm.lines[line].height
+                if y < mouse_y:
+                    break
+                line -= 1
+        else:
+            while line < len(self.tm.lines) - 1:
+                y += self.tm.lines[line].height
+                if y > mouse_y:
+                    break
+                line += 1
 
         self.tm.cursor.line = line
         cursor_x = int(round(float(x) / self.fontwt))
@@ -605,6 +624,7 @@ class NodeEditor(QFrame):
         self.tm.selection_end = self.tm.cursor.copy()
         self.tm.input_log.append("self.selection_end = self.cursor.copy()")
         self.update()
+        self.getEditorTab().keypress()
 
     def key_to_string(self, key):
         if key == Qt.Key_Up:
