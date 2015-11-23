@@ -50,6 +50,12 @@ class BootstrapParser(object):
                 return True
         return False
 
+    def implicit_newlines(self):
+        if self.options.has_key("implicit_newlines"):
+            if self.options["implicit_newlines"] == "false":
+                return False
+        return True
+
     def indentation_based(self):
         if self.options.has_key("indentation"):
             if self.options["indentation"] == "true":
@@ -153,10 +159,11 @@ class BootstrapParser(object):
             ws_rule = Rule()
             ws_rule.symbol = Nonterminal("WS")
             ws_rule.add_alternative([Terminal("<ws>"), Nonterminal("WS")])
-            ws_rule.add_alternative([Terminal("<return>"), Nonterminal("WS")])
-            ws_rule.add_alternative([Terminal("<backslash>"), Terminal("<return>"), Nonterminal("WS")])
             if Nonterminal("comment") in self.rules:
                 ws_rule.add_alternative([Nonterminal("comment"), Nonterminal("WS")])
+            if self.implicit_newlines():
+                ws_rule.add_alternative([Terminal("<return>"), Nonterminal("WS")])
+                ws_rule.add_alternative([Terminal("<backslash>"), Terminal("<return>"), Nonterminal("WS")])
             ws_rule.add_alternative([]) # or empty
             self.rules[ws_rule.symbol] = ws_rule
 
