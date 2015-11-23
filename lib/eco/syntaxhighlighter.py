@@ -146,6 +146,10 @@ class JavaHighlighter(SyntaxHighlighter):
         "int": "bold"
     }
 
+    parent_colors = {
+        "string": "cyan"
+    }
+
 class SqlHighlighter(SyntaxHighlighter):
     keyword_colors = {
         "SELECT": "yellow",
