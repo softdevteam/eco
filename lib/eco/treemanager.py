@@ -26,6 +26,7 @@ from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal,
 from PyQt4.QtGui import QApplication
 from grammars.grammars import lang_dict, Language, EcoFile
 from export import HTMLPythonSQL, PHPPython, ATerms
+from export.jruby_simple_language import JRubySimpleLanguageExporter
 from export.simple_language import SimpleLanguageExporter
 from export.cpython import CPythonExporter
 
@@ -301,6 +302,7 @@ class TreeManager(object):
             "PHP" : False,
             "Python 2.7.5" : True,
             "SimpleLanguage" : True,
+            "Ruby + SimpleLanguage" : True,
         }
         self.input_log = []
 
@@ -1444,6 +1446,8 @@ class TreeManager(object):
             return CPythonExporter(self).export(path, run, profile)
         elif lang == "SimpleLanguage":
             return SimpleLanguageExporter(self).export(path=path, run=run, profile=profile)
+        elif lang == "Ruby + SimpleLanguage":
+            return JRubySimpleLanguageExporter(self).export(path=path, run=run, profile=profile)
         else:
             return self.export_as_text(path)
 
