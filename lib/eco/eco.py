@@ -529,8 +529,6 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionExport, SIGNAL("triggered()"), self.export)
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
-        self.connect(self.ui.actionProfile, SIGNAL("triggered()"), self.profile_subprocess)
-        self.connect(self.ui.actionVisualise_automatically, SIGNAL("triggered()"), self.run_background_tools)
 
         try:
             import pydot
@@ -569,10 +567,6 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
         self.connect(self.ui.actionShow_tool_visualisations, SIGNAL("triggered()"), self.toggle_overlay)
 
-        # Make sure the Project -> Profile menu item only appears for
-        # languages that support it.
-        self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.set_profiler_enabled)
-
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
 
@@ -593,50 +587,10 @@ class Window(QtGui.QMainWindow):
         if not settings.value("gen_showparsestatus", True).toBool():
             self.ui.dockWidget_2.hide()
 
-    def set_profiler_enabled(self):
-        ed = self.getEditor()
-        if (ed is not None) and (ed.tm is not None):
-            self.ui.actionProfile.setEnabled(ed.tm.can_profile())
-
-    def run_background_tools(self):
-        self.ui.actionShow_tool_visualisations.setChecked(True)
-        ed_tab = self.getEditor()
-        if ed_tab is not None:
-            ed_tab.run_background_tools = True
-        self.profiler_finished()
-
-    def profiler_finished(self):
-        self.profile_throbber.hide()
-        ed_tab = self.getEditor()
-        if ed_tab is None:
-            return
-        if self.ui.actionVisualise_automatically.isChecked():
-            ed_tab.run_background_tools = True
-            self.profile_subprocess()
-        else:
-            ed_tab.run_background_tools = False
-
-    def draw_overlay(self, tool_data):
-        """Send profiler or tool information to the overlay object."""
-        ed_tab = self.getEditor()
-        if self.ui.actionShow_tool_visualisations.isChecked():
-            ed_tab.show_overlay()
-
     def toggle_overlay(self):
         ed_tab = self.getEditorTab()
         ed_tab.show_tool_visualisation = self.ui.actionShow_tool_visualisations.isChecked()
         ed_tab.editor.toggle_overlay()
-
-    def show_overlay(self):
-        self.ui.actionShow_tool_visualisations.setChecked(True)
-        ed_tab = self.getEditorTab()
-        ed_tab.editor.show_overlay()
-
-    def hide_overlay(self):
-        self.ui.actionShow_tool_visualisations.setChecked(False)
-        ed_tab = self.getEditorTab()
-        ed_tab.editor.hide_overlay()
-
 
     def consoleContextMenu(self, pos):
         def clear():
@@ -791,17 +745,9 @@ class Window(QtGui.QMainWindow):
         self.getEditor().update()
 
     def run_subprocess(self):
+        self.run_throbber.show(self.ui.tabWidget.currentIndex())
         self.ui.teConsole.clear()
         self.thread.start()
-
-    def profile_subprocess(self):
-        self.ui.teConsole.clear()
-        self.ui.actionShow_tool_visualisations.setChecked(True)
-        ed = self.getEditor()
-        ed.tm.tool_data_is_dirty = False
-        ed.overlay.clear_data()
-        self.profile_throbber.show(self.ui.tabWidget.currentIndex())
-        self.thread_prof.start()
 
     def show_output(self, string):
         self.ui.teConsole.append(string)
@@ -936,11 +882,6 @@ class Window(QtGui.QMainWindow):
             self.delete_swap()
         else:
             self.savefileAs()
-        ed_ = self.getEditor()
-        if ed_.run_background_tools:
-            if self.thread_prof.isRunning():
-                self.thread_prof.quit()
-            self.profile_subprocess()
 
     def savefileAs(self):
         ed = self.getEditorTab()
@@ -952,11 +893,6 @@ class Window(QtGui.QMainWindow):
             self.save_last_dir(str(filename))
             self.getEditor().saveToJson(filename)
             self.getEditorTab().filename = filename
-        ed_ = self.getEditor()
-        if ed_.run_background_tools:
-            if self.thread_prof.isRunning():
-                self.thread_prof.quit()
-            self.profile_subprocess()
 
     def delete_swap(self):
         if self.getEditorTab().filename is None:
@@ -1063,7 +999,6 @@ class Window(QtGui.QMainWindow):
                 self.ui.actionShow_tool_visualisations.setChecked(True)
             else:
                 self.ui.actionShow_tool_visualisations.setChecked(False)
-            self.ui.actionVisualise_automatically.setChecked(ed_tab.editor.run_background_tools)
 
             if ed_tab.editor.tm.get_mainparser().graph:
                 self.ui.actionStateGraph.setEnabled(True)
@@ -1178,19 +1113,13 @@ def main():
     window=Window()
     t = SubProcessThread(window, app)
     window.thread = t
-    window.thread_prof = ProfileThread(window, app)
-    window.profile_throbber = Throbber(window.ui.tabWidget)
+    window.run_throbber = Throbber(window.ui.tabWidget)
     window.connect(window.thread, t.signal, window.show_output)
-    window.connect(window.thread_prof, window.thread_prof.signal, window.show_output)
-    # Connect the profiler (tool) thread to the throbber.
-    window.connect(window.thread_prof,
-                   window.thread_prof.signal_done,
-                   window.profiler_finished)
-    # Connect the profiler(tool) thread to the overlay which draws a heatmap
-    # or other visualisation.
-    window.connect(window.thread_prof,
-                   window.thread_prof.signal_overlay,
-                   window.draw_overlay)
+
+    # Connect the thread to the throbber.
+    window.connect(window.thread,
+                   t.signal,
+                   window.run_throbber.hide)
 
     window.parse_options()
     window.show()
@@ -1209,25 +1138,6 @@ class SubProcessThread(QThread):
         if p:
             for line in iter(p.stdout.readline, b''):
                 self.emit(self.signal, line.rstrip())
-
-
-class ProfileThread(QThread):
-    def __init__(self, window, parent):
-        QThread.__init__(self, parent=parent)
-        self.window = window
-        self.signal_done = QtCore.SIGNAL("finished")
-        self.signal = QtCore.SIGNAL("output")
-        self.signal_overlay = QtCore.SIGNAL("profile_overlay")
-
-    def run(self):
-        p = self.window.getEditor().tm.export(profile=True)
-        # Using read() here, rather than readline() because profiler output
-        # often includes blank lines in the middle of the output.
-        if p:
-            text = p.stdout.read()
-            self.emit(self.signal, text.strip())
-            self.emit(self.signal_overlay, self.window.getEditor().tm.profile_data)
-        self.emit(self.signal_done, None)
 
 
 class Throbber(QLabel):

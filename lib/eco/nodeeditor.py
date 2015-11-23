@@ -84,10 +84,6 @@ class NodeEditor(QFrame):
         # Set to True if the user wants to see tool visualisations.
         self.show_tool_visualisations = True
 
-        # Set True if Eco should be running profiler and other tools,
-        # continuously in the background.
-        self.run_background_tools = False
-
     def toggle_overlay(self):
         self.hide_overlay() if self.overlay.isVisible() else self.show_overlay()
 
@@ -968,5 +964,5 @@ class NodeEditor(QFrame):
         self.tm.load_file(language_boxes)
         self.reset()
 
-    def export(self, run=False, profile=False):
-        return self.tm.export(None, run, profile)
+    def export(self, run=False):
+        return self.tm.export(None, run)

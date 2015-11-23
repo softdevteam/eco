@@ -70,8 +70,6 @@
      <string>Project</string>
     </property>
     <addaction name="actionRun"/>
-    <addaction name="actionProfile"/>
-    <addaction name="actionVisualise_automatically"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">

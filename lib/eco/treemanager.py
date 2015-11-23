@@ -294,23 +294,7 @@ class TreeManager(object):
 
         self.tool_data_is_dirty = False
 
-        # This code and the can_profile() method should probably be refactored.
-        self.langs_with_profiler = {
-            "Python + Prolog" : False,
-            "HTML + Python + SQL" : False,
-            "PHP + Python" : False,
-            "PHP" : False,
-            "Python 2.7.5" : True,
-            "SimpleLanguage" : True,
-            "Ruby + SimpleLanguage" : True,
-        }
         self.input_log = []
-
-    def can_profile(self):
-        lang_name = self.parsers[0][2]
-        if lang_name in self.langs_with_profiler:
-            return self.langs_with_profiler[lang_name]
-        return False
 
     def log_input(self, method, *args):
         self.input_log.append("self.%s(%s)" % (method, ", ".join(args)))
@@ -1426,7 +1410,7 @@ class TreeManager(object):
             print("Grammar Error: could not determine grammar type")
             return
 
-    def export(self, path=None, run=False, profile=False):
+    def export(self, path=None, run=False):
         for p, _, _, _ in self.parsers:
             if p.last_status == False:
                 print("Cannot export a syntacially incorrect grammar")
@@ -1443,11 +1427,11 @@ class TreeManager(object):
         elif lang == "PHP + Python" or lang == "PHP":
             return self.export_php_python(path, run)
         elif lang == "Python 2.7.5":
-            return CPythonExporter(self).export(path, run, profile)
+            return CPythonExporter(self).export(path, run)
         elif lang == "SimpleLanguage":
-            return SimpleLanguageExporter(self).export(path=path, run=run, profile=profile)
+            return SimpleLanguageExporter(self).export(path=path, run=run)
         elif lang == "Ruby + SimpleLanguage":
-            return JRubySimpleLanguageExporter(self).export(path=path, run=run, profile=profile)
+            return JRubySimpleLanguageExporter(self).export(path=path, run=run)
         else:
             return self.export_as_text(path)
 
