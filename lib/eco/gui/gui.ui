@@ -127,10 +127,16 @@
      <string>Window</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuTool_plugins">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
    <addaction name="menuPoject"/>
    <addaction name="menuView"/>
+   <addaction name="menuTool_plugins"/>
    <addaction name="menuWindow"/>
    <addaction name="menuInfo"/>
   </widget>

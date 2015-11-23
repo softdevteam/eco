@@ -60,6 +60,8 @@ import editor
 from nodeeditor import NodeEditor
 from editortab import EditorTab
 
+from plugins.manager import PluginManager
+
 import logging
 
 Ui_MainWindow, _     = uic.loadUiType('gui/gui.ui')
@@ -586,6 +588,9 @@ class Window(QtGui.QMainWindow):
             self.ui.dockWidget.hide()
         if not settings.value("gen_showparsestatus", True).toBool():
             self.ui.dockWidget_2.hide()
+
+        # Construct plugin menu
+        self.plugin_manager = PluginManager(self, self.ui.menuTool_plugins)
 
     def toggle_overlay(self):
         ed_tab = self.getEditorTab()
