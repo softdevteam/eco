@@ -39,7 +39,6 @@ class JRubySimpleLanguageExporter(object):
         self._wrappers = list()
         self._output = list()
         self._sl_functions = list()
-        self._line_no_map = dict()
 
     def export(self, path=None, run=False, profile=False):
         if path is not None:
@@ -108,21 +107,11 @@ class JRubySimpleLanguageExporter(object):
             magic = func.upper() + "_"
             self._wrappers.append(self._apply_template(func, magic))
         output = "Truffle::Interop.eval('application/x-sl', %{\n"
-        sl_funcs = "".join(self._sl_output)
-        for n in xrange(sl_funcs.count("\n")):
-            self._line_no_map[n] = n - 1
-        last_line_no_in_map = n
-        output += sl_funcs
+        output += "".join(self._sl_output)
         output += "})\n\n"
-        wrappers = "".join(self._wrappers)
-        for n in xrange(wrappers.count("\n")):
-            self._line_no_map[last_line_no_in_map + n] = last_line_no_in_map + n - 3
-        last_line_no_in_map += n
-        output += wrappers
+        output += "".join(self._wrappers)
         output += "\n\n"
         rb_code = "".join(self._output)
-        for n in xrange(rb_code.count("\n")):
-            self._line_no_map[last_line_no_in_map + n] = last_line_no_in_map + n - 5
         output += rb_code
         with open(path, "w") as fp:
             fp.write("".join(output))
@@ -145,4 +134,79 @@ class JRubySimpleLanguageExporter(object):
                                 bufsize=0)
 
     def _profile(self):
-        pass
+        self.tm.profile_is_dirty = False
+        self.tm.profile_map = dict()
+        self.tm.profile_data = dict()
+        working_dir = os.path.join(os.environ["GRAAL_WORKSPACE"], "jruby")
+        f = tempfile.mkstemp(suffix=".rb")
+        self._export_as_text(f[1])
+
+        # Get a plain text version of the original code, to map
+        # line numbers back to the code in the view port.
+        plain_lines = self.tm.export_as_text(None).split("\n")
+
+        # Run this command:
+        #     $ cd $GRAAL_WORKSPACE/jruby
+        #     $ ./bin/jruby -X+T -Xtruffle.coverage.global=true -J-classpath ./truffle-sl.jar FILE.rb
+        proc =  subprocess.Popen(["bin/jruby",
+                                  "-X+T",
+                                  "-Xtruffle.coverage.global=true",
+                                  "-J-classpath",
+                                  "../truffle/mxbuild/dists/truffle-sl.jar",
+                                  f[1]],
+                                 cwd=working_dir,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT,
+                                 bufsize=0)
+        stdout_value, stderr_value = proc.communicate()
+
+        # Mock Popen here, so that we can return a Popen-like object.
+        # This allows Eco to append the output of the profiler
+        # to the console.
+        mock = MockPopen(copy.copy(stdout_value), copy.copy(stderr_value))
+
+        # Lex the result of the profiler. Lines look like this:
+        #                 11: function main() {
+        # (    20000000)   5:     sum = sum + i;
+        temp_cursor = self.tm.cursor.copy()
+        ncalls_dict = dict()
+        for line in stdout_value.split('\n'):
+            tokens = line.strip().split()
+            if not tokens:
+                continue
+            if ((tokens[0] == '(') and
+                tokens[1].endswith(')') and
+                tokens[2].endswith(':')):
+                ncalls = int(tokens[1][:-1])
+                lineno = int(tokens[2][:-1])
+                if ncalls == 0:
+                    continue
+                try:
+                    # Locate the line of code in the original text
+                    lineno = plain_lines.index(line.split(":")[1][1:]) + 1
+                    msg = ('Line %s ran %s times' % (lineno, ncalls))
+                    temp_cursor.line = lineno - 1
+                    temp_cursor.move_to_x(0, self.tm.lines)
+                    node = temp_cursor.find_next_visible(temp_cursor.node)
+                    if node.lookup == "<ws>":
+                        node = node.next_term
+                    # Remove old annotation
+                    node.remove_annotations_by_class(JRubyCoverageCounterMsg)
+                    # Add new annotation
+                    node.add_annotation(JRubyCoverageCounterMsg(msg))
+                    ncalls_dict[node] = ncalls
+                except ValueError:
+                    continue
+
+        # Normalise profiler information.
+        vals = ncalls_dict.values()
+        val_min = float(min(vals))
+        val_max = float(max(vals))
+        val_diff = val_max - val_min
+        for node in ncalls_dict:
+            ncalls_dict[node] = (ncalls_dict[node] - val_min) / val_diff
+        for node in ncalls_dict:
+            node.remove_annotations_by_class(JRubyCoverageCounterVal)
+            node.add_annotation(JRubyCoverageCounterVal(ncalls_dict[node]))
+
+        return mock
