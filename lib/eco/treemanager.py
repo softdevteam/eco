@@ -89,7 +89,7 @@ class Cursor(object):
         if not self.is_visible(node):
             node = self.find_previous_visible(self.node)
         if node.symbol.name == "\r":
-            return
+            self.line -= 1
         if isinstance(node, BOS):
             return
         if not node is self.node:
@@ -116,7 +116,7 @@ class Cursor(object):
         else:
             node = self.find_next_visible(node)
             if node.symbol.name == "\r":
-                return
+                self.line += 1
             if isinstance(node, EOS):
                 return
             self.node = node
