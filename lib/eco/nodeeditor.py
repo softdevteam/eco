@@ -507,7 +507,10 @@ class NodeEditor(QFrame):
         tmpy = y
         path = QPainterPath()
         if bracket == '[':
-            tmpx = x + 1 # adjust bracket position
+            if x == 0:
+                tmpx = x + 3
+            else:
+                tmpx = x + 1 # adjust bracket position
             path.moveTo(tmpx,   3+y*self.fontht)
             path.lineTo(tmpx-2, 3+y*self.fontht)
             path.moveTo(tmpx-2, 3+y*self.fontht)
