@@ -5,7 +5,7 @@ import tempfile
 import subprocess
 import sys
 
-from incparser.annotation import Annotation, ToolTip, Footnote, Heatmap
+from incparser.annotation import Annotation, ToolTip, Heatmap
 
 from incparser.astree import EOS
 from grammar_parser.gparser import MagicTerminal, IndentationTerminal
@@ -15,7 +15,7 @@ from mocks import MockPopen
 
 class JRubyCoverageCounterMsg(Annotation):
     def __init__(self, annotation):
-        self._hints = [ToolTip(), Footnote()]
+        self._hints = [ToolTip()]
         super(JRubyCoverageCounterMsg, self).__init__(annotation)
 
     def get_hints(self):
