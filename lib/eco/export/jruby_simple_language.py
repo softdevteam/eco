@@ -200,6 +200,8 @@ class JRubySimpleLanguageExporter(object):
 
         # Normalise profiler information.
         vals = ncalls_dict.values()
+        if len(vals) == 0:
+            return mock
         val_min = float(min(vals))
         val_max = float(max(vals))
         val_diff = val_max - val_min
