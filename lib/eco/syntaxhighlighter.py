@@ -115,7 +115,9 @@ class PythonHighlighter(SyntaxHighlighter):
     }
 
     parent_colors = {
-        "comment": "grey"
+        "comment": "grey",
+        "single_string": "cyan",
+        "multiline_string": "cyan"
     }
 
 class JavaHighlighter(SyntaxHighlighter):
@@ -297,6 +299,9 @@ class RubyHighlighter(SyntaxHighlighter):
         "self": "blue",
         "tIDENTIFIER": "yellow",
         "tCONSTANT": "green",
+    }
+    parent_colors = {
+        "comment": "grey"
     }
 
 def get_highlighter(parent, palette):
