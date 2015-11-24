@@ -92,24 +92,18 @@ class JRubySimpleLanguageExporter(object):
             else:
                 self._output.append(sym.name)
 
-    def _apply_template(self, name, magic_name):
-        return """  {1} = Truffle::Interop.import('{0}')
-  def {0}(*args)
-    Truffle::Interop.execute({1}, *args)
-  end
-
-""".format(name, magic_name)
+    def _apply_template(self, name):
+        return "Truffle::Interop.import_method(:%s)" % name
 
     def _export_as_text(self, path):
         node = self.tm.lines[0].node # first node
         self._walk_rb(node)
         for func in self._sl_functions:
-            magic = func.upper() + "_"
-            self._wrappers.append(self._apply_template(func, magic))
+            self._wrappers.append(self._apply_template(func))
         output = "Truffle::Interop.eval('application/x-sl', %{\n"
         output += "".join(self._sl_output)
         output += "})\n\n"
-        output += "".join(self._wrappers)
+        output += "\n".join(self._wrappers)
         output += "\n\n"
         rb_code = "".join(self._output)
         output += rb_code
@@ -117,16 +111,18 @@ class JRubySimpleLanguageExporter(object):
             fp.write("".join(output))
 
     def _run(self):
-        working_dir = os.path.join(os.environ["GRAAL_WORKSPACE"], "jruby")
         f = tempfile.mkstemp(suffix=".rb")
+        working_dir = os.path.join(os.environ["GRAAL_WORKSPACE"], "jruby")
+        truffle_jar = os.path.join(os.environ["GRAAL_WORKSPACE"],
+                                   "truffle/mxbuild/dists/truffle-sl.jar")
         self._export_as_text(f[1])
         # Run this command:
         #     $ cd $GRAAL_WORKSPACE/jruby
-        #     $ ./bin/jruby -X+T -J-classpath ./truffle-sl.jar FILE.rb
+        #     $ ./bin/jruby -X+T -J-classpath truffle-sl.jar FILE.rb
         return subprocess.Popen(["bin/jruby",
                                  "-X+T",
                                  "-J-classpath",
-                                 "../truffle/mxbuild/dists/truffle-sl.jar",
+                                 truffle_jar,
                                  f[1]],
                                 cwd=working_dir,
                                 stdout=subprocess.PIPE,
@@ -138,6 +134,8 @@ class JRubySimpleLanguageExporter(object):
         self.tm.profile_map = dict()
         self.tm.profile_data = dict()
         working_dir = os.path.join(os.environ["GRAAL_WORKSPACE"], "jruby")
+        truffle_jar = os.path.join(os.environ["GRAAL_WORKSPACE"],
+                                   "truffle/mxbuild/dists/truffle-sl.jar")
         f = tempfile.mkstemp(suffix=".rb")
         self._export_as_text(f[1])
 
@@ -147,12 +145,12 @@ class JRubySimpleLanguageExporter(object):
 
         # Run this command:
         #     $ cd $GRAAL_WORKSPACE/jruby
-        #     $ ./bin/jruby -X+T -Xtruffle.coverage.global=true -J-classpath ./truffle-sl.jar FILE.rb
+        #     $ ./bin/jruby -X+T -Xtruffle.coverage.global=true -J-classpath truffle-sl.jar FILE.rb
         proc =  subprocess.Popen(["bin/jruby",
                                   "-X+T",
                                   "-Xtruffle.coverage.global=true",
                                   "-J-classpath",
-                                  "../truffle/mxbuild/dists/truffle-sl.jar",
+                                 truffle_jar,
                                   f[1]],
                                  cwd=working_dir,
                                  stdout=subprocess.PIPE,
