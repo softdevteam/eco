@@ -594,8 +594,9 @@ class Window(QtGui.QMainWindow):
 
     def toggle_overlay(self):
         ed_tab = self.getEditorTab()
-        ed_tab.show_tool_visualisation = self.ui.actionShow_tool_visualisations.isChecked()
-        ed_tab.editor.toggle_overlay()
+        if ed_tab:
+            ed_tab.show_tool_visualisation = self.ui.actionShow_tool_visualisations.isChecked()
+            ed_tab.editor.toggle_overlay()
 
     def consoleContextMenu(self, pos):
         def clear():
@@ -875,6 +876,7 @@ class Window(QtGui.QMainWindow):
             etab.editor.setFocus(Qt.OtherFocusReason)
             etab.editor.setContextMenuPolicy(Qt.CustomContextMenu)
             etab.editor.customContextMenuRequested.connect(self.contextMenu)
+            self.plugin_manager.set_tms(self.getEditor().tm)
             return True
         return False
 
@@ -941,6 +943,7 @@ class Window(QtGui.QMainWindow):
             self.save_last_dir(str(path))
             ed.export_path = path
             self.getEditor().tm.export(path)
+            print("exporting to:", path)
 
     def get_last_dir(self):
         settings = QSettings("softdev", "Eco")
@@ -1009,6 +1012,9 @@ class Window(QtGui.QMainWindow):
                 self.ui.actionStateGraph.setEnabled(True)
             else:
                 self.ui.actionStateGraph.setEnabled(False)
+            self.plugin_manager.set_tms(ed_tab.editor.tm)
+        else:
+            self.plugin_manager.set_tms(None)
         self.btReparse()
 
     def closeEvent(self, event):
@@ -1123,7 +1129,7 @@ def main():
 
     # Connect the thread to the throbber.
     window.connect(window.thread,
-                   t.signal,
+                   window.thread.signal_done,
                    window.run_throbber.hide)
 
     window.parse_options()
@@ -1137,12 +1143,14 @@ class SubProcessThread(QThread):
         QThread.__init__(self, parent=parent)
         self.window = window
         self.signal = QtCore.SIGNAL("output")
+        self.signal_done = QtCore.SIGNAL("done")
 
     def run(self):
         p = self.window.getEditor().export(run=True)
         if p:
             for line in iter(p.stdout.readline, b''):
                 self.emit(self.signal, line.rstrip())
+        self.emit(self.signal_done, None)
 
 
 class Throbber(QLabel):

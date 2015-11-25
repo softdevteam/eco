@@ -1433,7 +1433,7 @@ class TreeManager(object):
         elif lang == "Ruby + SimpleLanguage":
             return JRubySimpleLanguageExporter(self).export(path=path, run=run)
         else:
-            return self.export_as_text(path)
+            print "Exporting as text to", path
 
     def export_unipycation(self, path=None):
         import subprocess, sys

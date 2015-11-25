@@ -3,9 +3,7 @@ import os.path
 
 from api import Plugin
 
-from PyQt4 import QtCore
-from PyQt4.QtGui import *
-
+from PyQt4.QtCore import QTimer, SIGNAL
 
 class PluginManager(object):
     """This object loads and manages Eco plugins.
@@ -13,7 +11,8 @@ class PluginManager(object):
     The object constructs the Tools menu in the Eco GUI and connects
     menu actions to plugins.
 
-    Plugins are stored in ~/.eco and must be subclasses of plugins.api.Plugin.
+    Plugins should be stored in ~/.eco and must be subclasses of
+    eco.plugins.api.Plugin.
     """
 
     def __init__(self, main_window, tool_plugin_menu):
@@ -22,7 +21,26 @@ class PluginManager(object):
         self._main_window = main_window
         self._plugin_menu = tool_plugin_menu
         self._plugin_dir = os.path.join(os.path.expanduser("~"), ".eco")
+        self._current_language = None  # Set by self.set_tms()
 
+        # Load plugins and construct UI.
+        self._load_plugins()
+
+        # Use a single shot timer to run external tools, in case the plugins
+        # take a long time to run (i.e. we do not want to restart the timer
+        # while tools are still running in the background). The default
+        # timeout is quite long, because most of the time the user is typing
+        # the code will be syntactically incorrect, and the tools will not
+        # be able to run.
+        self._default_timeout = 2500
+        self.timer = QTimer()
+        self.timer.timeout.connect(self._run_plugins)
+        self.timer.setSingleShot(True)
+        self.timer.start(self._default_timeout)
+
+    def _load_plugins(self):
+        """Load plugins and construct GUI elements.
+        """
         # Load all plugins that can be found on disk.
         name_space = dict(locals(), **globals())
         for root, dirs, files in os.walk(self._plugin_dir):
@@ -43,7 +61,7 @@ class PluginManager(object):
                 action.setCheckable(True)
                 self._actions[language][plugin.name] = action
                 self._main_window.connect(action,
-                                          QtCore.SIGNAL('triggered()'),
+                                          SIGNAL('triggered()'),
                                           lambda plugin=plugin: self.toggle_plugin(plugin))
 
         # Start with all plugins activated.
@@ -70,7 +88,34 @@ class PluginManager(object):
             self._set_checked(plugin, False)
             plugin.deactivate()
 
-    def run_plugins_by_language(self, language):
-        for plugins in self._plugins[lang]:
-            if plugin.activated():
-                plugin.run_tool()
+    def _is_document_exportable(self, plugin):
+        """Returns True if the current document can be exported.
+        Eco cannot export a document that is syntactically incorrect.
+        """
+        for p, _, _, _ in plugin._tm.parsers:
+            if p.last_status == False:
+                return False
+        return True
+
+    def _run_plugins(self):
+        if self._current_language is None:
+            # Eco does not have an open document.
+            # Wait a little longer before trying again.
+            self.timer.start(2 * self._default_timeout)
+            return
+        # Run plugins if they are activated and the current document is
+        # syntactically correct.
+        for plugin in self._plugins[self._current_language]:
+            if not (plugin.activated and self._is_document_exportable(plugin)):
+                continue
+            plugin.run_tool()
+            plugin.tm.tool_data_is_dirty = False
+        self.timer.start(self._default_timeout)
+
+    def set_tms(self, tm):
+        """Give all plugins access to the current TreeManager object.
+        """
+        self._current_language = None if tm is None else tm.parsers[0][2]
+        for language in self._plugins:
+            for plugin in self._plugins[language]:
+                plugin.tm = tm
