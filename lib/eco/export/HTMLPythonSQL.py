@@ -60,6 +60,8 @@ def gen_exec(query):
         if name == "<Python + HTML + SQL>":
             self.buf.append(Python().pp(node))
             self.buf.append("\n")
+        elif name == "<Image>":
+            self.buf.append(Image().pp(node))
         else:
             helper.bad_node(name)
 
@@ -82,6 +84,10 @@ class Python(helper.Generic):
         else:
             helper.bad_node(name)
 
+class Image(helper.Generic):
+    def pp(self, node):
+        self.walk(node)
+        return "print \"%s\"\n" % "".join(self.buf)
 
 class SQL(helper.Generic):
     pass
