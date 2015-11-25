@@ -78,8 +78,8 @@ class NodeEditor(QFrame):
         # Semi-transparent overlay.
         # Used to display heat-map visualisation of profiler info, etc.
         self.overlay = Overlay(self)
-        # Start hidden, make (in)visible with self.toggle_overlay().
-        self.overlay.hide()
+        # Start visible, make (in)visible with self.toggle_overlay().
+        self.overlay.show()
 
         # Set to True if the user wants to see tool visualisations.
         self.show_tool_visualisations = True
