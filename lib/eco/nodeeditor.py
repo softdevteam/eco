@@ -567,11 +567,9 @@ class NodeEditor(QFrame):
         if x1 + y1 + line1 == 0:
             # start outside of viewport
             line1 = self.paint_start[0]
-        if line2 == 0:
+        if x2 + y2 + line2 == 0:
             # end outside of viewport
             line2 = self.paint_start[0] + max_y
-        if y1 + y2 == 0:
-            # start and end outside of viewport
             y2 = max_y
         if y1 == y2:
             paint.fillRect(QRectF(x1, 3 + y1 * self.fontht, x2-x1, self.fontht), QColor(0,0,255,100))
