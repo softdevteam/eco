@@ -1,6 +1,8 @@
 import abc
 
-class Plugin(object):
+from PyQt4 import QtCore
+
+class Plugin(QtCore.QThread):
     """Base class for Eco plugins.
     Every Plugin subclass must have a 'name' field which described the Plugin
     and a 'language' field which describes which language the plugin can be
@@ -8,6 +10,7 @@ class Plugin(object):
     """
 
     def __init__(self, language, name):
+        super(Plugin, self).__init__(parent=None)
         self.language = language
         self.name = name
         self._activated = True
@@ -18,6 +21,10 @@ class Plugin(object):
         """Run an external tool and annotate nodes.
         """
         raise NotImplementedError("Must be overridden in subclass.")
+
+    def run(self):
+        self.run_tool()
+        self.tm.tool_data_is_dirty = False
 
     def export(self, path=None):
         return self._tm.export(path)

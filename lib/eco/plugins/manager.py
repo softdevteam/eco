@@ -3,9 +3,9 @@ import os.path
 
 from api import Plugin
 
-from PyQt4.QtCore import QTimer, SIGNAL
+from PyQt4.QtCore import QObject, QTimer, SIGNAL
 
-class PluginManager(object):
+class PluginManager(QObject):
     """This object loads and manages Eco plugins.
 
     The object constructs the Tools menu in the Eco GUI and connects
@@ -16,6 +16,7 @@ class PluginManager(object):
     """
 
     def __init__(self, main_window, tool_plugin_menu):
+        super(PluginManager, self).__init__(parent=None)
         self._plugins = dict()
         self._actions = dict()
         self._main_window = main_window
@@ -37,6 +38,9 @@ class PluginManager(object):
         self.timer.timeout.connect(self._run_plugins)
         self.timer.setSingleShot(True)
         self.timer.start(self._default_timeout)
+
+        # Number of plugins currently running.
+        self._plugins_running = 0
 
     def _load_plugins(self):
         """Load plugins and construct GUI elements.
@@ -61,8 +65,9 @@ class PluginManager(object):
                 action.setCheckable(True)
                 self._actions[language][plugin.name] = action
                 self._main_window.connect(action,
-                                          SIGNAL('triggered()'),
+                                          SIGNAL("triggered()"),
                                           lambda plugin=plugin: self.toggle_plugin(plugin))
+                self.connect(plugin, SIGNAL("finished()"), self._plugin_finished)
 
         # Start with all plugins activated.
         for language in self._plugins:
@@ -97,6 +102,11 @@ class PluginManager(object):
                 return False
         return True
 
+    def _plugin_finished(self):
+        self._plugins_running -= 1
+        if self._plugins_running == 0:
+            self.timer.start(self._default_timeout)
+
     def _run_plugins(self):
         if self._current_language is None:
             # Eco does not have an open document.
@@ -108,9 +118,8 @@ class PluginManager(object):
         for plugin in self._plugins[self._current_language]:
             if not (plugin.activated and self._is_document_exportable(plugin)):
                 continue
-            plugin.run_tool()
-            plugin.tm.tool_data_is_dirty = False
-        self.timer.start(self._default_timeout)
+            self._plugins_running += 1
+            plugin.start()
 
     def set_tms(self, tm):
         """Give all plugins access to the current TreeManager object.
