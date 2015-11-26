@@ -49,7 +49,8 @@ class PluginManager(QObject):
         name_space = dict(locals(), **globals())
         for root, dirs, files in os.walk(self._plugin_dir):
             for file_ in files:
-                execfile(os.path.join(root, file_), name_space, name_space)
+                if file_.endswith(".py"):
+                    execfile(os.path.join(root, file_), name_space, name_space)
 
         # Store references to plugins to this object.
         for obj_name in name_space:
