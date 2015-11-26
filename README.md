@@ -20,6 +20,19 @@ If you wish to see visualisations of parse trees, you may optionally install:
 * GraphViz http://www.graphviz.org/Download.php
 * PyDot https://code.google.com/p/pydot/
 
+### Using plugins ###
+
+Eco can visualise data from external tools such as profilers.
+To make use of this feature, you need to create a plugin directory:
+
+  `mkdir ~/.eco`
+
+To make use of the example plugins that come with Eco, copy them into your
+new plugin directory:
+
+  `cp plugins/*.py ~/.eco/`
+
+To create your own plugins, see the documentation in `plugins/README.md`.
 
 ### Running Eco ###
 
