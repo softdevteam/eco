@@ -163,10 +163,22 @@ class JRubySimpleLanguageExporter(object):
         # to the console.
         mock = MockPopen(copy.copy(stdout_value), copy.copy(stderr_value))
 
+        temp_cursor = self.tm.cursor.copy()
+
+        # Remove old annotations
+        for lineno in xrange(len(self.tm.lines)):
+            temp_cursor.line = lineno
+            temp_cursor.move_to_x(0, self.tm.lines)
+            node = temp_cursor.find_next_visible(temp_cursor.node)
+            if node.lookup == "<ws>":
+                node = node.next_term
+            # Remove old annotation
+            node.remove_annotations_by_class(JRubyCoverageCounterMsg)
+            node.remove_annotations_by_class(JRubyCoverageCounterVal)
+
         # Lex the result of the profiler. Lines look like this:
         #                 11: function main() {
         # (    20000000)   5:     sum = sum + i;
-        temp_cursor = self.tm.cursor.copy()
         ncalls_dict = dict()
         for line in stdout_value.split('\n'):
             tokens = line.strip().split()
@@ -188,9 +200,6 @@ class JRubySimpleLanguageExporter(object):
                     node = temp_cursor.find_next_visible(temp_cursor.node)
                     if node.lookup == "<ws>":
                         node = node.next_term
-                    # Remove old annotation
-                    node.remove_annotations_by_class(JRubyCoverageCounterMsg)
-                    # Add new annotation
                     node.add_annotation(JRubyCoverageCounterMsg(msg))
                     ncalls_dict[node] = ncalls
                 except ValueError:
@@ -206,7 +215,6 @@ class JRubySimpleLanguageExporter(object):
         for node in ncalls_dict:
             ncalls_dict[node] = (ncalls_dict[node] - val_min) / val_diff
         for node in ncalls_dict:
-            node.remove_annotations_by_class(JRubyCoverageCounterVal)
             node.add_annotation(JRubyCoverageCounterVal(ncalls_dict[node]))
 
         return mock
