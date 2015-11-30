@@ -500,7 +500,7 @@ class NodeEditor(QFrame):
         newpen = QPen()
         color = self.get_highlighter(node).get_default_color()
         newpen.setColor(color)
-        newpen.setWidth(2)
+        newpen.setWidth(1)
         paint.setPen(newpen)
 
         # paint brackets
@@ -508,7 +508,7 @@ class NodeEditor(QFrame):
         path = QPainterPath()
         if bracket == '[':
             if x == 0:
-                tmpx = x + 3
+                tmpx = x + 2
             else:
                 tmpx = x + 1 # adjust bracket position
             path.moveTo(tmpx,   3+y*self.fontht)
