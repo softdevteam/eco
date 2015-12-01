@@ -545,9 +545,6 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionPreview, SIGNAL("triggered()"), self.showPreviewDialog)
         self.connect(self.ui.actionUndo, SIGNAL("triggered()"), self.undo)
         self.connect(self.ui.actionRedo, SIGNAL("triggered()"), self.redo)
-        # XXX temporarily disable undo/redo because it's buggy
-        #self.ui.actionUndo.setEnabled(False)
-        #self.ui.actionRedo.setEnabled(False)
         self.connect(self.ui.actionCopy, SIGNAL("triggered()"), self.copy)
         self.connect(self.ui.actionCut, SIGNAL("triggered()"), self.cut)
         self.connect(self.ui.actionPaste, SIGNAL("triggered()"), self.paste)
@@ -924,6 +921,7 @@ class Window(QtGui.QMainWindow):
             etab.editor.setFocus(Qt.OtherFocusReason)
             etab.editor.setContextMenuPolicy(Qt.CustomContextMenu)
             etab.editor.customContextMenuRequested.connect(self.contextMenu)
+            self.toggle_menu(True)
             return True
         return False
 
@@ -1036,6 +1034,7 @@ class Window(QtGui.QMainWindow):
                 if self.newfile():
                     self.importfile(filename)
                     self.getEditorTab().update()
+            self.toggle_menu(True)
 
     def closeTab(self, index):
         etab = self.ui.tabWidget.widget(index)
@@ -1069,6 +1068,8 @@ class Window(QtGui.QMainWindow):
                 self.ui.actionStateGraph.setEnabled(True)
             else:
                 self.ui.actionStateGraph.setEnabled(False)
+        else:
+            self.toggle_menu(False)
         self.btReparse()
 
     def closeEvent(self, event):
@@ -1146,6 +1147,35 @@ class Window(QtGui.QMainWindow):
         #l = self.ui.frame.tm.getLookaheadList()
         #self.ui.lineEdit.setText(", ".join(l))
         pass
+
+    def toggle_menu(self, enabled=True):
+        self.ui.actionSave.setEnabled(enabled)
+        self.ui.actionSave_as.setEnabled(enabled)
+        self.ui.actionExport.setEnabled(enabled)
+        self.ui.actionExportAs.setEnabled(enabled)
+        self.ui.actionRun.setEnabled(enabled)
+        self.ui.actionUndo.setEnabled(enabled)
+        self.ui.actionRedo.setEnabled(enabled)
+        self.ui.actionCopy.setEnabled(enabled)
+        self.ui.actionPaste.setEnabled(enabled)
+        self.ui.actionCut.setEnabled(enabled)
+        self.ui.actionFind.setEnabled(enabled)
+        self.ui.actionFind_next.setEnabled(enabled)
+        self.ui.actionAdd_language_box.setEnabled(enabled)
+        self.ui.actionSelect_next_language_box.setEnabled(enabled)
+        try:
+            import pydot
+            self.ui.actionParse_Tree.setEnabled(enabled)
+        except ImportError:
+            pass
+        self.ui.actionCode_complete.setEnabled(enabled)
+        self.ui.menuChange_language_box.setEnabled(enabled)
+        self.ui.actionPreview.setEnabled(enabled)
+        self.ui.actionInput_log.setEnabled(enabled)
+        
+        if enabled == False:
+            self.ui.actionProfile.setEnabled(enabled)
+            self.ui.actionStateGraph.setEnabled(enabled)
 
 def main():
     app = QtGui.QApplication(sys.argv)
