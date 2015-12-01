@@ -795,10 +795,10 @@ class Window(QtGui.QMainWindow):
         self.tm = TreeManager()
 
         if fast:
-            self.tm.fast_export(language_boxes, dest)
+            self.tm.fast_export(language_boxes, dest, source=source)
         else:
             self.tm.load_file(language_boxes)
-            self.tm.export(dest)
+            self.tm.export(dest, source=source)
         QApplication.quit()
         sys.exit(1)
 
@@ -1036,7 +1036,7 @@ class Window(QtGui.QMainWindow):
         if not ed.export_path:
             ed.export_path = QFileDialog.getSaveFileName()
         if ed.export_path:
-            self.getEditor().tm.export(ed.export_path)
+            self.getEditor().tm.export(ed.export_path, source=ed.filename)
 
     def exportAs(self):
         ed = self.getEditorTab()
@@ -1046,7 +1046,7 @@ class Window(QtGui.QMainWindow):
         if path:
             self.save_last_dir(str(path))
             ed.export_path = path
-            self.getEditor().tm.export(path)
+            self.getEditor().tm.export(path, source=ed.filename)
 
     def get_last_dir(self):
         settings = QSettings("softdev", "Eco")
@@ -1284,9 +1284,14 @@ class SubProcessThread(QThread):
         self.signal = QtCore.SIGNAL("output")
 
     def run(self):
-        p = self.window.getEditor().export(run=True)
+        ed = self.window.getEditorTab()
+        p = self.window.getEditor().export(run=True, source=str(ed.filename))
+        lang = self.window.getEditor().get_mainlanguage()
         if p:
             for line in iter(p.stdout.readline, b''):
+                if lang == "PHP + Python":
+                    if line.startswith("  <?php{ "):
+                        line = "  " + line[9:]
                 self.emit(self.signal, line.rstrip())
 
 

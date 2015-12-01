@@ -27,8 +27,11 @@ from grammar_parser.gparser import MagicTerminal, IndentationTerminal
 
 
 class Generic:
-    def __init__(self):
+    def __init__(self, source=None, parent_ln = 0):
         self.buf = []
+        self.lineno = 1
+        self.source = source
+        self.parent_ln = parent_ln
 
     def pp(self, node):
         self.walk(node)
@@ -36,6 +39,8 @@ class Generic:
 
     def walk(self, node):
         while True:
+            if node.lookup == "<return>":
+                self.lineno += 1
             node = node.next_term
             sym = node.symbol
             if isinstance(node, EOS):

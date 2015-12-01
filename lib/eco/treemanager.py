@@ -1392,7 +1392,7 @@ class TreeManager(object):
         self.changed = True
         return
 
-    def fast_export(self, language_boxes, path):
+    def fast_export(self, language_boxes, path, source=None):
         # fix languagebox pointers
         for root, language, whitespaces in language_boxes:
             try:
@@ -1406,7 +1406,7 @@ class TreeManager(object):
         def x():
             return bos
         self.get_bos = x
-        return self.export(path)
+        return self.export(path, source=source)
 
     def load_file(self, language_boxes, reparse=True):
         # setup language boxes
@@ -1449,7 +1449,7 @@ class TreeManager(object):
             print("Grammar Error: could not determine grammar type")
             return
 
-    def export(self, path=None, run=False, profile=False):
+    def export(self, path=None, run=False, profile=False, source=None):
         for p, _, _, _ in self.parsers:
             if p.last_status == False:
                 print("Cannot export a syntacially incorrect grammar")
@@ -1464,7 +1464,7 @@ class TreeManager(object):
         elif lang == "HTML + Python + SQL":
             self.export_html_python_sql(path)
         elif lang == "PHP + Python" or lang == "PHP":
-            return self.export_php_python(path, run)
+            return self.export_php_python(path, run, source=source)
         elif lang == "Python 2.7.5":
             return CPythonExporter(self).export(path, run, profile)
         elif lang == "SimpleLanguage":
@@ -1518,28 +1518,35 @@ class TreeManager(object):
         with open(path, "w") as f:
             f.write(HTMLPythonSQL.export(self.get_bos()))
 
-    def export_php_python(self, path, run=False):
+    def export_php_python(self, path, run=False, source=None):
+        import os
         if run:
             import tempfile
-            import os, sys, subprocess
-            f = tempfile.mkstemp()
-            os.write(f[0], PHPPython.export(self.get_bos()))
+            import sys, subprocess
+            d = tempfile.mkdtemp()
+            if source:
+                f = os.path.basename(source)
+                f = (os.open(d + "/" + f, os.O_RDWR|os.O_CREAT), d + "/" + f)
+            else:
+                f = tempfile.mkstemp(dir=d)
+            os.write(f[0], PHPPython.export(self.get_bos(), os.path.basename(source)))
             settings = QSettings("softdev", "Eco")
-            # Set PYPY_PREFIX environment variable
             prefixpath = str(settings.value("env_pypyprefix", "").toString())
             pyhyppath = str(settings.value("env_pyhyp", "").toString())
             if pyhyppath:
-                env = os.environ.copy()
                 if prefixpath:
+                    env = os.environ.copy()
                     env["PYPY_PREFIX"] = prefixpath
+                    return subprocess.Popen([pyhyppath, os.path.basename(f[1])], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0, env=env, cwd=os.path.dirname(f[1]))
                 else:
                     sys.stderr.write("PYPY_PREFIX path not set")
-                return subprocess.Popen([pyhyppath, f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0, env=env)
             else:
                 sys.stderr.write("PyHyp executable not set")
         else:
             with open(path, "w") as f:
-                text = PHPPython.export(self.get_bos())
+                if source:
+                    source = os.path.basename(str(source))
+                text = PHPPython.export(self.get_bos(), source)
                 f.write(text)
                 return text
 

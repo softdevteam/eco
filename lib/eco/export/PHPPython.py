@@ -27,24 +27,30 @@ import logging
 
 class PHP(helper.Generic):
 
-    def __init__(self):
+    def __init__(self, source=None):
         self.nestings = []
         self.variable_assignment = False
         self.bracklvl = 0
         self.buf = []
         self.embed = []
         self.used_funcs = set()
+        self.lineno = 0
+        self.source = source
 
     def language_box(self, name, node):
         if name == "<Python + PHP>":
-            buf = Python().pp(node)
+            python = Python(self.source, self.lineno)
+            buf = python.pp(node)
+            
             if self.in_class():
                 classname = self.get_classname()
-                self.embed.append((classname, buf))
+                self.embed.append((classname, buf, self.lineno))
+                for i in range(buf.count("\n")):
+                    self.buf.append("\n")
             elif self.in_function():
                 # $foo = compile_py_func(...)
                 if self.variable_assignment:
-                    self.buf.append("compile_py_func(\"%s\");" % (_escapepy(buf)))
+                    self.buf.append("compile_py_func(\"%s\", \"%s\", %s);" % (_escapepy(buf), self.source, self.lineno))
                 # compile_py_func(...)
                 else:
                     name = re.match("(@.*\s)?def\s+([a-zA-Z_][a-zA-Z0-9_]*)", buf).group(2)
@@ -53,20 +59,26 @@ class PHP(helper.Generic):
 
                     # rename py function
                     text = re.sub("def\s+([a-zA-Z_][a-zA-Z0-9_]*)",r"def %s" % (pyname), buf, count = 1)
-                    self.buf.append("\n$%s = compile_py_func(\"%s\");" % (pyname, _escapepy(text)))
+                    self.buf.append("\n$%s = compile_py_func(\"%s\", \"%s\", %s);" % (pyname, _escapepy(text), self.source, self.lineno))
                     self.buf.append("\n");
                     self.buf.append(phpfunc)
             else: # outside of a function we can use compile_py_func_global
                 if self.variable_assignment:
-                    self.buf.append("compile_py_func(\"%s\");" % (_escapepy(buf)))
+                    self.buf.append("compile_py_func(\"%s\", \"%s\", %s);" % (_escapepy(buf), self.source, self.lineno))
                 else:
-                    self.buf.append("compile_py_func_global(\"%s\");" % (_escapepy(buf)))
+                    self.buf.append("compile_py_func_global(\"%s\", \"%s\", %s);" % (_escapepy(buf), self.source, self.lineno))
+                    newlines = buf.count("\n")
+                    for i in range(newlines):
+                        self.buf.append("\n")
+            self.lineno += python.lineno - 1
         elif name == "<Python expression>":
             buf = PythonExpr().pp(node)
             self.buf.append("call_user_func(compile_py_func(\"f = lambda: %s;\"))" % (_escapepy(buf)))
 
     def walk(self, node):
         while True:
+            if node.lookup == "<return>":
+                self.lineno += 1
             node = node.next_term
             sym = node.symbol
             if isinstance(node, EOS):
@@ -103,8 +115,8 @@ class PHP(helper.Generic):
                     if c[0] == "class":
                         self.embed.reverse()
                         while self.embed != []:
-                            classname, func = self.embed.pop()
-                            self.buf.append("\ncompile_py_meth(\"%s\", \"%s\");" % (classname, _escapepy(func)))
+                            classname, func, lineno = self.embed.pop()
+                            self.buf.append("compile_py_meth(\"%s\", \"%s\", \"%s\", %s);" % (classname, _escapepy(func), self.source, lineno))
 
     def in_class(self):
         return self.nestings and self.nestings[-1][0] == "class"
@@ -163,8 +175,10 @@ class PHP(helper.Generic):
 class Python(helper.Generic):
     def language_box(self, name, node):
         if name == "<PHP + Python>":
-            buf = PHP().pp(node)
-            self.buf.append("compile_php_func(\"\"\"\n%s\n\"\"\")" % (_escape(buf)))
+            php = PHP()
+            buf = php.pp(node)
+            self.buf.append("compile_php_func(\"\"\"%s\"\"\", \"%s\", %s)" % (_escape(buf), self.source, self.lineno + self.parent_ln - 1))
+            self.lineno += php.lineno
 
 class PythonExpr(Python):
     pass
@@ -175,5 +189,5 @@ def _escapepy(s):
 def _escape(s):
     return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("'", "\\'")
 
-def export(node):
-    return "<?php{\n%s\n}?>" % (PHP().pp(node),)
+def export(node, source=None):
+    return "<?php{ %s\n}?>" % (PHP(source).pp(node),)
