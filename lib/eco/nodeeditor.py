@@ -72,7 +72,7 @@ class NodeEditor(QFrame):
         self.connect(self.blinktimer, SIGNAL("timeout()"), self.trigger_blinktimer)
         self.show_cursor = True
 
-        self.boxcolors = [QColor("#DC322F"), QColor("#268BD2"), QColor("#D33682"), QColor("#B58900"), QColor("#2AA198"), QColor("#859900")]
+        self.boxcolors = [QColor("#DC322F"), QColor("#268BD2"), QColor("#2Ac598"), QColor("#D33682"), QColor("#B58900"), QColor("#859900")]
         self.setCursor(Qt.IBeamCursor)
 
         # Semi-transparent overlay.
@@ -288,7 +288,7 @@ class NodeEditor(QFrame):
         elif settings.value("app_theme", "Light").toString() in ["Gruvbox"]:
             alpha = 100
         else:
-            alpha = 40
+            alpha = 60
 
         first_node = node
         selected_language = self.tm.mainroot
@@ -329,7 +329,8 @@ class NodeEditor(QFrame):
                 lbox += 1
                 lbnode = node.symbol.ast
                 if self.selected_lbox is node:
-                    self.draw_lbox_bracket(paint, '[', node, x, y)
+                    color = colors[(lbox-1) % len(colors)]
+                    self.draw_lbox_bracket(paint, '[', node, x, y, color)
                     draw_lbox = True
                     selected_language = lbnode
                 else:
@@ -354,7 +355,7 @@ class NodeEditor(QFrame):
                     editor = self.get_editor(node)
                     if self.selected_lbox is lbnode:
                         # draw bracket
-                        self.draw_lbox_bracket(paint, ']', node, x, y)
+                        self.draw_lbox_bracket(paint, ']', node, x, y, color)
                         draw_lbox = False
                     lbnode = self.get_languagebox(node)
                     if lbnode and self.selected_lbox is lbnode:
@@ -494,20 +495,23 @@ class NodeEditor(QFrame):
 
         return x, y, line
 
-    def draw_lbox_bracket(self, paint, bracket, node, x, y):
+    def draw_lbox_bracket(self, paint, bracket, node, x, y, color):
         assert bracket in ['[',']']
         oldpen = paint.pen()
         newpen = QPen()
-        color = self.get_highlighter(node).get_default_color()
+        color.setAlpha(255)
         newpen.setColor(color)
-        newpen.setWidth(2)
+        newpen.setWidth(1)
         paint.setPen(newpen)
 
         # paint brackets
         tmpy = y
         path = QPainterPath()
         if bracket == '[':
-            tmpx = x + 1 # adjust bracket position
+            if x == 0:
+                tmpx = x + 2
+            else:
+                tmpx = x + 1 # adjust bracket position
             path.moveTo(tmpx,   3+y*self.fontht)
             path.lineTo(tmpx-2, 3+y*self.fontht)
             path.moveTo(tmpx-2, 3+y*self.fontht)
