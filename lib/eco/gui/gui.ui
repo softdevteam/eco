@@ -46,7 +46,7 @@
      <x>0</x>
      <y>0</y>
      <width>920</width>
-     <height>26</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -98,6 +98,9 @@
      <string>Edit</string>
     </property>
     <widget class="QMenu" name="menuChange_language_box">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="title">
       <string>Change language box</string>
      </property>
@@ -264,6 +267,9 @@
    </property>
   </action>
   <action name="actionSave">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="document-save">
      <normaloff>../../../../../.designer</normaloff>../../../../../.designer</iconset>
@@ -288,6 +294,9 @@
    </property>
   </action>
   <action name="actionRun">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="system-run">
      <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
@@ -301,6 +310,9 @@
     <bool>false</bool>
    </property>
    <property name="checked">
+    <bool>false</bool>
+   </property>
+   <property name="enabled">
     <bool>false</bool>
    </property>
    <property name="text">
@@ -317,11 +329,17 @@
    </property>
   </action>
   <action name="actionStateGraph">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>StateGraph</string>
    </property>
   </action>
   <action name="actionUndo">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="edit-undo">
      <normaloff/>
@@ -335,6 +353,9 @@
    </property>
   </action>
   <action name="actionRedo">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="edit-redo">
      <normaloff/>
@@ -348,6 +369,9 @@
    </property>
   </action>
   <action name="actionCut">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="edit-cut">
      <normaloff/>
@@ -361,6 +385,9 @@
    </property>
   </action>
   <action name="actionCopy">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="edit-copy">
      <normaloff/>
@@ -374,6 +401,9 @@
    </property>
   </action>
   <action name="actionPaste">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="edit-paste">
      <normaloff/>
@@ -387,6 +417,9 @@
    </property>
   </action>
   <action name="actionSave_as">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="document-save-as">
      <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
@@ -399,6 +432,9 @@
    </property>
   </action>
   <action name="actionAdd_language_box">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="list-add">
      <normaloff/>
@@ -412,6 +448,9 @@
    </property>
   </action>
   <action name="actionSelect_next_language_box">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="go-next">
      <normaloff/>
@@ -430,6 +469,9 @@
    </property>
   </action>
   <action name="actionFind">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="find">
      <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
@@ -442,6 +484,9 @@
    </property>
   </action>
   <action name="actionCode_complete">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="insert-text">
      <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
@@ -465,6 +510,9 @@
    </property>
   </action>
   <action name="actionFind_next">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Find next</string>
    </property>
@@ -473,6 +521,9 @@
    </property>
   </action>
   <action name="actionExportAs">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="document-export">
      <normaloff/>
@@ -486,6 +537,9 @@
    </property>
   </action>
   <action name="actionExport">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="document-export">
      <normaloff/>
@@ -509,6 +563,9 @@
    </property>
   </action>
   <action name="actionPreview">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Preview...</string>
    </property>
@@ -535,11 +592,17 @@
    </property>
   </action>
   <action name="actionInput_log">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Input log...</string>
    </property>
   </action>
   <action name="actionProfile">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Profile</string>
    </property>
