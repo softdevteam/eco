@@ -62,6 +62,7 @@
     <addaction name="actionExportAs"/>
     <addaction name="separator"/>
     <addaction name="actionThreeWayMerge"/>
+    <addaction name="actionGumtreeExport"/>
     <addaction name="separator"/>
     <addaction name="actionSettings"/>
     <addaction name="separator"/>
@@ -85,6 +86,7 @@
     <addaction name="actionShow_language_boxes"/>
     <addaction name="actionShow_namebinding"/>
     <addaction name="actionShow_indentation"/>
+    <addaction name="actionShow_stats"/>
    </widget>
    <widget class="QMenu" name="menuInfo">
     <property name="title">
@@ -531,6 +533,16 @@
   <action name="actionThreeWayMerge">
    <property name="text">
     <string>3-way merge...</string>
+   </property>
+  </action>
+  <action name="actionShow_stats">
+   <property name="text">
+    <string>Show stats</string>
+   </property>
+  </action>
+  <action name="actionGumtreeExport">
+   <property name="text">
+    <string>Gumtree export</string>
    </property>
   </action>
  </widget>

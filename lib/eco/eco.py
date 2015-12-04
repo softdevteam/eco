@@ -455,6 +455,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionExport, SIGNAL("triggered()"), self.export)
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
         self.connect(self.ui.actionThreeWayMerge, SIGNAL("triggered()"), self.three_way_merge)
+        self.connect(self.ui.actionGumtreeExport, SIGNAL("triggered()"), self.gumtree_export)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
         try:
             import pydot
@@ -489,6 +490,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionShow_language_boxes, SIGNAL("triggered()"), self.update_editor)
         self.connect(self.ui.actionShow_namebinding, SIGNAL("triggered()"), self.update_editor)
         self.connect(self.ui.actionShow_indentation, SIGNAL("triggered()"), self.toogle_indentation)
+        self.connect(self.ui.actionShow_stats, SIGNAL("triggered()"), self.show_stats)
         self.connect(self.ui.menuChange_language_box, SIGNAL("aboutToShow()"), self.showEditMenu)
         self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
 
@@ -689,6 +691,12 @@ class Window(QtGui.QMainWindow):
         else:
             QApplication.instance().showindent = False
         self.getEditor().update()
+
+    def show_stats(self):
+        tm = self.getEditor().tm
+        tree_stats = tm.compute_tree_stats()
+        print('Stats: {0} nodes, {1} terminals'.format(tree_stats['n_nodes'], tree_stats['n_terminals']))
+
 
     def refreshTheme(self):
         self.ui.teConsole.setFont(QApplication.instance().gfont.font)
@@ -900,6 +908,15 @@ class Window(QtGui.QMainWindow):
 
         three_way_merge.merge3_tree_managers(base_tm, derived_local_tm, derived_main_tm)
         derived_local_tm.rescan_all_linebreaks()
+
+
+    def gumtree_export(self):
+        ed = self.getEditorTab()
+        if not ed:
+            return
+        path = QFileDialog.getSaveFileName(self, "Export Gumtree file", self.get_last_dir())
+        if path:
+            self.getEditor().tm.export_gumtree(path)
 
 
     def get_last_dir(self):

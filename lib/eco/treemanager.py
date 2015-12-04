@@ -27,6 +27,7 @@ from PyQt4.QtGui import QApplication
 from grammars.grammars import lang_dict, Language, EcoFile
 from indentmanager import IndentationManager
 from export import HTMLPythonSQL, PHPPython, ATerms, version_control_export
+from version_control import gumtree_export
 
 import math
 
@@ -598,6 +599,25 @@ class TreeManager(object):
             self.cursor.pos = len(self.cursor.node.symbol.name)
         self.selection_start = self.cursor.copy()
         self.selection_end = self.cursor.copy()
+
+    def compute_tree_stats(self):
+        root = self.get_bos().get_root()
+
+        terminal_count = 0
+        node_count = 0
+
+        node_stack = [root]
+        while len(node_stack) > 0:
+            n = node_stack.pop()
+
+            node_count += 1
+            if isinstance(n.symbol, Terminal):
+                terminal_count += 1
+
+            node_stack.extend(n.children)
+
+        return {'n_terminals': terminal_count,
+                'n_nodes': node_count}
 
     # ============================ MODIFICATIONS ============================= #
 
@@ -1466,6 +1486,15 @@ class TreeManager(object):
     def export_diff3(self, path):
         with open(path, "w") as f:
             f.write(version_control_export.export_diff3(self.get_bos()))
+
+    def export_gumtree(self, path):
+        with open(path, "w") as f:
+            root = self.get_bos().get_root()
+            syntaxtable = self.get_mainparser().syntaxtable
+            data = gumtree_export.export_ecotree(root, syntaxtable)
+            f.write(data)
+
+
 
     def export_unipycation(self, path=None):
         import subprocess, sys
