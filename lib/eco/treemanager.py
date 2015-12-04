@@ -30,6 +30,9 @@ from export import HTMLPythonSQL, PHPPython, ATerms
 from export.jruby_simple_language import JRubySimpleLanguageExporter
 from export.simple_language import SimpleLanguageExporter
 from export.cpython import CPythonExporter
+from indentmanager import IndentationManager
+from export import HTMLPythonSQL, PHPPython, ATerms
+from version_control import gumtree_export
 
 import math
 
@@ -625,6 +628,25 @@ class TreeManager(object):
             self.cursor.pos = len(self.cursor.node.symbol.name)
         self.selection_start = self.cursor.copy()
         self.selection_end = self.cursor.copy()
+
+    def compute_tree_stats(self):
+        root = self.get_bos().get_root()
+
+        terminal_count = 0
+        node_count = 0
+
+        node_stack = [root]
+        while len(node_stack) > 0:
+            n = node_stack.pop()
+
+            node_count += 1
+            if isinstance(n.symbol, Terminal):
+                terminal_count += 1
+
+            node_stack.extend(n.children)
+
+        return {'n_terminals': terminal_count,
+                'n_nodes': node_count}
 
     # ============================ MODIFICATIONS ============================= #
 
@@ -1473,6 +1495,15 @@ class TreeManager(object):
             return JRubySimpleLanguageExporter(self).export(path=path, run=run, profile=profile)
         else:
             return self.export_as_text(path)
+
+    def export_gumtree(self, path):
+        with open(path, "w") as f:
+            root = self.get_bos().get_root()
+            syntaxtable = self.get_mainparser().syntaxtable
+            data = gumtree_export.export_ecotree(root, syntaxtable)
+            f.write(data)
+
+
 
     def export_unipycation(self, path=None):
         import subprocess, sys

@@ -567,6 +567,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionSave_as, SIGNAL("triggered()"), self.savefileAs)
         self.connect(self.ui.actionExport, SIGNAL("triggered()"), self.export)
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
+        self.connect(self.ui.actionGumtreeExport, SIGNAL("triggered()"), self.gumtree_export)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
         self.connect(self.ui.actionProfile, SIGNAL("triggered()"), self.profile_subprocess)
         self.connect(self.ui.actionVisualise_automatically, SIGNAL("triggered()"), self.run_background_tools)
@@ -602,6 +603,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionShow_namebinding, SIGNAL("triggered()"), self.update_editor)
         self.connect(self.ui.actionShow_indentation, SIGNAL("triggered()"), self.toogle_indentation)
         self.connect(self.ui.actionShow_lspaceview, SIGNAL("triggered()"), self.view_in_lspace)
+        self.connect(self.ui.actionShow_stats, SIGNAL("triggered()"), self.show_stats)
         self.connect(self.ui.menuChange_language_box, SIGNAL("aboutToShow()"), self.showEditMenu)
         self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
         self.connect(self.ui.actionShow_tool_visualisations, SIGNAL("triggered()"), self.toggle_overlay)
@@ -828,6 +830,11 @@ class Window(QtGui.QMainWindow):
             return
         view_ecodoc_in_lspace.view_in_lspace(self.getEditor().tm, lspace_root=lspace_root)
 
+    def show_stats(self):
+        tm = self.getEditor().tm
+        tree_stats = tm.compute_tree_stats()
+        print('Stats: {0} nodes, {1} terminals'.format(tree_stats['n_nodes'], tree_stats['n_terminals']))
+
     def refreshTheme(self):
         self.ui.teConsole.setFont(QApplication.instance().gfont.font)
         for i in range(self.ui.tabWidget.count()):
@@ -1047,6 +1054,15 @@ class Window(QtGui.QMainWindow):
             self.save_last_dir(str(path))
             ed.export_path = path
             self.getEditor().tm.export(path)
+
+    def gumtree_export(self):
+        ed = self.getEditorTab()
+        if not ed:
+            return
+        path = QFileDialog.getSaveFileName(self, "Export Gumtree file", self.get_last_dir())
+        if path:
+            self.getEditor().tm.export_gumtree(path)
+
 
     def get_last_dir(self):
         settings = QSettings("softdev", "Eco")

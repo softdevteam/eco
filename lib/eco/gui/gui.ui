@@ -61,6 +61,8 @@
     <addaction name="actionExport"/>
     <addaction name="actionExportAs"/>
     <addaction name="separator"/>
+    <addaction name="actionGumtreeExport"/>
+    <addaction name="separator"/>
     <addaction name="actionSettings"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
@@ -87,6 +89,7 @@
     <addaction name="actionShow_indentation"/>
     <addaction name="actionShow_tool_visualisations"/>
     <addaction name="actionShow_lspaceview"/>
+    <addaction name="actionShow_stats"/>
    </widget>
    <widget class="QMenu" name="menuInfo">
     <property name="title">
@@ -616,6 +619,14 @@
   <action name="actionShow_lspaceview">
    <property name="text">
     <string>View in LSpace</string>
+  <action name="actionShow_stats">
+   <property name="text">
+    <string>Show stats</string>
+   </property>
+  </action>
+  <action name="actionGumtreeExport">
+   <property name="text">
+    <string>Gumtree export</string>
    </property>
   </action>
  </widget>
