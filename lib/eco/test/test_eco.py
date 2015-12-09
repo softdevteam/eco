@@ -540,7 +540,6 @@ class Test_Helper:
     def tree_compare(self, node1, node2):
         # XXX: test references (next_term, parent, lookup)
         while True:
-            print("comparing", node1.symbol, node2.symbol)
             assert node1.symbol == node2.symbol
             if node1.right:
                 assert node1.right.symbol == node2.right.symbol
@@ -1318,7 +1317,7 @@ class Test_Undo(Test_Python):
 
     def type_save(self, text):
         self.treemanager.key_normal(text)
-        self.treemanager.save_current_version() # tells treemanager to save after the next operation and increase the version
+        self.treemanager.undo_snapshot() # tells treemanager to save after the next operation and increase the version
 
     def save(self):
         self.treemanager.version += 1
@@ -1326,9 +1325,9 @@ class Test_Undo(Test_Python):
 
     def test_simple_undo_redo(self):
         self.treemanager.key_normal("1")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
         self.treemanager.key_normal("+")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
         self.treemanager.key_normal("2")
         self.compare("1+2")
         self.treemanager.key_ctrl_z()
@@ -1430,7 +1429,7 @@ class Test_Undo(Test_Python):
         self.move("left", 2)
         self.compare("1+2")
         self.treemanager.key_delete()
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
         self.compare("12")
 
         self.treemanager.key_ctrl_z()
@@ -1456,14 +1455,14 @@ class Test_Undo(Test_Python):
         self.treemanager.key_end()
         self.move("left", 1)
         self.treemanager.key_normal("s")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
         dp = self.copy()
 
         self.move("down", 2)
         self.treemanager.key_end()
         self.move("left", 1)
         self.treemanager.key_normal("+")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
 
         self.treemanager.key_ctrl_z()
 
@@ -1490,7 +1489,7 @@ class Test_Undo(Test_Python):
         self.treemanager.key_end()
         self.move("left", 1)
         self.treemanager.key_normal("a")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
         a = self.copy()
         atext = self.treemanager.export_as_text()
 
@@ -1498,14 +1497,14 @@ class Test_Undo(Test_Python):
         self.treemanager.key_end()
         self.move("left", 3)
         self.treemanager.key_normal("b")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
         b = self.copy()
         btext = self.treemanager.export_as_text()
 
         self.move("down", 1)
         self.treemanager.key_end()
         self.treemanager.key_normal("c")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
         #c = self.copy()
         ctext = self.treemanager.export_as_text()
 
@@ -1513,14 +1512,14 @@ class Test_Undo(Test_Python):
         self.treemanager.key_end()
         self.move("left", 3)
         self.treemanager.key_normal("d")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
         #d = self.copy()
         dtext = self.treemanager.export_as_text()
 
         self.move("down", 1)
         self.treemanager.key_end()
         self.treemanager.key_normal("e")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
         #e = self.copy()
         etext = self.treemanager.export_as_text()
 
@@ -1627,12 +1626,17 @@ class Test_Undo(Test_Python):
             random.shuffle(cols)
             for col in cols:
                 self.treemanager.cursor_reset()
+                print("self.treemanager.cursor_reset()")
                 self.move('down', linenr)
+                print("self.move('down', %s)" % linenr)
                 self.move('right', col)
+                print("self.move('right', %s)" % col)
                 x = self.treemanager.key_delete()
+                print("self.treemanager.key_delete()")
                 if x == "eos":
                     continue
-            self.treemanager.save_current_version()
+            self.treemanager.undo_snapshot()
+            print("self.treemanager.undo_snapshot()")
 
         end_version = self.treemanager.version
         broken = self.treemanager.export_as_text()
@@ -1663,6 +1667,39 @@ class Test_Undo(Test_Python):
         assert parser.last_status == True
 
         self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+    def test_undo_random_deletion_bug1(self):
+        self.reset()
+
+        src = """class X:
+    def _end(self, winner_colour=None):
+        for i in self.insert_buttons:
+            i["state"] = tk.DISABLED
+        """
+        self.treemanager.import_file(src)
+        assert self.parser.last_status == True
+
+        self.text_compare(src)
+        start_version = self.treemanager.version
+
+        self.treemanager.cursor_reset()
+        self.move('down', 3)
+        self.move('right', 12)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move('down', 3)
+        self.move('right', 19)
+        self.treemanager.key_delete()
+
+        self.treemanager.undo_snapshot()
+
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(src)
+
+
+    def test_undo_random_deletion_infitite_loop(self):
+        pass
 
     def get_random_key(self):
         import random
@@ -1695,7 +1732,7 @@ class Test_Undo(Test_Python):
                 x = self.treemanager.key_normal(k)
                 if x == "eos":
                     continue
-            self.treemanager.save_current_version()
+            self.treemanager.undo_snapshot()
 
         end_version = self.treemanager.version
         broken = self.treemanager.export_as_text()
@@ -1760,7 +1797,7 @@ class Test_Undo(Test_Python):
                 x = self.treemanager.key_normal("\r")
                 if x == "eos":
                     continue
-            self.treemanager.save_current_version()
+            self.treemanager.undo_snapshot()
 
         end_version = self.treemanager.version
         broken = self.treemanager.export_as_text()
@@ -1816,13 +1853,13 @@ class Test_Undo(Test_Python):
         self.move("down", 4)
         self.move("right", 1)
         self.treemanager.key_normal("\r")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
 
         self.treemanager.cursor_reset()
         self.move("down", 6)
         self.move("right", 1)
         self.treemanager.key_normal("\r")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
 
         end_version = self.treemanager.version
         broken = self.treemanager.export_as_text()
@@ -1880,21 +1917,21 @@ class Test_Undo(Test_Python):
         self.treemanager.key_delete()
         self.treemanager.key_delete()
         self.treemanager.key_delete()
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
 
         self.treemanager.cursor_reset()
         self.move("down", 2)
         self.move("right", 7)
         self.treemanager.key_delete()
         self.treemanager.key_delete()
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
 
         self.treemanager.cursor_reset()
         self.move("down", 3)
         self.move("right", 10)
         self.treemanager.key_delete()
         self.treemanager.key_delete()
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
 
         end_version = self.treemanager.version
         broken = self.treemanager.export_as_text()
@@ -1951,13 +1988,13 @@ class Test_Undo(Test_Python):
         self.move("down", 7)
         self.move("right", 10)
         self.treemanager.key_normal("\r")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
 
         self.treemanager.cursor_reset()
         self.move("down", 6)
         self.move("right", 0)
         self.treemanager.key_normal("\r") # this has to be \r not \n (Eco works with \r)
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
 
         end_version = self.treemanager.version
         broken = self.treemanager.export_as_text()
@@ -2016,7 +2053,7 @@ class Test_Undo(Test_Python):
                     x = self.treemanager.key_normal(self.get_random_key())
                 if x == "eos":
                     continue
-            self.treemanager.save_current_version()
+            self.treemanager.undo_snapshot()
 
         end_version = self.treemanager.version
         broken = self.treemanager.export_as_text()
@@ -2069,7 +2106,7 @@ class Test_Undo(Test_Python):
         self.move('down', 2)
         self.move('right', 0)
         self.treemanager.key_normal(',')
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
         self.treemanager.cursor_reset()
         self.move('down', 1)
         self.move('right', 3)
@@ -2078,7 +2115,7 @@ class Test_Undo(Test_Python):
         self.move('down', 1)
         self.move('right', 4)
         self.treemanager.key_normal(' ')
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
 
 
         # undo all and compare with original
@@ -2129,8 +2166,8 @@ class Test_Undo(Test_Python):
                 if x == "eos":
                     continue
             if not last_was_undo:
-                print("self.treemanager.save_current_version()")
-                self.treemanager.save_current_version()
+                print("self.treemanager.undo_snapshot()")
+                self.treemanager.undo_snapshot()
 
         end_version = self.treemanager.version
         broken = self.treemanager.export_as_text()
@@ -2167,7 +2204,7 @@ class Test_Undo(Test_Python):
         self.move('down', 8)
         self.move('right', 0)
         self.treemanager.key_delete()
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
         self.treemanager.cursor_reset()
         self.treemanager.key_ctrl_z()
         self.treemanager.cursor_reset()
@@ -2192,7 +2229,7 @@ class Test_Undo(Test_Python):
         self.move('down', 5)
         self.move('right', 3)
         self.treemanager.key_normal(')')
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
 
         end_version = self.treemanager.version
         broken = self.treemanager.export_as_text()
@@ -2257,12 +2294,12 @@ class Test_Undo_LBoxes(Test_Helper):
         self.treemanager.key_normal("a")
         self.treemanager.key_normal("s")
         self.treemanager.key_normal("s")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
 
         self.move("down", 1)
         self.treemanager.key_end()
         self.treemanager.key_normal("a")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
 
         self.treemanager.key_ctrl_z()
         self.treemanager.key_ctrl_z()
@@ -2281,22 +2318,22 @@ class Test_Undo_LBoxes(Test_Helper):
         for c in text:
             self.treemanager.key_normal(c)
 
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
 
         import copy
         dp = copy.deepcopy(self.parser.previous_version.parent)
         self.versions.append(self.treemanager.export_as_text())
         self.treemanager.key_normal("a")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
         self.versions.append(self.treemanager.export_as_text())
 
         self.move("up", 2)
         self.treemanager.key_end()
         self.treemanager.key_normal("\r")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
         self.versions.append(self.treemanager.export_as_text())
         self.treemanager.key_normal("a")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
         self.versions.append(self.treemanager.export_as_text())
 
         assert self.versions.pop() == self.treemanager.export_as_text()
@@ -2319,15 +2356,15 @@ class Test_Undo_LBoxes(Test_Helper):
         self.treemanager.key_normal("a")
         self.treemanager.key_normal("s")
         self.treemanager.key_normal("s")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
 
         import copy
         dp = copy.deepcopy(self.parser.previous_version.parent)
 
         self.treemanager.key_normal("a")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
         self.treemanager.key_ctrl_z()
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
 
         self.tree_compare(self.parser.previous_version.parent, dp)
 
@@ -2335,7 +2372,7 @@ class Test_Undo_LBoxes(Test_Helper):
         self.treemanager.key_end()
         self.move("left", 2)
         self.treemanager.key_normal("x")
-        self.treemanager.save_current_version()
+        self.treemanager.undo_snapshot()
 
         dp2 = copy.deepcopy(self.parser.previous_version.parent)
         self.treemanager.key_ctrl_z()

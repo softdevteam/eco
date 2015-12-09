@@ -291,6 +291,7 @@ class TreeManager(object):
         self.savenextparse = False
         self.saved_lines = {}
         self.saved_parsers = {}
+        self.undo_snapshots = []
 
         self.tool_data_is_dirty = False
 
@@ -628,7 +629,14 @@ class TreeManager(object):
 
     def key_shift_ctrl_z(self):
         self.log_input("key_shift_ctrl_z")
-        if self.get_max_version() > self.version:
+        try:
+            i = self.undo_snapshots.index(self.version)
+            if i == len(self.undo_snapshots) - 1:
+                return
+            undo_amount = self.undo_snapshots[i+1] - self.undo_snapshots[i]
+        except ValueError:
+            undo_amount = self.undo_snapshots[0] - self.version
+        for i in range(undo_amount):
             self.version += 1
             TreeManager.version = self.version
             self.recover_version("redo")
@@ -643,10 +651,20 @@ class TreeManager(object):
 
     def key_ctrl_z(self):
         self.log_input("key_ctrl_z")
-        if self.mainroot.has_changes() and self.version == self.get_max_version():
+        if not self.undo_snapshots:
+            return
+        if self.undo_snapshots[-1] != self.get_max_version() and self.version == self.get_max_version():
             # if there are unsaved changes, save before undo so we can redo them again
-            self.save_current_version()
-        if self.version > 1:
+            self.undo_snapshots.append(self.version)
+        try:
+            i = self.undo_snapshots.index(self.version)
+        except ValueError:
+            return
+        if i == 0:
+            undo_amount = self.version - 1
+        else:
+            undo_amount = self.undo_snapshots[i] - self.undo_snapshots[i-1]
+        for i in range(undo_amount):
             self.version -= 1
             TreeManager.version = self.version
             self.cursor.load(self.version)
@@ -708,6 +726,10 @@ class TreeManager(object):
             if key > version:
                 del self.saved_parsers[key]
         self.cursor.clean_versions(version)
+        for i in range(len(self.undo_snapshots)):
+            if self.undo_snapshots[i] > version:
+                self.undo_snapshots = self.undo_snapshots[:i]
+                break
 
         for l in self.parsers:
             p = l[0]
@@ -1365,7 +1387,7 @@ class TreeManager(object):
         lexer.relex_import(new, self.version+1)
         self.rescan_linebreaks(0)
         self.reparse(bos)
-        self.save_current_version()
+        self.undo_snapshot()
         self.changed = True
         return
 
@@ -1568,7 +1590,15 @@ class TreeManager(object):
             root = node.get_root()
             parser = self.get_parser(root)
             parser.inc_parse()
+        self.save_current_version()
         TreeManager.version = self.version
+
+    def undo_snapshot(self):
+        if self.undo_snapshots and self.undo_snapshots[-1] == self.version:
+            # Snapshot already taken (this can happen in fuzzy tests where
+            # undo_snapshot is called without any changes)
+            return
+        self.undo_snapshots.append(self.version)
 
     def save_current_version(self):
         self.log_input("save_current_version")

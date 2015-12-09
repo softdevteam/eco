@@ -128,7 +128,7 @@ class NodeEditor(QFrame):
         self.update()
 
     def trigger_undotimer(self):
-        self.tm.save_current_version()
+        self.tm.undo_snapshot()
         self.undotimer.stop()
 
     def setImageMode(self, boolean):
