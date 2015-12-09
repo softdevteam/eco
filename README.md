@@ -26,3 +26,7 @@ If you wish to see visualisations of parse trees, you may optionally install:
 To run Eco, use the bin/eco file:
 
   `$ bin/eco`
+  
+### Tutorial ###
+
+A small tutorial to get you started with the basics of Eco can be found [here](tutorial/TUTORIAL.md).
