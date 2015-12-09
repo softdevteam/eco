@@ -1,6 +1,6 @@
 import pytest
 
-from version_control.gumtree_driver import gumtree, EcoTreeDocument as Doc,\
+from version_control.gumtree_driver import GumTreeMerger, gumtree_swingdiff, EcoTreeDocument as Doc,\
     EcoTreeNode as Node, EcoTreeNodeClass as NodeClass,\
     GumtreeDiffUpdate as DUpdate, GumtreeDiffDelete as DDelete, GumtreeDiffInsert as DInsert,\
     GumtreeDiffMove as DMove
@@ -11,25 +11,57 @@ class Test_gumtree:
         A = NodeClass(1, 'A')
         B = NodeClass(2, 'B')
         C = NodeClass(3, 'C')
-        with A.node('a', []) as T0, \
-                A.node('a', []) as T1:
-            assert gumtree(T0, T1) == []
-        with A.node('a', [B.node('b', [])]) as T0, \
-                A.node('a', [B.node('b', [])]) as T1:
-            assert gumtree(T0, T1) == []
-        with A.node('a', [B.node('b', []), C.node('c', [])]) as T0, \
-                A.node('a', [B.node('b', []), C.node('c', [])]) as T1:
-            assert gumtree(T0, T1) == []
+        T0 = A.node('a', [])
+        T1 = A.node('a', [])
+        assert GumTreeMerger(T0).diff(T1) == []
+
+        T0 = A.node('a', [B.node('b', [])])
+        T1 = A.node('a', [B.node('b', [])])
+        assert GumTreeMerger(T0).diff(T1) == []
+
+        T0 = A.node('a', [B.node('b', []), C.node('c', [])])
+        T1 = A.node('a', [B.node('b', []), C.node('c', [])])
+        assert GumTreeMerger(T0).diff(T1) == []
+
 
     def test_update(self):
         A = NodeClass(1, 'A')
         B = NodeClass(2, 'B')
         C = NodeClass(3, 'C')
-        with A.node('a', [B.node('b', [])]) as T0, \
-                A.node('a', [B.node('x', [])]) as T1:
-            assert gumtree(T0, T1) == [DUpdate(None, T0[0], 'x')]
 
-    #
+        # A(a) - B(b)  ==>  A(a) - B(x)
+        T0 = A.node('a', [B.node('b', [])])
+        T1 = A.node('a', [B.node('x', [])])
+        assert GumTreeMerger(T0).diff(T1) == [DUpdate(None, T0[0], 'x')]
+
+        # A(a) - B(b),C(c)  ==>  A(a) - B(x),C(y)
+        T0 = A.node('a', [B.node('b', []), C.node('c', [])])
+        T1 = A.node('a', [B.node('x', []), C.node('y', [])])
+        assert GumTreeMerger(T0).diff(T1) == [DUpdate(None, T0[0], 'x'), DUpdate(None, T0[1], 'y')]
+
+        # A(a) - B(b) - C(c)  ==>  A(a) - B(x) - C(c)
+        T0 = A.node('a', [B.node('b', [C.node('c', [])])])
+        T1 = A.node('a', [B.node('x', [C.node('c', [])])])
+        assert GumTreeMerger(T0).diff(T1) == [DUpdate(None, T0[0], 'x')]
+
+
+    def test_insert(self):
+        A = NodeClass(1, 'A')
+        B = NodeClass(2, 'B')
+        C = NodeClass(3, 'C')
+
+        # A(a) - B(b)  ==>  A(a) - B(b) - C(c)
+        T0 = A.node('a', [B.node('b', [])])
+        T1 = A.node('a', [B.node('b', [C.node('c', [])])])
+        assert GumTreeMerger(T0).diff(T1) == [DInsert(None, None, T0[0], 0, T1[0][0])]
+
+        # A(a) - B(b)  ==>  A(a) - B(b) - C(c) - A(x)
+        T0 = A.node('a', [B.node('b', [])])
+        T1 = A.node('a', [B.node('b', [C.node('c', [A.node('x', [])])])])
+        assert GumTreeMerger(T0).diff(T1) == [DInsert(None, None, T0[0], 0, T1[0][0]),
+                                   DInsert(None, None, T1[0][0], 0, T1[0][0][0])]
+
+
     # def test_replace(self):
     #     assert diff3(['b'], ['a'], ['a']) == [Diff3ConflictRegion(base=['b'], derived_main=['a'])]
     #     assert diff3(['b'], ['a'], ['a'], True) == ['a']

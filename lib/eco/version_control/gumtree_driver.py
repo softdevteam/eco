@@ -59,6 +59,7 @@ class EcoTreeNode (object):
         self.value = value
         self.children = children
         self.index = None
+        self.merge_id = None
 
     def walk_structure(self, index, leaf_count, index_to_node):
         if self.position is None:
@@ -78,17 +79,13 @@ class EcoTreeNode (object):
             self.length = cur_leaf_count - leaf_count
 
         self.index = cur_index
-
-        cur_index += 1
-
         index_to_node[self.index] = self
 
-        return cur_index, cur_leaf_count
+        return cur_index + 1, cur_leaf_count
 
 
     def as_json(self):
         return {
-            '__type__': 'TreeNode',
             'label': self.value,
             'type': self.type_id,
             'type_label': self.type_label,
@@ -114,29 +111,28 @@ class EcoTreeDocument (object):
 
         self.root.walk_structure(0, 0, self.index_to_node)
 
-        print self.index_to_node
-
 
     def as_json(self):
         return {
-            '__type__': 'EcoTree',
-            'tree': self.root.as_json()
+            'root': self.root.as_json()
         }
 
     def as_str(self):
         return json.dumps(self.as_json())
+
+    def node_by_id(self, node_id):
+        return self.index_to_node[node_id]
+
+
 
 
 class GumtreeDiff (object):
     @staticmethod
     def _node_and_id(doc, node):
         if isinstance(node, EcoTreeNode):
-            return node, node.index
-        elif isinstance(node, (int, long)):
-            node_ref = doc.index_to_node[node] if doc is not None else None
-            return node_ref, node
+            return node, node.merge_id
         else:
-            raise TypeError('node must be an int, long or an EcoTreeNode instance')
+            raise TypeError('node must be an EcoTreeNode instance')
 
 
 class GumtreeDiffUpdate (GumtreeDiff):
@@ -155,10 +151,10 @@ class GumtreeDiffUpdate (GumtreeDiff):
         return hash((GumtreeDiffUpdate, self.node_id, self.value))
 
     def __str__(self):
-        return 'update({0}: value={1})'.format(self.node_id, self.value)
+        return 'update({0};{1}: value={2})'.format(self.node_id, self.node.value, self.value)
 
     def __repr__(self):
-        return 'update({0}: value={1})'.format(self.node_id, self.value)
+        return 'update({0};{1}: value={2})'.format(self.node_id, self.node.value, self.value)
 
 
 class GumtreeDiffDelete (GumtreeDiff):
@@ -201,10 +197,14 @@ class GumtreeDiffInsert (GumtreeDiff):
         return hash((GumtreeDiffInsert, self.parent_id, self.index_in_parent, self.src_node_id))
 
     def __str__(self):
-        return 'insert(src {0}, parent {1}, at {2})'.format(self.src_node_id, self.parent_id, self.index_in_parent)
+        return 'insert(src {0};{1}, parent {2};{3}, at {4})'.format(self.src_node_id, self.src_node.value,
+                                                                    self.parent_id, self.parent_node.value,
+                                                                    self.index_in_parent)
 
     def __repr__(self):
-        return 'insert(src {0}, parent {1}, at {2})'.format(self.src_node_id, self.parent_id, self.index_in_parent)
+        return 'insert(src {0};{1}, parent {2};{3}, at {4})'.format(self.src_node_id, self.src_node.value,
+                                                                    self.parent_id, self.parent_node.value,
+                                                                    self.index_in_parent)
 
 
 class GumtreeDiffMove (GumtreeDiff):
@@ -225,16 +225,152 @@ class GumtreeDiffMove (GumtreeDiff):
         return hash((GumtreeDiffMove, self.parent_id, self.index_in_parent, self.node_id))
 
     def __str__(self):
-        return 'move({0}, parent {1}, at {2})'.format(self.node_id, self.parent_id, self.index_in_parent)
+        return 'move({0};{1}, parent {2};{3}, at {4})'.format(self.node_id, self.node.value,
+                                                              self.parent_id, self.parent_node.value,
+                                                              self.index_in_parent)
 
     def __repr__(self):
-        return 'move({0}, parent {1}, at {2})'.format(self.node_id, self.parent_id, self.index_in_parent)
+        return 'move({0};{1}, parent {2};{3}, at {4})'.format(self.node_id, self.node.value,
+                                                              self.parent_id, self.parent_node.value,
+                                                              self.index_in_parent)
 
 
 DEFAULT_GUMTREE_PATH = os.path.expanduser('~/kcl/bin_gumtree/dist-2.1.0-SNAPSHOT/bin')
 
 
-def gumtree(tree_a, tree_b, gumtree_path=None, gumtree_executable_name='dist', join_path=True):
+
+class GumTreeMerger (object):
+    def __init__(self, tree_base):
+        """
+        Construct a GumTree merger
+
+        :param tree_base: tree in the base version
+        """
+        if isinstance(tree_base, EcoTreeNode):
+            tree_base = EcoTreeDocument(tree_base)
+
+        if not isinstance(tree_base, EcoTreeDocument):
+            raise TypeError('tree_base should be an instance of EcoTreeDocument or EcoTreeNode')
+
+        self.tree_base = tree_base
+
+        self.merge_id_to_node = {}
+        self.__merge_id_counter = 0
+
+        # Assign merge IDs to nodes
+        for node_index, node in self.tree_base.index_to_node.items():
+            merge_id = self.__merge_id_counter
+            self.__merge_id_counter += 1
+
+            node.merge_id = merge_id
+            self.merge_id_to_node[merge_id] = node
+
+
+    def diff(self, tree_derived, gumtree_path=None, gumtree_executable_name='dist', join_path=True):
+        """
+        Invoke the external `Gumtree` tool to compare two trees `tree_a` and `tree_b`, each of which should be an
+        instance of `EcoTreeDocument`.
+        :param tree_derived: tree; derived version
+        :return: the merged sequence, with possible conflicts. Conflicting regions are represented as `Diff3ConflictRegion`
+        instances.
+        """
+        if isinstance(tree_derived, EcoTreeNode):
+            tree_derived = EcoTreeDocument(tree_derived)
+
+        if not isinstance(tree_derived, EcoTreeDocument):
+            raise TypeError('tree_derived should be an instance of EcoTreeDocument or EcoTreeNode')
+
+        if gumtree_path is None:
+            gumtree_path = DEFAULT_GUMTREE_PATH
+        if join_path:
+            gumtree_executable_path = os.path.join(gumtree_path, gumtree_executable_name)
+        else:
+            gumtree_executable_path = gumtree_executable_name
+
+        # Use the .ecotree file extension so that Gumtree knows which format to assume
+        a_fd, a_path = tempfile.mkstemp(suffix='.jsontree')
+        b_fd, b_path = tempfile.mkstemp(suffix='.jsontree')
+
+        try:
+            a_f = os.fdopen(a_fd, 'w')
+            b_f = os.fdopen(b_fd, 'w')
+
+            json.dump(self.tree_base.as_json(), a_f)
+            json.dump(tree_derived.as_json(), b_f)
+
+            a_f.close()
+            b_f.close()
+
+            proc = subprocess.Popen([gumtree_executable_path, 'jsondiff', a_path, b_path],
+                                    cwd=gumtree_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out, err = proc.communicate()
+
+            redefine_err_string = 'java.lang.RuntimeException: Redefining type'
+            if 'java.lang.RuntimeException: Redefining type' in err:
+                _, _, after = err.partition(redefine_err_string)
+                after = after.strip()
+                type_id, _, _ = after.partition(':')
+                raise ValueError('Gumtree error, attempted to redefine type {0}'.format(type_id))
+        finally:
+            os.remove(a_path)
+            os.remove(b_path)
+
+        diff_js = json.loads(out)
+        matches_js = diff_js['matches']
+        actions_js = diff_js['actions']
+
+        a_to_b = {}
+        b_to_a = {}
+        for m in matches_js:
+            src = m['src']
+            dest = m['dest']
+            a_to_b[src] = dest
+            b_to_a[dest] = src
+
+        # Walk all nodes in `tree_derived` and assign merge IDs
+        for node_index, node in tree_derived.index_to_node.items():
+            # Use matches to translate index so that its relative to the base version tree
+            base_index = b_to_a.get(node_index)
+
+            if base_index is None:
+                # The node in question is NOT present in the base version; need to assign a new merge ID
+                merge_id = self.__merge_id_counter
+                self.__merge_id_counter += 1
+
+                node.merge_id = merge_id
+                self.merge_id_to_node[merge_id] = node
+            else:
+                # Assign it the mapped merge_id
+                node.merge_id = self.tree_base.index_to_node[base_index].merge_id
+
+
+        diffs = []
+        for action_js in actions_js:
+            action = action_js['action']
+            if action == 'update':
+                # Update actions reference the node from tree A that is being modified
+                node = self.tree_base.index_to_node[action_js['tree']]
+                diffs.append(GumtreeDiffUpdate(self.tree_base, node, action_js['label']))
+            elif action == 'delete':
+                # Delete actions reference the node from tree A that is being deleted
+                node = self.tree_base.index_to_node[action_js['tree']]
+                diffs.append(GumtreeDiffDelete(self.tree_base, node))
+            elif action == 'insert':
+                # Insert actions reference the node from tree B, that is being inserted as a child of
+                # a parent node - also from tree B - at a specified index
+                node = tree_derived.index_to_node[action_js['tree']]
+                parent = tree_derived.index_to_node[action_js['parent']]
+                diffs.append(GumtreeDiffInsert(self.tree_base, tree_derived, parent, action_js['at'], node))
+            elif action == 'move':
+                node = tree_derived.index_to_node[action_js['tree']]
+                parent = tree_derived.index_to_node[action_js['parent']]
+                diffs.append(GumtreeDiffMove(self.tree_base, parent, action_js['at'], node))
+
+        print err
+
+        return diffs
+
+def gumtree_swingdiff(tree_a, tree_b, gumtree_path=None, gumtree_executable_name='dist', join_path=True):
     """
     Invoke the external `Gumtree` tool to compare two trees `tree_a` and `tree_b`, each of which should be an
     instance of `EcoTreeDocument`.
@@ -261,8 +397,8 @@ def gumtree(tree_a, tree_b, gumtree_path=None, gumtree_executable_name='dist', j
         gumtree_executable_path = gumtree_executable_name
 
     # Use the .ecotree file extension so that Gumtree knows which format to assume
-    a_fd, a_path = tempfile.mkstemp(suffix='.ecotree')
-    b_fd, b_path = tempfile.mkstemp(suffix='.ecotree')
+    a_fd, a_path = tempfile.mkstemp(suffix='.jsontree')
+    b_fd, b_path = tempfile.mkstemp(suffix='.jsontree')
 
     try:
         a_f = os.fdopen(a_fd, 'w')
@@ -271,39 +407,12 @@ def gumtree(tree_a, tree_b, gumtree_path=None, gumtree_executable_name='dist', j
         json.dump(tree_a.as_json(), a_f)
         json.dump(tree_b.as_json(), b_f)
 
-        print json.dumps(tree_a.as_json())
-        print json.dumps(tree_b.as_json())
-
         a_f.close()
         b_f.close()
 
-        proc = subprocess.Popen([gumtree_executable_path, 'jsondiff', a_path, b_path],
+        proc = subprocess.Popen([gumtree_executable_path, 'swingdiff', a_path, b_path],
                                 cwd=gumtree_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = proc.communicate()
-
-        redefine_err_string = 'java.lang.RuntimeException: Redefining type'
-        if 'java.lang.RuntimeException: Redefining type' in err:
-            _, _, after = err.partition(redefine_err_string)
-            after = after.strip()
-            type_id, _, _ = after.partition(':')
-            raise ValueError('Gumtree error, attempted to redefine type {0}'.format(type_id))
+        proc.communicate()
     finally:
         os.remove(a_path)
         os.remove(b_path)
-
-    diffs_js = json.loads(out)
-
-    diffs = []
-
-    for d in diffs_js:
-        action = d['action']
-        if action == 'update':
-            diffs.append(GumtreeDiffUpdate(tree_a, d['tree'], d['label']))
-        elif action == 'delete':
-            diffs.append(GumtreeDiffDelete(tree_a, d['tree']))
-        elif action == 'insert':
-            diffs.append(GumtreeDiffInsert(tree_a, tree_b, d['parent'], d['at'], d['tree']))
-        elif action == 'move':
-            diffs.append(GumtreeDiffMove(tree_a, d['parent'], d['at'], d['tree']))
-
-    return diffs
