@@ -35,13 +35,13 @@ def _export_subtree(node, symbol_name_to_id, position):
                 current_position += eco_child.length
                 children.append(eco_child)
         type_id = symbol_name_to_id[symbol.name]
-        return gumtree_driver.EcoTreeNode(type_id=type_id, type_label=symbol.name, position=position,
-                           length=current_position - position, value='', children=children)
+        return gumtree_driver.GumtreeNode(type_id=type_id, type_label=symbol.name, position=position,
+                                          length=current_position - position, value='', children=children)
     elif isinstance(symbol, Terminal):
         type_label = '__terminal__'
         type_id = symbol_name_to_id[type_label]
-        return gumtree_driver.EcoTreeNode(type_id=type_id, type_label=type_label, position=node.position, length=1,
-                           value=symbol.name, children=[])
+        return gumtree_driver.GumtreeNode(type_id=type_id, type_label=type_label, position=node.position, length=1,
+                                          value=symbol.name, children=[])
     else:
         return None
 
@@ -63,7 +63,7 @@ def export_ecotree(root_node, syntaxtable):
     symbol_name_to_id['Root'] = len(symbol_name_to_id)
 
     eco_subtree = _export_subtree(root_node, symbol_name_to_id, 0)
-    doc = gumtree_driver.EcoTreeDocument(eco_subtree)
+    doc = gumtree_driver.GumtreeDocument(eco_subtree)
 
     js = doc.as_json()
 
