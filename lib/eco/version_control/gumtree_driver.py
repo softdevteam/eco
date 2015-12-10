@@ -30,7 +30,9 @@ class EcoTreeNodeClass (object):
     def full_node(self, position, length, value, children):
         return EcoTreeNode(self.type_id, self.type_label, position, length, value, children)
 
-    def node(self, value, children):
+    def node(self, value, children=None):
+        if children is None:
+            children = []
         return EcoTreeNode(self.type_id, self.type_label, None, None, value, children)
 
 
@@ -103,6 +105,27 @@ class EcoTreeNode (object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         return self
 
+    @property
+    def label_str(self):
+        return '{0}:{1}'.format(self.type_label, self.value)
+
+    @property
+    def id_label_str(self):
+        return '{0}:{1}:{2}'.format(self.merge_id, self.type_label, self.value)
+
+    def __str__(self):
+        if len(self.children) == 0:
+            return '{0}'.format(self.label_str)
+        else:
+            return '{0}({1})'.format(self.label_str, ', '.join([str(x) for x in self.children]))
+
+    def __repr__(self):
+        if len(self.children) == 0:
+            return '{0}'.format(self.label_str)
+        else:
+            return '{0}({1})'.format(self.label_str, ', '.join([str(x) for x in self.children]))
+
+
 
 class EcoTreeDocument (object):
     def __init__(self, root):
@@ -128,7 +151,7 @@ class EcoTreeDocument (object):
 
 class GumtreeDiff (object):
     @staticmethod
-    def _node_and_id(doc, node):
+    def _node_and_id(node):
         if isinstance(node, EcoTreeNode):
             return node, node.merge_id
         else:
@@ -136,10 +159,9 @@ class GumtreeDiff (object):
 
 
 class GumtreeDiffUpdate (GumtreeDiff):
-    def __init__(self, dst_doc, node, value):
-        self.dst_doc = dst_doc
+    def __init__(self, node, value):
         self.value = value
-        self.node, self.node_id = self._node_and_id(dst_doc, node)
+        self.node, self.node_id = self._node_and_id(node)
 
     def __eq__(self, other):
         if isinstance(other, GumtreeDiffUpdate):
@@ -151,16 +173,15 @@ class GumtreeDiffUpdate (GumtreeDiff):
         return hash((GumtreeDiffUpdate, self.node_id, self.value))
 
     def __str__(self):
-        return 'update({0};{1}: value={2})'.format(self.node_id, self.node.value, self.value)
+        return 'update({0}, value={1})'.format(self.node.id_label_str, self.value)
 
     def __repr__(self):
-        return 'update({0};{1}: value={2})'.format(self.node_id, self.node.value, self.value)
+        return 'update({0}, value={1})'.format(self.node.id_label_str, self.value)
 
 
 class GumtreeDiffDelete (GumtreeDiff):
-    def __init__(self, dst_doc, node):
-        self.dst_doc = dst_doc
-        self.node, self.node_id = self._node_and_id(dst_doc, node)
+    def __init__(self, node):
+        self.node, self.node_id = self._node_and_id(node)
 
     def __eq__(self, other):
         if isinstance(other, GumtreeDiffDelete):
@@ -172,19 +193,17 @@ class GumtreeDiffDelete (GumtreeDiff):
         return hash((GumtreeDiffDelete, self.node_id))
 
     def __str__(self):
-        return 'delete({0})'.format(self.node_id)
+        return 'delete({0})'.format(self.node.id_label_str)
 
     def __repr__(self):
-        return 'delete({0})'.format(self.node_id)
+        return 'delete({0})'.format(self.node.id_label_str)
 
 
 class GumtreeDiffInsert (GumtreeDiff):
-    def __init__(self, dst_doc, src_doc, parent, index_in_parent, src_node):
-        self.dst_doc = dst_doc
-        self.src_doc = src_doc
-        self.parent_node, self.parent_id = self._node_and_id(dst_doc, parent)
+    def __init__(self, src_node, parent, index_in_parent):
+        self.parent_node, self.parent_id = self._node_and_id(parent)
         self.index_in_parent = index_in_parent
-        self.src_node, self.src_node_id = self._node_and_id(src_doc, src_node)
+        self.src_node, self.src_node_id = self._node_and_id(src_node)
 
     def __eq__(self, other):
         if isinstance(other, GumtreeDiffInsert):
@@ -197,22 +216,19 @@ class GumtreeDiffInsert (GumtreeDiff):
         return hash((GumtreeDiffInsert, self.parent_id, self.index_in_parent, self.src_node_id))
 
     def __str__(self):
-        return 'insert(src {0};{1}, parent {2};{3}, at {4})'.format(self.src_node_id, self.src_node.value,
-                                                                    self.parent_id, self.parent_node.value,
-                                                                    self.index_in_parent)
+        return 'insert(src {0}, parent {1}, at {2})'.format(self.src_node.id_label_str,
+                                                            self.parent_node.id_label_str, self.index_in_parent)
 
     def __repr__(self):
-        return 'insert(src {0};{1}, parent {2};{3}, at {4})'.format(self.src_node_id, self.src_node.value,
-                                                                    self.parent_id, self.parent_node.value,
-                                                                    self.index_in_parent)
+        return 'insert(src {0}, parent {1}, at {2})'.format(self.src_node.id_label_str,
+                                                            self.parent_node.id_label_str, self.index_in_parent)
 
 
 class GumtreeDiffMove (GumtreeDiff):
-    def __init__(self, dst_doc, parent, index_in_parent, node):
-        self.dst_doc = dst_doc
-        self.parent_node, self.parent_id = self._node_and_id(dst_doc, parent)
+    def __init__(self, node, parent, index_in_parent):
+        self.parent_node, self.parent_id = self._node_and_id(parent)
         self.index_in_parent = index_in_parent
-        self.node, self.node_id = self._node_and_id(dst_doc, node)
+        self.node, self.node_id = self._node_and_id(node)
 
     def __eq__(self, other):
         if isinstance(other, GumtreeDiffMove):
@@ -225,14 +241,12 @@ class GumtreeDiffMove (GumtreeDiff):
         return hash((GumtreeDiffMove, self.parent_id, self.index_in_parent, self.node_id))
 
     def __str__(self):
-        return 'move({0};{1}, parent {2};{3}, at {4})'.format(self.node_id, self.node.value,
-                                                              self.parent_id, self.parent_node.value,
-                                                              self.index_in_parent)
+        return 'move(src {0}, parent {1}, at {2})'.format(self.node.id_label_str,
+                                                          self.parent_node.id_label_str, self.index_in_parent)
 
     def __repr__(self):
-        return 'move({0};{1}, parent {2};{3}, at {4})'.format(self.node_id, self.node.value,
-                                                              self.parent_id, self.parent_node.value,
-                                                              self.index_in_parent)
+        return 'move(src {0}, parent {1}, at {2})'.format(self.node.id_label_str,
+                                                          self.parent_node.id_label_str, self.index_in_parent)
 
 
 DEFAULT_GUMTREE_PATH = os.path.expanduser('~/kcl/bin_gumtree/dist-2.1.0-SNAPSHOT/bin')
@@ -350,21 +364,21 @@ class GumTreeMerger (object):
             if action == 'update':
                 # Update actions reference the node from tree A that is being modified
                 node = self.tree_base.index_to_node[action_js['tree']]
-                diffs.append(GumtreeDiffUpdate(self.tree_base, node, action_js['label']))
+                diffs.append(GumtreeDiffUpdate(node, action_js['label']))
             elif action == 'delete':
                 # Delete actions reference the node from tree A that is being deleted
                 node = self.tree_base.index_to_node[action_js['tree']]
-                diffs.append(GumtreeDiffDelete(self.tree_base, node))
+                diffs.append(GumtreeDiffDelete(node))
             elif action == 'insert':
                 # Insert actions reference the node from tree B, that is being inserted as a child of
                 # a parent node - also from tree B - at a specified index
                 node = tree_derived.index_to_node[action_js['tree']]
                 parent = tree_derived.index_to_node[action_js['parent']]
-                diffs.append(GumtreeDiffInsert(self.tree_base, tree_derived, parent, action_js['at'], node))
+                diffs.append(GumtreeDiffInsert(node, parent, action_js['at']))
             elif action == 'move':
-                node = tree_derived.index_to_node[action_js['tree']]
+                node = self.tree_base.index_to_node[action_js['tree']]
                 parent = tree_derived.index_to_node[action_js['parent']]
-                diffs.append(GumtreeDiffMove(self.tree_base, parent, action_js['at'], node))
+                diffs.append(GumtreeDiffMove(node, parent, action_js['at']))
 
         print err
 
