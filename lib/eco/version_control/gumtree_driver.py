@@ -38,7 +38,7 @@ class GumtreeNodeClass (object):
 
 
 class GumtreeNode (object):
-    def __init__(self, type_id, type_label, position, length, value, children):
+    def __init__(self, type_id, type_label, position, length, value, children, merge_id=None):
         if value is None:
             value = ''
         if not isinstance(type_id, int):
@@ -59,9 +59,12 @@ class GumtreeNode (object):
         self.position = position
         self.length = length
         self.value = value
+        self.parent = None
         self.children = children
+        for child in children:
+            child.parent = self
         self.index = None
-        self.merge_id = None
+        self.merge_id = merge_id
 
     def walk_structure(self, index, leaf_count, index_to_node):
         if self.position is None:
@@ -90,6 +93,62 @@ class GumtreeNode (object):
         for child in self.children:
             child.clear_merge_ids()
 
+    def predecessor_of_child(self, child):
+        i = self.children.index(child)
+        return self.children[i - 1] if i > 0 else None
+
+    def successor_of_child(self, child):
+        i = self.children.index(child)
+        return self.children[i + 1] if i < len(self.children) - 1 else None
+
+    def insertion_index(self, predecessor_merge_id, successor_merge_id):
+        pred_index = succ_index = None
+        for i, node in enumerate(self.children):
+            if predecessor_merge_id == node.merge_id:
+                pred_index = i
+            elif successor_merge_id == node.merge_id:
+                succ_index = i
+        if len(self.children) == 0:
+            return 0
+        else:
+            if pred_index is None and succ_index is not None:
+                # Successor available, no predecessor
+                if succ_index < len(self.children):
+                    return succ_index
+            elif pred_index is not None and succ_index is None:
+                # Predecessor available, no successor
+                if pred_index < len(self.children):
+                    return pred_index + 1
+            elif pred_index is not None and succ_index is not None:
+                # Predecessor and successor available
+                i = pred_index + 1
+                j = succ_index
+                if i == j:
+                    return i
+                else:
+                    return i, j
+            return 0
+
+    def remove_child(self, child):
+        self.children.remove(child)
+        child.parent = None
+
+    def insert_child(self, index, child):
+        self.children.insert(index, child)
+        child.parent = self
+
+    def copy(self, children=None):
+        if children is None:
+            children = []
+        return GumtreeNode(self.type_id, self.type_label, self.position, self.length, self.value, children,
+                           self.merge_id)
+
+    def clone_subtree(self, merge_id_to_node):
+        children = [node.clone_subtree(merge_id_to_node) for node in self.children]
+        node = GumtreeNode(self.type_id, self.type_label, self.position, self.length, self.value, children,
+                           self.merge_id)
+        merge_id_to_node[node.merge_id] = node
+        return node
 
     def as_json(self):
         return {
@@ -104,6 +163,9 @@ class GumtreeNode (object):
     def __getitem__(self, index):
         return self.children[index]
 
+    def __len__(self):
+        return len(self.children)
+
     def __enter__(self):
         return self
 
@@ -117,6 +179,13 @@ class GumtreeNode (object):
     @property
     def id_label_str(self):
         return '{0}:{1}:{2}'.format(self.merge_id, self.type_label, self.value)
+
+    def __eq__(self, other):
+        if isinstance(other, GumtreeNode):
+            return self.value == other.value and self.type_id == other.type_id and \
+                   self.type_label == other.type_label and self.children == other.children
+        else:
+            return False
 
     def __str__(self):
         if len(self.children) == 0:
@@ -144,6 +213,9 @@ class GumtreeDocument (object):
         self.root.clear_merge_ids()
 
 
+    def clone_subtree(self, merge_id_to_node):
+        return GumtreeDocument(self.root.clone_subtree(merge_id_to_node))
+
     def as_json(self):
         return {
             'root': self.root.as_json()
@@ -155,22 +227,55 @@ class GumtreeDocument (object):
     def node_by_id(self, node_id):
         return self.index_to_node[node_id]
 
+    def __eq__(self, other):
+        if isinstance(other, GumtreeDocument):
+            return self.root == other.root
+        elif isinstance(other, GumtreeNode):
+            return self.root == other
+        else:
+            return False
+
 
 
 
 class GumtreeDiff (object):
+    def __init__(self, source):
+        self.source = source
+
+    def merge_op(self):
+        raise NotImplementedError('abstract for {0}'.format(type(self)))
+
     @staticmethod
     def _node_and_id(node):
-        if isinstance(node, GumtreeNode):
+        if node is None:
+            return None, None
+        elif isinstance(node, GumtreeNode):
             return node, node.merge_id
         else:
-            raise TypeError('node must be an EcoTreeNode instance')
+            raise TypeError('node must be an GumtreeNode instance, not an {0}'.format(type(node)))
+
+    @staticmethod
+    def _neighbours(parent, index_in_parent):
+        if len(parent) == 0:
+            return None, None, None, None
+        elif index_in_parent == len(parent.children):
+            pred_node = parent[index_in_parent-1]
+            return pred_node, pred_node.merge_id, None, None
+        else:
+            pred_node = parent[index_in_parent-1]
+            succ_node = parent[index_in_parent]
+            return pred_node, pred_node.merge_id, succ_node, succ_node.merge_id
+
 
 
 class GumtreeDiffUpdate (GumtreeDiff):
-    def __init__(self, node, value):
+    def __init__(self, source, node, value):
+        super(GumtreeDiffUpdate, self).__init__(source)
         self.value = value
         self.node, self.node_id = self._node_and_id(node)
+
+    def merge_op(self):
+        return GumtreeMerge3Update(self)
 
     def __eq__(self, other):
         if isinstance(other, GumtreeDiffUpdate):
@@ -189,8 +294,12 @@ class GumtreeDiffUpdate (GumtreeDiff):
 
 
 class GumtreeDiffDelete (GumtreeDiff):
-    def __init__(self, node):
+    def __init__(self, source, node):
+        super(GumtreeDiffDelete, self).__init__(source)
         self.node, self.node_id = self._node_and_id(node)
+
+    def merge_op(self):
+        return GumtreeMerge3Delete(self)
 
     def __eq__(self, other):
         if isinstance(other, GumtreeDiffDelete):
@@ -209,35 +318,45 @@ class GumtreeDiffDelete (GumtreeDiff):
 
 
 class GumtreeDiffInsert (GumtreeDiff):
-    def __init__(self, src_node, parent, index_in_parent):
+    def __init__(self, source, node, parent, index_in_parent):
+        super(GumtreeDiffInsert, self).__init__(source)
+        self.node, self.node_id = self._node_and_id(node)
         self.parent_node, self.parent_id = self._node_and_id(parent)
+        self.pred_node, self.pred_id, self.succ_node, self.succ_id = self._neighbours(parent, index_in_parent)
         self.index_in_parent = index_in_parent
-        self.src_node, self.src_node_id = self._node_and_id(src_node)
+
+    def merge_op(self):
+        return GumtreeMerge3Insert(self)
 
     def __eq__(self, other):
         if isinstance(other, GumtreeDiffInsert):
             return self.parent_id == other.parent_id and self.index_in_parent == other.index_in_parent and \
-                   self.src_node_id == other.src_node_id
+                   self.node_id == other.node_id
         else:
             return False
 
     def __hash__(self):
-        return hash((GumtreeDiffInsert, self.parent_id, self.index_in_parent, self.src_node_id))
+        return hash((GumtreeDiffInsert, self.parent_id, self.index_in_parent, self.node_id))
 
     def __str__(self):
-        return 'insert(src {0}, parent {1}, at {2})'.format(self.src_node.id_label_str,
+        return 'insert(src {0}, parent {1}, at {2})'.format(self.node.id_label_str,
                                                             self.parent_node.id_label_str, self.index_in_parent)
 
     def __repr__(self):
-        return 'insert(src {0}, parent {1}, at {2})'.format(self.src_node.id_label_str,
+        return 'insert(src {0}, parent {1}, at {2})'.format(self.node.id_label_str,
                                                             self.parent_node.id_label_str, self.index_in_parent)
 
 
 class GumtreeDiffMove (GumtreeDiff):
-    def __init__(self, node, parent, index_in_parent):
-        self.parent_node, self.parent_id = self._node_and_id(parent)
-        self.index_in_parent = index_in_parent
+    def __init__(self, source, node, parent, index_in_parent):
+        super(GumtreeDiffMove, self).__init__(source)
         self.node, self.node_id = self._node_and_id(node)
+        self.parent_node, self.parent_id = self._node_and_id(parent)
+        self.pred_node, self.pred_id, self.succ_node, self.succ_id = self._neighbours(parent, index_in_parent)
+        self.index_in_parent = index_in_parent
+
+    def merge_op(self):
+        return GumtreeMerge3Move(self)
 
     def __eq__(self, other):
         if isinstance(other, GumtreeDiffMove):
@@ -256,6 +375,310 @@ class GumtreeDiffMove (GumtreeDiff):
     def __repr__(self):
         return 'move(src {0}, parent {1}, at {2})'.format(self.node.id_label_str,
                                                           self.parent_node.id_label_str, self.index_in_parent)
+
+
+
+class GumtreeMerge3Op (object):
+    def __init__(self, diff):
+        if not isinstance(diff, GumtreeDiff):
+            raise TypeError('diff should be an instance of GumtreeDiff')
+        self.conflicts = []
+        self.source = diff.source
+
+    def deletes_node(self, node_id):
+        return False
+
+    def get_updated_node_value(self, node_id):
+        return None
+
+    def moves_node(self, node_id):
+        return False
+
+    def inserts_node_before(self, node_id):
+        return False
+
+    def inserts_node_after(self, node_id):
+        return False
+
+    def get_one_way_conflict_with(self, op):
+        return None
+
+    def apply(self, src_merge_id_to_node, dst_merge_id_to_node):
+        raise NotImplementedError('abstract for {0}'.format(type(self)))
+
+    def get_conflict_with(self, op):
+        conflict = self.get_one_way_conflict_with(op)
+        if conflict is None:
+            conflict = op.get_one_way_conflict_with(self)
+        return conflict
+
+    @staticmethod
+    def coerce(x):
+        if isinstance(x, GumtreeMerge3Op):
+            return x
+        elif isinstance(x, GumtreeDiff):
+            return x.merge_op()
+        else:
+            raise TypeError('Cannot coerce {0} to GumtreeMerge3Op'.format(type(x)))
+
+
+
+
+
+class GumtreeMerge3Delete (GumtreeMerge3Op):
+    def __init__(self, diff):
+        super(GumtreeMerge3Delete, self).__init__(diff)
+        if not isinstance(diff, GumtreeDiffDelete):
+            raise TypeError('diff should be an instance of GumtreeDiffDelete')
+        self.node_id = diff.node_id
+
+    def deletes_node(self, node_id):
+        return node_id == self.node_id
+
+    def get_one_way_conflict_with(self, op):
+        return None
+
+    def apply(self, src_merge_id_to_node, dst_merge_id_to_node):
+        dst_node = dst_merge_id_to_node[self.node_id]
+        dst_node.parent.remove_child(dst_node)
+
+    def __eq__(self, other):
+        if isinstance(other, GumtreeMerge3Delete):
+            return self.node_id == other.node_id
+        else:
+            return False
+
+    def __str__(self):
+        return 'delete({0})'.format(self.node_id)
+
+    def __repr__(self):
+        return 'delete({0})'.format(self.node_id)
+
+
+class GumtreeMerge3Update (GumtreeMerge3Op):
+    def __init__(self, diff):
+        super(GumtreeMerge3Update, self).__init__(diff)
+        if not isinstance(diff, GumtreeDiffUpdate):
+            raise TypeError('diff should be an instance of GumtreeDiffUpdate')
+        self.node_id = diff.node_id
+        self.value = diff.value
+
+    def get_updated_node_value(self, node_id):
+        if node_id == self.node_id:
+            return (self.value,)
+        else:
+            return None
+
+    def get_one_way_conflict_with(self, op):
+        if op.deletes_node(self.node_id):
+            # Update-delete conflict
+            return GumtreeMerge3ConflictDeleteUpdate(op, self)
+        wrapped_val = op.get_updated_node_value(self.node_id)
+        if wrapped_val is not None:
+            if wrapped_val[0] != self.value:
+                # Update-update conflict
+                return GumtreeMerge3ConflictUpdateUpdate(op, self)
+        return None
+
+    def apply(self, src_merge_id_to_node, dst_merge_id_to_node):
+        dst_node = dst_merge_id_to_node[self.node_id]
+        dst_node.value = self.value
+
+    def __eq__(self, other):
+        if isinstance(other, GumtreeMerge3Update):
+            return self.node_id == other.node_id and self.value == other.value
+        else:
+            return False
+
+    def __str__(self):
+        return 'update({0} to {1})'.format(self.node_id, self.value)
+
+    def __repr__(self):
+        return 'update({0} to {1})'.format(self.node_id, self.value)
+
+
+class GumtreeMerge3Insert (GumtreeMerge3Op):
+    def __init__(self, diff):
+        super(GumtreeMerge3Insert, self).__init__(diff)
+        if not isinstance(diff, GumtreeDiffInsert):
+            raise TypeError('diff should be an instance of GumtreeDiffInsert')
+        self.node_id = diff.node_id
+        self.value = diff.node.value
+        self.parent_id = diff.parent_id
+        self.predecessor_id = diff.pred_id
+        self.successor_id = diff.succ_id
+        self.src_node = diff.node
+
+    def inserts_node_before(self, node_id):
+        return node_id == self.successor_id
+
+    def inserts_node_after(self, node_id):
+        return node_id == self.predecessor_id
+
+    def get_one_way_conflict_with(self, op):
+        if op.deletes_node(self.parent_id) or \
+                op.deletes_node(self.predecessor_id) or \
+                op.deletes_node(self.successor_id):
+            return GumtreeMerge3ConflictDeleteDestination(op, self)
+        # Don't worry if the parent node has been moved, as all children will just move with it.
+        # Its only a conflict if sibling nodes get moved as that prevents us from determining where in
+        # the child list this node should go
+        if op.moves_node(self.predecessor_id) or \
+                op.moves_node(self.successor_id):
+            return GumtreeMerge3ConflictMoveDestination(op, self)
+        if isinstance(op, GumtreeMerge3Insert) and \
+                self.node_id == op.node_id and \
+                self.parent_id == op.parent_id and \
+                self.predecessor_id == op.predecessor_id and \
+                self.successor_id == op.successor_id and \
+                self.value != op.value:
+            return GumtreeMerge3ConflictInsertInsert(op, self)
+        if self.successor_id is not None and op.inserts_node_before(self.successor_id):
+            return GumtreeMerge3ConflictDestinationDestination(op, self)
+        if self.predecessor_id is not None and op.inserts_node_after(self.predecessor_id):
+            return GumtreeMerge3ConflictDestinationDestination(op, self)
+        return None
+
+    def apply(self, src_merge_id_to_node, dst_merge_id_to_node):
+        parent_node = dst_merge_id_to_node[self.parent_id]
+        dst_node = src_merge_id_to_node[self.node_id].copy()
+        dst_merge_id_to_node[self.node_id] = dst_node
+        index = parent_node.insertion_index(self.predecessor_id, self.successor_id)
+        if index is None:
+            raise RuntimeError('Could not get insertion index for inserting node {0}'.format(self.node_id))
+        parent_node.insert_child(index, dst_node)
+
+    def __eq__(self, other):
+        if isinstance(other, GumtreeMerge3Insert):
+            return self.node_id == other.node_id and \
+                   self.value == other.value and \
+                   self.parent_id == other.parent_id and \
+                   self.predecessor_id == other.predecessor_id and \
+                   self.successor_id == other.successor_id
+        else:
+            return False
+
+    def __str__(self):
+        return 'insert({0} into {1} between {2} and {3})'.format(self.node_id, self.parent_id,
+                                                                 self.predecessor_id, self.successor_id)
+
+    def __repr__(self):
+        return 'insert({0} into {1} between {2} and {3})'.format(self.node_id, self.parent_id,
+                                                                 self.predecessor_id, self.successor_id)
+
+
+class GumtreeMerge3Move (GumtreeMerge3Op):
+    def __init__(self, diff):
+        super(GumtreeMerge3Move, self).__init__(diff)
+        if not isinstance(diff, GumtreeDiffMove):
+            raise TypeError('diff should be an instance of GumtreeDiffMove')
+        self.node_id = diff.node_id
+        self.parent_id = diff.parent_id
+        self.predecessor_id = diff.pred_id
+        self.successor_id = diff.succ_id
+
+    def moves_node(self, node_id):
+        return node_id == self.node_id
+
+    def get_dest_context(self):
+        return self.parent_id, self.predecessor_id, self.successor_id
+
+    def inserts_node_before(self, node_id):
+        return node_id == self.successor_id
+
+    def inserts_node_after(self, node_id):
+        return node_id == self.predecessor_id
+
+    def get_one_way_conflict_with(self, op):
+        if op.deletes_node(self.node_id):
+            return GumtreeMerge3ConflictDeleteMove(op, self)
+        if op.deletes_node(self.parent_id) or \
+                op.deletes_node(self.predecessor_id) or \
+                op.deletes_node(self.successor_id):
+            return GumtreeMerge3ConflictDeleteDestination(op, self)
+        # Don't worry if the parent node has been moved, as all children will just move with it.
+        # Its only a conflict if sibling nodes get moved as that prevents us from determining where in
+        # the child list this node should go
+        if op.moves_node(self.predecessor_id) or \
+                op.moves_node(self.successor_id):
+            return GumtreeMerge3ConflictMoveDestination(op, self)
+        if isinstance(op, GumtreeMerge3Move) and \
+                self.node_id == op.node_id and \
+                (self.parent_id != op.parent_id or \
+                self.predecessor_id != op.predecessor_id or \
+                self.successor_id != op.successor_id):
+            return GumtreeMerge3ConflictMoveMove(op, self)
+        if self.successor_id is not None and op.inserts_node_before(self.successor_id):
+            return GumtreeMerge3ConflictDestinationDestination(op, self)
+        if self.predecessor_id is not None and op.inserts_node_after(self.predecessor_id):
+            return GumtreeMerge3ConflictDestinationDestination(op, self)
+        return None
+
+    def apply(self, src_merge_id_to_node, dst_merge_id_to_node):
+        parent_node = dst_merge_id_to_node[self.parent_id]
+        dst_node = dst_merge_id_to_node[self.node_id]
+        dst_node.parent.remove_child(dst_node)
+        index = parent_node.insertion_index(self.predecessor_id, self.successor_id)
+        if index is None:
+            raise RuntimeError('Could not get insertion index for inserting node {0}'.format(self.node_id))
+        parent_node.insert_child(index, dst_node)
+
+    def __eq__(self, other):
+        if isinstance(other, GumtreeMerge3Move):
+            return self.node_id == other.node_id and \
+                   self.parent_id == other.parent_id and \
+                   self.predecessor_id == other.predecessor_id and \
+                   self.successor_id == other.successor_id
+        else:
+            return False
+
+    def __str__(self):
+        return 'move({0} into {1} between {2} and {3})'.format(self.node_id, self.parent_id,
+                                                               self.predecessor_id, self.successor_id)
+
+    def __repr__(self):
+        return 'move({0} into {1} between {2} and {3})'.format(self.node_id, self.parent_id,
+                                                               self.predecessor_id, self.successor_id)
+
+
+class GumtreeMerge3Conflict (object):
+    def __init__(self, op1, op2):
+        self.op1 = GumtreeMerge3Op.coerce(op1)
+        self.op2 = GumtreeMerge3Op.coerce(op2)
+        self.register_op(self.op1)
+        self.register_op(self.op2)
+
+    def register_op(self, op):
+        op.conflicts.append(self)
+
+    @property
+    def ops(self):
+        return [self.op1, self.op2]
+
+
+class GumtreeMerge3ConflictDeleteUpdate (GumtreeMerge3Conflict):
+    pass
+
+class GumtreeMerge3ConflictUpdateUpdate (GumtreeMerge3Conflict):
+    pass
+
+class GumtreeMerge3ConflictInsertInsert (GumtreeMerge3Conflict):
+    pass
+
+class GumtreeMerge3ConflictMoveMove (GumtreeMerge3Conflict):
+    pass
+
+class GumtreeMerge3ConflictDeleteMove (GumtreeMerge3Conflict):
+    pass
+
+class GumtreeMerge3ConflictDeleteDestination (GumtreeMerge3Conflict):
+    pass
+
+class GumtreeMerge3ConflictMoveDestination (GumtreeMerge3Conflict):
+    pass
+
+class GumtreeMerge3ConflictDestinationDestination (GumtreeMerge3Conflict):
+    pass
 
 
 DEFAULT_GUMTREE_PATH = os.path.expanduser('~/kcl/bin_gumtree/dist-2.1.0-SNAPSHOT/bin')
@@ -331,12 +754,13 @@ def _raw_diff(tree_a, tree_b, gumtree_path=None, gumtree_executable_name='dist',
     return matches_js, actions_js
 
 
-def _convert_actions(tree_base, tree_derived, actions_js):
+def _convert_actions(tree_base, tree_derived, source, actions_js):
     """
     Convert a list of actions in Javascript form from the Gumtree tool, returned by `_raw_diff` into
     a list of `GumtreeDiff` instances.
     :param tree_base: tree, base version
     :param tree_derived: tree, derived version
+    :param source: the value for the source field in all diffs generated
     :param actions_js: action list, JS form, see `_raw_diff` for explanation
     :return: list of `GumtreeDiff` instances
     """
@@ -347,21 +771,21 @@ def _convert_actions(tree_base, tree_derived, actions_js):
         if action == 'update':
             # Update actions reference the node from tree A that is being modified
             node = tree_base.index_to_node[action_js['tree']]
-            diffs.append(GumtreeDiffUpdate(node, action_js['label']))
+            diffs.append(GumtreeDiffUpdate(source, node, action_js['label']))
         elif action == 'delete':
             # Delete actions reference the node from tree A that is being deleted
             node = tree_base.index_to_node[action_js['tree']]
-            diffs.append(GumtreeDiffDelete(node))
+            diffs.append(GumtreeDiffDelete(source, node))
         elif action == 'insert':
             # Insert actions reference the node from tree B, that is being inserted as a child of
             # a parent node - also from tree B - at a specified index
             node = tree_derived.index_to_node[action_js['tree']]
             parent = tree_derived.index_to_node[action_js['parent']]
-            diffs.append(GumtreeDiffInsert(node, parent, action_js['at']))
+            diffs.append(GumtreeDiffInsert(source, node, parent, action_js['at']))
         elif action == 'move':
             node = tree_base.index_to_node[action_js['tree']]
             parent = tree_derived.index_to_node[action_js['parent']]
-            diffs.append(GumtreeDiffMove(node, parent, action_js['at']))
+            diffs.append(GumtreeDiffMove(source, node, parent, action_js['at']))
 
     return diffs
 
@@ -427,7 +851,7 @@ def gumtree_diff(tree_base, tree_derived, gumtree_path=None, gumtree_executable_
             derived_node.merge_id = tree_base.index_to_node[base_index].merge_id
 
     # Convert actions to `GumtreeDiff` instances
-    return _convert_actions(tree_base, tree_derived, actions_js)
+    return _convert_actions(tree_base, tree_derived, None, actions_js)
 
 
 def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2, gumtree_path=None, gumtree_executable_name='dist', join_path=True):
@@ -529,9 +953,92 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2, gumtree_path=None, 
 
 
     # Convert actions to `GumtreeDiff` instances
-    diffs_ab = _convert_actions(tree_base, tree_derived_1, ab_actions_js)
-    diffs_ac = _convert_actions(tree_base, tree_derived_2, ac_actions_js)
-    diffs_bc = _convert_actions(tree_derived_1, tree_derived_2, ac_actions_js)
+    diffs_ab = _convert_actions(tree_base, tree_derived_1, 'ab', ab_actions_js)
+    diffs_ac = _convert_actions(tree_base, tree_derived_2, 'ab', ac_actions_js)
 
+    # Build a combined diff list, where each diff is a pair of the diff and the tree comparison that yielded it
+    # (ab or ac; base -> derived 1 or base -> derived 2)
+    all_diffs = diffs_ab + diffs_ac
 
-    raise NotImplementedError('Not finished yet')
+    # We process the operations in the following order, so that any operation will affect nodes that
+    # by that point will exist due to being in the base version tree to start with or having been introduced by
+    # a previous operation:
+    # Deletes - delete nodes that exist in the base version
+    # Updates - update the values of nodes that exist in the base version
+    # Inserts - insert new nodes into parents from the base tree or into parents that were inserted by prior
+    #   insert operations. Gumtree generates insert operations in an order that ensures that the parent and
+    #   predecessor nodes will already exist. Performing the inserts from the base -> derived 1 diffs
+    #   followed by the inserts from the base -> derived 2 diffs should work as the insert operations from
+    #   the base -> derived 2 diffs will refer to nodes that are in the base tree
+    # Moves - moves existing nodes into new positions that may be within parents from the base tree or parents
+    #   that were inserted by insert operations
+
+    # Operation conflict pairings:
+    #
+    # Delete - delete; RESOLVABLE: node deleted in both change sets; delete it once
+    # Update - delete; CONFLICT: node updated in one change set, deleted in another
+    # Update - update; MOSTLY CONFLICT: node update in each change set, resolvable IF the updated values are
+    #                                   the same in each change set
+    # Insert - delete/update/move; CANNOT HAPPEN: a node that is inserted in one change set cannot be deleted,
+    #                                             updated or moved in the other since it will not yet exist
+    #                                             in the other
+    # Insert - insert; MOSTlY CONFLICT: each change set inserts a node into the tree. Gumtree matches these
+    #                                   inserted nodes to one another when comparing derived 1 and derived 2.
+    #                                   Can be resolved if the values of the inserted nodes are identical
+    #                                   and if they are inserted into the same position.
+    # Insert context - delete; CONFLICT: a node is inserted beneath a parent node or adjacent to a sibling node
+    #                                    where the parent or sibling nodes are deleted in the other change set
+    # Insert context - update; RESOLVABLE: the context nodes (parent/sibling) are updated
+    # Insert parent - move; RESOLVABLE; a node is inserted as a child of a parent node where the parent node
+    #                                   is moved in the other change set
+    # Move - delete; CONFLICT: node X moved in one change set, X deleted in another
+    # Move - update; RESOLVABLE: move the node and update its value
+    # Move - move; MOSTLY CONFLICT: node moved in both change sets, resolvable IF the destination position is
+    #                               the same in each change set
+    # Move context - delete; CONFLICT: node moved into position whose parent/siblings are deleted in the other
+    # Move context - update; RESOLVABLE: node moved into position whose parent/siblings are updated in the other
+    # Move parent - move; RESOLVABLE: node moved into child list of node that is moved elsewhere by the other
+    #                                 change set
+    # Move siblings - move; CONFLICT: node moved adjacent to node that is moved elsewhere in the other change set
+    # Insert/move siblings - move; CONFLICT: node inserted/moved adjacent to sibling node that is moved elsewhere
+    #                                        in the other change set
+    # Insert/move siblings - move/insert dest; CONFLICT: node inserted/moved into position, where a
+    #                                                    move/insert in the other change set inserts a node between
+    #                                                    the predecessor and successor of the first insert operation
+
+    merge3_ops = [d.merge_op() for d in all_diffs]
+
+    # Remove duplicate operations
+    for i in xrange(len(merge3_ops)-1, 0, -1):
+        remove = False
+        for j in xrange(i):
+            if merge3_ops[i] == merge3_ops[j]:
+                remove = True
+                break
+        if remove:
+            del merge3_ops[i]
+
+    # Detect conflicts
+    merge3_conflicts = []
+    for i in xrange(len(merge3_ops)):
+        a = merge3_ops[i]
+        for j in xrange(i+1, len(merge3_ops)):
+            b = merge3_ops[j]
+            conflict = a.get_conflict_with(b)
+            if conflict is not None:
+                merge3_conflicts.append(conflict)
+
+    # Create destination tree
+    merged_merge_id_to_node = {}
+    tree_merged = tree_base.root.clone_subtree(merged_merge_id_to_node)
+
+    # Split operations into conflicting and non-conflicting
+    conflict_ops = []
+    for op in merge3_ops:
+        if len(op.conflicts) > 0:
+            conflict_ops.append(op)
+        else:
+            print 'Applying op {0}'.format(op)
+            op.apply(merge_id_to_node, merged_merge_id_to_node)
+
+    return tree_merged, merge3_ops, conflict_ops, merge3_conflicts
