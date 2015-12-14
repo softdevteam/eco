@@ -1,11 +1,24 @@
 import ast
 import pytest
 
-from version_control.gumtree_driver import gumtree_diff, GumtreeDocument as Doc,\
-    GumtreeNode as Node, GumtreeNodeClass as NodeClass,\
-    GumtreeDiffUpdate as DUpdate, GumtreeDiffDelete as DDelete, GumtreeDiffInsert as DInsert,\
-    GumtreeDiffMove as DMove
+from version_control.gumtree_driver import *
 
+
+def _dupdate(node, value):
+    return GumtreeDiffUpdate(None, node, value)
+    
+def _ddelete(node):
+    return GumtreeDiffDelete(None, node)
+    
+def _dinsert(node, parent, index):
+    return GumtreeDiffInsert(None, node, parent, index)
+    
+def _dmove(node, parent, index):
+    return GumtreeDiffMove(None, node, parent, index)
+
+def _diff3(base, derived1, derived2):
+    merged, ops, conflict_ops, conflicts = gumtree_diff3(base, derived1, derived2)
+    return merged, conflicts
 
 class ASTConverter (object):
     """
@@ -19,7 +32,7 @@ class ASTConverter (object):
         try:
             return self._node_classes[t]
         except KeyError:
-            cls = NodeClass(len(self._node_classes), t.__name__)
+            cls = GumtreeNodeClass(len(self._node_classes), t.__name__)
             self._node_classes[t] = cls
             return cls
 
@@ -48,7 +61,7 @@ class ASTConverter (object):
         return self._ast_to_tree(a)
 
 
-class Test_gumtree:
+class Test_gumtree_diff:
     def test_same(self):
         conv = ASTConverter()
         T0 = conv.parse('a')
@@ -68,63 +81,113 @@ class Test_gumtree:
         conv = ASTConverter()
         T0 = conv.parse('a+b')
         T1 = conv.parse('a+x')
-        assert gumtree_diff(T0, T1) == [DUpdate(T0[0][0][2], 'x')]
+        assert gumtree_diff(T0, T1) == [_dupdate(T0[0][0][2], 'x')]
 
         T0 = conv.parse('[a, b]')
         T1 = conv.parse('[x, y]')
-        assert gumtree_diff(T0, T1) == [DUpdate(T0[0][0][0], 'x'),
-                                              DUpdate(T0[0][0][1], 'y')]
+        assert gumtree_diff(T0, T1) == [_dupdate(T0[0][0][0], 'x'),
+                                        _dupdate(T0[0][0][1], 'y')]
 
         T0 = conv.parse('[a, b+c]')
         T1 = conv.parse('[a, x+y]')
-        assert gumtree_diff(T0, T1) == [DUpdate(T0[0][0][1][0], 'x'),
-                                              DUpdate(T0[0][0][1][2], 'y')]
+        assert gumtree_diff(T0, T1) == [_dupdate(T0[0][0][1][0], 'x'),
+                                        _dupdate(T0[0][0][1][2], 'y')]
 
 
     def test_insert(self):
         conv = ASTConverter()
         T0 = conv.parse('[a, b]')
         T1 = conv.parse('[a, c, b]')
-        assert gumtree_diff(T0, T1) == [DInsert(T1[0][0][1], T0[0][0], 1),
-                                              DInsert(T1[0][0][1][0], T1[0][0][1], 0)]
+        assert gumtree_diff(T0, T1) == [_dinsert(T1[0][0][1], T0[0][0], 1),
+                                        _dinsert(T1[0][0][1][0], T1[0][0][1], 0)]
 
         T0 = conv.parse('[a, b]')
         T1 = conv.parse('[a, c+d, b]')
-        assert gumtree_diff(T0, T1) == [DInsert(T1[0][0][1], T0[0][0], 1),
-                                              DInsert(T1[0][0][1][0], T1[0][0][1], 0),
-                                              DInsert(T1[0][0][1][1], T1[0][0][1], 1),
-                                              DInsert(T1[0][0][1][2], T1[0][0][1], 2),
-                                              DInsert(T1[0][0][1][0][0], T1[0][0][1][0], 0),
-                                              DInsert(T1[0][0][1][2][0], T1[0][0][1][2], 0)]
+        assert gumtree_diff(T0, T1) == [_dinsert(T1[0][0][1], T0[0][0], 1),
+                                        _dinsert(T1[0][0][1][0], T1[0][0][1], 0),
+                                        _dinsert(T1[0][0][1][1], T1[0][0][1], 1),
+                                        _dinsert(T1[0][0][1][2], T1[0][0][1], 2),
+                                        _dinsert(T1[0][0][1][0][0], T1[0][0][1][0], 0),
+                                        _dinsert(T1[0][0][1][2][0], T1[0][0][1][2], 0)]
 
 
     def test_delete(self):
         conv = ASTConverter()
         T0 = conv.parse('[a, c, b]')
         T1 = conv.parse('[a, b]')
-        assert gumtree_diff(T0, T1) == [DDelete(T0[0][0][1][0]),
-                                              DDelete(T0[0][0][1])]
+        assert gumtree_diff(T0, T1) == [_ddelete(T0[0][0][1][0]),
+                                        _ddelete(T0[0][0][1])]
 
         T0 = conv.parse('[a, c+d, b]')
         T1 = conv.parse('[a, b]')
-        assert gumtree_diff(T0, T1) == [DDelete(T0[0][0][1][0][0]),
-                                              DDelete(T0[0][0][1][0]),
-                                              DDelete(T0[0][0][1][1]),
-                                              DDelete(T0[0][0][1][2][0]),
-                                              DDelete(T0[0][0][1][2]),
-                                              DDelete(T0[0][0][1])]
+        assert gumtree_diff(T0, T1) == [_ddelete(T0[0][0][1][0][0]),
+                                        _ddelete(T0[0][0][1][0]),
+                                        _ddelete(T0[0][0][1][1]),
+                                        _ddelete(T0[0][0][1][2][0]),
+                                        _ddelete(T0[0][0][1][2]),
+                                        _ddelete(T0[0][0][1])]
 
 
     def test_move(self):
         conv = ASTConverter()
         T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
         T1 = conv.parse('[a, x(b, c+d(e)/f+g, y(j, k+l(m)/n+o, p), h), i, q]')
-        assert gumtree_diff(T0, T1) == [DMove(T0[0][0][3], T1[0][0][1], 3)]
+        assert gumtree_diff(T0, T1) == [_dmove(T0[0][0][3], T1[0][0][1], 3)]
 
 
     def test_all(self):
         conv = ASTConverter()
         T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
         T1 = conv.parse('[a, x(b, c+d(e)/f+g, y(j, k+l(m)/n+o, p), r), i, q]')
-        assert gumtree_diff(T0, T1) == [DMove(T0[0][0][3], T1[0][0][1], 3),
-                                              DUpdate(T0[0][0][1][3], 'r')]
+        assert gumtree_diff(T0, T1) == [_dmove(T0[0][0][3], T1[0][0][1], 3),
+                                        _dupdate(T0[0][0][1][3], 'r')]
+
+
+
+class Test_gumtree_diff3:
+    def test_same(self):
+        conv = ASTConverter()
+        T0 = conv.parse('a')
+        T1 = conv.parse('a')
+        T2 = conv.parse('a')
+        Tm = conv.parse('a')
+        assert _diff3(T0, T1, T2) == (Tm, [])
+
+        T0 = conv.parse('a+b')
+        T1 = conv.parse('a+b')
+        T2 = conv.parse('a+b')
+        Tm = conv.parse('a+b')
+        assert _diff3(T0, T1, T2) == (Tm, [])
+
+        T0 = conv.parse('[a, b]')
+        T1 = conv.parse('[a, b]')
+        T2 = conv.parse('[a, b]')
+        Tm = conv.parse('[a, b]')
+        assert _diff3(T0, T1, T2) == (Tm, [])
+
+
+    def test_update(self):
+        conv = ASTConverter()
+        T0 = conv.parse('[a, b, c, d, e]')
+        T1 = conv.parse('[a, x, c, d, e]')
+        T2 = conv.parse('[a, b, c, y, e]')
+        Tm = conv.parse('[a, x, c, y, e]')
+        assert _diff3(T0, T1, T2) == (Tm, [])
+
+        conv = ASTConverter()
+        T0 = conv.parse('[a, [b,c], d, [e,f], g]')
+        T1 = conv.parse('[a, [x,y], d, [e,f], g]')
+        T2 = conv.parse('[a, [b,c], d, [w,z], g]')
+        Tm = conv.parse('[a, [x,y], d, [w,z], g]')
+        assert _diff3(T0, T1, T2) == (Tm, [])
+
+
+    def test_insert(self):
+        conv = ASTConverter()
+        T0 = conv.parse('[a, b, c, d, e]')
+        T1 = conv.parse('[a, x, b, c, d, e]')
+        T2 = conv.parse('[a, b, c, d, y, e]')
+        Tm = conv.parse('[a, x, b, c, d, y, e]')
+        assert _diff3(T0, T1, T2) == (Tm, [])
+
+
