@@ -137,6 +137,10 @@ class GumtreeNode (object):
         self.children.insert(index, child)
         child.parent = self
 
+    def detach_from_parent(self):
+        if self.parent is not None:
+            self.parent.remove_child(self)
+
     def index_of_child_by_id(self, child_merge_id):
         for i, child in enumerate(self.children):
             if child.merge_id == child_merge_id:
@@ -268,7 +272,7 @@ class GumtreeDiff (object):
     def get_one_way_conflict_with(self, op):
         return None
 
-    def apply(self, src_merge_id_to_node, dst_merge_id_to_node):
+    def apply(self, merge_id_to_node):
         raise NotImplementedError('abstract for {0}'.format(type(self)))
 
     def get_conflict_with(self, op):
@@ -346,8 +350,8 @@ class GumtreeDiffUpdate (GumtreeDiff):
                 return GumtreeMerge3ConflictUpdateUpdate(op, self)
         return None
 
-    def apply(self, src_merge_id_to_node, dst_merge_id_to_node):
-        dst_node = dst_merge_id_to_node[self.node_id]
+    def apply(self, merge_id_to_node):
+        dst_node = merge_id_to_node[self.node_id]
         dst_node.value = self.value
 
     def get_description(self, node_id_to_node):
@@ -382,8 +386,8 @@ class GumtreeDiffDelete (GumtreeDiff):
     def get_one_way_conflict_with(self, op):
         return None
 
-    def apply(self, src_merge_id_to_node, dst_merge_id_to_node):
-        dst_node = dst_merge_id_to_node[self.node_id]
+    def apply(self, merge_id_to_node):
+        dst_node = merge_id_to_node[self.node_id]
         dst_node.parent.remove_child(dst_node)
 
 
@@ -448,16 +452,15 @@ class GumtreeDiffInsert (GumtreeDiff):
             return GumtreeMerge3ConflictDestinationDestination(op, self)
         return None
 
-    def apply(self, src_merge_id_to_node, dst_merge_id_to_node):
-        parent_node = dst_merge_id_to_node[self.parent_id]
-        dst_node = src_merge_id_to_node[self.node_id].copy()
-        dst_merge_id_to_node[self.node_id] = dst_node
+    def apply(self, merge_id_to_node):
+        parent_node = merge_id_to_node[self.parent_id]
+        node_to_insert = merge_id_to_node[self.node_id]
         index = parent_node.insertion_index(self.predecessor_id, self.successor_id)
         if index is None:
             raise RuntimeError('Could not get insertion index for inserting new node {0}'.format(self.node_id))
         if isinstance(index, tuple):
             raise RuntimeError('Could not get unique insertion index for inserting new node {0}'.format(self.node_id))
-        parent_node.insert_child(index, dst_node)
+        parent_node.insert_child(index, node_to_insert)
 
     def get_description(self, node_id_to_node):
         node = node_id_to_node[self.node_id]
@@ -531,16 +534,16 @@ class GumtreeDiffMove (GumtreeDiff):
             return GumtreeMerge3ConflictDestinationDestination(op, self)
         return None
 
-    def apply(self, src_merge_id_to_node, dst_merge_id_to_node):
-        parent_node = dst_merge_id_to_node[self.parent_id]
-        dst_node = dst_merge_id_to_node[self.node_id]
-        dst_node.parent.remove_child(dst_node)
+    def apply(self, merge_id_to_node):
+        parent_node = merge_id_to_node[self.parent_id]
+        node_to_move = merge_id_to_node[self.node_id]
+        node_to_move.detach_from_parent()
         index = parent_node.insertion_index(self.predecessor_id, self.successor_id)
         if index is None:
             raise RuntimeError('Could not get insertion index for inserting moved node {0}'.format(self.node_id))
         if isinstance(index, tuple):
             raise RuntimeError('Could not get unique insertion index for inserting moved node {0}'.format(self.node_id))
-        parent_node.insert_child(index, dst_node)
+        parent_node.insert_child(index, node_to_move)
 
     def get_description(self, node_id_to_node):
         node = node_id_to_node[self.node_id]
@@ -570,6 +573,8 @@ class GumtreeDiffMove (GumtreeDiff):
 
 
 class GumtreeMerge3Conflict (object):
+    COMMUTATIVE = False
+
     def __init__(self, op1, op2):
         self.op1 = op1
         self.op2 = op2
@@ -583,30 +588,59 @@ class GumtreeMerge3Conflict (object):
     def ops(self):
         return [self.op1, self.op2]
 
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            if self.COMMUTATIVE:
+                return self.op1 == other.op1 and self.op2 == other.op2 or \
+                    self.op1 == other.op2 and self.op2 == other.op1
+            else:
+                return self.op1 == other.op1 and self.op2 == other.op2
+        else:
+            return False
+
+    def __repr__(self):
+        return str(self)
+
 
 class GumtreeMerge3ConflictDeleteUpdate (GumtreeMerge3Conflict):
-    pass
+    def __str__(self):
+        return 'DeleteUpdateConflict({0}, {1})'.format(self.op1, self.op2)
 
 class GumtreeMerge3ConflictUpdateUpdate (GumtreeMerge3Conflict):
-    pass
+    COMMUTATIVE = True
+
+    def __str__(self):
+        return 'UpdareUpdateConflict({0}, {1})'.format(self.op1, self.op2)
 
 class GumtreeMerge3ConflictInsertInsert (GumtreeMerge3Conflict):
-    pass
+    COMMUTATIVE = True
+
+    def __str__(self):
+        return 'InsertInsertConflict({0}, {1})'.format(self.op1, self.op2)
 
 class GumtreeMerge3ConflictMoveMove (GumtreeMerge3Conflict):
-    pass
+    COMMUTATIVE = True
+
+    def __str__(self):
+        return 'MoveMoveConflict({0}, {1})'.format(self.op1, self.op2)
 
 class GumtreeMerge3ConflictDeleteMove (GumtreeMerge3Conflict):
-    pass
+    def __str__(self):
+        return 'DeleteMoveConflict({0}, {1})'.format(self.op1, self.op2)
 
 class GumtreeMerge3ConflictDeleteDestination (GumtreeMerge3Conflict):
-    pass
+    def __str__(self):
+        return 'DeleteDestConflict({0}, {1})'.format(self.op1, self.op2)
 
 class GumtreeMerge3ConflictMoveDestination (GumtreeMerge3Conflict):
-    pass
+    def __str__(self):
+        return 'MoveDestConflict({0}, {1})'.format(self.op1, self.op2)
 
 class GumtreeMerge3ConflictDestinationDestination (GumtreeMerge3Conflict):
-    pass
+    COMMUTATIVE = True
+
+    def __str__(self):
+        return 'DestDestConflict({0}, {1})'.format(self.op1, self.op2)
 
 
 DEFAULT_GUMTREE_PATH = os.path.expanduser('~/kcl/bin_gumtree/dist-2.1.0-SNAPSHOT/bin')
@@ -948,10 +982,13 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2, gumtree_path=None, 
     # Create destination tree
     merged_merge_id_to_node = {}
     tree_merged = tree_base.root.clone_subtree(merged_merge_id_to_node)
+    for key, value in merge_id_to_node.items():
+        if key not in merged_merge_id_to_node:
+            merged_merge_id_to_node[key] = value.copy()
 
     # Apply ops that are not involved in conflicts
     for op in merge3_ops:
         if len(op.conflicts) == 0:
-            op.apply(merge_id_to_node, merged_merge_id_to_node)
+            op.apply(merged_merge_id_to_node)
 
     return tree_merged, merge3_ops, merge3_conflicts
