@@ -127,7 +127,7 @@ class GumtreeNode (object):
                     return i
                 else:
                     return i, j
-            return 0
+            return None
 
     def remove_child(self, child):
         self.children.remove(child)
@@ -136,6 +136,12 @@ class GumtreeNode (object):
     def insert_child(self, index, child):
         self.children.insert(index, child)
         child.parent = self
+
+    def index_of_child_by_id(self, child_merge_id):
+        for i, child in enumerate(self.children):
+            if child.merge_id == child_merge_id:
+                return i
+        raise ValueError('No child with merge_id {0}'.format(child_merge_id))
 
     def copy(self, children=None):
         if children is None:
@@ -978,10 +984,6 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2, gumtree_path=None, 
     diffs_ab = _convert_actions(tree_base, tree_derived_1, 'ab', ab_actions_js)
     diffs_ac = _convert_actions(tree_base, tree_derived_2, 'ab', ac_actions_js)
 
-    # Build a combined diff list, where each diff is a pair of the diff and the tree comparison that yielded it
-    # (ab or ac; base -> derived 1 or base -> derived 2)
-    all_diffs = diffs_ab + diffs_ac
-
     # We process the operations in the following order, so that any operation will affect nodes that
     # by that point will exist due to being in the base version tree to start with or having been introduced by
     # a previous operation:
@@ -1028,39 +1030,37 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2, gumtree_path=None, 
     #                                                    move/insert in the other change set inserts a node between
     #                                                    the predecessor and successor of the first insert operation
 
-    merge3_ops = [d.merge_op() for d in all_diffs]
+    merge3_ops_ab = [d.merge_op() for d in diffs_ab]
+    merge3_ops_ac = [d.merge_op() for d in diffs_ac]
 
-    # Remove duplicate operations
-    for i in xrange(len(merge3_ops)-1, 0, -1):
+    # Detect and remove operations in `merge3_ops_ac` that are duplicates of ops from `merge3_ops_ab`
+    for i, ac_op_i in reversed(list(enumerate(merge3_ops_ac))):
         remove = False
-        for j in xrange(i):
-            if merge3_ops[i] == merge3_ops[j]:
+        for ab_op in merge3_ops_ab:
+            if ac_op_i == ab_op:
                 remove = True
                 break
         if remove:
-            del merge3_ops[i]
+            del merge3_ops_ac[i]
 
     # Detect conflicts
     merge3_conflicts = []
-    for i in xrange(len(merge3_ops)):
-        a = merge3_ops[i]
-        for j in xrange(i+1, len(merge3_ops)):
-            b = merge3_ops[j]
-            conflict = a.get_conflict_with(b)
+    for ac_op in merge3_ops_ac:
+        for ab_op in merge3_ops_ab:
+            conflict = ab_op.get_conflict_with(ac_op)
             if conflict is not None:
                 merge3_conflicts.append(conflict)
+
+    # Create combined op list
+    merge3_ops = merge3_ops_ab + merge3_ops_ac
 
     # Create destination tree
     merged_merge_id_to_node = {}
     tree_merged = tree_base.root.clone_subtree(merged_merge_id_to_node)
 
-    # Split operations into conflicting and non-conflicting
-    conflict_ops = []
+    # Apply ops that are not involved in conflicts
     for op in merge3_ops:
-        if len(op.conflicts) > 0:
-            conflict_ops.append(op)
-        else:
-            print 'Applying op {0}'.format(op)
+        if len(op.conflicts) == 0:
             op.apply(merge_id_to_node, merged_merge_id_to_node)
 
-    return tree_merged, merge3_ops, conflict_ops, merge3_conflicts
+    return tree_merged, merge3_ops, merge3_conflicts
