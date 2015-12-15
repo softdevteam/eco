@@ -110,6 +110,12 @@ class Test_gumtree_diff:
                                         _dinsert(T1[0][0][1][0][0], T1[0][0][1][0], 0),
                                         _dinsert(T1[0][0][1][2][0], T1[0][0][1][2], 0)]
 
+        T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        T1 = conv.parse('[a, x(b, c+d(e)/f+g, -aa, h), i, y(j, k+l(m)/n+o, p), q]')
+        assert gumtree_diff(T0, T1) == [_dinsert(T1[0][0][1][3], T1[0][0][1], 3),
+                                        _dinsert(T1[0][0][1][3][0], T1[0][0][1][3], 0),
+                                        _dinsert(T1[0][0][1][3][1], T1[0][0][1][3], 1),
+                                        _dinsert(T1[0][0][1][3][1][0], T1[0][0][1][3][1], 0)]
 
     def test_diff_delete(self):
         conv = ASTConverter()
@@ -133,6 +139,11 @@ class Test_gumtree_diff:
         T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
         T1 = conv.parse('[a, x(b, c+d(e)/f+g, y(j, k+l(m)/n+o, p), h), i, q]')
         assert gumtree_diff(T0, T1) == [_dmove(T0[0][0][3], T1[0][0][1], 3)]
+
+        conv = ASTConverter()
+        T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        T1 = conv.parse('[a, x(b, y(j, k+l(m)/n+o, p), c+d(e)/f+g, h), i, q]')
+        assert gumtree_diff(T0, T1) == [_dmove(T0[0][0][3], T1[0][0][1], 2)]
 
         conv = ASTConverter()
         T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i]')
@@ -276,6 +287,13 @@ class Test_gumtree_diff3:
         Tm = conv.parse('[a, x(b, c+d(e)/f+g, y(j, k+l(m)/n+o, p), h), i, q, z(r, s+t(u)/v+w, aa), bb]')
         assert _diff3(T0, T1, T2) == (Tm, [])
 
+        conv = ASTConverter()
+        T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q, z(r, s+t(u)/v+w, aa), bb]')
+        T1 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, z(r, s+t(u)/v+w, aa), p), q, bb]')
+        T2 = conv.parse('[a, x(b, c+d(e)/f+g, y(j, k+l(m)/n+o, p), h), i, q, z(r, s+t(u)/v+w, aa), bb]')
+        Tm = conv.parse('[a, x(b, c+d(e)/f+g, y(j, k+l(m)/n+o, z(r, s+t(u)/v+w, aa), p), h), i, q, bb]')
+        assert _diff3(T0, T1, T2) == (Tm, [])
+
 
     def test_merge_all(self):
         # Update-delete
@@ -383,3 +401,135 @@ def softmax(x):
         # assert _diff3(T0, T1, T2) == (Tm, [])
         merged = _diff3(T0, T1, T2)
         assert merged == (Tm, [])
+
+
+    def test_merge_conflict_delete_update(self):
+        conv = ASTConverter()
+        T0 = conv.parse('[a, b, c, d, e]')
+        T1 = conv.parse('[a, x, c, d, e]')
+        T2 = conv.parse('[a, c, d, e]')
+        Tm = conv.parse('[a, b, c, d, e]')
+        Tm[0][0][1].remove_child(Tm[0][0][1][0])
+        merged, conflicts = _diff3(T0, T1, T2)
+        assert merged == Tm
+        assert conflicts == [GumtreeMerge3ConflictDeleteUpdate(_ddelete(T0[0][0][1]), _dupdate(T0[0][0][1], 'x'))]
+
+        conv = ASTConverter()
+        T0 = conv.parse('[a, b, c, d, e]')
+        T1 = conv.parse('[a, c, d, e]')
+        T2 = conv.parse('[a, x, c, d, e]')
+        Tm = conv.parse('[a, b, c, d, e]')
+        Tm[0][0][1].remove_child(Tm[0][0][1][0])
+        merged, conflicts = _diff3(T0, T1, T2)
+        assert merged == Tm
+        assert conflicts == [GumtreeMerge3ConflictDeleteUpdate(_ddelete(T0[0][0][1]), _dupdate(T0[0][0][1], 'x'))]
+
+
+    def test_merge_conflict_update_update(self):
+        conv = ASTConverter()
+        T0 = conv.parse('[a, b, c, d, e]')
+        T1 = conv.parse('[a, x, c, d, e]')
+        T2 = conv.parse('[a, y, c, d, e]')
+        Tm = conv.parse('[a, b, c, d, e]')
+        merged, conflicts = _diff3(T0, T1, T2)
+        assert merged == Tm
+        assert conflicts == [GumtreeMerge3ConflictUpdateUpdate(_dupdate(T0[0][0][1], 'x'), _dupdate(T0[0][0][1], 'y'))]
+
+
+    def test_merge_conflict_insert_insert(self):
+        conv = ASTConverter()
+        T0 = conv.parse('[a, b, c, d, e]')
+        T1 = conv.parse('[a, x, b, c, d, e]')
+        T2 = conv.parse('[a, y, b, c, d, e]')
+        Tm = conv.parse('[a, b, c, d, e]')
+        merged, conflicts = _diff3(T0, T1, T2)
+        assert merged == Tm
+        assert conflicts == [GumtreeMerge3ConflictInsertInsert(_dinsert(T1[0][0][1], T0[0][0], 1),
+                                                               _dinsert(T2[0][0][1], T0[0][0], 1))]
+
+
+    def test_merge_conflict_move_move(self):
+        conv = ASTConverter()
+        T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        T1 = conv.parse('[a, x(b, c+d(e)/f+g, y(j, k+l(m)/n+o, p), h), i, q]')
+        T2 = conv.parse('[a, x(b, y(j, k+l(m)/n+o, p), c+d(e)/f+g, h), i, q]')
+        Tm = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        merged, conflicts = _diff3(T0, T1, T2)
+        assert merged == Tm
+        assert conflicts == [GumtreeMerge3ConflictMoveMove(_dmove(T0[0][0][3], T0[0][0][1], 3),
+                                                           _dmove(T0[0][0][3], T0[0][0][1], 2))]
+
+
+    def test_merge_conflict_delete_move(self):
+        # We don't check the merged tree here, as generating the merged tree is rather complex
+        # as parts of the deleted subtree are successfully deleted, making the result quite complex
+        # and untidy
+        conv = ASTConverter()
+        T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        T1 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, q]')
+        T2 = conv.parse('[a, x(b, y(j, k+l(m)/n+o, p), c+d(e)/f+g, h), i, q]')
+        # Tm = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        merged, conflicts = _diff3(T0, T1, T2)
+        assert conflicts == [GumtreeMerge3ConflictDeleteMove(_ddelete(T0[0][0][3]),
+                                                             _dmove(T0[0][0][3], T0[0][0][1], 2))]
+
+
+    def test_merge_conflict_delete_destination(self):
+        # We don't check the merged tree here, as generating the merged tree is rather complex
+        # as parts of the deleted subtree are successfully deleted, making the result quite complex
+        # and untidy
+        conv = ASTConverter()
+        T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        T1 = conv.parse('[a, i, y(j, k+l(m)/n+o, p), q]')
+        T2 = conv.parse('[a, x(b, c+d(e)/f+g, y(j, k+l(m)/n+o, p), h), i, q]')
+        # Tm = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        merged, conflicts = _diff3(T0, T1, T2)
+        # Three conflicts; one for each deleted adjacent sibling and one for the deleted parent
+        assert conflicts == [GumtreeMerge3ConflictDeleteDestination(_ddelete(T0[0][0][1][2]),
+                                                                    _dmove(T0[0][0][3], T0[0][0][1], 3)),
+                             GumtreeMerge3ConflictDeleteDestination(_ddelete(T0[0][0][1][3]),
+                                                                    _dmove(T0[0][0][3], T0[0][0][1], 3)),
+                             GumtreeMerge3ConflictDeleteDestination(_ddelete(T0[0][0][1]),
+                                                                    _dmove(T0[0][0][3], T0[0][0][1], 3))]
+
+        conv = ASTConverter()
+        T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        T1 = conv.parse('[a, x(b, c+d(e)/f+g), i, y(j, k+l(m)/n+o, p), q]')
+        T2 = conv.parse('[a, x(b, c+d(e)/f+g, y(j, k+l(m)/n+o, p), h), i, q]')
+        # Tm = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        merged, conflicts = _diff3(T0, T1, T2)
+        # Three conflicts; one for each deleted adjacent sibling and one for the deleted parent
+        assert conflicts == [GumtreeMerge3ConflictDeleteDestination(_ddelete(T0[0][0][1][3]),
+                                                                    _dmove(T0[0][0][3], T0[0][0][1], 3))]
+
+        conv = ASTConverter()
+        T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        T1 = conv.parse('[a, x(b, h), i, y(j, k+l(m)/n+o, p), q]')
+        T2 = conv.parse('[a, x(b, c+d(e)/f+g, y(j, k+l(m)/n+o, p), h), i, q]')
+        # Tm = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        merged, conflicts = _diff3(T0, T1, T2)
+        # Three conflicts; one for each deleted adjacent sibling and one for the deleted parent
+        assert conflicts == [GumtreeMerge3ConflictDeleteDestination(_ddelete(T0[0][0][1][2]),
+                                                                    _dmove(T0[0][0][3], T0[0][0][1], 3))]
+
+
+    def test_merge_conflict_move_destination(self):
+        conv = ASTConverter()
+        T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        T1 = conv.parse('[a, x(b, h, c+d(e)/f+g), i, y(j, k+l(m)/n+o, p), q]')
+        T2 = conv.parse('[a, x(b, c+d(e)/f+g, y(j, k+l(m)/n+o, p), h), i, q]')
+        merged, conflicts = _diff3(T0, T1, T2)
+        assert conflicts == [GumtreeMerge3ConflictMoveDestination(_dmove(T0[0][0][1][2], T0[0][0][1], 4),
+                                                                  _dmove(T0[0][0][3], T0[0][0][1], 3))]
+
+
+    def test_merge_conflict_destination_destination(self):
+        conv = ASTConverter()
+        T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        T1 = conv.parse('[a, x(b, c+d(e)/f+g, -aa, h), i, y(j, k+l(m)/n+o, p), q]')
+        T2 = conv.parse('[a, x(b, c+d(e)/f+g, y(j, k+l(m)/n+o, p), h), i, q]')
+        merged, conflicts = _diff3(T0, T1, T2)
+        assert conflicts == [GumtreeMerge3ConflictDestinationDestination(_dmove(T0[0][0][3], T0[0][0][1], 3),
+                                                                         _dinsert(T1[0][0][1][3], T0[0][0][1], 3))]
+
+
