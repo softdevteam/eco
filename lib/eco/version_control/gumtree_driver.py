@@ -255,16 +255,32 @@ class GumtreeDiff (object):
             raise TypeError('node must be an GumtreeNode instance, not an {0}'.format(type(node)))
 
     @staticmethod
-    def _neighbours(parent, index_in_parent):
+    def _find_predecessor(parent, index_in_parent, ignore_merge_id):
         if len(parent) == 0:
-            return None, None, None, None
-        elif index_in_parent == len(parent.children):
-            pred_node = parent[index_in_parent-1]
-            return pred_node, pred_node.merge_id, None, None
+            return None, None
         else:
-            pred_node = parent[index_in_parent-1]
-            succ_node = parent[index_in_parent]
-            return pred_node, pred_node.merge_id, succ_node, succ_node.merge_id
+            i = index_in_parent - 1
+            pred_node = parent[i]
+            while pred_node.merge_id == ignore_merge_id:
+                i -= 1
+                if i < 0:
+                    return None, None
+                pred_node = parent[i]
+            return pred_node, pred_node.merge_id
+
+    @staticmethod
+    def _find_successor(parent, index_in_parent, ignore_merge_id):
+        if len(parent) == 0 or index_in_parent == len(parent):
+            return None, None
+        else:
+            i = index_in_parent
+            succ_node = parent[i]
+            while succ_node.merge_id == ignore_merge_id:
+                i += 1
+                if i >= len(parent):
+                    return None, None
+                succ_node = parent[i]
+            return succ_node, succ_node.merge_id
 
 
 
@@ -322,7 +338,8 @@ class GumtreeDiffInsert (GumtreeDiff):
         super(GumtreeDiffInsert, self).__init__(source)
         self.node, self.node_id = self._node_and_id(node)
         self.parent_node, self.parent_id = self._node_and_id(parent)
-        self.pred_node, self.pred_id, self.succ_node, self.succ_id = self._neighbours(parent, index_in_parent)
+        self.pred_node, self.pred_id = self._find_predecessor(parent, index_in_parent, self.node_id)
+        self.succ_node, self.succ_id = self._find_successor(parent, index_in_parent, self.node_id)
         self.index_in_parent = index_in_parent
 
     def merge_op(self):
@@ -352,7 +369,8 @@ class GumtreeDiffMove (GumtreeDiff):
         super(GumtreeDiffMove, self).__init__(source)
         self.node, self.node_id = self._node_and_id(node)
         self.parent_node, self.parent_id = self._node_and_id(parent)
-        self.pred_node, self.pred_id, self.succ_node, self.succ_id = self._neighbours(parent, index_in_parent)
+        self.pred_node, self.pred_id = self._find_predecessor(parent, index_in_parent, self.node_id)
+        self.succ_node, self.succ_id = self._find_successor(parent, index_in_parent, self.node_id)
         self.index_in_parent = index_in_parent
 
     def merge_op(self):
@@ -545,7 +563,9 @@ class GumtreeMerge3Insert (GumtreeMerge3Op):
         dst_merge_id_to_node[self.node_id] = dst_node
         index = parent_node.insertion_index(self.predecessor_id, self.successor_id)
         if index is None:
-            raise RuntimeError('Could not get insertion index for inserting node {0}'.format(self.node_id))
+            raise RuntimeError('Could not get insertion index for inserting new node {0}'.format(self.node_id))
+        if isinstance(index, tuple):
+            raise RuntimeError('Could not get unique insertion index for inserting new node {0}'.format(self.node_id))
         parent_node.insert_child(index, dst_node)
 
     def __eq__(self, other):
@@ -620,7 +640,9 @@ class GumtreeMerge3Move (GumtreeMerge3Op):
         dst_node.parent.remove_child(dst_node)
         index = parent_node.insertion_index(self.predecessor_id, self.successor_id)
         if index is None:
-            raise RuntimeError('Could not get insertion index for inserting node {0}'.format(self.node_id))
+            raise RuntimeError('Could not get insertion index for inserting moved node {0}'.format(self.node_id))
+        if isinstance(index, tuple):
+            raise RuntimeError('Could not get unique insertion index for inserting moved node {0}'.format(self.node_id))
         parent_node.insert_child(index, dst_node)
 
     def __eq__(self, other):
