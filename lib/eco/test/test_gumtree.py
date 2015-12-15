@@ -17,7 +17,7 @@ def _dmove(node, parent, index):
     return GumtreeDiffMove(None, node, parent, index)
 
 def _diff3(base, derived1, derived2):
-    merged, ops, conflict_ops, conflicts = gumtree_diff3(base, derived1, derived2)
+    merged, ops, conflicts = gumtree_diff3(base, derived1, derived2)
     return merged, conflicts
 
 class ASTConverter (object):
