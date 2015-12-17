@@ -469,10 +469,10 @@ class NodeEditor(QFrame):
                     self.draw_vertical_squiggly_line(paint,x,y)
                 else:
                     if self.tm.has_error(node):
-                        color = "orange"
+                        err_color = "orange"
                     else:
-                        color = "red"
-                    self.draw_squiggly_line(paint,x-length,y,length, color)
+                        err_color = "red"
+                    self.draw_squiggly_line(paint,x-length,y,length, err_color)
 
             node = node.next_term
 
