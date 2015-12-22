@@ -66,6 +66,10 @@ class GumtreeNode (object):
         self.index = None
         self.merge_id = merge_id
 
+    @property
+    def parent_merge_id(self):
+        return self.parent.merge_id if self.parent is not None else None
+
     def walk_structure(self, index, leaf_count, index_to_node):
         if self.position is None:
             self.position = leaf_count
@@ -92,6 +96,14 @@ class GumtreeNode (object):
         self.merge_id = None
         for child in self.children:
             child.clear_merge_ids()
+
+    def get_ancestry_merge_ids(self):
+        merge_ids = []
+        node = self
+        while node is not None:
+            merge_ids.append(node.merge_id)
+            node = node.parent
+        return merge_ids
 
     def predecessor_of_child(self, child):
         i = self.children.index(child)
@@ -269,18 +281,26 @@ class GumtreeDiff (object):
     def inserts_node_after(self, node_id):
         return False
 
-    def get_one_way_conflict_with(self, op):
+    def detect_one_way_conflict_with(self, op):
+        return None
+
+    def get_deleted_node_id(self):
+        return None
+
+    def get_moved_node_id(self):
         return None
 
     def apply(self, merge_id_to_node):
         raise NotImplementedError('abstract for {0}'.format(type(self)))
 
-    def get_conflict_with(self, op):
-        conflict = self.get_one_way_conflict_with(op)
+    def detect_conflict_with(self, op):
+        conflict = self.detect_one_way_conflict_with(op)
         if conflict is None:
-            conflict = op.get_one_way_conflict_with(self)
+            conflict = op.detect_one_way_conflict_with(self)
         return conflict
 
+    def required_target_node_id(self):
+        return None
 
     def get_description(self, node_id_to_node):
         raise NotImplementedError('abstract for {0}'.format(type(self)))
@@ -327,53 +347,6 @@ class GumtreeDiff (object):
 
 
 
-class GumtreeDiffUpdate (GumtreeDiff):
-    def __init__(self, source, node, value):
-        super(GumtreeDiffUpdate, self).__init__(source)
-        self.value = value
-        self.node_id = self._get_node_id(node)
-
-    def get_updated_node_value(self, node_id):
-        if node_id == self.node_id:
-            return (self.value,)
-        else:
-            return None
-
-    def get_one_way_conflict_with(self, op):
-        if op.deletes_node(self.node_id):
-            # Update-delete conflict
-            return GumtreeMerge3ConflictDeleteUpdate(op, self)
-        wrapped_val = op.get_updated_node_value(self.node_id)
-        if wrapped_val is not None:
-            if wrapped_val[0] != self.value:
-                # Update-update conflict
-                return GumtreeMerge3ConflictUpdateUpdate(op, self)
-        return None
-
-    def apply(self, merge_id_to_node):
-        dst_node = merge_id_to_node[self.node_id]
-        dst_node.value = self.value
-
-    def get_description(self, node_id_to_node):
-        node = node_id_to_node[self.node_id]
-        return 'update({0}, value={1})'.format(node.id_label_str, self.value)
-
-    def __eq__(self, other):
-        if isinstance(other, GumtreeDiffUpdate):
-            return self.node_id == other.node_id and self.value == other.value
-        else:
-            return False
-
-    def __hash__(self):
-        return hash((GumtreeDiffUpdate, self.node_id, self.value))
-
-    def __str__(self):
-        return 'update({0}, value={1})'.format(self.node_id, self.value)
-
-    def __repr__(self):
-        return 'update({0}, value={1})'.format(self.node_id, self.value)
-
-
 class GumtreeDiffDelete (GumtreeDiff):
     def __init__(self, source, node):
         super(GumtreeDiffDelete, self).__init__(source)
@@ -383,8 +356,11 @@ class GumtreeDiffDelete (GumtreeDiff):
     def deletes_node(self, node_id):
         return node_id == self.node_id
 
-    def get_one_way_conflict_with(self, op):
+    def detect_one_way_conflict_with(self, op):
         return None
+
+    def get_deleted_node_id(self):
+        return self.node_id
 
     def apply(self, merge_id_to_node):
         dst_node = merge_id_to_node[self.node_id]
@@ -412,6 +388,56 @@ class GumtreeDiffDelete (GumtreeDiff):
         return 'delete({0})'.format(self.node_id)
 
 
+class GumtreeDiffUpdate (GumtreeDiff):
+    def __init__(self, source, node, value):
+        super(GumtreeDiffUpdate, self).__init__(source)
+        self.value = value
+        self.node_id = self._get_node_id(node)
+
+    def get_updated_node_value(self, node_id):
+        if node_id == self.node_id:
+            return (self.value,)
+        else:
+            return None
+
+    def detect_one_way_conflict_with(self, op):
+        if op.deletes_node(self.node_id):
+            # Update-delete conflict
+            return GumtreeMerge3ConflictDeleteUpdate(op, self)
+        wrapped_val = op.get_updated_node_value(self.node_id)
+        if wrapped_val is not None:
+            if wrapped_val[0] != self.value:
+                # Update-update conflict
+                return GumtreeMerge3ConflictUpdateUpdate(op, self)
+        return None
+
+    def apply(self, merge_id_to_node):
+        dst_node = merge_id_to_node[self.node_id]
+        dst_node.value = self.value
+
+    def required_target_node_id(self):
+        return self.node_id
+
+    def get_description(self, node_id_to_node):
+        node = node_id_to_node[self.node_id]
+        return 'update({0}, value={1})'.format(node.id_label_str, self.value)
+
+    def __eq__(self, other):
+        if isinstance(other, GumtreeDiffUpdate):
+            return self.node_id == other.node_id and self.value == other.value
+        else:
+            return False
+
+    def __hash__(self):
+        return hash((GumtreeDiffUpdate, self.node_id, self.value))
+
+    def __str__(self):
+        return 'update({0}, value={1})'.format(self.node_id, self.value)
+
+    def __repr__(self):
+        return 'update({0}, value={1})'.format(self.node_id, self.value)
+
+
 class GumtreeDiffInsert (GumtreeDiff):
     def __init__(self, source, node, parent, index_in_parent):
         super(GumtreeDiffInsert, self).__init__(source)
@@ -428,7 +454,7 @@ class GumtreeDiffInsert (GumtreeDiff):
     def inserts_node_after(self, node_id):
         return node_id == self.predecessor_id
 
-    def get_one_way_conflict_with(self, op):
+    def detect_one_way_conflict_with(self, op):
         if op.deletes_node(self.parent_id) or \
                 op.deletes_node(self.predecessor_id) or \
                 op.deletes_node(self.successor_id):
@@ -461,6 +487,9 @@ class GumtreeDiffInsert (GumtreeDiff):
         if isinstance(index, tuple):
             raise RuntimeError('Could not get unique insertion index for inserting new node {0}'.format(self.node_id))
         parent_node.insert_child(index, node_to_insert)
+
+    def required_target_node_id(self):
+        return self.parent_id
 
     def get_description(self, node_id_to_node):
         node = node_id_to_node[self.node_id]
@@ -509,7 +538,7 @@ class GumtreeDiffMove (GumtreeDiff):
     def inserts_node_after(self, node_id):
         return node_id == self.predecessor_id
 
-    def get_one_way_conflict_with(self, op):
+    def detect_one_way_conflict_with(self, op):
         if op.deletes_node(self.node_id):
             return GumtreeMerge3ConflictDeleteMove(op, self)
         if op.deletes_node(self.parent_id) or \
@@ -534,6 +563,9 @@ class GumtreeDiffMove (GumtreeDiff):
             return GumtreeMerge3ConflictDestinationDestination(op, self)
         return None
 
+    def get_moved_node_id(self):
+        return self.node_id
+
     def apply(self, merge_id_to_node):
         parent_node = merge_id_to_node[self.parent_id]
         node_to_move = merge_id_to_node[self.node_id]
@@ -544,6 +576,9 @@ class GumtreeDiffMove (GumtreeDiff):
         if isinstance(index, tuple):
             raise RuntimeError('Could not get unique insertion index for inserting moved node {0}'.format(self.node_id))
         parent_node.insert_child(index, node_to_move)
+
+    def required_target_node_id(self):
+        return self.parent_id
 
     def get_description(self, node_id_to_node):
         node = node_id_to_node[self.node_id]
@@ -641,6 +676,11 @@ class GumtreeMerge3ConflictDestinationDestination (GumtreeMerge3Conflict):
 
     def __str__(self):
         return 'DestDestConflict({0}, {1})'.format(self.op1, self.op2)
+
+class GumtreeMerge3ConflictDeleteAncestry (GumtreeMerge3Conflict):
+    def __str__(self):
+        return 'DeleteAncestryConflict({0}, {1})'.format(self.op1, self.op2)
+
 
 
 DEFAULT_GUMTREE_PATH = os.path.expanduser('~/kcl/bin_gumtree/dist-2.1.0-SNAPSHOT/bin')
@@ -816,6 +856,35 @@ def gumtree_diff(tree_base, tree_derived, gumtree_path=None, gumtree_executable_
     return _convert_actions(tree_base, tree_derived, None, actions_js)
 
 
+def _filter_delete_diffs(ops, merge_id_to_node):
+    """
+    Filter delete operations, removing all operations that delete a node whose parent is also deleted; only
+    delete operations that delete notes that are at the root of deleted subtrees will remain
+
+    :param ops: the list of operations to filter
+    :param merge_id_to_node: a table mapping node merge ID to node
+    :return: filtered operation list
+    """
+    delete_ops = []
+    non_delete_ops = []
+    for op in ops:
+        if isinstance(op, GumtreeDiffDelete):
+            delete_ops.append(op)
+        else:
+            non_delete_ops.append(op)
+
+    delete_node_ids = set()
+    for op in delete_ops:
+        deleted_id = op.get_deleted_node_id()
+        if deleted_id is not None:
+            delete_node_ids.add(deleted_id)
+
+    # Remove any delete operations that delete nodes that are children of nodes that are also deleted
+    delete_ops = [op for op in delete_ops
+                           if merge_id_to_node[op.node_id].parent_merge_id not in delete_node_ids]
+    return delete_ops + non_delete_ops
+
+
 def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2, gumtree_path=None, gumtree_executable_name='dist', join_path=True):
     """
     :param tree_derived_1: tree; derived version
@@ -964,31 +1033,105 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2, gumtree_path=None, 
     #                                                    move/insert in the other change set inserts a node between
     #                                                    the predecessor and successor of the first insert operation
 
-    # Detect and remove operations in `diffs_ac` that are duplicates of ops from `diffs_ab`
+    # Detect and remove diffs in `diffs_ac` that are duplicates of diffs from `diffs_ab`
     diffs_ab_set = set(diffs_ab)
     diffs_ac = [diff for diff in diffs_ac if diff not in diffs_ab_set]
 
-    # Detect conflicts
+    # Mark all delete operations that delete a node that is a child of a node that is also deleted.
+    # Since deleteing a node will also detach its children from the tree, there is no need to delete all
+    # nodes in the subtree.
+    # This will also help with conflict resolution, as further down we detect if a delete operation deletes a
+    # node that is an ancestor of a node that is required by another operation, e.g. an update. By only deleting
+    # subtree root nodes, we avoid the situation where the conflict prevents delete operations that lie on the
+    # path between the subtree root and the node required by the conflicting operation, with all sibling nodes being
+    # deleted. This way, the subtree is either deleted or it stays.
+    diffs_ab = _filter_delete_diffs(diffs_ab, merge_id_to_node)
+    diffs_ac = _filter_delete_diffs(diffs_ac, merge_id_to_node)
+
+    # Detect node-node conflicts
     merge3_conflicts = []
     for ac_op in diffs_ac:
         for ab_op in diffs_ab:
-            conflict = ab_op.get_conflict_with(ac_op)
+            conflict = ab_op.detect_conflict_with(ac_op)
             if conflict is not None:
                 merge3_conflicts.append(conflict)
 
-    # Create combined op list
-    merge3_ops = diffs_ab + diffs_ac
+    # Create combined diff list
+    merge3_diffs = diffs_ab + diffs_ac
 
-    # Create destination tree
+    # Split into delete, update, insert and move operations and join so that they are in that order
+    merge3_delete_diffs = []
+    merge3_update_diffs = []
+    merge3_insert_diffs = []
+    merge3_move_diffs = []
+    for op in merge3_diffs:
+        if isinstance(op, GumtreeDiffDelete):
+            merge3_delete_diffs.append(op)
+        elif isinstance(op, GumtreeDiffUpdate):
+            merge3_update_diffs.append(op)
+        elif isinstance(op, GumtreeDiffInsert):
+            merge3_insert_diffs.append(op)
+        elif isinstance(op, GumtreeDiffMove):
+            merge3_move_diffs.append(op)
+    merge3_diffs = merge3_delete_diffs + merge3_update_diffs + merge3_insert_diffs + merge3_move_diffs
+
+    # The conflict detection approach used up until now has one major weakness that we now address.
+    # When a subtree S is deleted and a conflict is detected between the deletion of a node N further down the subtree
+    # and another operation that requires that N should still exist - e.g. an update - the approach used up until
+    # now will detect the conflict between the deletion of N and the update of N, while the deletion of ancestors
+    # of N will not be reported as conflicts. As a consequence, the tree that results from performing all operations
+    # that do not conflict will not contain N as N will be detached.
+    # We address this by asking all operations to provide the IDs of nodes that should exist in the final tree
+    # for them not to conflict. We then mark conflicts for all delete operations that affect nodes that are ancestors
+    # of N.
+
+    # Note, that if a required node N is a descendant of a node M that is moved and the moved node M is a descendant
+    # of a deleted node D, then this can be okay, as the move operation moves the subtree containing N out of the
+    # region that is deleted.
+    # Take node of all nodes that are moved:
+    moved_nodes = set()
+    for op in merge3_move_diffs:
+        moved_id = op.get_moved_node_id()
+        if moved_id is not None:
+            moved_nodes.add(moved_id)
+
+    # Now, generate a map that maps any ancestor of a required node to a list of operations that require it
+    required_ancestors = {}
+    for op in merge3_diffs:
+        req_node_id = op.required_target_node_id()
+        if req_node_id is not None:
+            # Walk the tree from the parent of the required node to the root
+            node_id = merge_id_to_node[req_node_id].parent_merge_id
+            while node_id is not None:
+                # If we encounter a moved node, no need to continue
+                if node_id in moved_nodes:
+                    break
+
+                # Get the ops that require the existence of the node identified by `node_id` and add `op`
+                requiring_ops = required_ancestors.setdefault(node_id, list())
+                requiring_ops.append(op)
+
+                # Go to parent
+                node_id = merge_id_to_node[node_id].parent_merge_id
+
+    # Check all delete operations against the required node lists and report conflicts as necessary
+    for op in merge3_delete_diffs:
+        deleted_id = op.get_deleted_node_id()
+        requiring_ops = required_ancestors.get(deleted_id)
+        if requiring_ops is not None:
+            for req_op in requiring_ops:
+                merge3_conflicts.append(GumtreeMerge3ConflictDeleteAncestry(op, req_op))
+
+    # Create destination tree by cloning the base version tree
     merged_merge_id_to_node = {}
     tree_merged = tree_base.root.clone_subtree(merged_merge_id_to_node)
     for key, value in merge_id_to_node.items():
         if key not in merged_merge_id_to_node:
             merged_merge_id_to_node[key] = value.copy()
 
-    # Apply ops that are not involved in conflicts
-    for op in merge3_ops:
+    # Apply diffs that are not involved in conflicts
+    for op in merge3_diffs:
         if len(op.conflicts) == 0:
             op.apply(merged_merge_id_to_node)
 
-    return tree_merged, merge3_ops, merge3_conflicts
+    return tree_merged, merge3_diffs, merge3_conflicts

@@ -294,6 +294,13 @@ class Test_gumtree_diff3:
         Tm = conv.parse('[a, x(b, c+d(e)/f+g, y(j, k+l(m)/n+o, z(r, s+t(u)/v+w, aa), p), h), i, q, bb]')
         assert _diff3(T0, T1, T2) == (Tm, [])
 
+        conv = ASTConverter()
+        T0 = conv.parse('[a, q(j, k+l(m)/n+o, p), x(b, c+d(e)/f+g, h), y(b, c+d(e)/f+g, h), z(b, c+d(e)/f+g, h), bb]')
+        T1 = conv.parse('[a, q(j, k+l(m)/n+o, x(b, c+d(e)/f+g, h), y(b, c+d(e)/f+g, h), z(b, c+d(e)/f+g, h), p), bb]')
+        T2 = conv.parse('[a, q(j, k+l(m)/n+o, p), x(b, c+d(e)/f+g, h), y(b, c+d(e)/f+g, h), z(b, c+d(e)/f+g, h), bb]')
+        Tm = conv.parse('[a, q(j, k+l(m)/n+o, x(b, c+d(e)/f+g, h), y(b, c+d(e)/f+g, h), z(b, c+d(e)/f+g, h), p), bb]')
+        assert _diff3(T0, T1, T2) == (Tm, [])
+
 
     def test_merge_all(self):
         # Update-delete
@@ -409,7 +416,6 @@ def softmax(x):
         T1 = conv.parse('[a, x, c, d, e]')
         T2 = conv.parse('[a, c, d, e]')
         Tm = conv.parse('[a, b, c, d, e]')
-        Tm[0][0][1].remove_child(Tm[0][0][1][0])
         merged, conflicts = _diff3(T0, T1, T2)
         assert merged == Tm
         assert conflicts == [GumtreeMerge3ConflictDeleteUpdate(_ddelete(T0[0][0][1]), _dupdate(T0[0][0][1], 'x'))]
@@ -419,7 +425,6 @@ def softmax(x):
         T1 = conv.parse('[a, c, d, e]')
         T2 = conv.parse('[a, x, c, d, e]')
         Tm = conv.parse('[a, b, c, d, e]')
-        Tm[0][0][1].remove_child(Tm[0][0][1][0])
         merged, conflicts = _diff3(T0, T1, T2)
         assert merged == Tm
         assert conflicts == [GumtreeMerge3ConflictDeleteUpdate(_ddelete(T0[0][0][1]), _dupdate(T0[0][0][1], 'x'))]
@@ -533,3 +538,12 @@ def softmax(x):
                                                                          _dinsert(T1[0][0][1][3], T0[0][0][1], 3))]
 
 
+    def test_merge_ancestry_conflict_delete_update(self):
+        conv = ASTConverter()
+        T0 = conv.parse('[a, [b, [c], d], e]')
+        T1 = conv.parse('[a, e]')
+        T2 = conv.parse('[a, [b, [x], d], e]')
+        Tm = conv.parse('[a, [b, [c], d], e]')
+        merged, conflicts = _diff3(T0, T1, T2)
+        assert merged == Tm
+        assert conflicts == [GumtreeMerge3ConflictDeleteAncestry(_ddelete(T0[0][0][1]), _dupdate(T0[0][0][1][1][0], 'x'))]
