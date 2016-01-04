@@ -24,6 +24,7 @@ from inclexer.inclexer import IncrementalLexer
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from PyQt4.QtGui import QApplication
+from PyQt4.QtCore import QSettings
 from grammars.grammars import lang_dict, Language, EcoFile
 from export import HTMLPythonSQL, PHPPython, ATerms
 from export.jruby_simple_language import JRubySimpleLanguageExporter
@@ -1505,10 +1506,13 @@ class TreeManager(object):
             f = tempfile.mkstemp()
             os.write(f[0],"".join(output))
             os.close(f[0])
-            if os.environ.has_key("UNIPYCATION"):
-                return subprocess.Popen([os.environ["UNIPYCATION"], f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
+            
+            settings = QSettings("softdev", "Eco")
+            unipath = str(settings.value("env_unipycation", "").toString())
+            if unipath:
+                return subprocess.Popen([unipath, f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
             else:
-                sys.stderr.write("UNIPYCATION environment not set")
+                sys.stderr.write("Unipycation executable not set")
 
     def export_html_python_sql(self, path):
         with open(path, "w") as f:
@@ -1520,10 +1524,19 @@ class TreeManager(object):
             import os, sys, subprocess
             f = tempfile.mkstemp()
             os.write(f[0], PHPPython.export(self.get_bos()))
-            if os.environ.has_key("PYHYP"):
-                return subprocess.Popen([os.environ["PYHYP"], f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
+            settings = QSettings("softdev", "Eco")
+            # Set PYPY_PREFIX environment variable
+            prefixpath = str(settings.value("env_pypyprefix", "").toString())
+            pyhyppath = str(settings.value("env_pyhyp", "").toString())
+            if pyhyppath:
+                env = os.environ.copy()
+                if prefixpath:
+                    env["PYPY_PREFIX"] = prefixpath
+                else:
+                    sys.stderr.write("PYPY_PREFIX path not set")
+                return subprocess.Popen([pyhyppath, f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0, env=env)
             else:
-                sys.stderr.write("PYHYP environment not set")
+                sys.stderr.write("PyHyp executable not set")
         else:
             with open(path, "w") as f:
                 text = PHPPython.export(self.get_bos())
