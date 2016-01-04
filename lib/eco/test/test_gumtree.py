@@ -490,11 +490,7 @@ def softmax(x):
         # Tm = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
         merged, conflicts = _diff3(T0, T1, T2)
         # Three conflicts; one for each deleted adjacent sibling and one for the deleted parent
-        assert conflicts == [GumtreeMerge3ConflictDeleteDestination(_ddelete(T0[0][0][1][2]),
-                                                                    _dmove(T0[0][0][3], T0[0][0][1], 3)),
-                             GumtreeMerge3ConflictDeleteDestination(_ddelete(T0[0][0][1][3]),
-                                                                    _dmove(T0[0][0][3], T0[0][0][1], 3)),
-                             GumtreeMerge3ConflictDeleteDestination(_ddelete(T0[0][0][1]),
+        assert conflicts == [GumtreeMerge3ConflictDeleteDestination(_ddelete(T0[0][0][1]),
                                                                     _dmove(T0[0][0][3], T0[0][0][1], 3))]
 
         conv = ASTConverter()
