@@ -1491,7 +1491,7 @@ class TreeManager(object):
         with open(path, "w") as f:
             root = self.get_bos().get_root()
             syntaxtable = self.get_mainparser().syntaxtable
-            data = gumtree_export.export_ecotree(root, syntaxtable)
+            data = gumtree_export.export_gumtree_as_string(root, syntaxtable)
             f.write(data)
 
 
