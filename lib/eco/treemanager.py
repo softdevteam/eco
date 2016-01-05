@@ -25,7 +25,7 @@ from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from PyQt4.QtGui import QApplication
 from grammars.grammars import lang_dict, Language, EcoFile
-from export import HTMLPythonSQL, PHPPython, ATerms
+from export import HTMLPythonSQL, PHPPython, ATerms, version_control_export
 from export.jruby_simple_language import JRubySimpleLanguageExporter
 from export.simple_language import SimpleLanguageExporter
 from export.cpython import CPythonExporter
@@ -1320,6 +1320,7 @@ class TreeManager(object):
             self.cursor.x = x
 
     def rescan_linebreaks(self, y):
+
         """ Scan all nodes between this return node and the next lines return
         node. All other return nodes you find that are not the next lines
         return node are new and must be inserted into self.lines """
@@ -1332,7 +1333,7 @@ class TreeManager(object):
 
         current = current.next_term
         while current is not next:
-            if current.symbol.name == "\r":
+            if current.lookup == "<return>":
                 y += 1
                 self.lines.insert(y, Line(current))
             if isinstance(current.symbol, MagicTerminal):
@@ -1344,6 +1345,33 @@ class TreeManager(object):
                     current = lbox.next_term
             else:
                 current = current.next_term
+
+    def rescan_all_linebreaks(self):
+
+        """ Scan all nodes between this return node and the next lines return
+        node. All other return nodes you find that are not the next lines
+        return node are new and must be inserted into self.lines """
+
+        current = self.get_bos()
+        next = self.get_eos()
+
+        current = current.next_term
+        self.lines = [Line(current)]
+        while current is not next:
+            if current.lookup == "<return>":
+                self.lines.append(Line(current))
+            if isinstance(current.symbol, MagicTerminal):
+                current = current.symbol.ast.children[0]
+            elif isinstance(current, EOS):
+                root = current.get_root()
+                lbox = root.get_magicterminal()
+                if lbox:
+                    current = lbox.next_term
+            else:
+                current = current.next_term
+        # self.lines.append(Line(self.get_eos()))
+
+
 
     def delete_linebreak(self, y, node):
         current = self.lines[y].node
@@ -1473,6 +1501,10 @@ class TreeManager(object):
         else:
             return self.export_as_text(path)
 
+    def export_diff3(self, path):
+        with open(path, "w") as f:
+            f.write(version_control_export.export_diff3(self.get_bos()))
+
     def export_unipycation(self, path=None):
         import subprocess, sys
         import os
@@ -1563,6 +1595,36 @@ class TreeManager(object):
             text = ATerms.export(start)
             f.write(text)
             return text
+
+
+    def export_version_control(self):
+        root_node = self.get_mainparser().previous_version.parent
+        node_types = set()
+        symbol_types = set()
+        self._handle_node(root_node, 0, node_types, symbol_types)
+        print 'NODE TYPES:'
+        print node_types
+        print 'SYMBOL TYPES:'
+        print symbol_types
+
+
+    def _handle_node(self, node, level, node_types, symbol_types):
+        node_types.add(type(node))
+        symbol_types.add(type(node.symbol))
+        name = node.symbol.name if node.symbol is not None else ''
+        is_terminal = isinstance(node.symbol, Terminal)
+        indent = ' ' * (level*2)
+        if len(node.children) > 0:
+            if is_terminal:
+                print('{0}-->{1} ({2}: {3})'.format(indent, name, type(node).__name__, type(node.symbol).__name__))
+            for child in node.children:
+                self._handle_node(child, level+1, node_types, symbol_types)
+            if is_terminal:
+                print('{0}<--{1} ({2}: {3})'.format(indent, name, type(node).__name__, type(node.symbol).__name__))
+        else:
+            if is_terminal:
+                print('{0}==={1} ({2}: {3})'.format(indent, name, type(node).__name__, type(node.symbol).__name__))
+
 
     def relex(self, node):
         if node is None:

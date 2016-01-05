@@ -46,7 +46,7 @@
      <x>0</x>
      <y>0</y>
      <width>920</width>
-     <height>23</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -60,6 +60,8 @@
     <addaction name="actionSave_as"/>
     <addaction name="actionExport"/>
     <addaction name="actionExportAs"/>
+    <addaction name="separator"/>
+    <addaction name="actionThreeWayMerge"/>
     <addaction name="separator"/>
     <addaction name="actionSettings"/>
     <addaction name="separator"/>
@@ -106,8 +108,7 @@
      </property>
      <property name="icon">
       <iconset theme="reload">
-       <normaloff/>
-      </iconset>
+       <normaloff>.</normaloff>.</iconset>
      </property>
      <addaction name="actionDummy"/>
     </widget>
@@ -342,8 +343,7 @@
    </property>
    <property name="icon">
     <iconset theme="edit-undo">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Undo</string>
@@ -358,8 +358,7 @@
    </property>
    <property name="icon">
     <iconset theme="edit-redo">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Redo</string>
@@ -374,8 +373,7 @@
    </property>
    <property name="icon">
     <iconset theme="edit-cut">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Cut</string>
@@ -390,8 +388,7 @@
    </property>
    <property name="icon">
     <iconset theme="edit-copy">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Copy</string>
@@ -406,8 +403,7 @@
    </property>
    <property name="icon">
     <iconset theme="edit-paste">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Paste</string>
@@ -437,8 +433,7 @@
    </property>
    <property name="icon">
     <iconset theme="list-add">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Add language box</string>
@@ -453,8 +448,7 @@
    </property>
    <property name="icon">
     <iconset theme="go-next">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Select next language box</string>
@@ -526,8 +520,7 @@
    </property>
    <property name="icon">
     <iconset theme="document-export">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Export as...</string>
@@ -542,8 +535,7 @@
    </property>
    <property name="icon">
     <iconset theme="document-export">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Export</string>
@@ -555,8 +547,7 @@
   <action name="actionSettings">
    <property name="icon">
     <iconset theme="gnome-settings">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Settings...</string>
@@ -621,6 +612,11 @@
    </property>
    <property name="text">
     <string>Visualise automatically</string>
+   </property>
+  </action>
+  <action name="actionThreeWayMerge">
+   <property name="text">
+    <string>3-way merge...</string>
    </property>
   </action>
  </widget>

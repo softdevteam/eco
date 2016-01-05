@@ -59,6 +59,7 @@ import editor
 
 from nodeeditor import NodeEditor
 from editortab import EditorTab
+from version_control import three_way_merge
 
 import logging
 
@@ -528,6 +529,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionSave_as, SIGNAL("triggered()"), self.savefileAs)
         self.connect(self.ui.actionExport, SIGNAL("triggered()"), self.export)
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
+        self.connect(self.ui.actionThreeWayMerge, SIGNAL("triggered()"), self.three_way_merge)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
         self.connect(self.ui.actionProfile, SIGNAL("triggered()"), self.profile_subprocess)
         self.connect(self.ui.actionVisualise_automatically, SIGNAL("triggered()"), self.run_background_tools)
@@ -713,6 +715,8 @@ class Window(QtGui.QMainWindow):
         parser.add_option("-l", "--log", default="WARNING", help="Log level: INFO, WARNING, ERROR, DEBUG [default: %default]")
         parser.add_option("-e", "--export", action="store_true", default=False, help="Fast export files. Usage: --export [SOURCE] [DESTINATION]")
         parser.add_option("-f", "--fullexport", action="store_true", default=False, help="Export files. Usage: --fullexport [SOURCE] [DESTINATION]")
+        parser.add_option("-d", "--diff3export", action="store_true", default=False, help="Export files for diff3. Usage: --diff3export [SOURCE] [DESTINATION]")
+        parser.add_option("-s", "--vcsexport", action="store_true", default=False, help="Export files for VCS. Usage: --vcsexport [SOURCE] [DESTINATION]")
         (options, args) = parser.parse_args()
         if options.preload:
             self.preload()
@@ -720,6 +724,14 @@ class Window(QtGui.QMainWindow):
             source = args[0]
             dest = args[1]
             self.cli_export(source, dest, False)
+        if options.diff3export:
+            source = args[0]
+            dest = args[1]
+            self.cli_export_diff3(source, dest)
+        if options.vcsexport:
+            source = args[0]
+            dest = args[1]
+            self.cli_export_version_control(source, dest)
         if options.export:
             source = args[0]
             dest = args[1]
@@ -759,6 +771,40 @@ class Window(QtGui.QMainWindow):
         else:
             self.tm.load_file(language_boxes)
             self.tm.export(dest)
+        QApplication.quit()
+        sys.exit(1)
+
+    def cli_export_diff3(self, source, dest):
+        print("Exporting for diff3...")
+        print("    Source: %s" % source)
+        print("    Destination: %s" % dest)
+
+        from jsonmanager import JsonManager
+        manager = JsonManager()
+        language_boxes = manager.load(source)
+
+        from treemanager import TreeManager
+        self.tm = TreeManager()
+
+        self.tm.load_file(language_boxes)
+        self.tm.export_diff3(dest)
+        QApplication.quit()
+        sys.exit(1)
+
+    def cli_export_version_control(self, source, dest):
+        print("Exporting for version control...")
+        print("    Source: %s" % source)
+        print("    Destination: %s" % dest)
+
+        from jsonmanager import JsonManager
+        manager = JsonManager()
+        language_boxes = manager.load(source)
+
+        from treemanager import TreeManager
+        self.tm = TreeManager()
+
+        self.tm.load_file(language_boxes)
+        self.tm.export_version_control()
         QApplication.quit()
         sys.exit(1)
 
@@ -998,6 +1044,18 @@ class Window(QtGui.QMainWindow):
             self.save_last_dir(str(path))
             ed.export_path = path
             self.getEditor().tm.export(path)
+
+    def three_way_merge(self):
+        base_filename = QFileDialog.getOpenFileName(self, "Base version")
+        derived_main_filename = QFileDialog.getOpenFileName(self, "Other version")
+
+        base_tm = three_way_merge.load_tm(base_filename)
+        derived_local_tm = self.getEditor().tm
+        derived_main_tm = three_way_merge.load_tm(derived_main_filename)
+
+        three_way_merge.merge3_tree_managers(base_tm, derived_local_tm, derived_main_tm)
+        derived_local_tm.rescan_all_linebreaks()
+
 
     def get_last_dir(self):
         settings = QSettings("softdev", "Eco")

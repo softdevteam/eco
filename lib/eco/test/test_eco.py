@@ -25,6 +25,7 @@ from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
 from incparser.astree import BOS, EOS
 from grammar_parser.gparser import MagicTerminal
+from version_control import three_way_merge
 
 from PyQt4 import QtCore
 
@@ -2466,6 +2467,7 @@ self.key_normal('e')"""
     def foo():
         x = SELECT * FROM table"""
 
+
 class Test_AnySymbol_Indents(Test_Python):
     def test_newline(self):
         for c in "y = 12 # blaz = 13":
@@ -2487,3 +2489,137 @@ y = 13""":
         self.treemanager.key_normal("#")
         assert self.parser.last_status == True
         
+
+class Test_ThreeWayMerge(Test_Python):
+    def setup_class(cls):
+        pass
+
+    def _new_tm(self, language):
+        t1 = TreeManager()
+        parser, lexer = language.load()
+        t1.add_parser(parser, lexer, language.name)
+        return t1
+
+
+    def test_simple(self):
+        base_tm = self._new_tm(python)
+        d_local_tm = self._new_tm(python)
+        d_main_tm = self._new_tm(python)
+        base_tm.import_file(
+"""def aaa(xxx):
+    return xxx**2
+
+def bbb(yyy):
+    return yyy + 1
+
+def ccc(zzz):
+    return zzz / 2
+""")
+        d_local_tm.import_file(
+"""def aaa(xxx):
+    return xxx**2
+
+def ddd(qqq):
+    return qqq + 1
+
+def ccc(zzz):
+    return zzz / 2
+""")
+        d_main_tm.import_file(
+"""def aaa(xxx):
+    return xxx**2
+
+def bbb(yyy):
+    return yyy + 1
+
+def eee(rrr):
+    return rrr / 2
+""")
+        assert base_tm.get_mainparser().last_status
+        assert d_local_tm.get_mainparser().last_status
+        assert d_main_tm.get_mainparser().last_status
+        for i in range(7):
+            d_main_tm.key_cursors("down")
+        for i in range(17):
+            d_main_tm.key_cursors("right")
+        d_main_tm.key_normal('/')
+
+        three_way_merge.merge3_tree_managers(base_tm, d_local_tm, d_main_tm)
+
+        text = d_local_tm.export_as_text(None)
+
+        assert text == \
+"""def aaa(xxx):
+    return xxx**2
+
+def ddd(qqq):
+    return qqq + 1
+
+def eee(rrr):
+    return rrr / /2
+"""
+
+    def test_simple(self):
+        base_tm = self._new_tm(python)
+        d_local_tm = self._new_tm(python)
+        d_main_tm = self._new_tm(python)
+        base_tm.import_file(
+"""def aaa(xxx):
+    return xxx**2
+
+def bbb(yyy):
+    return yyy + 1
+
+def ccc(zzz):
+    return zzz / 2
+""")
+        d_local_tm.import_file(
+"""def aaa(xxx):
+    return xxx**2
+
+def ddd(qqq, ggg):
+    ggg += 42
+    return qqq**ggg + 7
+
+def ccc(zzz):
+    return zzz / 2
+""")
+        d_main_tm.import_file(
+"""def aaa(xxx):
+    return xxx**2
+
+def bbb(yyy):
+    return yyy + 1
+
+def eee(rrr, mmm):
+    mmm -= 3
+    return mmm, rrr * 2/7
+""")
+        assert base_tm.get_mainparser().last_status
+        assert d_local_tm.get_mainparser().last_status
+        assert d_main_tm.get_mainparser().last_status
+        # for i in range(8):
+        #     d_main_tm.key_cursors("down")
+        # for i in range(22):
+        #     d_main_tm.key_cursors("right")
+        # d_main_tm.key_normal('/')
+
+        three_way_merge.merge3_tree_managers(base_tm, d_local_tm, d_main_tm)
+
+        text = d_local_tm.export_as_text(None)
+
+        assert text == \
+"""def aaa(xxx):
+    return xxx**2
+
+def ddd(qqq, ggg):
+    ggg += 42
+    return qqq**ggg + 7
+
+def eee(rrr, mmm):
+    mmm -= 3
+    return mmm, rrr * 2/7
+"""
+
+        assert d_local_tm.get_mainparser().last_status
+
