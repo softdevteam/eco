@@ -859,5 +859,9 @@ class NodeEditor(QFrame):
         self.tm.load_file(language_boxes)
         self.reset()
 
+    def get_from_three_way_merge(self, tm):
+        self.tm = tm
+        self.reset()
+
     def export(self, run=False):
         return self.tm.export(None, run)

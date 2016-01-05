@@ -27,7 +27,7 @@ from PyQt4.QtGui import QApplication
 from grammars.grammars import lang_dict, Language, EcoFile
 from indentmanager import IndentationManager
 from export import HTMLPythonSQL, PHPPython, ATerms, version_control_export
-from version_control import gumtree_export
+from version_control import gumtree_filter
 
 import math
 
@@ -1489,9 +1489,8 @@ class TreeManager(object):
 
     def export_gumtree(self, path):
         with open(path, "w") as f:
-            root = self.get_bos().get_root()
-            syntaxtable = self.get_mainparser().syntaxtable
-            data = gumtree_export.export_gumtree_as_string(root, syntaxtable)
+            exporter = gumtree_filter.GumtreeExporter([self])
+            data = exporter.export_gumtree_as_string(self)
             f.write(data)
 
 
