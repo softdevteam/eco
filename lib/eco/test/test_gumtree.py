@@ -1,7 +1,11 @@
 import ast
 import pytest
 
-from version_control.gumtree_driver import *
+from version_control.gumtree_tree import GumtreeNodeClass
+from version_control.gumtree_driver import gumtree_diff
+from version_control.gumtree_diff3 import gumtree_diff3
+from version_control.gumtree_diffop import GumtreeDiffUpdate, GumtreeDiffDelete, GumtreeDiffInsert, GumtreeDiffMove
+from version_control.gumtree_conflict import *
 
 
 def _dupdate(node, value):
@@ -18,7 +22,7 @@ def _dmove(node, parent, index):
 
 def _diff3(base, derived1, derived2):
     merged, ops, conflicts = gumtree_diff3(base, derived1, derived2)
-    return merged, conflicts
+    return merged.root, conflicts
 
 class ASTConverter (object):
     """

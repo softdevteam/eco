@@ -59,6 +59,7 @@ import editor
 
 from nodeeditor import NodeEditor
 from editortab import EditorTab
+from version_control import gumtree_three_way_merge
 
 from lspace_ext import view_ecodoc_in_lspace
 
@@ -568,6 +569,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionExport, SIGNAL("triggered()"), self.export)
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
         self.connect(self.ui.actionGumtreeExport, SIGNAL("triggered()"), self.gumtree_export)
+        self.connect(self.ui.actionGumtreeMerge3, SIGNAL("triggered()"), self.gumtree_three_way_merge)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
         self.connect(self.ui.actionProfile, SIGNAL("triggered()"), self.profile_subprocess)
         self.connect(self.ui.actionVisualise_automatically, SIGNAL("triggered()"), self.run_background_tools)
@@ -1063,6 +1065,26 @@ class Window(QtGui.QMainWindow):
         if path:
             self.getEditor().tm.export_gumtree(path)
 
+
+    def gumtree_three_way_merge(self):
+        base_filename = QFileDialog.getOpenFileName(self, "Base version")
+        derived_main_filename = QFileDialog.getOpenFileName(self, "Other version")
+
+        base_tm = gumtree_three_way_merge.load_tm(base_filename)
+        derived_local_tm = self.getEditor().tm
+        derived_main_tm = gumtree_three_way_merge.load_tm(derived_main_filename)
+
+        merged_tm = gumtree_three_way_merge.merge3_tree_managers(base_tm, derived_local_tm, derived_main_tm)
+
+        etab = EditorTab()
+
+        etab.editor.get_from_three_way_merge(merged_tm)
+        etab.editor.update()
+        # etab.filename = filename
+
+        self.ui.tabWidget.addTab(etab, 'merged')
+        self.ui.tabWidget.setCurrentWidget(etab)
+        etab.editor.setFocus(Qt.OtherFocusReason)
 
     def get_last_dir(self):
         settings = QSettings("softdev", "Eco")

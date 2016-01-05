@@ -62,6 +62,7 @@
     <addaction name="actionExportAs"/>
     <addaction name="separator"/>
     <addaction name="actionGumtreeExport"/>
+    <addaction name="actionGumtreeMerge3"/>
     <addaction name="separator"/>
     <addaction name="actionSettings"/>
     <addaction name="separator"/>
@@ -627,6 +628,11 @@
   <action name="actionGumtreeExport">
    <property name="text">
     <string>Gumtree export</string>
+   </property>
+  </action>
+  <action name="actionGumtreeMerge3">
+   <property name="text">
+    <string>Gumtree merge3...</string>
    </property>
   </action>
  </widget>

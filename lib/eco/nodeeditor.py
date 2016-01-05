@@ -974,3 +974,7 @@ class NodeEditor(QFrame):
 
     def export(self, run=False, profile=False):
         return self.tm.export(None, run, profile)
+
+    def get_from_three_way_merge(self, tm):
+        self.tm = tm
+        self.reset()
