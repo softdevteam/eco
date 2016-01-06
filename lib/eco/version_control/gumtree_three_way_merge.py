@@ -29,9 +29,10 @@ def merge3_tree_managers(base_tm, derived_1_tm, derived_2_tm):
     #     lb_root = lb[0]
     #     merged_tm.relex(lb_root)
     #
-    for lb in merged_language_boxes:
-        lb_root = lb[0]
-        merged_tm.reparse(lb_root)
+    # for lb in merged_language_boxes:
+    #     lb_root = lb[0]
+    #     merged_tm.reparse(lb_root)
+    merged_tm.full_reparse()
 
 
     merged_tm.changed = True
