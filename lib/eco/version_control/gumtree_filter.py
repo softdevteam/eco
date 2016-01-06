@@ -97,7 +97,6 @@ class GumtreeExporter (object):
         eco_tree = gumtree_driver.GumtreeNode(type_id=root_type_id, type_label=root_type_label,
                                               position=eco_subtree.position, length=eco_subtree.length,
                                               value=json.dumps(root_value, sort_keys=True), children=[eco_subtree])
-
         doc = gumtree_driver.GumtreeDocument(eco_tree)
 
         return doc
@@ -129,7 +128,7 @@ class GumtreeExporter (object):
             value = json.dumps(js_value, sort_keys=True)
             return gumtree_driver.GumtreeNode(type_id=type_id, type_label=type_label, position=position,
                                               length=current_position - position, value=value, children=children)
-        elif isinstance(node.symbol, Terminal):
+        elif isinstance(node.symbol, (Terminal, FinishSymbol)):
             type_label = '__terminal__'
             type_id = self.type_name_to_id[type_label]
 
