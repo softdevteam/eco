@@ -280,6 +280,11 @@ class Test_gumtree_diff_apply:
         T1 = conv.parse('[a, c, b]')
         assert _diff_and_apply(T0, T1) == T1
 
+        conv = ASTConverter()
+        T0 = conv.parse('[a, b]')
+        T1 = conv.parse('[c, a, b]')
+        assert _diff_and_apply(T0, T1) == T1
+
         T0 = conv.parse('[a, b]')
         T1 = conv.parse('[a, c+d, b]')
         assert _diff_and_apply(T0, T1) == T1
@@ -352,6 +357,11 @@ class Test_gumtree_diff_apply:
         conv = ASTConverter()
         T0 = conv.parse('[a, b, c, d]')
         T1 = conv.parse('[a, b, x, y, z, w, c, d]')
+        assert _diff_and_apply(T0, T1) == T1
+
+        conv = ASTConverter()
+        T0 = conv.parse('[a, b]')
+        T1 = conv.parse('[x, y, z, w, a, b]')
         assert _diff_and_apply(T0, T1) == T1
 
 

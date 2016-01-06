@@ -137,7 +137,7 @@ class GumtreeAbstractDiff (object):
         :param ignore_merge_id: optional merge ID of a node to skip over when searching backwards from `index_in_parent`.
         :return: the merge ID of the predecessor or `None` if one could not be found.
         """
-        if len(parent) == 0:
+        if len(parent) == 0 or index_in_parent == 0:
             return None
         else:
             i = index_in_parent - 1
@@ -372,7 +372,11 @@ class GumtreeDiffInsert (GumtreeAbstractDiff):
         if index is None:
             raise RuntimeError('Could not get insertion index for inserting new node {0}'.format(self.node_id))
         if isinstance(index, tuple):
-            raise RuntimeError('Could not get unique insertion index for inserting new node {0}; got {1}'.format(self.node_id, index))
+            error_msg = 'Could not get unique position for inserting node {0} under parent {1} between {2} and {3};' \
+                        'children of parent={4}, source={5}, got indices {6}'.format(
+                self.node_id, self.parent_id, self.predecessor_id, self.successor_id,
+                [n.merge_id for n in parent_node.children], self.source, index)
+            raise RuntimeError(error_msg)
         parent_node.insert_child(index, node_to_insert)
 
     def required_target_node_id(self):
@@ -483,7 +487,11 @@ class GumtreeDiffMove (GumtreeAbstractDiff):
         if index is None:
             raise RuntimeError('Could not get insertion index for inserting moved node {0}'.format(self.node_id))
         if isinstance(index, tuple):
-            raise RuntimeError('Could not get unique insertion index for inserting moved node {0}'.format(self.node_id))
+            error_msg = 'Could not get unique position for moving node {0} to parent {1} between {2} and {3};' \
+                        'children of parent={4}, source={5}, got indices {6}'.format(
+                self.node_id, self.parent_id, self.predecessor_id, self.successor_id,
+                [n.merge_id for n in parent_node.children], self.source, index)
+            raise RuntimeError(error_msg)
         parent_node.insert_child(index, node_to_move)
 
     def required_target_node_id(self):
