@@ -1,4 +1,4 @@
-from gumtree_tree import GumtreeNode, GumtreeDocument
+from gumtree_tree import GumtreeNode, GumtreeDocument, GumtreeNodeMergeIDTable
 from gumtree_diffop import GumtreeDiffDelete, GumtreeDiffUpdate, GumtreeDiffInsert, GumtreeDiffMove
 from gumtree_conflict import GumtreeMerge3ConflictDeleteAncestry
 from gumtree_driver import gumtree_diff_raw, convert_js_actions_to_diffs
@@ -69,16 +69,11 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2):
     # the node from *one* of these versions is used. In preference, the node from `tree_base` will be used,
     # with the node from `tree_derived_1` being chosen if there is a match between `tree_derived_1` and
     # `tree_derived_2` but not with `tree_base`.
-    merge_id_to_node = {}
-    merge_id_counter = 0
+    merge_id_to_node = GumtreeNodeMergeIDTable()
 
     # Assign merge IDs to nodes from `tree_base`.
-    for B_node_index, B_node in tree_base.gumtree_index_to_node.items():
-        merge_id = merge_id_counter
-        merge_id_counter += 1
-
-        B_node.merge_id = merge_id
-        merge_id_to_node[merge_id] = B_node
+    for B_node in tree_base.gumtree_index_to_node.values():
+        merge_id_to_node.register_node(B_node)
 
 
     # Get the matches and diff actions from Gumtree betwee `tree_base` and `tree_derived_a`
@@ -99,11 +94,7 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2):
 
         if A_index is None:
             # The node in question is NOT matched to any node in the base tree; need to assign it a new merge ID
-            merge_id = merge_id_counter
-            merge_id_counter += 1
-
-            B_node.merge_id = merge_id
-            merge_id_to_node[merge_id] = B_node
+            merge_id_to_node.register_node(B_node)
         else:
             # Assign it the merge ID of the matching node from the base tree
             B_node.merge_id = tree_base.gumtree_index_to_node[A_index].merge_id
@@ -127,11 +118,7 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2):
             else:
                 # The node in question is NOT matched to any node in the base tree or the derived 1 tree;
                 # need to assign it a new merge ID
-                merge_id = merge_id_counter
-                merge_id_counter += 1
-
-                C_node.merge_id = merge_id
-                merge_id_to_node[merge_id] = C_node
+                merge_id_to_node.register_node(C_node)
 
 
     # Convert actions to `GumtreeDiff` instances
@@ -276,7 +263,7 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2):
     # Create destination tree by cloning the base version tree
     merged_merge_id_to_node = {}
     tree_merged = tree_base.root.clone_subtree(merged_merge_id_to_node)
-    for key, value in merge_id_to_node.items():
+    for key, value in merge_id_to_node.merge_ids_and_nodes():
         if key not in merged_merge_id_to_node:
             merged_merge_id_to_node[key] = value.copy()
 

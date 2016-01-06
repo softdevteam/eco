@@ -1,8 +1,8 @@
 import ast
 import pytest
 
-from version_control.gumtree_tree import GumtreeNodeClass
-from version_control.gumtree_driver import gumtree_diff
+from version_control.gumtree_tree import GumtreeNodeClass, GumtreeNode, GumtreeDocument, GumtreeNodeMergeIDTable
+from version_control.gumtree_driver import gumtree_diff, gumtree_diff_raw, convert_js_actions_to_diffs
 from version_control.gumtree_diff3 import gumtree_diff3
 from version_control.gumtree_diffop import GumtreeDiffUpdate, GumtreeDiffDelete, GumtreeDiffInsert, GumtreeDiffMove
 from version_control.gumtree_conflict import *
@@ -23,6 +23,58 @@ def _dmove(node, parent, index):
 def _diff3(base, derived1, derived2):
     merged, ops, conflicts = gumtree_diff3(base, derived1, derived2)
     return merged.root, conflicts
+
+def _diff_and_apply(tree_base, tree_derived):
+    if isinstance(tree_base, GumtreeNode):
+        tree_base = GumtreeDocument(tree_base)
+    if isinstance(tree_derived, GumtreeNode):
+        tree_derived = GumtreeDocument(tree_derived)
+
+    # Assign merge IDs to nodes
+    merge_id_to_node = GumtreeNodeMergeIDTable()
+
+    # Assign merge IDs to nodes from `tree_base`.
+    for B_node in tree_base.gumtree_index_to_node.values():
+        merge_id_to_node.register_node(B_node)
+
+    # Get the matches and diff actions from Gumtree betwee `tree_base` and `tree_derived_a`
+    ab_matches_js, ab_actions_js = gumtree_diff_raw(tree_base, tree_derived)
+
+    # Build index mappings from derived_1 to base, derived_2 to base and derived_2 to derived_1
+    B_ndx_to_A_ndx = {m['dest']: m['src'] for m in ab_matches_js}
+
+
+    # Walk all nodes in `tree_derived_1` and assign merge IDs using matches with `tree_base`
+    for B_node_index, B_node in tree_derived.gumtree_index_to_node.items():
+        # Use `B_ndx_to_A_ndx` to translate index so that its relative to the base version tree
+        A_index = B_ndx_to_A_ndx.get(B_node_index)
+
+        if A_index is None:
+            # The node in question is NOT matched to any node in the base tree; need to assign it a new merge ID
+            merge_id_to_node.register_node(B_node)
+        else:
+            # Assign it the merge ID of the matching node from the base tree
+            B_node.merge_id = tree_base.gumtree_index_to_node[A_index].merge_id
+
+
+    # Convert actions
+    diffs_ab = convert_js_actions_to_diffs(tree_base, tree_derived, 'ab', ab_actions_js)
+
+
+    # Create destination tree by cloning the base version tree
+    merged_merge_id_to_node = {}
+    tree_with_diffs_applied = tree_base.root.clone_subtree(merged_merge_id_to_node)
+    for key, value in merge_id_to_node.merge_ids_and_nodes():
+        if key not in merged_merge_id_to_node:
+            merged_merge_id_to_node[key] = value.copy()
+
+    # Apply diffs that are not involved in conflicts
+    for op in diffs_ab:
+        if len(op.conflicts) == 0:
+            op.apply(merged_merge_id_to_node)
+
+    return GumtreeDocument(tree_with_diffs_applied)
+
 
 class ASTConverter (object):
     """
@@ -197,6 +249,110 @@ def softmax(x):
         # print delta[0]
         # print delta[0].pred_id, delta[0].succ_id
         # assert False
+
+
+
+class Test_gumtree_diff_apply:
+    def test_same(self):
+        conv = ASTConverter()
+        T0 = conv.parse('a')
+        T1 = conv.parse('a')
+        assert _diff_and_apply(T0, T1) == T1
+
+    def test_update(self):
+        conv = ASTConverter()
+        T0 = conv.parse('a+b')
+        T1 = conv.parse('a+x')
+        assert _diff_and_apply(T0, T1) == T1
+
+        T0 = conv.parse('[a, b]')
+        T1 = conv.parse('[x, y]')
+        assert _diff_and_apply(T0, T1) == T1
+
+        T0 = conv.parse('[a, b+c]')
+        T1 = conv.parse('[a, x+y]')
+        assert _diff_and_apply(T0, T1) == T1
+
+
+    def test_insert(self):
+        conv = ASTConverter()
+        T0 = conv.parse('[a, b]')
+        T1 = conv.parse('[a, c, b]')
+        assert _diff_and_apply(T0, T1) == T1
+
+        T0 = conv.parse('[a, b]')
+        T1 = conv.parse('[a, c+d, b]')
+        assert _diff_and_apply(T0, T1) == T1
+
+        T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        T1 = conv.parse('[a, x(b, c+d(e)/f+g, -aa, h), i, y(j, k+l(m)/n+o, p), q]')
+        assert _diff_and_apply(T0, T1) == T1
+
+
+    def test_delete(self):
+        conv = ASTConverter()
+        T0 = conv.parse('[a, c, b]')
+        T1 = conv.parse('[a, b]')
+        assert _diff_and_apply(T0, T1) == T1
+
+        T0 = conv.parse('[a, c+d, b]')
+        T1 = conv.parse('[a, b]')
+        assert _diff_and_apply(T0, T1) == T1
+
+
+    def test_move(self):
+        conv = ASTConverter()
+        T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        T1 = conv.parse('[a, x(b, c+d(e)/f+g, y(j, k+l(m)/n+o, p), h), i, q]')
+        assert _diff_and_apply(T0, T1) == T1
+
+        conv = ASTConverter()
+        T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        T1 = conv.parse('[a, x(b, y(j, k+l(m)/n+o, p), c+d(e)/f+g, h), i, q]')
+        assert _diff_and_apply(T0, T1) == T1
+
+        conv = ASTConverter()
+        T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i]')
+        T1 = conv.parse('[a, i, x(b, c+d(e)/f+g, h)]')
+        assert _diff_and_apply(T0, T1) == T1
+
+        conv = ASTConverter()
+        T0 = conv.parse('[a, i, x(b, c+d(e)/f+g, h)]')
+        T1 = conv.parse('[a, x(b, c+d(e)/f+g, h), i]')
+        assert _diff_and_apply(T0, T1) == T1
+
+
+    def test_all(self):
+        conv = ASTConverter()
+        T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
+        T1 = conv.parse('[a, x(b, c+d(e)/f+g, y(j, k+l(m)/n+o, p), r), i, q]')
+        assert _diff_and_apply(T0, T1) == T1
+
+
+    def test_multi_update(self):
+        conv = ASTConverter()
+        T0 = conv.parse('[a, b, c]')
+        T1 = conv.parse('[d, e, f]')
+        assert _diff_and_apply(T0, T1) == T1
+
+
+    def test_multi_delete(self):
+        conv = ASTConverter()
+        T0 = conv.parse('[a, b, c, d, e, f, g]')
+        T1 = conv.parse('[a, c, e, g]')
+        assert _diff_and_apply(T0, T1) == T1
+
+
+    def test_multi_insert(self):
+        conv = ASTConverter()
+        T0 = conv.parse('[a, c, e, g]')
+        T1 = conv.parse('[a, b, c, d, e, f, g]')
+        assert _diff_and_apply(T0, T1) == T1
+
+        conv = ASTConverter()
+        T0 = conv.parse('[a, b, c, d]')
+        T1 = conv.parse('[a, b, x, y, z, w, c, d]')
+        assert _diff_and_apply(T0, T1) == T1
 
 
 
