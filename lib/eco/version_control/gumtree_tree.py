@@ -370,6 +370,28 @@ class GumtreeDocument (object):
             return False
 
 
+class GumtreeNodeMergeIDTable (object):
+    def __init__(self):
+        self.__id_counter = 0
+        self.__merge_id_to_node = {}
+
+
+    def register_node(self, node):
+        merge_id = self.__id_counter
+        self.__id_counter += 1
+        node.merge_id = merge_id
+        self.__merge_id_to_node[merge_id] = node
+        return merge_id
+
+
+    def __getitem__(self, merge_id):
+        return self.__merge_id_to_node[merge_id]
+
+    def merge_ids_and_nodes(self):
+        return self.__merge_id_to_node.items()
+
+
+
 # Gumtree's JSON tree handler handles trees of the form:
 #
 # {
