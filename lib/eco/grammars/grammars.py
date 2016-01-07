@@ -89,10 +89,10 @@ class EcoFile(object):
             bootstrap.change_startrule = self.extract
             bootstrap.read_options()
 
+            bootstrap.parse_both()
             bootstrap.create_parser(pickle_id)
-            whitespace = bootstrap.implicit_ws()
-
             bootstrap.create_lexer()
+            whitespace = bootstrap.implicit_ws()
 
             _cache[self.name + "::lexer"] = bootstrap.inclexer
             _cache[self.name + "::json"] = (root, language, whitespaces)

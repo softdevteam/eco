@@ -1088,6 +1088,16 @@ def z():
         self.treemanager.key_normal("\"")
         self.treemanager.key_normal("\"")
         assert self.parser.last_status == True
+        # remove quotes again
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.move("down", 2)
+        self.treemanager.key_end()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == True
 
     def test_indentation_comment(self):
         self.reset()
@@ -2475,7 +2485,7 @@ self.key_normal('e')"""
     def foo():
         x = SELECT * FROM table"""
 
-class Test_AnySymbol_Indents(Test_Python):
+class Test_Comments_Indents(Test_Python):
     def test_newline(self):
         for c in "y = 12 # blaz = 13":
             self.treemanager.key_normal(c)

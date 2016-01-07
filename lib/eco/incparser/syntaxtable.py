@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 from production import Production
-from grammar_parser.gparser import Terminal, Nonterminal, Epsilon, AnySymbol
+from grammar_parser.gparser import Terminal, Nonterminal, Epsilon
 from constants import LR0, LR1, LALR
 
 class SyntaxTableElement(object):
@@ -54,18 +54,13 @@ class Shift(SyntaxTableElement): pass
 class Reduce(SyntaxTableElement):
     def __init__(self, action):
         self.action = action
-        self.anysymbol = 0
-        for s in self.action.right:
-            if isinstance(s, AnySymbol):
-                self.anysymbol = 1
-                break
 
     def amount(self):
-        if not hasattr(self, 'anysymbol'):
-            self.anysymbol = 0
+        if len(self.action.right) > 0 and self.action.right[-1] == Terminal("<eos>"):
+            return len(self.action.right) - 1
         if self.action.right == [Epsilon()]:
             return 0
-        return len(self.action.right) - self.anysymbol
+        return len(self.action.right)
 
 class Accept(SyntaxTableElement):
     def __init__(self, action=None):
@@ -106,7 +101,7 @@ class SyntaxTable(object):
             for s in symbols:
                 dest = graph.follow(i, s)
                 if dest:
-                    if isinstance(s, Terminal) or isinstance(s, AnySymbol):
+                    if isinstance(s, Terminal):
                         action = Shift(dest)
                     if isinstance(s, Nonterminal):
                         action = Goto(dest)

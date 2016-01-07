@@ -28,7 +28,7 @@ except:
 
 import time, os
 
-from grammar_parser.gparser import Parser, Nonterminal, Terminal,MagicTerminal, Epsilon, IndentationTerminal, AnySymbol
+from grammar_parser.gparser import Parser, Nonterminal, Terminal,MagicTerminal, Epsilon, IndentationTerminal
 from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
 from stategraph import StateGraph
 from constants import LR0, LR1, LALR
@@ -95,7 +95,6 @@ class IncParser(object):
         self.last_status = False
         self.error_node = None
         self.whitespaces = whitespaces
-        self.anycount = set()
         self.status_by_version = {}
         self.errornode_by_version = {}
         self.indentation_based = False
@@ -154,8 +153,6 @@ class IncParser(object):
         self.stack.append(Node(FinishSymbol(), 0, []))
         bos = self.previous_version.parent.children[0]
         self.loopcount = 0
-        self.anycount = set()
-        self.any_newlines = []
 
         USE_OPT = True
 
@@ -227,22 +224,15 @@ class IncParser(object):
                             la = self.left_breakdown(la)
         logging.debug("============ INCREMENTAL PARSE END ================= ")
 
-    def parse_anysymbol(self):
-        symbol = AnySymbol()
-        result = self.syntaxtable.lookup(self.current_state, symbol)
-        if not result:
-            symbol = AnySymbol("@ncr")
-            result = self.syntaxtable.lookup(self.current_state, symbol)
-        return result, symbol
-
     def parse_terminal(self, la, lookup_symbol):
-        # try parsing ANYSYMBOL
-
-        if not isinstance(la.symbol, FinishSymbol):
-            if self.process_any(la):
-                return self.pop_lookahead(la)
-
-        element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
+        element = None
+        if isinstance(la, EOS):
+            element = self.syntaxtable.lookup(self.current_state, Terminal("<eos>"))
+            if isinstance(element, Shift):
+                self.current_state = element.action
+                return la
+        if element is None:
+            element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
         logging.debug("\x1b[34mparse_terminal\x1b[0m: %s in %s -> %s", lookup_symbol, self.current_state, element)
         if isinstance(element, Accept):
             #XXX change parse so that stack is [bos, startsymbol, eos]
@@ -303,9 +293,7 @@ class IncParser(object):
             fold = element.action.right[element.amount()-i-1].folding
             c.symbol.folding = fold
             children.insert(0, c)
-            if c not in self.anycount:
-                # if this node is part of any, don't count it towards reduce elements
-                i += 1
+            i += 1
 
         logging.debug("   Element on stack: %s(%s)", self.stack[-1].symbol, self.stack[-1].state)
         self.current_state = self.stack[-1].state #XXX don't store on nodes, but on stack
@@ -389,8 +377,7 @@ class IncParser(object):
         logging.debug("right breakdown(%s): set state to %s", node.symbol.name, self.current_state)
         while(isinstance(node.symbol, Nonterminal)):
             for c in node.children:
-                if not self.process_any(c): # in breakdown we also have to take care of ANYSYMBOLs
-                    self.shift(c, rb=True)
+                self.shift(c, rb=True)
                 c = c.right
             node = self.stack.pop()
             # after undoing an optimistic shift (through pop) we need to revert
@@ -405,8 +392,7 @@ class IncParser(object):
             else:
                 logging.debug("right breakdown else: set state to %s", self.stack[-1].state)
                 self.current_state = self.stack[-1].state
-        if not self.process_any(node):
-            self.shift(node, rb=True) # pushes previously popped terminal back on stack
+        self.shift(node, rb=True) # pushes previously popped terminal back on stack
 
     def shift(self, la, element=None, rb=False):
         if not element:
@@ -423,38 +409,6 @@ class IncParser(object):
             self.last_shift_state = element.action
 
         self.pm.do_incparse_shift(la, rb)
-
-    def process_any(self, la):
-        result, symbol = self.parse_anysymbol()
-        if result:
-            # ANYSYMBOL with finishing symbol
-            r_finish = self.syntaxtable.lookup(result.action, self.get_lookup(la))
-            if isinstance(r_finish, Shift):
-                self.end_any(la, result)
-                return False
-            # ANY without finishing symbol
-            elif symbol.name == "@ncr" and (la.lookup == "<return>" or la.symbol == IndentationTerminal("NEWLINE") or isinstance(la, EOS)):
-                self.end_any(la, result, symbol.name)
-                return False
-            else:
-                self.push_any(la)
-                return True
-
-    def push_any(self, la):
-        logging.debug("AnySymbol: push %s" % (la))
-        la.state = self.current_state # this node is now part of this comment state (needed to unvalidating)
-        self.stack.append(la)
-        self.anycount.add(la)
-        if la.lookup == "<return>" and self.indentation_based:
-            self.any_newlines.append(la)
-
-    def end_any(self, la, result, mode="@"):
-        logging.debug("AnySymbol: end %s (%s)" % (la, mode))
-        self.current_state = result.action # switch to state after ANY and continue parsing normally
-        logging.debug("AnySymbol: set state to %s", self.current_state)
-
-        self.pm.do_incparse_end_any(self.any_newlines)
-        self.any_newlines = []
 
     def pop_lookahead(self, la):
         org = la
@@ -515,7 +469,6 @@ class IncParser(object):
             symbols = stateset.get_next_symbols_no_ws()
             return symbols
         return []
-
 
     def reset(self):
         self.stack = []

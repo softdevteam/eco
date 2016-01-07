@@ -55,8 +55,12 @@ class SyntaxHighlighter(object):
             self.colors = self.gb_colors
 
     def get_color(self, node):
-        if node.parent and node.parent.symbol.name in self.parent_colors:
-            color = self.parent_colors[node.parent.symbol.name]
+        parent = node.parent
+        if parent:
+            while parent.symbol.name.startswith("*match_until"):
+                parent = parent.parent
+        if parent and parent.symbol.name in self.parent_colors:
+            color = self.parent_colors[parent.symbol.name]
         elif node.symbol.name in self.keyword_colors:
             color = self.keyword_colors[node.symbol.name]
         elif node.lookup in self.keyword_colors:
@@ -115,7 +119,7 @@ class PythonHighlighter(SyntaxHighlighter):
     }
 
     parent_colors = {
-        "comment": "grey",
+        "slcomment": "grey",
         "single_string": "cyan",
         "multiline_string": "cyan"
     }
@@ -149,7 +153,9 @@ class JavaHighlighter(SyntaxHighlighter):
     }
 
     parent_colors = {
-        "string": "cyan"
+        "string": "cyan",
+        "slcomment": "grey",
+        "mlcomment": "grey"
     }
 
 class SqlHighlighter(SyntaxHighlighter):
@@ -248,6 +254,12 @@ class PhpHighlighter(SyntaxHighlighter):
         "static": "italic",
         "void": "bold",
         "int": "bold"
+    }
+
+    parent_colors = {
+        "string": "cyan",
+        "slcomment": "grey",
+        "mlcomment": "grey"
     }
 
 class SLHighlighter(SyntaxHighlighter):
