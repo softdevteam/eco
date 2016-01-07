@@ -18,7 +18,7 @@ def merge3_tree_managers(base_tm, derived_1_tm, derived_2_tm):
     merged_gt, diffs, conflicts = gumtree_diff3.gumtree_diff3(base_gt, derived_1_gt, derived_2_gt)
 
     if len(conflicts) > 0:
-        raise NotImplementedError('Conflicts not yet correctly handled by three-way merge')
+        print 'WARNING: {0} conflicts detected; conflicting diffs will be ignored'.format(len(conflicts))
 
     root_merged, merged_language_boxes = gumtree_filter.import_gumtree(merged_gt)
 
