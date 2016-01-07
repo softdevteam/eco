@@ -110,6 +110,12 @@ class GumtreeAbstractDiff (object):
         """
         raise NotImplementedError('abstract for {0}'.format(type(self)))
 
+    def get_short_description(self):
+        """
+        Get a short textual description of this diff.
+        """
+        raise NotImplementedError('abstract for {0}'.format(type(self)))
+
 
     @staticmethod
     def _get_node_id(node):
@@ -215,6 +221,9 @@ class GumtreeDiffDelete (GumtreeAbstractDiff):
         node = node_id_to_node[self.node_id]
         return 'delete({0})'.format(node.id_label_str)
 
+    def get_short_description(self):
+        return 'delete({0} source {1})'.format(self.node_id, self.source)
+
 
     def __eq__(self, other):
         if isinstance(other, GumtreeDiffDelete):
@@ -284,6 +293,9 @@ class GumtreeDiffUpdate (GumtreeAbstractDiff):
     def get_description(self, node_id_to_node):
         node = node_id_to_node[self.node_id]
         return 'update({0}, value={1})'.format(node.id_label_str, self.value)
+
+    def get_short_description(self):
+        return 'update({0} source {1})'.format(self.node_id, self.source)
 
     def __eq__(self, other):
         if isinstance(other, GumtreeDiffUpdate):
@@ -388,6 +400,10 @@ class GumtreeDiffInsert (GumtreeAbstractDiff):
         insertion_index = parent_node.insertion_index(self.predecessor_id, self.successor_id)
         return 'insert(src {0}, parent {1}, at {2})'.format(node.id_label_str,
                                                             parent_node.id_label_str, insertion_index)
+
+    def get_short_description(self):
+        return 'insert({0} under {1} between {2} and {3} source {4})'.format(self.node_id, self.parent_id,
+                                                                  self.predecessor_id, self.successor_id, self.source)
 
     def __eq__(self, other):
         if isinstance(other, GumtreeDiffInsert):
@@ -503,6 +519,10 @@ class GumtreeDiffMove (GumtreeAbstractDiff):
         insertion_index = parent_node.insertion_index(self.predecessor_id, self.successor_id)
         return 'move(src {0}, to parent {1}, at {2})'.format(node.id_label_str,
                                                             parent_node.id_label_str, insertion_index)
+
+    def get_short_description(self):
+        return 'move({0} under {1} between {2} and {3} source {4})'.format(self.node_id, self.parent_id,
+                                                                self.predecessor_id, self.successor_id, self.source)
 
     def __eq__(self, other):
         if isinstance(other, GumtreeDiffMove):

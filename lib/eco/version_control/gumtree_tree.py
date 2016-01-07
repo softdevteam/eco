@@ -189,6 +189,12 @@ class GumtreeNode (object):
                 succ_index = i
         if len(self.children) == 0:
             return 0
+        elif predecessor_merge_id is None:
+            # Inserting at start
+            return 0
+        elif successor_merge_id is None:
+            # Inserting at end
+            return len(self.children)
         else:
             if pred_index is None and succ_index is not None:
                 # Successor available, no predecessor
@@ -325,6 +331,10 @@ class GumtreeNode (object):
             return '{0}'.format(self.label_str)
         else:
             return '{0}({1})'.format(self.label_str, ', '.join([str(x) for x in self.children]))
+
+    def merge_id_string(self, indent=0):
+        indent_str = ' ' * (indent*2)
+        return '{0}{1}\n{2}'.format(indent_str, self.merge_id, '\n'.join([x.merge_id_string(indent+1) for x in self.children]))
 
 
 
