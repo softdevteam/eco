@@ -128,13 +128,6 @@ class GumtreeExporter (object):
             value = json.dumps(js_value, sort_keys=True)
             return gumtree_driver.GumtreeNode(type_id=type_id, type_label=type_label, position=position,
                                               length=current_position - position, value=value, children=children)
-        elif isinstance(node.symbol, (Terminal, FinishSymbol)):
-            type_label = '__terminal__'
-            type_id = self.type_name_to_id[type_label]
-
-            value = json.dumps(js_value, sort_keys=True)
-            return gumtree_driver.GumtreeNode(type_id=type_id, type_label=type_label, position=node.position, length=1,
-                                              value=value, children=[])
         elif isinstance(node.symbol, MagicTerminal):
             sub_lang = node.symbol.name[1:-1]
             root = self._export_subtree(node.symbol.ast, sub_lang, 0)
@@ -145,6 +138,13 @@ class GumtreeExporter (object):
             value = json.dumps(js_value, sort_keys=True)
             return gumtree_driver.GumtreeNode(type_id=type_id, type_label=type_label, position=node.position, length=1,
                                               value=value, children=[root])
+        elif isinstance(node.symbol, (Terminal, FinishSymbol)):
+            type_label = '__terminal__'
+            type_id = self.type_name_to_id[type_label]
+
+            value = json.dumps(js_value, sort_keys=True)
+            return gumtree_driver.GumtreeNode(type_id=type_id, type_label=type_label, position=node.position, length=1,
+                                              value=value, children=[])
         else:
             return None
 
