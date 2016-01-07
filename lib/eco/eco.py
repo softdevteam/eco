@@ -293,6 +293,10 @@ class SettingsView(QtGui.QMainWindow):
         self.connect(self.ui.heatmap_low, SIGNAL("clicked()"), self.pick_color)
         self.connect(self.ui.heatmap_high, SIGNAL("clicked()"), self.pick_color)
 
+        self.connect(self.ui.btpyhyp, SIGNAL("clicked()"), self.choose_file)
+        self.connect(self.ui.btpypyprefix, SIGNAL("clicked()"), self.choose_dir)
+        self.connect(self.ui.btunipycation, SIGNAL("clicked()"), self.choose_file)
+
         self.foreground = None
         self.background = None
 
@@ -302,6 +306,26 @@ class SettingsView(QtGui.QMainWindow):
         self.window = window
 
         self.loadSettings()
+
+    def showEvent(self, event):
+        QWidget.showEvent(self, event)
+        self.loadSettings()
+
+    def choose_file(self):
+        filename = QFileDialog.getOpenFileName(self, "Choose file")
+        if filename:
+            if self.sender() is self.ui.btpyhyp:
+                self.ui.env_pyhyp.setText(filename)
+            elif self.sender() is self.ui.btpypyprefix:
+                self.ui.env_pypyprefix.setText(filename)
+            elif self.sender() is self.ui.btunipycation:
+                self.ui.env_unipycation.setText(filename)
+
+    def choose_dir(self):
+        filename = QFileDialog.getExistingDirectory(self, "Choose file")
+        if filename:
+            if self.sender() is self.ui.btpypyprefix:
+                self.ui.env_pypyprefix.setText(filename)
 
     def loadSettings(self):
         settings = QSettings("softdev", "Eco")
@@ -333,6 +357,10 @@ class SettingsView(QtGui.QMainWindow):
         self.change_color(self.ui.heatmap_low, self.heatmap_low)
         self.change_color(self.ui.heatmap_high, self.heatmap_high)
 
+        self.ui.env_pyhyp.setText(settings.value("env_pyhyp", "").toString())
+        self.ui.env_unipycation.setText(settings.value("env_unipycation", "").toString())
+        self.ui.env_pypyprefix.setText(settings.value("env_pypyprefix", "").toString())
+
     def saveSettings(self):
         settings = QSettings("softdev", "Eco")
         settings.setValue("gen_showconsole", self.ui.gen_showconsole.checkState())
@@ -354,6 +382,10 @@ class SettingsView(QtGui.QMainWindow):
         settings.setValue("heatmap_low", self.heatmap_low)
         settings.setValue("heatmap_high", self.heatmap_high)
         settings.setValue("heatmap_alpha", self.ui.heatmap_alpha.value())
+
+        settings.setValue("env_pyhyp", self.ui.env_pyhyp.text())
+        settings.setValue("env_unipycation", self.ui.env_unipycation.text())
+        settings.setValue("env_pypyprefix", self.ui.env_pypyprefix.text())
 
     def accept(self):
         self.saveSettings()
