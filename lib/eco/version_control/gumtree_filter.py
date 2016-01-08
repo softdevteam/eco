@@ -44,10 +44,11 @@ _name_to_eco_node_class = {
 
 
 class GumtreeExporter (object):
-    def __init__(self, tree_managers):
+    def __init__(self, tree_managers, compact=False):
         self.type_name_to_id = {}
         self.type_id_counter = 1
         self.languages = set()
+        self.compact = compact
 
         # For each language in each tree manager
         for tree_manager in tree_managers:
@@ -94,9 +95,12 @@ class GumtreeExporter (object):
         root_value = {'language': root_lang, 'whitespaces': root_ws}
 
         eco_subtree = self._export_subtree(root_node, root_lang, 0)
+        children = [eco_subtree]
+        if self.compact:
+            children = self._filter_child_list(children)
         eco_tree = gumtree_driver.GumtreeNode(type_id=root_type_id, type_label=root_type_label,
                                               position=eco_subtree.position, length=eco_subtree.length,
-                                              value=json.dumps(root_value, sort_keys=True), children=[eco_subtree])
+                                              value=json.dumps(root_value, sort_keys=True), children=children)
         doc = gumtree_driver.GumtreeDocument(eco_tree)
 
         return doc
@@ -122,6 +126,13 @@ class GumtreeExporter (object):
                 if gumtree_child is not None:
                     current_position += gumtree_child.length
                     children.append(gumtree_child)
+            if self.compact:
+                children = self._filter_child_list(children)
+                if len(children) == 1:
+                    return children[0]
+                elif len(children) == 0:
+                    return None
+
             type_label = self.type_name(lang, node.symbol.name)
             type_id = self.type_name_to_id[type_label]
 
@@ -151,6 +162,10 @@ class GumtreeExporter (object):
     @staticmethod
     def type_name(lang, symbol_name):
         return '{0}::{1}'.format(lang, symbol_name)
+
+    @staticmethod
+    def _filter_child_list(children):
+        return [c for c in children if c is not None]
 
 
 

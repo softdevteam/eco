@@ -61,6 +61,12 @@ def _diff_and_apply(tree_base, tree_derived):
     diffs_ab = convert_js_actions_to_diffs(tree_base, tree_derived, 'ab', ab_actions_js)
 
 
+    print '******* BASE: *******'
+    print tree_base.root.pretty_string()
+    print '******* DERIVED: *******'
+    print tree_derived.root.pretty_string()
+
+
     # Create destination tree by cloning the base version tree
     merged_merge_id_to_node = {}
     tree_with_diffs_applied = tree_base.root.clone_subtree(merged_merge_id_to_node)
@@ -68,9 +74,13 @@ def _diff_and_apply(tree_base, tree_derived):
         if key not in merged_merge_id_to_node:
             merged_merge_id_to_node[key] = value.copy()
 
+    for op in diffs_ab:
+        print 'DIFF: {0}'.format(op)
+
     # Apply diffs that are not involved in conflicts
     for op in diffs_ab:
         if len(op.conflicts) == 0:
+            print 'APPLY: {0}'.format(op)
             op.apply(merged_merge_id_to_node)
 
     return GumtreeDocument(tree_with_diffs_applied)
@@ -209,6 +219,11 @@ class Test_gumtree_diff:
         conv = ASTConverter()
         T0 = conv.parse('[a, i, x(b, c+d(e)/f+g, h)]')
         T1 = conv.parse('[a, x(b, c+d(e)/f+g, h), i]')
+        assert gumtree_diff(T0, T1) == [_dmove(T0[0][0][1], T1[0][0], 3)]
+
+        conv = ASTConverter()
+        T0 = conv.parse('[a, i, w(x(y(z())))]')
+        T1 = conv.parse('[a, w(x(y(z()))), i]')
         assert gumtree_diff(T0, T1) == [_dmove(T0[0][0][1], T1[0][0], 3)]
 
 
@@ -363,6 +378,23 @@ class Test_gumtree_diff_apply:
         T0 = conv.parse('[a, b]')
         T1 = conv.parse('[x, y, z, w, a, b]')
         assert _diff_and_apply(T0, T1) == T1
+
+
+    def test_insert_between_move_sources(self):
+        # Test insertion of items between two items that are moved out
+        conv = ASTConverter()
+        T0 = conv.parse('[a1, a2, a3, [d1(d2(d3(d4()))), x1(x2(x3())), y1(y2(y3())), e1(e2(e3(e4())))], [b1(b2(b3(b4()))), c1(c2(c3(c4())))], z1, z2, z3]')
+        T1 = conv.parse('[a1, a2, a3, [d1(d2(d3(d4()))), inserted, e1(e2(e3(e4())))], [b1(b2(b3(b4()))), x1(x2(x3())), y1(y2(y3())), c1(c2(c3(c4())))], z1, z2, z3]')
+        assert _diff_and_apply(T0, T1) == T1
+
+
+    def test_insert_between_move_destinations(self):
+        # Test insertion of items between two items that are moved out
+        conv = ASTConverter()
+        T0 = conv.parse('[a1, a2, a3, [d1(d2(d3(d4()))), x1(x2(x3())), y1(y2(y3())), e1(e2(e3(e4())))], [b1(b2(b3(b4()))), c1(c2(c3(c4())))], z1, z2, z3]')
+        T1 = conv.parse('[a1, a2, a3, [d1(d2(d3(d4()))), e1(e2(e3(e4())))], [b1(b2(b3(b4()))), x1(x2(x3())), inserted, y1(y2(y3())), c1(c2(c3(c4())))], z1, z2, z3]')
+        assert _diff_and_apply(T0, T1) == T1
+
 
 
 

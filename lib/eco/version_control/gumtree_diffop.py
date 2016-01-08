@@ -384,11 +384,17 @@ class GumtreeDiffInsert (GumtreeAbstractDiff):
         if index is None:
             raise RuntimeError('Could not get insertion index for inserting new node {0}'.format(self.node_id))
         if isinstance(index, tuple):
-            error_msg = 'Could not get unique position for inserting node {0} under parent {1} between {2} and {3};' \
-                        'children of parent={4}, source={5}, got indices {6}'.format(
-                self.node_id, self.parent_id, self.predecessor_id, self.successor_id,
-                [n.merge_id for n in parent_node.children], self.source, index)
-            raise RuntimeError(error_msg)
+            if index[0] > index[1]:
+                error_msg = 'Could not get unique position for inserting node {0} under parent {1} between {2} and {3};' \
+                            'children of parent={4}, source={5}, got indices {6}'.format(
+                    self.node_id, self.parent_id, self.predecessor_id, self.successor_id,
+                    [n.merge_id for n in parent_node.children], self.source, index)
+                raise RuntimeError(error_msg)
+            else:
+                # the first index is smaller than second; this indicates that in the destination tree the
+                # predecessor and successor were immediate neighbours but they are separated in the tree
+                # in its current state, and that future operations are likely to remove the nodex between them
+                index = index[0]
         parent_node.insert_child(index, node_to_insert)
 
     def required_target_node_id(self):
@@ -414,7 +420,8 @@ class GumtreeDiffInsert (GumtreeAbstractDiff):
             return False
 
     def __hash__(self):
-        return hash((GumtreeDiffInsert, self.parent_id, self.predecessor_id, self.successor_id, self.node_id))
+        return hash((GumtreeDiffInsert, self.parent_id, self.predecessor_id, self.successor_id,
+                     self.node_id, self.value))
 
     def __str__(self):
         return 'insert(src {0}, parent {1}, between {2} and {3})'.format(self.node_id, self.parent_id,

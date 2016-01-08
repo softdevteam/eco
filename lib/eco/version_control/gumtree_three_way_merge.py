@@ -9,7 +9,7 @@ from . import gumtree_filter, gumtree_diff3
 
 
 def merge3_tree_managers(base_tm, derived_1_tm, derived_2_tm):
-    exporter = gumtree_filter.GumtreeExporter([base_tm, derived_1_tm, derived_2_tm])
+    exporter = gumtree_filter.GumtreeExporter([base_tm, derived_1_tm, derived_2_tm], compact=True)
 
     base_gt = exporter.export_gumtree(base_tm)
     derived_1_gt = exporter.export_gumtree(derived_1_tm)

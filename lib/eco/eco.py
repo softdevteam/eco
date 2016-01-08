@@ -1068,23 +1068,25 @@ class Window(QtGui.QMainWindow):
 
     def gumtree_three_way_merge(self):
         base_filename = QFileDialog.getOpenFileName(self, "Base version")
-        derived_main_filename = QFileDialog.getOpenFileName(self, "Other version")
+        if base_filename != '':
+            derived_main_filename = QFileDialog.getOpenFileName(self, "Other version")
 
-        base_tm = gumtree_three_way_merge.load_tm(base_filename)
-        derived_local_tm = self.getEditor().tm
-        derived_main_tm = gumtree_three_way_merge.load_tm(derived_main_filename)
+            if derived_main_filename != '':
+                base_tm = gumtree_three_way_merge.load_tm(base_filename)
+                derived_local_tm = self.getEditor().tm
+                derived_main_tm = gumtree_three_way_merge.load_tm(derived_main_filename)
 
-        merged_tm = gumtree_three_way_merge.merge3_tree_managers(base_tm, derived_local_tm, derived_main_tm)
+                merged_tm = gumtree_three_way_merge.merge3_tree_managers(base_tm, derived_local_tm, derived_main_tm)
 
-        etab = EditorTab()
+                etab = EditorTab()
 
-        etab.editor.get_from_three_way_merge(merged_tm)
-        etab.editor.update()
-        # etab.filename = filename
+                etab.editor.get_from_three_way_merge(merged_tm)
+                etab.editor.update()
+                # etab.filename = filename
 
-        self.ui.tabWidget.addTab(etab, 'merged')
-        self.ui.tabWidget.setCurrentWidget(etab)
-        etab.editor.setFocus(Qt.OtherFocusReason)
+                self.ui.tabWidget.addTab(etab, 'merged')
+                self.ui.tabWidget.setCurrentWidget(etab)
+                etab.editor.setFocus(Qt.OtherFocusReason)
 
     def get_last_dir(self):
         settings = QSettings("softdev", "Eco")

@@ -333,8 +333,14 @@ class GumtreeNode (object):
             return '{0}({1})'.format(self.label_str, ', '.join([str(x) for x in self.children]))
 
     def merge_id_string(self, indent=0):
-        indent_str = ' ' * (indent*2)
-        return '{0}{1}\n{2}'.format(indent_str, self.merge_id, '\n'.join([x.merge_id_string(indent+1) for x in self.children]))
+        INDENT_SIZE = 3
+        indent_str = ('|' + ' ' * (INDENT_SIZE-1))*indent
+        return '\n'.join(['{0}{1}'.format(indent_str, self.merge_id)] + [x.merge_id_string(indent+1) for x in self.children])
+
+    def pretty_string(self, indent=0):
+        INDENT_SIZE = 3
+        indent_str = ('|' + ' ' * (INDENT_SIZE-1))*indent
+        return '\n'.join(['{0}{1}'.format(indent_str, self.id_label_str)] + [x.pretty_string(indent+1) for x in self.children])
 
 
 

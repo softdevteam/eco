@@ -125,18 +125,20 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2):
     diffs_ab = convert_js_actions_to_diffs(tree_base, tree_derived_1, 'ab', ab_actions_js)
     diffs_ac = convert_js_actions_to_diffs(tree_base, tree_derived_2, 'ac', ac_actions_js)
 
-    # We process the operations in the following order, so that any operation will affect nodes that
-    # by that point will exist due to being in the base version tree to start with or having been introduced by
-    # a previous operation:
-    # Deletes - delete nodes that exist in the base version
-    # Updates - update the values of nodes that exist in the base version
-    # Inserts - insert new nodes into parents from the base tree or into parents that were inserted by prior
-    #   insert operations. Gumtree generates insert operations in an order that ensures that the parent and
-    #   predecessor nodes will already exist. Performing the inserts from the base -> derived 1 diffs
-    #   followed by the inserts from the base -> derived 2 diffs should work as the insert operations from
-    #   the base -> derived 2 diffs will refer to nodes that are in the base tree
-    # Moves - moves existing nodes into new positions that may be within parents from the base tree or parents
-    #   that were inserted by insert operations
+    # Detect and remove diffs in `diffs_ac` that are duplicates of diffs from `diffs_ab`
+    diffs_ab_set = set(diffs_ab)
+    diffs_ac = [diff for diff in diffs_ac if diff not in diffs_ab_set]
+
+    # Mark all delete operations that delete a node that is a child of a node that is also deleted.
+    # Since deleteing a node will also detach its children from the tree, there is no need to delete all
+    # nodes in the subtree.
+    # This will also help with conflict resolution, as further down we detect if a delete operation deletes a
+    # node that is an ancestor of a node that is required by another operation, e.g. an update. By only deleting
+    # subtree root nodes, we avoid the situation where the conflict prevents delete operations that lie on the
+    # path between the subtree root and the node required by the conflicting operation, with all sibling nodes being
+    # deleted. This way, the subtree is either deleted or it stays.
+    diffs_ab = _remove_redundant_delete_diffs(diffs_ab, merge_id_to_node)
+    diffs_ac = _remove_redundant_delete_diffs(diffs_ac, merge_id_to_node)
 
     # Operation conflict pairings:
     #
@@ -171,21 +173,6 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2):
     #                                                    move/insert in the other change set inserts a node between
     #                                                    the predecessor and successor of the first insert operation
 
-    # Detect and remove diffs in `diffs_ac` that are duplicates of diffs from `diffs_ab`
-    diffs_ab_set = set(diffs_ab)
-    diffs_ac = [diff for diff in diffs_ac if diff not in diffs_ab_set]
-
-    # Mark all delete operations that delete a node that is a child of a node that is also deleted.
-    # Since deleteing a node will also detach its children from the tree, there is no need to delete all
-    # nodes in the subtree.
-    # This will also help with conflict resolution, as further down we detect if a delete operation deletes a
-    # node that is an ancestor of a node that is required by another operation, e.g. an update. By only deleting
-    # subtree root nodes, we avoid the situation where the conflict prevents delete operations that lie on the
-    # path between the subtree root and the node required by the conflicting operation, with all sibling nodes being
-    # deleted. This way, the subtree is either deleted or it stays.
-    diffs_ab = _remove_redundant_delete_diffs(diffs_ab, merge_id_to_node)
-    diffs_ac = _remove_redundant_delete_diffs(diffs_ac, merge_id_to_node)
-
     # Detect node-node conflicts
     merge3_conflicts = []
     for ac_op in diffs_ac:
@@ -197,21 +184,14 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2):
     # Create combined diff list
     merge3_diffs = diffs_ab + diffs_ac
 
-    # Split into delete, update, insert and move operations and join so that they are in that order
+    # Extract delete and move options so that they can be checked separately
     merge3_delete_diffs = []
-    merge3_update_diffs = []
-    merge3_insert_diffs = []
     merge3_move_diffs = []
     for op in merge3_diffs:
         if isinstance(op, GumtreeDiffDelete):
             merge3_delete_diffs.append(op)
-        elif isinstance(op, GumtreeDiffUpdate):
-            merge3_update_diffs.append(op)
-        elif isinstance(op, GumtreeDiffInsert):
-            merge3_insert_diffs.append(op)
         elif isinstance(op, GumtreeDiffMove):
             merge3_move_diffs.append(op)
-    merge3_diffs = merge3_delete_diffs + merge3_update_diffs + merge3_insert_diffs + merge3_move_diffs
 
     # The conflict detection approach used up until now has one major weakness that we now address.
     # When a subtree S is deleted and a conflict is detected between the deletion of a node N further down the subtree
