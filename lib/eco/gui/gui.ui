@@ -620,6 +620,8 @@
   <action name="actionShow_lspaceview">
    <property name="text">
     <string>View in LSpace</string>
+   </property>
+  </action>
   <action name="actionShow_stats">
    <property name="text">
     <string>Show stats</string>
