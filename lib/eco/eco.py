@@ -60,6 +60,8 @@ import editor
 from nodeeditor import NodeEditor
 from editortab import EditorTab
 
+from lspace_ext import view_ecodoc_in_lspace
+
 import logging
 
 Ui_MainWindow, _     = uic.loadUiType('gui/gui.ui')
@@ -296,6 +298,7 @@ class SettingsView(QtGui.QMainWindow):
         self.connect(self.ui.btpyhyp, SIGNAL("clicked()"), self.choose_file)
         self.connect(self.ui.btpypyprefix, SIGNAL("clicked()"), self.choose_dir)
         self.connect(self.ui.btunipycation, SIGNAL("clicked()"), self.choose_file)
+        self.connect(self.ui.btlspaceroot, SIGNAL("clicked()"), self.choose_dir)
 
         self.foreground = None
         self.background = None
@@ -322,10 +325,12 @@ class SettingsView(QtGui.QMainWindow):
                 self.ui.env_unipycation.setText(filename)
 
     def choose_dir(self):
-        filename = QFileDialog.getExistingDirectory(self, "Choose file")
+        filename = QFileDialog.getExistingDirectory(self, "Choose directory")
         if filename:
             if self.sender() is self.ui.btpypyprefix:
                 self.ui.env_pypyprefix.setText(filename)
+            elif self.sender() is self.ui.btlspaceroot:
+                self.ui.env_lspaceroot.setText(filename)
 
     def loadSettings(self):
         settings = QSettings("softdev", "Eco")
@@ -360,6 +365,7 @@ class SettingsView(QtGui.QMainWindow):
         self.ui.env_pyhyp.setText(settings.value("env_pyhyp", "").toString())
         self.ui.env_unipycation.setText(settings.value("env_unipycation", "").toString())
         self.ui.env_pypyprefix.setText(settings.value("env_pypyprefix", "").toString())
+        self.ui.env_lspaceroot.setText(settings.value("env_lspaceroot", "").toString())
 
     def saveSettings(self):
         settings = QSettings("softdev", "Eco")
@@ -386,6 +392,7 @@ class SettingsView(QtGui.QMainWindow):
         settings.setValue("env_pyhyp", self.ui.env_pyhyp.text())
         settings.setValue("env_unipycation", self.ui.env_unipycation.text())
         settings.setValue("env_pypyprefix", self.ui.env_pypyprefix.text())
+        settings.setValue("env_lspaceroot", self.ui.env_lspaceroot.text())
 
     def accept(self):
         self.saveSettings()
@@ -594,6 +601,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionShow_language_boxes, SIGNAL("triggered()"), self.update_editor)
         self.connect(self.ui.actionShow_namebinding, SIGNAL("triggered()"), self.update_editor)
         self.connect(self.ui.actionShow_indentation, SIGNAL("triggered()"), self.toogle_indentation)
+        self.connect(self.ui.actionShow_lspaceview, SIGNAL("triggered()"), self.view_in_lspace)
         self.connect(self.ui.menuChange_language_box, SIGNAL("aboutToShow()"), self.showEditMenu)
         self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
         self.connect(self.ui.actionShow_tool_visualisations, SIGNAL("triggered()"), self.toggle_overlay)
@@ -810,6 +818,15 @@ class Window(QtGui.QMainWindow):
         else:
             QApplication.instance().showindent = False
         self.getEditor().update()
+
+    def view_in_lspace(self):
+        settings = QSettings("softdev", "Eco")
+        lspace_root = str(settings.value("env_lspaceroot").toString())
+        lspace_root = lspace_root if lspace_root != "" else None
+        ed = self.getEditorTab()
+        if not ed:
+            return
+        view_ecodoc_in_lspace.view_in_lspace(self.getEditor().tm, lspace_root=lspace_root)
 
     def refreshTheme(self):
         self.ui.teConsole.setFont(QApplication.instance().gfont.font)
