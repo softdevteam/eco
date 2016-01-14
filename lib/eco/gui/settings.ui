@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>378</width>
-    <height>402</height>
+    <height>426</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,8 +15,7 @@
   </property>
   <property name="windowIcon">
    <iconset theme="gnome-settings">
-    <normaloff/>
-   </iconset>
+    <normaloff>.</normaloff>.</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -420,15 +419,15 @@
           <property name="title">
            <string>Unipycation</string>
           </property>
-          <layout class="QFormLayout" name="formLayout_8">
-           <item row="1" column="0">
+          <layout class="QFormLayout" name="formLayout_10">
+           <item row="0" column="0">
             <widget class="QLabel" name="label_6">
              <property name="text">
               <string>Binary</string>
              </property>
             </widget>
            </item>
-           <item row="1" column="1">
+           <item row="0" column="1">
             <layout class="QHBoxLayout" name="horizontalLayout_2">
              <property name="leftMargin">
               <number>0</number>
@@ -447,6 +446,42 @@
               </widget>
              </item>
             </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_7">
+          <property name="title">
+           <string>L-Space</string>
+          </property>
+          <layout class="QFormLayout" name="formLayout_8">
+           <item row="0" column="1">
+            <layout class="QHBoxLayout" name="horizontalLayout_5">
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QLineEdit" name="env_lspaceroot"/>
+             </item>
+             <item>
+              <widget class="QToolButton" name="btlspaceroot">
+               <property name="text">
+                <string>...</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_13">
+             <property name="text">
+              <string>Root dir</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>
@@ -470,7 +505,7 @@
      <x>0</x>
      <y>0</y>
      <width>378</width>
-     <height>23</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>
