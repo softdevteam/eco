@@ -8,7 +8,7 @@ from jsonmanager import JsonManager
 
 from . import gumtree_filter, gumtree_diff3, gumtree_diffop
 
-from lspace_ext.lspace import Pres, ApplyStyleSheet, Text, Row, Column, Flow, Colour, viewer
+from lspace_ext.lspace import Pres, ApplyStyleSheet, Text, Row, Column, Flow, Colour, viewer, TextWeight, TextSlant
 
 
 def merge3_tree_managers(base_tm, derived_1_tm, derived_2_tm, lspace_root, visualise=False):
@@ -33,6 +33,9 @@ def merge3_tree_managers(base_tm, derived_1_tm, derived_2_tm, lspace_root, visua
 
     if len(conflicts) > 0:
         print 'WARNING: {0} conflicts detected; conflicting diffs will be ignored'.format(len(conflicts))
+        print 'CONFLICTS:'
+        for i, conflict in enumerate(conflicts):
+            print 'conflict {0}: {1}'.format(i, conflict)
 
     root_merged, merged_language_boxes = gumtree_filter.import_gumtree(merged_gt,
                                                                        eco_node_to_gt_node=merged_eco_node_to_gt_node)
@@ -225,53 +228,76 @@ def _tree_manager_to_vis_doc(doc, tree_manager, node_to_style_fn=None):
 def _visualise_merge3_in_lspace(base_tm, derived_1_tm, derived_2_tm, merged_tm,
                       base_eco_node_to_gt_node, d1_eco_node_to_gt_node, d2_eco_node_to_gt_node,
                       merged_eco_node_to_gt_node, diffs, conflicts, lspace_root):
-    deleted_nodes = set()
-    updated_nodes = set()
-    moved_nodes = set()
-    inserted_nodes = set()
-    conflict_nodes = set()
+    deleted_nodes = {}
+    updated_nodes = {}
+    moved_nodes = {}
+    inserted_nodes = {}
+    conflict_nodes = {}
 
     for op in diffs:
         if isinstance(op, gumtree_diffop.GumtreeDiffDelete):
-            deleted_nodes.add(op.node_id)
+            deleted_nodes[op.node_id] = op.source
         elif isinstance(op, gumtree_diffop.GumtreeDiffUpdate):
-            updated_nodes.add(op.node_id)
+            updated_nodes[op.node_id] = op.source
         elif isinstance(op, gumtree_diffop.GumtreeDiffInsert):
-            inserted_nodes.add(op.node_id)
+            inserted_nodes[op.node_id] = op.source
         elif isinstance(op, gumtree_diffop.GumtreeDiffMove):
-            moved_nodes.add(op.node_id)
+            moved_nodes[op.node_id] = op.source
         else:
             raise TypeError('Unknown diff type {0}'.format(type(op)))
         if len(op.conflicts) > 0:
-            conflict_nodes.add(op.node_id)
+            conflict_nodes[op.node_id] = op.source
 
-    def merge_id_to_style(eco_node_to_gt_node, eco_node):
+    def base_merge_id_to_style(eco_node_to_gt_node, eco_node, sources):
         gt_node = eco_node_to_gt_node.get(eco_node)
         if gt_node is not None:
             merge_id = gt_node.merge_id
-            if merge_id in conflict_nodes:
-                return {'text_colour': Colour(0.5, 0.0, 0.0)}
-            elif merge_id in deleted_nodes:
-                return {'text_colour': Colour(0.6, 0.0, 0.6)}
-            elif merge_id in updated_nodes:
-                return {'text_colour': Colour(0.6, 0.6, 0.0)}
-            elif merge_id in inserted_nodes:
-                return {'text_colour': Colour(0.0, 0.6, 0.0)}
-            elif merge_id in moved_nodes:
-                return {'text_colour': Colour(0.0, 0.6, 0.6)}
+            src = deleted_nodes.get(merge_id)
+            if src in sources:
+                style = {}
+                if conflict_nodes.get(merge_id) in sources:
+                    style.update({'text_weight': TextWeight.BOLD})
+                if src == 'ab':
+                    style.update({'text_colour': Colour(0.7, 0.4, 0.0)})
+                elif src == 'ac':
+                    style.update({'text_colour': Colour(0.7, 0.0, 0.4)})
+                else:
+                    raise ValueError('Deleted node op source \'{0}\' unknown'.format(src))
+                if len(style) > 0:
+                    return style
+        return None
+
+    def merge_id_to_style(eco_node_to_gt_node, eco_node, sources):
+        gt_node = eco_node_to_gt_node.get(eco_node)
+        if gt_node is not None:
+            merge_id = gt_node.merge_id
+            style = {}
+            if conflict_nodes.get(merge_id) in sources:
+                style.update({'text_weight': TextWeight.BOLD})
+            if deleted_nodes.get(merge_id) in sources:
+                style.update({'text_colour': Colour(0.6, 0.0, 0.6)})
+            elif updated_nodes.get(merge_id) in sources:
+                style.update({'text_colour': Colour(0.6, 0.6, 0.0)})
+            elif inserted_nodes.get(merge_id) in sources:
+                style.update({'text_colour': Colour(0.0, 0.6, 0.0)})
+            elif moved_nodes.get(merge_id) in sources:
+                style.update({'text_colour': Colour(0.0, 0.6, 0.6)})
+            if len(style) > 0:
+                return style
         return None
 
 
-    d1_node_to_style_fn = lambda eco_node: merge_id_to_style(d1_eco_node_to_gt_node, eco_node)
-    d2_node_to_style_fn = lambda eco_node: merge_id_to_style(d2_eco_node_to_gt_node, eco_node)
-    merged_node_to_style_fn = lambda eco_node: merge_id_to_style(merged_eco_node_to_gt_node, eco_node)
+    base_node_to_style_fn = lambda eco_node: base_merge_id_to_style(base_eco_node_to_gt_node, eco_node, ['ab', 'ac'])
+    d1_node_to_style_fn = lambda eco_node: merge_id_to_style(d1_eco_node_to_gt_node, eco_node, ['ab'])
+    d2_node_to_style_fn = lambda eco_node: merge_id_to_style(d2_eco_node_to_gt_node, eco_node, ['ac'])
+    merged_node_to_style_fn = lambda eco_node: merge_id_to_style(merged_eco_node_to_gt_node, eco_node, ['ab', 'ac'])
 
     base_doc = MergeVisDoc('Base')
     derived_1_doc = MergeVisDoc('A')
     derived_2_doc = MergeVisDoc('B')
     merged_doc = MergeVisDoc('Merged')
 
-    _tree_manager_to_vis_doc(base_doc, base_tm)
+    _tree_manager_to_vis_doc(base_doc, base_tm, node_to_style_fn=base_node_to_style_fn)
     _tree_manager_to_vis_doc(derived_1_doc, derived_1_tm, node_to_style_fn=d1_node_to_style_fn)
     _tree_manager_to_vis_doc(derived_2_doc, derived_2_tm, node_to_style_fn=d2_node_to_style_fn)
     _tree_manager_to_vis_doc(merged_doc, merged_tm, node_to_style_fn=merged_node_to_style_fn)

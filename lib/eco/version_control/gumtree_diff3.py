@@ -238,7 +238,8 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2):
         requiring_ops = required_ancestors.get(deleted_id)
         if requiring_ops is not None:
             for req_op in requiring_ops:
-                merge3_conflicts.append(GumtreeMerge3ConflictDeleteAncestry(op, req_op))
+                if req_op.source != op.source:
+                    merge3_conflicts.append(GumtreeMerge3ConflictDeleteAncestry(op, req_op))
 
     # Create destination tree by cloning the base version tree
     merged_merge_id_to_node = {}

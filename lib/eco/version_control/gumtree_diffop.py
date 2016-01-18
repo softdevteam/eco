@@ -235,10 +235,10 @@ class GumtreeDiffDelete (GumtreeAbstractDiff):
         return hash((GumtreeDiffDelete, self.node_id))
 
     def __str__(self):
-        return 'delete({0})'.format(self.node_id)
+        return 'delete({0}; {1})'.format(self.source, self.node_id)
 
     def __repr__(self):
-        return 'delete({0})'.format(self.node_id)
+        return 'delete({0}; {1})'.format(self.source, self.node_id)
 
 
 class GumtreeDiffUpdate (GumtreeAbstractDiff):
@@ -307,10 +307,10 @@ class GumtreeDiffUpdate (GumtreeAbstractDiff):
         return hash((GumtreeDiffUpdate, self.node_id, self.value))
 
     def __str__(self):
-        return 'update({0}, value={1})'.format(self.node_id, self.value)
+        return 'update({0}; {1}, value={2})'.format(self.source, self.node_id, self.value)
 
     def __repr__(self):
-        return 'update({0}, value={1})'.format(self.node_id, self.value)
+        return 'update({0}; {1}, value={2})'.format(self.source, self.node_id, self.value)
 
 
 class GumtreeDiffInsert (GumtreeAbstractDiff):
@@ -424,11 +424,11 @@ class GumtreeDiffInsert (GumtreeAbstractDiff):
                      self.node_id, self.value))
 
     def __str__(self):
-        return 'insert(src {0}, parent {1}, between {2} and {3})'.format(self.node_id, self.parent_id,
+        return 'insert({0}; src {1}, parent {2}, between {3} and {4})'.format(self.source, self.node_id, self.parent_id,
                                                                          self.predecessor_id, self.successor_id)
 
     def __repr__(self):
-        return 'insert(src {0}, parent {1}, between {2} and {3})'.format(self.node_id, self.parent_id,
+        return 'insert({0}; src {1}, parent {2}, between {3} and {4})'.format(self.source, self.node_id, self.parent_id,
                                                                          self.predecessor_id, self.successor_id)
 
 
@@ -542,10 +542,10 @@ class GumtreeDiffMove (GumtreeAbstractDiff):
         return hash((GumtreeDiffMove, self.parent_id, self.predecessor_id, self.successor_id, self.node_id))
 
     def __str__(self):
-        return 'move(src {0}, to parent {1}, between {2} and {3})'.format(self.node_id, self.parent_id,
+        return 'move({0}; src {1}, to parent {2}, between {3} and {4})'.format(self.source, self.node_id, self.parent_id,
                                                                        self.predecessor_id, self.successor_id)
 
     def __repr__(self):
-        return 'move(src {0}, to parent {1}, between {2} and {3})'.format(self.node_id, self.parent_id,
+        return 'move({0}; src {1}, to parent {2}, between {3} and {4})'.format(self.source, self.node_id, self.parent_id,
                                                                        self.predecessor_id, self.successor_id)
 

@@ -45,22 +45,22 @@ class JSONData (object):
 
 
 class TextWeight (object):
-    normal = 'normal'
-    bold = 'bold'
+    NORMAL = 'normal'
+    BOLD = 'bold'
 
     @staticmethod
     def check(x):
-        if x not in {TextWeight.normal, TextWeight.bold}:
+        if x not in {TextWeight.NORMAL, TextWeight.BOLD}:
             raise ValueError('Invalid text weight {0}'.format(x))
         return x
 
 class TextSlant (object):
-    normal = 'normal'
-    italic = 'italic'
+    NORMAL = 'normal'
+    ITALIC = 'italic'
 
     @staticmethod
     def check(x):
-        if x not in {TextSlant.normal, TextSlant.italic}:
+        if x not in {TextSlant.NORMAL, TextSlant.ITALIC}:
             raise ValueError('Invalid text slant {0}'.format(x))
         return x
 
