@@ -261,6 +261,15 @@ class GumtreeNode (object):
         merge_id_to_node[node.merge_id] = node
         return node
 
+    def _populate_merge_id_to_node(self, merge_id_to_node):
+        """
+        Populate a dictionary mapping merge ID to node
+
+        :param merge_id_to_node: a dictionary mapping node merge ID to node that is to be populated
+        """
+        for child in self.children:
+            child._populate_merge_id_to_node(merge_id_to_node)
+
     def as_json(self):
         """
         Create a Gumtree compatible JSON representation of the subtree rooted at `self`.
@@ -360,12 +369,21 @@ class GumtreeDocument (object):
         self.root.clear_merge_ids()
 
 
-    def clone_subtree(self, merge_id_to_node):
+    def clone_tree(self, merge_id_to_node):
         """
         Create a clone of the document.
         :return: the clone
         """
         return GumtreeDocument(self.root.clone_subtree(merge_id_to_node))
+
+    def build_merge_id_to_node_table(self):
+        """
+        Build a merge ID to node table for all nodes in this tree
+        :return: a dictionary mapping merge ID to node
+        """
+        merge_id_to_node = {}
+        self.root._populate_merge_id_to_node(merge_id_to_node)
+        return merge_id_to_node
 
     def as_json(self):
         """

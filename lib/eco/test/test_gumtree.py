@@ -69,7 +69,7 @@ def _diff_and_apply(tree_base, tree_derived):
 
     # Create destination tree by cloning the base version tree
     merged_merge_id_to_node = {}
-    tree_with_diffs_applied = tree_base.root.clone_subtree(merged_merge_id_to_node)
+    tree_with_diffs_applied = tree_base.clone_tree(merged_merge_id_to_node)
     for key, value in merge_id_to_node.merge_ids_and_nodes():
         if key not in merged_merge_id_to_node:
             merged_merge_id_to_node[key] = value.copy()
@@ -83,7 +83,7 @@ def _diff_and_apply(tree_base, tree_derived):
             print 'APPLY: {0}'.format(op)
             op.apply(merged_merge_id_to_node)
 
-    return GumtreeDocument(tree_with_diffs_applied)
+    return tree_with_diffs_applied
 
 
 class ASTConverter (object):

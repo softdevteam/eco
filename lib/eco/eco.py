@@ -823,14 +823,17 @@ class Window(QtGui.QMainWindow):
             QApplication.instance().showindent = False
         self.getEditor().update()
 
-    def view_in_lspace(self):
+    def _get_lspace_root(self):
         settings = QSettings("softdev", "Eco")
         lspace_root = str(settings.value("env_lspaceroot").toString())
         lspace_root = lspace_root if lspace_root != "" else None
+        return lspace_root
+
+    def view_in_lspace(self):
         ed = self.getEditorTab()
         if not ed:
             return
-        view_ecodoc_in_lspace.view_in_lspace(self.getEditor().tm, lspace_root=lspace_root)
+        view_ecodoc_in_lspace.view_in_lspace(self.getEditor().tm, lspace_root=self._get_lspace_root())
 
     def show_stats(self):
         tm = self.getEditor().tm
@@ -1076,7 +1079,9 @@ class Window(QtGui.QMainWindow):
                 derived_local_tm = self.getEditor().tm
                 derived_main_tm = gumtree_three_way_merge.load_tm(derived_main_filename)
 
-                merged_tm = gumtree_three_way_merge.merge3_tree_managers(base_tm, derived_local_tm, derived_main_tm)
+                merged_tm = gumtree_three_way_merge.merge3_tree_managers(base_tm, derived_local_tm, derived_main_tm,
+                                                                         lspace_root=self._get_lspace_root(),
+                                                                         visualise=True)
 
                 etab = EditorTab()
 

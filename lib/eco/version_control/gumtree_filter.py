@@ -85,7 +85,7 @@ class GumtreeExporter (object):
         self.type_id_counter += 1
 
 
-    def export_gumtree(self, tree_manager):
+    def export_gumtree(self, tree_manager, eco_node_to_gt_node=None):
         root_node = tree_manager.get_bos().get_root()
         root_lang = tree_manager.parsers[0][2]
         root_ws = tree_manager.get_mainparser().whitespaces
@@ -94,7 +94,7 @@ class GumtreeExporter (object):
         root_type_id = self.type_name_to_id[root_type_label]
         root_value = {'language': root_lang, 'whitespaces': root_ws}
 
-        eco_subtree = self._export_subtree(root_node, root_lang, 0)
+        eco_subtree = self._export_subtree(root_node, root_lang, 0, eco_node_to_gt_node)
         children = [eco_subtree]
         if self.compact:
             children = self._filter_child_list(children)
@@ -110,7 +110,7 @@ class GumtreeExporter (object):
         js = doc.as_json()
         return json.dumps(js)
 
-    def _export_subtree(self, node, lang, position):
+    def _export_subtree(self, node, lang, position, eco_node_to_gt_node):
         js_value = {}
         js_value["class"] = node.__class__.__name__
         js_value["symbol"] = node.symbol.__class__.__name__
@@ -122,7 +122,7 @@ class GumtreeExporter (object):
             children = []
             current_position = position
             for child_node in node.children:
-                gumtree_child = self._export_subtree(child_node, lang, current_position)
+                gumtree_child = self._export_subtree(child_node, lang, current_position, eco_node_to_gt_node)
                 if gumtree_child is not None:
                     current_position += gumtree_child.length
                     children.append(gumtree_child)
@@ -137,25 +137,34 @@ class GumtreeExporter (object):
             type_id = self.type_name_to_id[type_label]
 
             value = json.dumps(js_value, sort_keys=True)
-            return gumtree_driver.GumtreeNode(type_id=type_id, type_label=type_label, position=position,
-                                              length=current_position - position, value=value, children=children)
+            gt_node = gumtree_driver.GumtreeNode(type_id=type_id, type_label=type_label, position=position,
+                                                 length=current_position - position, value=value, children=children)
+            if eco_node_to_gt_node is not None:
+                eco_node_to_gt_node[node] = gt_node
+            return gt_node
         elif isinstance(node.symbol, MagicTerminal):
             sub_lang = node.symbol.name[1:-1]
-            root = self._export_subtree(node.symbol.ast, sub_lang, 0)
+            root = self._export_subtree(node.symbol.ast, sub_lang, 0, eco_node_to_gt_node)
             type_label = '__magic_terminal__'
             type_id = self.type_name_to_id[type_label]
 
             js_value['language'] = sub_lang
             value = json.dumps(js_value, sort_keys=True)
-            return gumtree_driver.GumtreeNode(type_id=type_id, type_label=type_label, position=node.position, length=1,
-                                              value=value, children=[root])
+            gt_node = gumtree_driver.GumtreeNode(type_id=type_id, type_label=type_label, position=node.position, length=1,
+                                                 value=value, children=[root])
+            if eco_node_to_gt_node is not None:
+                eco_node_to_gt_node[node] = gt_node
+            return gt_node
         elif isinstance(node.symbol, (Terminal, FinishSymbol)):
             type_label = '__terminal__'
             type_id = self.type_name_to_id[type_label]
 
             value = json.dumps(js_value, sort_keys=True)
-            return gumtree_driver.GumtreeNode(type_id=type_id, type_label=type_label, position=node.position, length=1,
-                                              value=value, children=[])
+            gt_node = gumtree_driver.GumtreeNode(type_id=type_id, type_label=type_label, position=node.position, length=1,
+                                                 value=value, children=[])
+            if eco_node_to_gt_node is not None:
+                eco_node_to_gt_node[node] = gt_node
+            return gt_node
         else:
             return None
 
@@ -175,14 +184,14 @@ class _GumtreeImporter (object):
         self.language_boxes = []
         self.__whitespaces = True
 
-    def _import_tree(self, root_gt):
+    def _import_tree(self, root_gt, eco_node_to_gt_node=None):
         if root_gt.type_label != '__ROOT__':
             raise TypeError('Root node should have type label __ROOT__')
         root_value = json.loads(root_gt.value)
         root_lang = root_value['language']
         root_ws = root_value['whitespaces']
 
-        root_node = self._import_subtree(root_gt[0])
+        root_node = self._import_subtree(root_gt[0], eco_node_to_gt_node=eco_node_to_gt_node)
 
         self.language_boxes.append((root_node, root_lang, root_ws))
         self.language_boxes.reverse()
@@ -195,7 +204,7 @@ class _GumtreeImporter (object):
         return root_node
 
 
-    def _import_subtree(self, gt_node, unescape=False):
+    def _import_subtree(self, gt_node, eco_node_to_gt_node, unescape=False):
         jsnode = json.loads(gt_node.value)
 
         node_class = _name_to_eco_node_class[jsnode["class"]]
@@ -222,7 +231,7 @@ class _GumtreeImporter (object):
         if "language" in jsnode:
             temp = self.__last_terminal
             self.__last_terminal = None
-            lbox_root = self._import_subtree(gt_node[0])
+            lbox_root = self._import_subtree(gt_node[0], eco_node_to_gt_node)
             lbox_root.magic_backpointer = node
             node.symbol.ast = lbox_root
             node.symbol.parser = lbox_root
@@ -231,7 +240,7 @@ class _GumtreeImporter (object):
         else:
             last_child = None
             for c in gt_node:
-                cnode = self._import_subtree(c)
+                cnode = self._import_subtree(c, eco_node_to_gt_node)
                 cnode.parent = node
                 cnode.left = last_child
                 if last_child:
@@ -240,15 +249,18 @@ class _GumtreeImporter (object):
                 last_child = cnode
         node.children = children
 
+        if eco_node_to_gt_node is not None:
+            eco_node_to_gt_node[node] = gt_node
+
         return node
 
 
 
 
-def import_gumtree(doc):
+def import_gumtree(doc, eco_node_to_gt_node=None):
     importer = _GumtreeImporter()
 
-    root_node = importer._import_tree(doc.root)
+    root_node = importer._import_tree(doc.root, eco_node_to_gt_node=eco_node_to_gt_node)
 
     return root_node, importer.language_boxes
 

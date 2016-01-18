@@ -242,7 +242,9 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2):
 
     # Create destination tree by cloning the base version tree
     merged_merge_id_to_node = {}
-    tree_merged = tree_base.root.clone_subtree(merged_merge_id_to_node)
+    tree_merged = tree_base.clone_tree(merged_merge_id_to_node)
+    # For any nodes that are to appear in the merged tree that do not appear in the base version tree,
+    # copy them and insert the copies into the merged merge ID -> node table
     for key, value in merge_id_to_node.merge_ids_and_nodes():
         if key not in merged_merge_id_to_node:
             merged_merge_id_to_node[key] = value.copy()
@@ -252,6 +254,4 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2):
         if len(op.conflicts) == 0:
             op.apply(merged_merge_id_to_node)
 
-    doc_merged = GumtreeDocument(tree_merged)
-
-    return doc_merged, merge3_diffs, merge3_conflicts
+    return tree_merged, merge3_diffs, merge3_conflicts
