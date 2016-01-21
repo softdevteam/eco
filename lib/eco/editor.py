@@ -88,7 +88,8 @@ class NormalEditor(Editor):
             paint.setPen(QPen(QColor(highlighter.get_color(node))))
             self.setStyle(paint, highlighter.get_style(node))
             text = node.symbol.name
-            paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text)
+            if node.lookup != "<ws>": # speedhack: don't draw invisible nodes
+                paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text)
             #print("drawing node", text, "at", x,y)
             dx = len(text) * self.fontwt
             dy = 0
