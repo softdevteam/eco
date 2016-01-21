@@ -320,6 +320,7 @@ class NodeEditor(QFrame):
         self.lines[line].height = 1 # reset height
         draw_cursor = True
         #l_x = [0]
+        show_namebinding = self.getWindow().show_namebinding()
         while y < max_y:
 
             # if we found a language box, continue drawing inside of it
@@ -460,7 +461,7 @@ class NodeEditor(QFrame):
                 draw_cursor = False
 
             # draw squiggly line
-            if node is error_node or (self.getWindow().show_namebinding() and self.tm.has_error(node)):
+            if node is error_node or (show_namebinding and self.tm.has_error(node)):
                 if isinstance(node, EOS):
                     length = self.fontwt
                 else:
