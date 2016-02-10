@@ -101,6 +101,7 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2):
 
 
     # Walk all nodes in `tree_derived_2` and assign merge IDs using matches with `tree_base`
+    merge_ids_in_C = set()
     for C_node_index, C_node in tree_derived_2.gumtree_index_to_node.items():
         # Use `C_ndx_to_A_ndx` to translate index so that its relative to the base version tree
         A_index = C_ndx_to_A_ndx.get(C_node_index)
@@ -114,11 +115,23 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2):
 
             if B_index is not None:
                 # Assign it the merge ID of the matching node from the derived 1 tree
-                C_node.merge_id = tree_derived_1.gumtree_index_to_node[B_index].merge_id
+                merge_id = tree_derived_1.gumtree_index_to_node[B_index].merge_id
+                if merge_id not in merge_ids_in_C:
+                    C_node.merge_id = merge_id
+                else:
+                    merge_id_to_node.register_node(C_node)
             else:
                 # The node in question is NOT matched to any node in the base tree or the derived 1 tree;
                 # need to assign it a new merge ID
                 merge_id_to_node.register_node(C_node)
+        merge_ids_in_C.add(C_node.merge_id)
+
+    print 'BASE:'
+    print tree_base.merge_id_and_type_label_string()
+    print 'd1:'
+    print tree_derived_1.merge_id_and_type_label_string()
+    print 'd2:'
+    print tree_derived_2.merge_id_and_type_label_string()
 
 
     # Convert actions to `GumtreeDiff` instances
@@ -250,9 +263,19 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2):
         if key not in merged_merge_id_to_node:
             merged_merge_id_to_node[key] = value.copy()
 
+    for conflict in merge3_conflicts:
+        print conflict
+
     # Apply diffs that are not involved in conflicts
     for op in merge3_diffs:
         if len(op.conflicts) == 0:
+            print 'OP: {0}'.format(op.get_short_description())
+        else:
+            print 'CONFLICT OP: {0}'.format(op.get_short_description())
+    # Apply diffs that are not involved in conflicts
+    for op in merge3_diffs:
+        if len(op.conflicts) == 0:
+            print 'APPLY: {0}'.format(op.get_short_description())
             op.apply(merged_merge_id_to_node)
 
     return tree_merged, merge3_diffs, merge3_conflicts

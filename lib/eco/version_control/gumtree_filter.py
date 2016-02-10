@@ -94,10 +94,8 @@ class GumtreeExporter (object):
         root_type_id = self.type_name_to_id[root_type_label]
         root_value = {'language': root_lang, 'whitespaces': root_ws}
 
-        eco_subtree = self._export_subtree(root_node, root_lang, 0, eco_node_to_gt_node)
-        children = [eco_subtree]
-        if self.compact:
-            children = self._filter_child_list(children)
+        children = self._export_subtree(root_node, root_lang, 0, eco_node_to_gt_node)
+        eco_subtree = children[0]
         eco_tree = gumtree_driver.GumtreeNode(type_id=root_type_id, type_label=root_type_label,
                                               position=eco_subtree.position, length=eco_subtree.length,
                                               value=json.dumps(root_value, sort_keys=True), children=children)
@@ -122,16 +120,17 @@ class GumtreeExporter (object):
             children = []
             current_position = position
             for child_node in node.children:
-                gumtree_child = self._export_subtree(child_node, lang, current_position, eco_node_to_gt_node)
-                if gumtree_child is not None:
+                gumtree_children = self._export_subtree(child_node, lang, current_position, eco_node_to_gt_node)
+                for gumtree_child in gumtree_children:
                     current_position += gumtree_child.length
                     children.append(gumtree_child)
             if self.compact:
-                children = self._filter_child_list(children)
-                if len(children) == 1:
-                    return children[0]
+                if len(node.children) == 1 or len(children) == 1:
+                    return children
                 elif len(children) == 0:
-                    return None
+                    return []
+                if node.symbol.name.endswith('_loop'):
+                    return children
 
             type_label = self.type_name(lang, node.symbol.name)
             type_id = self.type_name_to_id[type_label]
@@ -141,20 +140,20 @@ class GumtreeExporter (object):
                                                  length=current_position - position, value=value, children=children)
             if eco_node_to_gt_node is not None:
                 eco_node_to_gt_node[node] = gt_node
-            return gt_node
+            return [gt_node]
         elif isinstance(node.symbol, MagicTerminal):
             sub_lang = node.symbol.name[1:-1]
-            root = self._export_subtree(node.symbol.ast, sub_lang, 0, eco_node_to_gt_node)
+            roots = self._export_subtree(node.symbol.ast, sub_lang, 0, eco_node_to_gt_node)
             type_label = '__magic_terminal__'
             type_id = self.type_name_to_id[type_label]
 
             js_value['language'] = sub_lang
             value = json.dumps(js_value, sort_keys=True)
             gt_node = gumtree_driver.GumtreeNode(type_id=type_id, type_label=type_label, position=node.position, length=1,
-                                                 value=value, children=[root])
+                                                 value=value, children=roots)
             if eco_node_to_gt_node is not None:
                 eco_node_to_gt_node[node] = gt_node
-            return gt_node
+            return [gt_node]
         elif isinstance(node.symbol, (Terminal, FinishSymbol)):
             type_label = '__terminal__'
             type_id = self.type_name_to_id[type_label]
@@ -164,17 +163,13 @@ class GumtreeExporter (object):
                                                  value=value, children=[])
             if eco_node_to_gt_node is not None:
                 eco_node_to_gt_node[node] = gt_node
-            return gt_node
+            return [gt_node]
         else:
-            return None
+            return []
 
     @staticmethod
     def type_name(lang, symbol_name):
         return '{0}::{1}'.format(lang, symbol_name)
-
-    @staticmethod
-    def _filter_child_list(children):
-        return [c for c in children if c is not None]
 
 
 

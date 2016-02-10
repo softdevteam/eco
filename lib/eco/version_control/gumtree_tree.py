@@ -346,6 +346,16 @@ class GumtreeNode (object):
         indent_str = ('|' + ' ' * (INDENT_SIZE-1))*indent
         return '\n'.join(['{0}{1}'.format(indent_str, self.merge_id)] + [x.merge_id_string(indent+1) for x in self.children])
 
+    def type_label_string(self, indent=0):
+        INDENT_SIZE = 3
+        indent_str = ('|' + ' ' * (INDENT_SIZE-1))*indent
+        return '\n'.join(['{0}{1}'.format(indent_str, self.type_label)] + [x.type_label_string(indent+1) for x in self.children])
+
+    def merge_id_and_type_label_string(self, indent=0):
+        INDENT_SIZE = 3
+        indent_str = ('|' + ' ' * (INDENT_SIZE-1))*indent
+        return '\n'.join(['{0}{1}:{2}'.format(indent_str, self.merge_id, self.type_label)] + [x.merge_id_and_type_label_string(indent+1) for x in self.children])
+
     def pretty_string(self, indent=0):
         INDENT_SIZE = 3
         indent_str = ('|' + ' ' * (INDENT_SIZE-1))*indent
@@ -394,6 +404,15 @@ class GumtreeDocument (object):
         return {
             'root': self.root.as_json()
         }
+
+    def type_label_string(self):
+        return self.root.type_label_string()
+
+    def merge_id_and_type_label_string(self):
+        return self.root.merge_id_and_type_label_string()
+
+    def pretty_string(self):
+        return self.root.pretty_string()
 
     def __eq__(self, other):
         if isinstance(other, GumtreeDocument):
