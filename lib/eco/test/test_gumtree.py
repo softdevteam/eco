@@ -18,8 +18,11 @@ def _ddelete_range(nodes):
     return GumtreeDiffDelete(None, nodes)
 
 def _dinsert(node, parent, index):
-    return GumtreeDiffInsert(None, node, parent, index)
+    return GumtreeDiffInsert(None, [node], parent, index)
     
+def _dinsert_range(nodes, parent, index):
+    return GumtreeDiffInsert(None, nodes, parent, index)
+
 def _dmove(node, parent, index):
     return GumtreeDiffMove(None, node, parent, index)
 
@@ -128,8 +131,6 @@ class ASTConverter (object):
     def parse(self, code):
         a = ast.parse(code)
         t = self._ast_to_tree(a)
-        doc = GumtreeDocument(t)
-        doc.assign_merge_ids()
         return t
 
 
@@ -176,17 +177,14 @@ class Test_gumtree_diff:
         T0 = conv.parse('[a, b]')
         T1 = conv.parse('[a, c+d, b]')
         assert gumtree_diff(T0, T1) == [_dinsert(T1[0][0][1], T0[0][0], 1),
-                                        _dinsert(T1[0][0][1][0], T1[0][0][1], 0),
-                                        _dinsert(T1[0][0][1][1], T1[0][0][1], 1),
-                                        _dinsert(T1[0][0][1][2], T1[0][0][1], 2),
+                                        _dinsert_range(T1[0][0][1][0:3], T1[0][0][1], 0),
                                         _dinsert(T1[0][0][1][0][0], T1[0][0][1][0], 0),
                                         _dinsert(T1[0][0][1][2][0], T1[0][0][1][2], 0)]
 
         T0 = conv.parse('[a, x(b, c+d(e)/f+g, h), i, y(j, k+l(m)/n+o, p), q]')
         T1 = conv.parse('[a, x(b, c+d(e)/f+g, -aa, h), i, y(j, k+l(m)/n+o, p), q]')
         assert gumtree_diff(T0, T1) == [_dinsert(T1[0][0][1][3], T1[0][0][1], 3),
-                                        _dinsert(T1[0][0][1][3][0], T1[0][0][1][3], 0),
-                                        _dinsert(T1[0][0][1][3][1], T1[0][0][1][3], 1),
+                                        _dinsert_range(T1[0][0][1][3][0:2], T1[0][0][1][3], 0),
                                         _dinsert(T1[0][0][1][3][1][0], T1[0][0][1][3][1], 0)]
 
     def test_diff_delete(self):
@@ -198,14 +196,6 @@ class Test_gumtree_diff:
 
         T0 = conv.parse('[a, c+d, b]')
         T1 = conv.parse('[a, b]')
-        # assert gumtree_diff(T0, T1) == [_ddelete(T0[0][0][1][0][0]),
-        #                                 _ddelete(T0[0][0][1][0]),
-        #                                 _ddelete(T0[0][0][1][1]),
-        #                                 _ddelete(T0[0][0][1][2][0]),
-        #                                 _ddelete(T0[0][0][1][2]),
-        #                                 _ddelete(T0[0][0][1])]
-        print T0.merge_id_and_type_label_string()
-        print gumtree_diff(T0, T1)
         assert gumtree_diff(T0, T1) == [_ddelete(T0[0][0][1][0][0]),
                                         _ddelete_range(T0[0][0][1][0:3]),
                                         _ddelete(T0[0][0][1][2][0]),

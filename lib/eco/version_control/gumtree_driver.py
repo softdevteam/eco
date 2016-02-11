@@ -130,7 +130,32 @@ def convert_js_actions_to_diffs(tree_base, tree_derived, source, actions_js):
             # a parent node - also from tree B - at a specified index
             node = tree_derived.gumtree_index_to_node[action_js['tree']]
             parent = tree_derived.gumtree_index_to_node[action_js['parent']]
-            diffs.append(GumtreeDiffInsert(source, node, parent, action_js['at']))
+
+            # Get the merge ID of the parent node and the index where the child node is being inserted
+            parent_id = id(parent)
+            index_in_parent = action_js['at']
+            cur_key = parent_id, index_in_parent
+
+            # See if there is a delete operation that deletes `node`'s previous sibling
+            prev_key = parent_id, index_in_parent - 1
+            op = inserts_by_parent_and_index.get(prev_key)
+            if op is not None:
+                # Add `node` to the insert operation
+                assert isinstance(op, GumtreeDiffInsert)
+                temp_op = GumtreeDiffInsert(source, [node], parent, action_js['at'])
+                op.append_insert_op(temp_op)
+                inserts_by_parent_and_index[cur_key] = op
+
+            # See if there is a delete operation that deletes `node`'s next sibling
+            next_key = parent_id, index_in_parent + 1
+            next_op = inserts_by_parent_and_index.get(next_key)
+            if next_op is not None:
+                raise NotImplementedError('Insert operations out of order')
+
+            if op is None:
+                op = GumtreeDiffInsert(source, [node], parent, action_js['at'])
+                inserts_by_parent_and_index[cur_key] = op
+                diffs.append(op)
         elif action == 'move':
             node = tree_base.gumtree_index_to_node[action_js['tree']]
             parent = tree_derived.gumtree_index_to_node[action_js['parent']]

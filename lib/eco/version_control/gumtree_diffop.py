@@ -133,14 +133,14 @@ class GumtreeAbstractDiff (object):
             raise TypeError('node must be an GumtreeNode instance, an int, or None; not an {0}'.format(type(node)))
 
     @staticmethod
-    def _find_predecessor(parent, index_in_parent, ignore_merge_id):
+    def _find_predecessor(parent, index_in_parent, ignore_merge_ids):
         """
         Get the merge ID of the node that is the predecessor/left sibling to child `index_in_parent` of `parent`.
-        `ignore_merge_id` is an optional merge ID of a node that should be passed over.
+        `ignore_merge_id` is an optional set of merge IDs of nodes that should be passed over.
 
         :param parent: the parent node; `GumtreeNode` instance
         :param index_in_parent: the index of the child in `parent`
-        :param ignore_merge_id: optional merge ID of a node to skip over when searching backwards from `index_in_parent`.
+        :param ignore_merge_ids: optional set of merge IDs of nodes to skip over when searching backwards from `index_in_parent`.
         :return: the merge ID of the predecessor or `None` if one could not be found.
         """
         if len(parent) == 0 or index_in_parent == 0:
@@ -148,7 +148,7 @@ class GumtreeAbstractDiff (object):
         else:
             i = index_in_parent - 1
             pred_node = parent[i]
-            while pred_node.merge_id == ignore_merge_id:
+            while pred_node.merge_id in ignore_merge_ids:
                 i -= 1
                 if i < 0:
                     return None
@@ -156,14 +156,14 @@ class GumtreeAbstractDiff (object):
             return pred_node.merge_id
 
     @staticmethod
-    def _find_successor(parent, index_in_parent, ignore_merge_id):
+    def _find_successor(parent, index_in_parent, ignore_merge_ids):
         """
         Get the merge ID of the node that is the successor/right sibling to child `index_in_parent` of `parent`.
-        `ignore_merge_id` is an optional merge ID of a node that should be passed over.
+        `ignore_merge_id` is an optional set of merge IDs of nodes that should be passed over.
 
         :param parent: the parent node; `GumtreeNode` instance
         :param index_in_parent: the index of the child in `parent`
-        :param ignore_merge_id: optional merge ID of a node to skip over when searching forwards from `index_in_parent`.
+        :param ignore_merge_ids: optional set of merge ID of nodes to skip over when searching forwards from `index_in_parent`.
         :return: the merge ID of the successor or `None` if one could not be found.
         """
         if len(parent) == 0 or index_in_parent == len(parent):
@@ -171,7 +171,7 @@ class GumtreeAbstractDiff (object):
         else:
             i = index_in_parent
             succ_node = parent[i]
-            while succ_node.merge_id == ignore_merge_id:
+            while succ_node.merge_id in ignore_merge_ids:
                 i += 1
                 if i >= len(parent):
                     return None
@@ -226,12 +226,6 @@ class GumtreeDiffDelete (GumtreeAbstractDiff):
 
     def append_node(self, node):
         self.__node_ids.append(self._get_node_id(node))
-
-    def prepend_node(self, node):
-        self.__node_ids.insert(0, self._get_node_id(node))
-
-    def extend_nodes(self, nodes):
-        self.__node_ids.extend([self._get_node_id(node) for node in nodes])
 
 
     def get_description(self, node_id_to_node):
@@ -349,7 +343,7 @@ class GumtreeDiffInsert (GumtreeAbstractDiff):
         :var value: the updated node value
         :var src_node: a reference to the inserted node from the destination tree
     """
-    def __init__(self, source, node, parent, index_in_parent):
+    def __init__(self, source, nodes, parent, index_in_parent):
         """
         Constructor
 
@@ -360,16 +354,16 @@ class GumtreeDiffInsert (GumtreeAbstractDiff):
         :param index_in_parent: the index at which the new node is to be inserted
         """
         super(GumtreeDiffInsert, self).__init__(source)
-        self.__node_id = self._get_node_id(node)
+        assert isinstance(nodes, list)
+        self.__node_ids = [self._get_node_id(node) for node in nodes]
         self.parent_id = self._get_node_id(parent)
-        self.predecessor_id = self._find_predecessor(parent, index_in_parent, self.__node_id)
-        self.successor_id = self._find_successor(parent, index_in_parent, self.__node_id)
-        self.value = node.value
-        self.src_node = node
+        self.predecessor_id = self._find_predecessor(parent, index_in_parent, set(self.__node_ids))
+        self.successor_id = self._find_successor(parent, index_in_parent + len(nodes) - 1, set(self.__node_ids))
+        self.__values = [node.value for node in nodes]
 
     @property
     def node_ids(self):
-        return [self.__node_id]
+        return self.__node_ids
 
     def inserts_node_before(self, node_id):
         return node_id == self.successor_id
@@ -389,11 +383,11 @@ class GumtreeDiffInsert (GumtreeAbstractDiff):
                 diff.moves_node(self.successor_id):
             return gumtree_conflict.GumtreeMerge3ConflictMoveDestination(diff, self)
         if isinstance(diff, GumtreeDiffInsert) and \
-                self.__node_id == diff.__node_id and \
+                self.__node_ids == diff.__node_ids and \
                 self.parent_id == diff.parent_id and \
                 self.predecessor_id == diff.predecessor_id and \
                 self.successor_id == diff.successor_id and \
-                self.value != diff.value:
+                self.__values != diff.__values:
             return gumtree_conflict.GumtreeMerge3ConflictInsertInsert(diff, self)
         if self.successor_id is not None and diff.inserts_node_before(self.successor_id):
             return gumtree_conflict.GumtreeMerge3ConflictDestinationDestination(diff, self)
@@ -403,15 +397,15 @@ class GumtreeDiffInsert (GumtreeAbstractDiff):
 
     def apply(self, merge_id_to_node):
         parent_node = merge_id_to_node[self.parent_id]
-        node_to_insert = merge_id_to_node[self.__node_id]
+        nodes_to_insert = [merge_id_to_node[node_id] for node_id in self.__node_ids]
         index = parent_node.insertion_index(self.predecessor_id, self.successor_id)
         if index is None:
-            raise RuntimeError('Could not get insertion index for inserting new node {0}'.format(self.__node_id))
+            raise RuntimeError('Could not get insertion index for inserting new nodes {0}'.format(self.__node_ids))
         if isinstance(index, tuple):
             if index[0] > index[1]:
-                error_msg = 'Could not get unique position for inserting node {0} under parent {1} between {2} and {3};' \
+                error_msg = 'Could not get unique position for inserting nodes {0} under parent {1} between {2} and {3};' \
                             'children of parent={4}, source={5}, got indices {6}'.format(
-                    self.__node_id, self.parent_id, self.predecessor_id, self.successor_id,
+                    self.__node_ids, self.parent_id, self.predecessor_id, self.successor_id,
                     [n.merge_id for n in parent_node.children], self.source, index)
                 raise RuntimeError(error_msg)
             else:
@@ -419,40 +413,48 @@ class GumtreeDiffInsert (GumtreeAbstractDiff):
                 # predecessor and successor were immediate neighbours but they are separated in the tree
                 # in its current state, and that future operations are likely to remove the nodex between them
                 index = index[0]
-        parent_node.insert_child(index, node_to_insert)
+        parent_node.insert_children(index, nodes_to_insert)
 
     def required_target_node_id(self):
         return self.parent_id
 
+
+    def append_insert_op(self, op):
+        assert isinstance(op, GumtreeDiffInsert)
+        self.__node_ids.extend(op.__node_ids)
+        self.successor_id = op.successor_id
+        self.__values.extend(op.__values)
+
+
     def get_description(self, node_id_to_node):
-        node = node_id_to_node[self.__node_id]
+        node_id_label_strs = [node_id_to_node[node_id].id_label_str for node_id in self.__node_ids]
         parent_node = node_id_to_node[self.parent_id]
         insertion_index = parent_node.insertion_index(self.predecessor_id, self.successor_id)
-        return 'insert(src {0}, parent {1}, at {2})'.format(node.id_label_str,
+        return 'insert(src {0}, parent {1}, at {2})'.format(node_id_label_strs,
                                                             parent_node.id_label_str, insertion_index)
 
     def get_short_description(self):
-        return 'insert({0} under {1} between {2} and {3} source {4})'.format(self.__node_id, self.parent_id,
+        return 'insert({0} under {1} between {2} and {3} source {4})'.format(self.__node_ids, self.parent_id,
                                                                              self.predecessor_id, self.successor_id, self.source)
 
     def __eq__(self, other):
         if isinstance(other, GumtreeDiffInsert):
             return self.parent_id == other.parent_id and self.predecessor_id == other.predecessor_id and \
-                   self.successor_id == other.successor_id and self.__node_id == other.__node_id and \
-                   self.value == other.value
+                   self.successor_id == other.successor_id and self.__node_ids == other.__node_ids and \
+                   self.__values == other.__values
         else:
             return False
 
     def __hash__(self):
         return hash((GumtreeDiffInsert, self.parent_id, self.predecessor_id, self.successor_id,
-                     self.__node_id, self.value))
+                     tuple(self.__node_ids), tuple(self.__values)))
 
     def __str__(self):
-        return 'insert({0}; src {1}, parent {2}, between {3} and {4})'.format(self.source, self.__node_id, self.parent_id,
+        return 'insert({0}; src {1}, parent {2}, between {3} and {4})'.format(self.source, self.__node_ids, self.parent_id,
                                                                               self.predecessor_id, self.successor_id)
 
     def __repr__(self):
-        return 'insert({0}; src {1}, parent {2}, between {3} and {4})'.format(self.source, self.__node_id, self.parent_id,
+        return 'insert({0}; src {1}, parent {2}, between {3} and {4})'.format(self.source, self.__node_ids, self.parent_id,
                                                                               self.predecessor_id, self.successor_id)
 
 
@@ -483,8 +485,8 @@ class GumtreeDiffMove (GumtreeAbstractDiff):
         super(GumtreeDiffMove, self).__init__(source)
         self.__node_id = self._get_node_id(node)
         self.parent_id = self._get_node_id(parent)
-        self.predecessor_id = self._find_predecessor(parent, index_in_parent, self.__node_id)
-        self.successor_id = self._find_successor(parent, index_in_parent, self.__node_id)
+        self.predecessor_id = self._find_predecessor(parent, index_in_parent, {self.__node_id})
+        self.successor_id = self._find_successor(parent, index_in_parent, {self.__node_id})
 
     @property
     def node_ids(self):

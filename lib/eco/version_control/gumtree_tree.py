@@ -224,10 +224,20 @@ class GumtreeNode (object):
         """
         Insert a child node
         :param index: the position at which to insert `child`
-        :param child: child to remove
+        :param child: child to insert
         """
         self.children.insert(index, child)
         child.parent = self
+
+    def insert_children(self, index, children):
+        """
+        Insert a list of childs node
+        :param index: the position at which to insert `children`
+        :param children: children to insert
+        """
+        self.children = self.children[:index] + children + self.children[index:]
+        for child in children:
+            child.parent = self
 
     def detach_from_parent(self):
         """
