@@ -383,5 +383,5 @@ def eee(rrr, mmm):
 
 
 if __name__ == '__main__':
-    # test_merge3_list_literal3()
-    test_indent_diff()
+    test_merge3_list_literal3()
+    # test_indent_diff()

@@ -248,11 +248,14 @@ def _visualise_merge3_in_lspace(base_tm, derived_1_tm, derived_2_tm, merged_tm,
             for node_id in op.node_ids:
                 deleted_nodes[node_id] = op.source
         elif isinstance(op, gumtree_diffop.GumtreeDiffUpdate):
-            updated_nodes[op.__node_id] = op.source
+            for node_id in op.node_ids:
+                updated_nodes[node_id] = op.source
         elif isinstance(op, gumtree_diffop.GumtreeDiffInsert):
-            inserted_nodes[op.__node_id] = op.source
+            for node_id in op.node_ids:
+                inserted_nodes[node_id] = op.source
         elif isinstance(op, gumtree_diffop.GumtreeDiffMove):
-            moved_nodes[op.__node_id] = op.source
+            for node_id in op.node_ids:
+                moved_nodes[node_id] = op.source
         else:
             raise TypeError('Unknown diff type {0}'.format(type(op)))
         if len(op.conflicts) > 0:
