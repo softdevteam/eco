@@ -29,6 +29,41 @@ def _merge3(base_tm, d_local_tm, d_main_tm):
                                                         lspace_root=lspace_root,
                                                         visualise=visualise)
 
+def _diff2(tm_a, tm_b):
+    return gumtree_three_way_merge.diff2_tree_managers(tm_a, tm_b)
+
+
+def test_indent_diff():
+    tm_a = _new_tm(python)
+    tm_b = _new_tm(python)
+    tm_a.import_file(
+"""class MyClass (object):
+    def __init__(self):
+        pass
+class Inner (object):
+    def __init__(self):
+        pass
+    def q(self):
+        return None
+""")
+    tm_b.import_file(
+"""class MyClass (object):
+    class Inner (object):
+        def __init__(self):
+            pass
+        def q(self):
+            return None
+    def __init__(self):
+        pass
+""")
+    assert tm_a.get_mainparser().last_status
+    assert tm_b.get_mainparser().last_status
+
+    diffs = _diff2(tm_a, tm_b)
+
+    for diff in diffs:
+        print diff
+
 
 def test_merge3_simple_a():
     base_tm = _new_tm(python)
@@ -348,4 +383,5 @@ def eee(rrr, mmm):
 
 
 if __name__ == '__main__':
-    test_merge3_list_literal3()
+    # test_merge3_list_literal3()
+    test_indent_diff()

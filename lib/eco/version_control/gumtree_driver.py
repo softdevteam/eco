@@ -87,6 +87,9 @@ def convert_js_actions_to_diffs(tree_base, tree_derived, source, actions_js):
     :param actions_js: action list, JS form, see `_raw_diff` for explanation
     :return: list of `GumtreeDiff` instances
     """
+    delete_by_parent_and_index = {}
+    inserts_by_parent_and_index = {}
+
     # Go through each action in the action list and convert to `GumtreeDiff` instances.
     diffs = []
     for action_js in actions_js:
@@ -98,7 +101,30 @@ def convert_js_actions_to_diffs(tree_base, tree_derived, source, actions_js):
         elif action == 'delete':
             # Delete actions reference the node from tree A that is being deleted
             node = tree_base.gumtree_index_to_node[action_js['tree']]
-            diffs.append(GumtreeDiffDelete(source, node))
+            # Get the merge ID of the parent node and the index of the child being deleted
+            parent_id = id(node.parent)
+            index_in_parent = node.parent.children.index(node)
+            cur_key = parent_id, index_in_parent
+
+            # See if there is a delete operation that deletes `node`'s previous sibling
+            prev_key = parent_id, index_in_parent - 1
+            op = delete_by_parent_and_index.get(prev_key)
+            if op is not None:
+                # Add `node` to the delete operation
+                assert isinstance(op, GumtreeDiffDelete)
+                op.append_node(node)
+                delete_by_parent_and_index[cur_key] = op
+
+            # See if there is a delete operation that deletes `node`'s next sibling
+            next_key = parent_id, index_in_parent + 1
+            next_op = delete_by_parent_and_index.get(next_key)
+            if next_op is not None:
+                raise NotImplementedError('Delete operations out of order')
+
+            if op is None:
+                op = GumtreeDiffDelete(source, [node])
+                delete_by_parent_and_index[cur_key] = op
+                diffs.append(op)
         elif action == 'insert':
             # Insert actions reference the node from tree B, that is being inserted as a child of
             # a parent node - also from tree B - at a specified index

@@ -6,9 +6,18 @@ from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from treemanager import TreeManager
 from jsonmanager import JsonManager
 
-from . import gumtree_filter, gumtree_diff3, gumtree_diffop
+from . import gumtree_filter, gumtree_diff3, gumtree_diffop, gumtree_driver
 
 from lspace_ext.lspace import Pres, ApplyStyleSheet, Text, Row, Column, Flow, Colour, viewer, TextWeight, TextSlant
+
+
+def diff2_tree_managers(tm_a, tm_b):
+    exporter = gumtree_filter.GumtreeExporter([tm_a, tm_b], compact=True)
+
+    gt_a = exporter.export_gumtree(tm_a)
+    gt_b = exporter.export_gumtree(tm_b)
+
+    return gumtree_driver.gumtree_diff(gt_a, gt_b)
 
 
 def merge3_tree_managers(base_tm, derived_1_tm, derived_2_tm, lspace_root, visualise=False):
@@ -236,17 +245,18 @@ def _visualise_merge3_in_lspace(base_tm, derived_1_tm, derived_2_tm, merged_tm,
 
     for op in diffs:
         if isinstance(op, gumtree_diffop.GumtreeDiffDelete):
-            deleted_nodes[op.node_id] = op.source
+            for node_id in op.node_ids:
+                deleted_nodes[node_id] = op.source
         elif isinstance(op, gumtree_diffop.GumtreeDiffUpdate):
-            updated_nodes[op.node_id] = op.source
+            updated_nodes[op.__node_id] = op.source
         elif isinstance(op, gumtree_diffop.GumtreeDiffInsert):
-            inserted_nodes[op.node_id] = op.source
+            inserted_nodes[op.__node_id] = op.source
         elif isinstance(op, gumtree_diffop.GumtreeDiffMove):
-            moved_nodes[op.node_id] = op.source
+            moved_nodes[op.__node_id] = op.source
         else:
             raise TypeError('Unknown diff type {0}'.format(type(op)))
         if len(op.conflicts) > 0:
-            conflict_nodes[op.node_id] = op.source
+            conflict_nodes[op.__node_id] = op.source
 
     def base_merge_id_to_style(eco_node_to_gt_node, eco_node, sources):
         gt_node = eco_node_to_gt_node.get(eco_node)

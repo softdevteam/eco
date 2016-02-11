@@ -23,13 +23,14 @@ def _remove_redundant_delete_diffs(ops, merge_id_to_node):
 
     delete_node_ids = set()
     for op in delete_ops:
-        deleted_id = op.get_deleted_node_id()
-        if deleted_id is not None:
-            delete_node_ids.add(deleted_id)
+        deleted_ids = op.get_deleted_node_ids()
+        if deleted_ids is not None:
+            for deleted_id in deleted_ids:
+                delete_node_ids.add(deleted_id)
 
     # Remove any delete operations that delete nodes that are children of nodes that are also deleted
     delete_ops = [op for op in delete_ops
-                           if merge_id_to_node[op.node_id].parent_merge_id not in delete_node_ids]
+                           if merge_id_to_node[op.node_ids[0]].parent_merge_id not in delete_node_ids]
     return delete_ops + non_delete_ops
 
 
@@ -247,12 +248,14 @@ def gumtree_diff3(tree_base, tree_derived_1, tree_derived_2):
 
     # Check all delete operations against the required node lists and report conflicts as necessary
     for op in merge3_delete_diffs:
-        deleted_id = op.get_deleted_node_id()
-        requiring_ops = required_ancestors.get(deleted_id)
-        if requiring_ops is not None:
-            for req_op in requiring_ops:
-                if req_op.source != op.source:
-                    merge3_conflicts.append(GumtreeMerge3ConflictDeleteAncestry(op, req_op))
+        deleted_ids = op.get_deleted_node_ids()
+        if deleted_ids is not None:
+            for deleted_id in deleted_ids:
+                requiring_ops = required_ancestors.get(deleted_id)
+                if requiring_ops is not None:
+                    for req_op in requiring_ops:
+                        if req_op.source != op.source:
+                            merge3_conflicts.append(GumtreeMerge3ConflictDeleteAncestry(op, req_op))
 
     # Create destination tree by cloning the base version tree
     merged_merge_id_to_node = {}

@@ -395,6 +395,18 @@ class GumtreeDocument (object):
         self.root._populate_merge_id_to_node(merge_id_to_node)
         return merge_id_to_node
 
+    def assign_merge_ids(self):
+        """
+        Assign initial merge IDs to nodes, returning the merge ID to node table
+
+        :return: a `GumtreeNodeMergeIDTable` instance
+        """
+        merge_id_to_node = GumtreeNodeMergeIDTable()
+        # Assign merge IDs to nodes from `tree_base`.
+        for B_node in self.gumtree_index_to_node.values():
+            merge_id_to_node.register_node(B_node)
+        return merge_id_to_node
+
     def as_json(self):
         """
         Create a Gumtree compatible JSON representation of the subtree rooted at `self`.
@@ -421,6 +433,8 @@ class GumtreeDocument (object):
             return self.root == other
         else:
             return False
+
+
 
 
 class GumtreeNodeMergeIDTable (object):

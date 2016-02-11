@@ -12,8 +12,11 @@ def _dupdate(node, value):
     return GumtreeDiffUpdate(None, node, value)
     
 def _ddelete(node):
-    return GumtreeDiffDelete(None, node)
+    return GumtreeDiffDelete(None, [node])
     
+def _ddelete_range(nodes):
+    return GumtreeDiffDelete(None, nodes)
+
 def _dinsert(node, parent, index):
     return GumtreeDiffInsert(None, node, parent, index)
     
@@ -124,7 +127,10 @@ class ASTConverter (object):
 
     def parse(self, code):
         a = ast.parse(code)
-        return self._ast_to_tree(a)
+        t = self._ast_to_tree(a)
+        doc = GumtreeDocument(t)
+        doc.assign_merge_ids()
+        return t
 
 
 class Test_gumtree_diff:
@@ -192,11 +198,17 @@ class Test_gumtree_diff:
 
         T0 = conv.parse('[a, c+d, b]')
         T1 = conv.parse('[a, b]')
+        # assert gumtree_diff(T0, T1) == [_ddelete(T0[0][0][1][0][0]),
+        #                                 _ddelete(T0[0][0][1][0]),
+        #                                 _ddelete(T0[0][0][1][1]),
+        #                                 _ddelete(T0[0][0][1][2][0]),
+        #                                 _ddelete(T0[0][0][1][2]),
+        #                                 _ddelete(T0[0][0][1])]
+        print T0.merge_id_and_type_label_string()
+        print gumtree_diff(T0, T1)
         assert gumtree_diff(T0, T1) == [_ddelete(T0[0][0][1][0][0]),
-                                        _ddelete(T0[0][0][1][0]),
-                                        _ddelete(T0[0][0][1][1]),
+                                        _ddelete_range(T0[0][0][1][0:3]),
                                         _ddelete(T0[0][0][1][2][0]),
-                                        _ddelete(T0[0][0][1][2]),
                                         _ddelete(T0[0][0][1])]
 
 
