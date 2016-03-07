@@ -27,6 +27,7 @@ from PyQt4.QtGui import QApplication
 from PyQt4.QtCore import QSettings
 from grammars.grammars import lang_dict, Language, EcoFile
 from export import HTMLPythonSQL, PHPPython, ATerms
+from export.jruby import JRubyExporter
 from export.jruby_simple_language import JRubySimpleLanguageExporter
 from export.simple_language import SimpleLanguageExporter
 from export.cpython import CPythonExporter
@@ -321,6 +322,7 @@ class TreeManager(object):
             "PHP" : False,
             "Python 2.7.5" : True,
             "SimpleLanguage" : True,
+            "Ruby" : True,
             "Ruby + SimpleLanguage" : True,
         }
         self.input_log = []
@@ -1554,6 +1556,8 @@ class TreeManager(object):
             return CPythonExporter(self).export(path, run, profile)
         elif lang == "SimpleLanguage":
             return SimpleLanguageExporter(self).export(path=path, run=run, profile=profile)
+        elif lang == "Ruby":
+            return JRubyExporter(self).export(path=path, run=run, profile=profile)
         elif lang == "Ruby + SimpleLanguage":
             return JRubySimpleLanguageExporter(self).export(path=path, run=run, profile=profile)
         else:
@@ -1591,7 +1595,7 @@ class TreeManager(object):
             f = tempfile.mkstemp()
             os.write(f[0],"".join(output))
             os.close(f[0])
-            
+
             settings = QSettings("softdev", "Eco")
             unipath = str(settings.value("env_unipycation", "").toString())
             if unipath:
