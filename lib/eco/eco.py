@@ -299,6 +299,7 @@ class SettingsView(QtGui.QMainWindow):
         self.connect(self.ui.btpypyprefix, SIGNAL("clicked()"), self.choose_dir)
         self.connect(self.ui.btunipycation, SIGNAL("clicked()"), self.choose_file)
         self.connect(self.ui.btlspaceroot, SIGNAL("clicked()"), self.choose_dir)
+        self.connect(self.ui.btjruby, SIGNAL("clicked()"), self.choose_file)
 
         self.foreground = None
         self.background = None
@@ -323,6 +324,8 @@ class SettingsView(QtGui.QMainWindow):
                 self.ui.env_pypyprefix.setText(filename)
             elif self.sender() is self.ui.btunipycation:
                 self.ui.env_unipycation.setText(filename)
+            elif self.sender() is self.ui.btjruby:
+                self.ui.env_jruby.setText(filename)
 
     def choose_dir(self):
         filename = QFileDialog.getExistingDirectory(self, "Choose directory")
@@ -366,6 +369,7 @@ class SettingsView(QtGui.QMainWindow):
         self.ui.env_unipycation.setText(settings.value("env_unipycation", "").toString())
         self.ui.env_pypyprefix.setText(settings.value("env_pypyprefix", "").toString())
         self.ui.env_lspaceroot.setText(settings.value("env_lspaceroot", "").toString())
+        self.ui.env_jruby.setText(settings.value("env_jruby", "").toString())
 
     def saveSettings(self):
         settings = QSettings("softdev", "Eco")
@@ -393,6 +397,7 @@ class SettingsView(QtGui.QMainWindow):
         settings.setValue("env_unipycation", self.ui.env_unipycation.text())
         settings.setValue("env_pypyprefix", self.ui.env_pypyprefix.text())
         settings.setValue("env_lspaceroot", self.ui.env_lspaceroot.text())
+        settings.setValue("env_jruby", self.ui.env_jruby.text())
 
     def accept(self):
         self.saveSettings()
