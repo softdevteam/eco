@@ -143,6 +143,9 @@ class NodeEditor(QFrame):
         self.tm = TreeManager()
         self.tm.add_parser(parser, lexer, lang_name)
 
+    def get_mainlanguage(self):
+        return self.tm.parsers[0][2]
+
     def set_sublanguage(self, language):
         self.sublanguage = language
 
@@ -976,5 +979,5 @@ class NodeEditor(QFrame):
         self.tm.load_file(language_boxes)
         self.reset()
 
-    def export(self, run=False, profile=False):
-        return self.tm.export(None, run, profile)
+    def export(self, run=False, profile=False, source=None):
+        return self.tm.export(None, run, profile, source=source)
