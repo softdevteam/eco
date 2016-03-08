@@ -39,6 +39,10 @@ from PyQt4 import QtGui
 from PyQt4.QtGui import *
 from PyQt4 import uic
 
+if not QtGui.QIcon.themeName():
+    # attempt to fall back on generic icon theme
+    QtGui.QIcon.setThemeName("gnome")
+
 from grammar_parser.plexer import PriorityLexer
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
