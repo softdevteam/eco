@@ -77,14 +77,6 @@ class Nonterminal(Symbol):
     def __repr__(self):
         return "Nonterminal('%s')" % (self.name,)
 
-class AnySymbol(Symbol):
-    def __init__(self, name = "@"):
-        Symbol.__init__(self, name)
-
-    def __repr__(self):
-        return "AnySymbol()"
-
-
 class Epsilon(Symbol):
 
     def __eq__(self, other):

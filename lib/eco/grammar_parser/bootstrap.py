@@ -24,7 +24,7 @@ from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer, IncrementalLexerCF
 from incparser.astree import BOS, EOS
 
-from grammar_parser.gparser import Rule, Nonterminal, Terminal, Epsilon, MagicTerminal, AnySymbol
+from grammar_parser.gparser import Rule, Nonterminal, Terminal, Epsilon, MagicTerminal, IndentationTerminal
 
 class BootstrapParser(object):
 
@@ -40,9 +40,11 @@ class BootstrapParser(object):
         self.terminals = set()
         self.extra_alternatives = {}
         self.change_startrule = None
-        self.options = {}
+        self.options = {"nowhitespace":[]}
         self.precedences = []
         self.current_rulename = ""
+        self.all_terminals = set()
+        self.functions = []
 
     def implicit_ws(self):
         if self.options.has_key("implicit_ws"):
@@ -75,8 +77,30 @@ class BootstrapParser(object):
         if self.parser.last_status == False:
             raise Exception("Invalid input grammar: at %s %s" % (self.parser.error_node.prev_term, self.parser.error_node))
         self.read_options()
+        self.parse_both()
         self.create_parser()
         self.create_lexer()
+
+    def parse_both(self):
+        # parse rules
+        startrule = self.ast.children[1] # startrule
+        grammar = startrule.children[1]
+        parser = grammar.children[0]
+        assert parser.symbol.name == "parser"
+        self.parse_rules(parser)
+
+        # parse lexer
+        startrule = self.ast.children[1] # startrule
+        grammar = startrule.children[1]
+        for element in grammar.children:
+            if element.symbol.name == "lexer":
+                break
+        lexer = element
+        assert lexer.symbol.name == "lexer"
+        self.parse_lexer(lexer)
+        for name, regex in self.lrules:
+            # collect terminals for parser modifications
+            self.all_terminals.add(name)
 
     def read_options(self):
         startrule = self.ast.children[1] # startrule
@@ -119,7 +143,26 @@ class BootstrapParser(object):
         name = option.children[2].symbol.name
         choice = option.children[6]
         assert choice.symbol.name == "choice"
-        self.options[name] = choice.children[0].symbol.name
+        if choice.children[0].symbol.name == "choice_list":
+            self.options[name] = self.parse_choicelist(choice.children[0])
+        else:
+            self.options[name] = choice.children[0].symbol.name
+
+    def parse_choicelist(self, symbol):
+        s = []
+        for c in symbol.children:
+            if c.symbol.name == ",":
+                continue
+            if c.symbol.name == "WS":
+                continue
+            if c.lookup == "nonterminal":
+                s.append(c.symbol.name)
+                continue
+            if c.symbol.name == "choice_list":
+                rec_s = self.parse_choicelist(symbol.children[0])
+                s.extend(rec_s)
+                continue
+        return s
 
     def parse_precedences(self, precedences):
         if precedences.children == []:
@@ -149,21 +192,42 @@ class BootstrapParser(object):
         return s
 
     def create_parser(self, pickle_id = None):
-        startrule = self.ast.children[1] # startrule
-        grammar = startrule.children[1]
-        parser = grammar.children[0]
-        assert parser.symbol.name == "parser"
-        self.parse_rules(parser)
+        self.all_terminals.update(self.terminals)
+
+        for fname, terminals, parentrule in self.functions:
+            if fname.startswith("*match_until"):
+                if Nonterminal(fname) not in self.rules:
+                    r = Rule(Nonterminal(fname))
+                    for t in self.all_terminals:
+                        if t not in terminals:
+                            r.add_alternative([Nonterminal(fname), Terminal(t)], None, t)
+                    r.add_alternative([])
+                    self.rules[r.symbol] = r
+                # remove whitespace before special rule from parent rule, e.g.
+                # multistring ::= "MLS" WS *match_until "MLS" WS
+                #                       ^ this WS causes shift/reduce conflicts
+                prule = self.rules[Nonterminal(parentrule)]
+                for a in prule.alternatives:
+                    for i in range(len(a)):
+                        sym = a[i]
+                        if sym.name == "WS":
+                            if len(a) > i+1 and a[i+1].name.startswith("*match_until"):
+                                a.pop(i)
+                                break
 
         if self.implicit_ws():
             ws_rule = Rule()
             ws_rule.symbol = Nonterminal("WS")
-            ws_rule.add_alternative([Terminal("<ws>"), Nonterminal("WS")])
-            if Nonterminal("comment") in self.rules:
-                ws_rule.add_alternative([Nonterminal("comment"), Nonterminal("WS")])
+            ws_rule.add_alternative([Nonterminal("WS"), Terminal("<ws>")])
+            # get comment rule
+            if self.options.has_key('comment_rule'):
+                cmt_rules = self.options['comment_rule']
+                for cmt_rule in cmt_rules:
+                    if Nonterminal(cmt_rule) in self.rules:
+                        ws_rule.add_alternative([Nonterminal("WS"), Nonterminal("comment")])
             if self.implicit_newlines():
-                ws_rule.add_alternative([Terminal("<return>"), Nonterminal("WS")])
-                ws_rule.add_alternative([Terminal("<backslash>"), Terminal("<return>"), Nonterminal("WS")])
+                ws_rule.add_alternative([Nonterminal("WS"), Terminal("<return>")])
+                ws_rule.add_alternative([Nonterminal("WS"), Terminal("<backslash>"), Terminal("<return>")])
             ws_rule.add_alternative([]) # or empty
             self.rules[ws_rule.symbol] = ws_rule
 
@@ -237,17 +301,15 @@ class BootstrapParser(object):
         if node.children[0].symbol.name == "symbols":
             symbols = self.parse_symbols(node.children[0])
             symbol = self.parse_symbol(node.children[1])
-            if isinstance(symbol, AnySymbol) and symbols[-1].name == "WS":
-                symbols.pop()
             symbols.append(symbol)
-            if (isinstance(symbol, Terminal) or isinstance(symbol, MagicTerminal)) and self.implicit_ws() and self.current_rulename != "comment":
+            if (isinstance(symbol, Terminal) or isinstance(symbol, MagicTerminal)) and self.implicit_ws() and self.current_rulename not in self.options["nowhitespace"]:
                 symbols.append(Nonterminal("WS"))
             return symbols
         elif node.children[0].symbol.name == "symbol":
             l = []
             symbol = self.parse_symbol(node.children[0])
             l.append(symbol)
-            if isinstance(symbol, Terminal) and self.implicit_ws() and self.current_rulename != "comment":
+            if isinstance(symbol, Terminal) and self.implicit_ws() and self.current_rulename not in self.options["nowhitespace"]:
                 l.append(Nonterminal("WS"))
             return l
 
@@ -256,14 +318,35 @@ class BootstrapParser(object):
         if node.lookup == "nonterminal":
             return Nonterminal(node.symbol.name)
         elif node.lookup == "terminal":
-            self.terminals.add(node.symbol.name[1:-1])
+            if node.symbol.name != "\"<eos>\"":
+                self.terminals.add(node.symbol.name[1:-1])
             return Terminal(node.symbol.name[1:-1])
         elif node.lookup == "languagebox":
             return MagicTerminal(node.symbol.name)
-        elif node.lookup == "ANY":
-            return AnySymbol()
-        elif node.lookup == "ANYNCR":
-            return AnySymbol("@ncr")
+        elif node.symbol.name == "function":
+            return self.parse_function(node)
+
+    def parse_function(self, node):
+        fname = node.children[0].symbol.name
+        terminals = self.parse_fargs(node.children[4])
+        safe_name = "*%s%s" % (fname, hash(frozenset(terminals)))
+        self.functions.append((safe_name, terminals, self.current_rulename))
+        return Nonterminal(safe_name)
+
+    def parse_fargs(self, symbol):
+        s = []
+        for c in symbol.children:
+            if c.symbol.name == ",":
+                continue
+            if c.symbol.name == "WS":
+                continue
+            if c.lookup == "terminal":
+                s.append(c.symbol.name[1:-1])
+                continue
+            if c.symbol.name == "f_args":
+                rec_s = self.parse_fargs(symbol.children[0])
+                s.extend(rec_s)
+        return s
 
     def parse_annotation(self, node):
         a_options = node.children[2]
@@ -357,18 +440,11 @@ class BootstrapParser(object):
             return self.parse_astnode(node)
 
     def create_lexer(self):
-        startrule = self.ast.children[1] # startrule
-        grammar = startrule.children[1]
-        for element in grammar.children:
-            if element.symbol.name == "lexer":
-                break
-        lexer = element
-        assert lexer.symbol.name == "lexer"
-        self.parse_lexer(lexer)
         names = []
         regexs = []
         for name, regex in self.lrules:
             names.append(name)
+            self.all_terminals.add(name)
             regexs.append(regex)
         # add so far undefined terminals
         undefined_terminals = self.terminals.difference(set(names))

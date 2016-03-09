@@ -7,6 +7,7 @@ class PythonIndent(object):
 
     def __init__(self, incparser):
         self.incparser = incparser
+        self.multimode = None
 
     def incparse_init(self):
         self.comment_tokens = []
@@ -15,6 +16,8 @@ class PythonIndent(object):
     def incparse_inc_parse_top(self):
         self.incparser.stack[0].indent = [0] # init bos with indent
         self.last_indent = [0]
+        self.multimode = None
+        self.multinewlines = []
 
         bos = self.incparser.previous_version.parent.children[0]
         eos = self.incparser.previous_version.parent.children[-1]
@@ -42,8 +45,11 @@ class PythonIndent(object):
             self.last_indent = list(la.indent)
 
     def incparse_shift(self, la, rb):
-        if self.incparser.indentation_based and not rb:
+        self.toggle_multimode(la)
+        if self.incparser.indentation_based and not rb and not self.multimode:
             return self.parse_whitespace(la)
+        if self.incparser.indentation_based and self.multimode and la.lookup == "<return>":
+            self.multinewlines.append(la)
 
     def incparse_reduce(self, new_node):
         self.set_total_indent(new_node)
@@ -52,6 +58,12 @@ class PythonIndent(object):
         # update succeeding
         if self.incparser.indentation_based:
             for n in newlines:
+                # remove indentation tokens from multilines
+                n = n.next_term
+                while isinstance(n.symbol, IndentationTerminal):
+                    n.parent.remove_child(n)
+                    n = n.next_term
+                n.indent = None
                 self.update_succeeding_lines(n, self.last_indent[-1], list(self.last_indent))
 
     def incparse_from_dict(self, rules):
@@ -60,7 +72,15 @@ class PythonIndent(object):
         elif rules.has_key(Nonterminal("comment")):
             rule = rules[Nonterminal("comment")]
             for a in rule.alternatives:
-                self.comment_tokens.append(a[0].name)
+                if len(a) > 0:
+                    self.comment_tokens.append(a[0].name)
+
+    def toggle_multimode(self, la):
+        if la.lookup == "MLS" and self.multimode:
+            self.multimode = None
+            self.incparse_end_any(self.multinewlines)
+            self.multinewlines = []
+        elif la.lookup == "MLS" and not self.multimode: self.multimode = "MLS"
 
     def get_previous_ws(self, node):
         """Returns the whitespace of the previous logical line"""
@@ -117,7 +137,7 @@ class PythonIndent(object):
 
     def is_logical_line(self, node):
         """Checks if a line is logical, i.e. doesn't only consist of whitespaces or comments"""
-        if node.symbol.name == "\r" and node.prev_term.symbol.name == "\\":
+        if node.symbol.name == "\r" and node.prev_term.symbol.name == "\\": # <backslash>
             return False
         node = node.next_term
         while True:
