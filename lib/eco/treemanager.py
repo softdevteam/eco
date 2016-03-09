@@ -30,6 +30,7 @@ from export import HTMLPythonSQL, PHPPython, ATerms
 from export.jruby_simple_language import JRubySimpleLanguageExporter
 from export.simple_language import SimpleLanguageExporter
 from export.cpython import CPythonExporter
+from utils import arrow_keys, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT
 
 import math
 
@@ -994,6 +995,9 @@ class TreeManager(object):
         self.reparse(repairnode, need_reparse)
         self.changed = True
 
+    def start_new_selection(self):
+        self.selection_start = self.cursor.copy()
+
     def key_shift(self):
         self.log_input("key_shift")
 
@@ -1003,8 +1007,8 @@ class TreeManager(object):
         if node.plain_mode:
             node.plain_mode = False
 
-    def key_cursors(self, key, mod_shift=False):
-        self.log_input("key_cursors", repr(key), str(mod_shift))
+    def key_cursors(self, key, shift=False):
+        self.log_input("key_cursors", arrow_keys[key.key], str(shift))
         self.edit_rightnode = False
 
         # Four possible cases:
@@ -1013,7 +1017,7 @@ class TreeManager(object):
         # with shift, no   selection -> start new selection, modify selection
         # with shift, with selection -> modify selection
 
-        if mod_shift:
+        if shift:
             if not self.hasSelection():
                 self.selection_start = self.cursor.copy()
             self.cursor_movement(key)
@@ -1043,23 +1047,30 @@ class TreeManager(object):
         selection_start, selection_end = sorted(
             [self.selection_start, self.selection_end])
 
-        if key == 'left':
+        if key.left:
             self.cursor = selection_start.copy()
-        elif key == 'right':
+        elif key.right:
             self.cursor = selection_end.copy()
-        elif key == 'up':
+        elif key.up:
             self.cursor = selection_start.copy()
-            self.cursor_movement('up')
-        elif key == 'down':
+            self.cursor_movement(key)
+        elif key.down:
             self.cursor = selection_end.copy()
-            self.cursor_movement('down')
+            self.cursor_movement(key)
 
-    def ctrl_cursor(self, key):
-        self.log_input("key_escape", repr(key))
-        if key == "left":
+    def ctrl_cursor(self, key, shift=False):
+        self.log_input("key_escape", arrow_keys[key.key])
+
+        if shift and not self.hasSelection():
+            self.start_new_selection()
+
+        if key.left:
             self.cursor.jump_left()
-        if key == "right":
+        elif key.right:
             self.cursor.jump_right()
+
+        if shift:
+            self.selection_end = self.cursor.copy()
 
     def doubleclick_select(self):
         self.selection_start = self.cursor.copy()
@@ -1349,13 +1360,13 @@ class TreeManager(object):
     def cursor_movement(self, key):
         cur = self.cursor
 
-        if key == "up":
+        if key.up:
             self.cursor.up(self.lines)
-        elif key == "down":
+        elif key.down:
             self.cursor.down(self.lines)
-        elif key == "left":
+        elif key.left:
             self.cursor.left()
-        elif key == "right":
+        elif key.right:
             self.cursor.right()
         #self.fix_cursor_on_image() #XXX refactor (obsolete after refactoring cursor)
 
