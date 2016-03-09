@@ -765,8 +765,8 @@ class Window(QtGui.QMainWindow):
             dest = args[1]
             self.cli_export(source, dest, True)
         if len(args) > 0:
-            f = args[0]
-            self.openfile(QString(f))
+            for f in args:
+                self.openfile(QString(f))
 
         if options.log.upper() in ["INFO", "WARNING", "ERROR", "DEBUG"]:
             loglevel=getattr(logging, options.log.upper())
