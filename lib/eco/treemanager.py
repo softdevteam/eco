@@ -1018,7 +1018,6 @@ class TreeManager(object):
                 self.selection_start = self.cursor.copy()
             self.cursor_movement(key)
             self.selection_end = self.cursor.copy()
-
         else:
             if self.hasSelection():
                 self.jump_cursor_within_selection(key)
