@@ -1021,6 +1021,15 @@ class TreeManager(object):
         if key == "right":
             self.cursor.jump_right()
 
+    def doubleclick_select(self):
+        self.selection_start = self.cursor.copy()
+        self.selection_start.node = self.cursor.find_previous_visible(self.cursor.node)
+        self.selection_start.pos = len(self.selection_start.node.symbol.name)
+        self.selection_end = self.cursor.copy()
+        self.selection_end.pos = len(self.selection_end.node.symbol.name)
+        self.cursor.pos = self.selection_end.pos
+        self.cursor.node = self.selection_end.node
+
     def unselect(self):
             self.selection_start = self.cursor.copy()
             self.selection_end = self.cursor.copy()
@@ -1200,11 +1209,11 @@ class TreeManager(object):
         self.log_input("pasteText", repr(str(text)))
         self.tool_data_is_dirty = True
         oldpos = self.cursor.get_x()
-        node = self.get_node_from_cursor()
-        next_node = node.next_term
 
         if self.hasSelection():
             self.deleteSelection()
+
+        node = self.get_node_from_cursor()
 
         text = text.replace("\r\n","\r")
         text = text.replace("\n","\r")

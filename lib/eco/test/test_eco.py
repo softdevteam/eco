@@ -673,6 +673,36 @@ class Test_Bugs(Test_Python):
             self.treemanager.key_normal(c)
         assert self.parser.last_status == True
 
+    def test_select_and_paste(self):
+        self.reset()
+        source = "pass"
+        for c in source:
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
+
+        self.treemanager.key_end()
+        self.treemanager.key_shift()
+        self.treemanager.key_cursors("left", True)
+        self.treemanager.key_cursors("left", True)
+        self.treemanager.key_cursors("left", True)
+        self.treemanager.key_cursors("left", True)
+        self.treemanager.pasteText("back")
+        assert self.treemanager.export_as_text() == "back"
+
+        self.treemanager.key_home()
+        self.treemanager.key_shift()
+        self.treemanager.key_cursors("right", True)
+        self.treemanager.key_cursors("right", True)
+        self.treemanager.key_cursors("right", True)
+        self.treemanager.key_cursors("right", True)
+        self.treemanager.pasteText("again")
+        assert self.treemanager.export_as_text() == "again"
+
+        self.move("left", 2)
+        self.treemanager.doubleclick_select()
+        self.treemanager.pasteText("test")
+        assert self.treemanager.export_as_text() == "test"
+
 class Test_Indentation(Test_Python):
 
     def test_indentation(self):
