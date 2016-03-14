@@ -996,8 +996,6 @@ class TreeManager(object):
 
     def key_shift(self):
         self.log_input("key_shift")
-        self.selection_start = self.cursor.copy()
-        self.selection_end = self.cursor.copy()
 
     def key_escape(self):
         self.log_input("key_escape")
@@ -1008,11 +1006,53 @@ class TreeManager(object):
     def key_cursors(self, key, mod_shift=False):
         self.log_input("key_cursors", repr(key), str(mod_shift))
         self.edit_rightnode = False
-        self.cursor_movement(key)
+
+        # Four possible cases:
+        # no   shift, no   selection -> normal movement of cursor
+        # no   shift, with selection -> jump cursor w.r.t selection
+        # with shift, no   selection -> start new selection, modify selection
+        # with shift, with selection -> modify selection
+
         if mod_shift:
+            if not self.hasSelection():
+                self.selection_start = self.cursor.copy()
+            self.cursor_movement(key)
             self.selection_end = self.cursor.copy()
         else:
+            if self.hasSelection():
+                self.jump_cursor_within_selection(key)
+            else:
+                self.cursor_movement(key)
             self.unselect()
+
+    def jump_cursor_within_selection(self, key):
+        '''
+            Jump cursor with respect to text selection.
+
+            There are 4*2 = 8 different cases, with four different
+            arrow keys and two selection directions.
+
+            Note: The start of the selection does not equal the left end
+                  of the selection in right-to-left selections.
+
+            * LEFT:  Jump to left end of selection.
+            * RIGHT: Jump to right end of selection.
+            * UP:    Jump one line upwards w.r.t. left end of selection.
+            * DOWN:  Jump one line downwards w.r.t. right end of selection.
+        '''
+        selection_start, selection_end = sorted(
+            [self.selection_start, self.selection_end])
+
+        if key == 'left':
+            self.cursor = selection_start.copy()
+        elif key == 'right':
+            self.cursor = selection_end.copy()
+        elif key == 'up':
+            self.cursor = selection_start.copy()
+            self.cursor_movement('up')
+        elif key == 'down':
+            self.cursor = selection_end.copy()
+            self.cursor_movement('down')
 
     def ctrl_cursor(self, key):
         self.log_input("key_escape", repr(key))
@@ -1031,8 +1071,8 @@ class TreeManager(object):
         self.cursor.node = self.selection_end.node
 
     def unselect(self):
-            self.selection_start = self.cursor.copy()
-            self.selection_end = self.cursor.copy()
+        self.selection_start = self.cursor.copy()
+        self.selection_end = self.cursor.copy()
 
     def add_languagebox(self, language):
         if isinstance(language, str):
