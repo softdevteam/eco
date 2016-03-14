@@ -996,8 +996,6 @@ class TreeManager(object):
 
     def key_shift(self):
         self.log_input("key_shift")
-        self.selection_start = self.cursor.copy()
-        self.selection_end = self.cursor.copy()
 
     def key_escape(self):
         self.log_input("key_escape")
