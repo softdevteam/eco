@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+"""
+    Simple script to rewrite Qt ui files to change shortcut bindings.
+"""
+
+import json
+
+from lxml import etree
+import click
+
+
+def substitute(tree, name, shortcut):
+    query = ('//action[@name="{name}"]'.format(name=name)
+             + '/property[@name="shortcut"]/string')
+    result = tree.xpath(query)
+    if result:
+        result[0].text = shortcut
+
+
+@click.command()
+@click.argument('input', type=click.File('rb'))
+@click.argument('output', type=click.File('wb'))
+@click.option('--rules', '-r', type=click.File('rb'), required=True)
+def cli(input, output, rules):
+    tree = etree.parse(input)
+    ruleset = json.load(rules)
+    for name, shortcut in ruleset.items():
+        substitute(tree, name, shortcut)
+    tree.write(output, encoding='UTF-8', xml_declaration=True)
+    output.write('\n')
+
+
+if __name__ == '__main__':
+    cli()
