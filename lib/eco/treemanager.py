@@ -996,8 +996,6 @@ class TreeManager(object):
 
     def key_shift(self):
         self.log_input("key_shift")
-        self.selection_start = self.cursor.copy()
-        self.selection_end = self.cursor.copy()
 
     def key_escape(self):
         self.log_input("key_escape")
@@ -1008,17 +1006,27 @@ class TreeManager(object):
     def key_cursors(self, key, mod_shift=False):
         self.log_input("key_cursors", repr(key), str(mod_shift))
         self.edit_rightnode = False
+
+        # Four possible cases:
+        # no   shift, no   selection -> normal movement of cursor
+        # no   shift, with selection -> jump cursor w.r.t selection
+        # with shift, no   selection -> start new selection, modify selection
+        # with shift, with selection -> modify selection
+
         if mod_shift:
+            if not self.hasSelection():
+                self.selection_start = self.cursor.copy()
             self.cursor_movement(key)
             self.selection_end = self.cursor.copy()
+
         else:
             if self.hasSelection():
-                self.key_cursors_on_selection(key)
+                self.jump_cursor_within_selection(key)
             else:
                 self.cursor_movement(key)
             self.unselect()
 
-    def key_cursors_on_selection(self, key):
+    def jump_cursor_within_selection(self, key):
         '''
             Jump cursor with respect to text selection.
 
