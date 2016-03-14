@@ -641,13 +641,7 @@ class NodeEditor(QFrame):
                 self.update()
                 return
             elif node.image is None:
-                self.tm.selection_start = self.tm.cursor.copy()
-                self.tm.selection_start.node = self.tm.cursor.find_previous_visible(self.tm.cursor.node)
-                self.tm.selection_start.pos = len(self.tm.selection_start.node.symbol.name)
-                self.tm.selection_end = self.tm.cursor.copy()
-                self.tm.selection_end.pos = len(self.tm.selection_end.node.symbol.name)
-                self.tm.cursor.pos = self.tm.selection_end.pos
-                self.tm.cursor.node = self.tm.selection_end.node
+                self.tm.doubleclick_select()
                 self.update()
                 return
 
