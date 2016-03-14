@@ -572,9 +572,13 @@ class NodeEditor(QFrame):
     def draw_selection(self, paint, draw_selection_start, draw_selection_end, max_y):
         x1, y1, line1 = draw_selection_start
         x2, y2, line2 = draw_selection_end
+        start = min(self.tm.selection_start, self.tm.selection_end)
+        end = max(self.tm.selection_start, self.tm.selection_end)
         if x1 + y1 + line1 + x2 + y2 + line2 == 0:
             # everything out of viewport, draw nothing
-            return
+            # unless start and end are on opposite sides of the viewport
+            if not(start.line <= self.paint_start[0] and end.line >= self.paint_start[0] + max_y):
+                    return
         if x1 + y1 + line1 == 0:
             # start outside of viewport
             line1 = self.paint_start[0]
@@ -585,7 +589,8 @@ class NodeEditor(QFrame):
         if y1 == y2:
             paint.fillRect(QRectF(x1, 3 + y1 * self.fontht, x2-x1, self.fontht), QColor(0,0,255,100))
         else:
-            paint.fillRect(QRectF(x1, 3 + y1 * self.fontht, self.tm.lines[line1].width*self.fontwt - x1, self.fontht), QColor(0,0,255,100))
+            width = max(self.fontwt, self.tm.lines[line1].width*self.fontwt)
+            paint.fillRect(QRectF(x1, 3 + y1 * self.fontht, width - x1, self.fontht), QColor(0,0,255,100))
             y = y1 + self.tm.lines[line1].height
             for i in range(line1+1, line2):
                 width = self.tm.lines[i].width*self.fontwt

@@ -4,17 +4,17 @@ import sys
 from PyQt4.QtCore import Qt
 
 arrow_keys = {
-    Qt.Key_Up: 'up',
-    Qt.Key_Down: 'down',
-    Qt.Key_Left: 'left',
-    Qt.Key_Right: 'right'
+    Qt.Key_Up: "up",
+    Qt.Key_Down: "down",
+    Qt.Key_Left: "left",
+    Qt.Key_Right: "right"
 }
 
 reversed_arrow_keys = {
-    'up': Qt.Key_Up,
-    'down': Qt.Key_Down,
-    'left': Qt.Key_Left,
-    'right': Qt.Key_Right
+    "up": Qt.Key_Up,
+    "down": Qt.Key_Down,
+    "left": Qt.Key_Left,
+    "right": Qt.Key_Right
 }
 
 modifier_keys = set([Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Control, Qt.Key_Meta, Qt.Key_AltGr])
@@ -135,7 +135,7 @@ class OSXKeyPress(BaseKeyPress):
     jump_word = m_alt
 
 
-if sys.platform == 'darwin':
+if sys.platform == "darwin":
     KeyPress = OSXKeyPress
 else:
     KeyPress = BaseKeyPress
@@ -148,17 +148,17 @@ class MockedKeyPress(KeyPress):
 
     @property
     def m_shift(self):
-        return 'shift' in self.modifiers
+        return "shift" in self.modifiers
 
     @property
     def m_control(self):
-        return 'control' in self.modifiers
+        return "control" in self.modifiers
 
     @property
     def m_alt(self):
-        return 'alt' in self.modifiers
+        return "alt" in self.modifiers
 
-KEY_LEFT = MockedKeyPress(reversed_arrow_keys['left'])
-KEY_RIGHT = MockedKeyPress(reversed_arrow_keys['right'])
-KEY_UP = MockedKeyPress(reversed_arrow_keys['up'])
-KEY_DOWN = MockedKeyPress(reversed_arrow_keys['down'])
+KEY_LEFT = MockedKeyPress(reversed_arrow_keys["left"])
+KEY_RIGHT = MockedKeyPress(reversed_arrow_keys["right"])
+KEY_UP = MockedKeyPress(reversed_arrow_keys["up"])
+KEY_DOWN = MockedKeyPress(reversed_arrow_keys["down"])

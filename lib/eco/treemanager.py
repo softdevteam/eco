@@ -1030,7 +1030,7 @@ class TreeManager(object):
             self.unselect()
 
     def jump_cursor_within_selection(self, key):
-        '''
+        """
             Jump cursor with respect to text selection.
 
             There are 4*2 = 8 different cases, with four different
@@ -1043,7 +1043,7 @@ class TreeManager(object):
             * RIGHT: Jump to right end of selection.
             * UP:    Jump one line upwards w.r.t. left end of selection.
             * DOWN:  Jump one line downwards w.r.t. right end of selection.
-        '''
+        """
         selection_start, selection_end = sorted(
             [self.selection_start, self.selection_end])
 
@@ -1080,6 +1080,14 @@ class TreeManager(object):
         self.selection_end.pos = len(self.selection_end.node.symbol.name)
         self.cursor.pos = self.selection_end.pos
         self.cursor.node = self.selection_end.node
+
+    def select_all(self):
+        self.selection_start = Cursor(self.get_bos(), -1, 0)
+        self.cursor.node = self.get_eos()
+        self.cursor.jump_left() # for now ignore invisible nodes
+        self.cursor.pos = len(self.cursor.node.symbol.name)
+        self.cursor.line = len(self.lines) - 1
+        self.selection_end = self.cursor.copy()
 
     def unselect(self):
         self.selection_start = self.cursor.copy()
