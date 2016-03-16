@@ -110,12 +110,9 @@ class Viewer(object):
                 label.append("?")
             else:
                 label.append(str(node.lookup))
-        if node.indent:
+        if not ast and node.indent:
             label.append("\n")
             label.append(repr(node.indent))
-        if node.parent:
-            label.append("\n")
-            label.append("parent: " + str(node.parent.symbol.name))
         label = "%s" % ("".join(label))
         label = label.replace("\"", "\\\"")
         label = label.replace("\\\\\"", "\\\\\\\"")
