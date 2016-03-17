@@ -630,6 +630,11 @@ class Window(QtGui.QMainWindow):
         if not settings.value("gen_showparsestatus", True).toBool():
             self.ui.dockWidget_2.hide()
 
+        # hardcoded key bindings for OS X
+        if sys.platform == "darwin":
+            self.ui.actionFind_next.setShortcut("Ctrl+G")
+            self.ui.actionCode_complete.setShortcut("Meta+Space")
+
     def set_profiler_enabled(self):
         ed = self.getEditor()
         if (ed is not None) and (ed.tm is not None):
