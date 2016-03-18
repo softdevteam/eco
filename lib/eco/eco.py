@@ -1329,6 +1329,8 @@ class ProfileThread(QThread):
             text = p.stdout.read()
             self.emit(self.signal, text.strip())
             self.emit(self.signal_overlay, self.window.getEditor().tm.profile_data)
+        else:
+            self.emit(self.signal_overlay, None)
         self.emit(self.signal_done, None)
 
 
