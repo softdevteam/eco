@@ -133,6 +133,7 @@ sql = EcoFile("SQL", "grammars/sql.eco", "Sql")
 img = EcoFile("Image", "grammars/img.eco", "Image")
 chemical = EcoFile("Chemicals", "grammars/chemicals.eco", "Chemicals")
 php = EcoFile("PHP", "grammars/php.eco", "Php")
+javascript = EcoFile("JavaScript", "grammars/javascript.eco", "JavaScript")
 
 # extensions
 pythonprolog = EcoFile("Python + Prolog", "grammars/python275.eco", "Python")
@@ -176,8 +177,8 @@ ruby = EcoFile("Ruby", "grammars/ruby.eco", "Ruby")
 rubysl = EcoFile("Ruby + SimpleLanguage", "grammars/ruby.eco", "Ruby")
 rubysl.add_alternative("top_stmt", simplelang)
 
-languages = [calc, java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar, python_expr, ipython, pythonipython, simplelang, ruby, rubysl]
-newfile_langs = [java, javasqlchemical, php, phppython, python, pythonhtmlsql, pythonprolog, prolog, sql, html, htmlpythonsql, pythonipython, calc, ruby, simplelang, rubysl]
+languages = [calc, java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar, python_expr, ipython, pythonipython, simplelang, ruby, rubysl, javascript]
+newfile_langs = [java, javasqlchemical, php, phppython, python, pythonhtmlsql, pythonprolog, prolog, sql, html, htmlpythonsql, pythonipython, calc, ruby, simplelang, rubysl, javascript]
 submenu_langs = [java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, python_expr, prolog, sql, sql_ref_java, html, htmlpythonsql, img, chemical, ipython, ruby, simplelang, rubysl]
 
 lang_dict = {}
