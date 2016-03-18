@@ -105,6 +105,9 @@ class PythonHighlighter(SyntaxHighlighter):
         "<ws>": "grey",
         "object": "blue",
         "NUMBER": "cyan",
+        "HEX": "cyan",
+        "OCTAL": "cyan",
+        "BINARY": "cyan",
         "STRING": "cyan",
         "range":"blue",
         "list":"blue",
@@ -151,7 +154,7 @@ class JavaHighlighter(SyntaxHighlighter):
         "void": "bold",
         "int": "bold"
     }
-    
+
 class JavaScriptHighlighter(SyntaxHighlighter):
     keyword_colors = {
         "var": "yellow",
@@ -164,9 +167,12 @@ class JavaScriptHighlighter(SyntaxHighlighter):
         "break": "red",
         "delete": "red",
         "function": "cyan",
-        "string": "purple",
-        "decimal": "purple",
-        "bool": "purple",
+        "float": "purple",
+        "hex": "purple",
+        "octal": "purple",
+        "binary": "purple",
+        "true": "purple",
+        "false": "purple",
     }
 
     parent_colors = {
