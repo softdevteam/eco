@@ -36,7 +36,7 @@ from jsonmanager import JsonManager
 from astanalyser import AstAnalyser
 
 from overlay import Overlay
-from incparser.annotation import Footnote, Heatmap, ToolTip
+from incparser.annotation import Footnote, Heatmap, Railroad, ToolTip
 
 import syntaxhighlighter
 import editor
@@ -212,7 +212,8 @@ class NodeEditor(QFrame):
         self.scroll_width = max(0, max_width - current_width)
 
     def paintEvent(self, event):
-        # Clear data in the heatmap overlay
+        # Clear data in the visualisation overlay
+        self.overlay.clear_data()
         self.overlay.clear_data()
 
         gfont = QApplication.instance().gfont
@@ -404,10 +405,13 @@ class NodeEditor(QFrame):
             #y += dy
             self.lines[line].height = max(self.lines[line].height, dy)
 
-            # Draw footnotes and add data to heatmap.
+            # Draw footnotes and add data to overlay.
             annotes = [annote.annotation for annote in node.get_annotations_with_hint(Heatmap)]
             for annote in annotes:
-                self.overlay.add_datum(line + 1, annote)
+                self.overlay.add_heatmap_datum(line + 1, annote)
+            annotes = [annote.annotation for annote in node.get_annotations_with_hint(Railroad)]
+            for annote in annotes:
+                self.overlay.add_railroad_datum(annote)
             if self.show_tool_visualisations:
                 # Draw footnotes.
                 infofont = QApplication.instance().tool_info_font

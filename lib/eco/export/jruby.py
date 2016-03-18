@@ -4,7 +4,7 @@ import os.path
 import tempfile
 import subprocess
 
-from incparser.annotation import Annotation, ToolTip, Footnote
+from incparser.annotation import Annotation, ToolTip, Railroad
 
 from incparser.astree import EOS
 from grammar_parser.gparser import MagicTerminal, IndentationTerminal
@@ -12,10 +12,20 @@ from grammar_parser.gparser import MagicTerminal, IndentationTerminal
 from PyQt4.QtCore import QSettings
 
 
+class JRubyMorphismLine(Annotation):
+
+    def __init__(self, annotation):
+        self._hints = [Railroad()]
+        super(JRubyMorphismLine, self).__init__(annotation)
+
+    def get_hints(self):
+        return self._hints
+
+
 class JRubyMorphismMsg(Annotation):
 
     def __init__(self, annotation):
-        self._hints = [ToolTip(), Footnote()]
+        self._hints = [ToolTip()]
         super(JRubyMorphismMsg, self).__init__(annotation)
 
     def get_hints(self):
@@ -173,23 +183,6 @@ class JRubyExporter(object):
                                 stderr=subprocess.STDOUT,
                                 bufsize=0)
 
-    def _annotate_line(self, lineno, annotation):
-        """Annotate the first non-whitespace node on a given line.
-        FIXME: Should handle case where line (and all subsequent lines) have
-        already been deleted by the user.
-        """
-        try:
-            temp_cursor = self.tm.cursor.copy()
-            temp_cursor.line = lineno - 1
-            temp_cursor.move_to_x(0, self.tm.lines)
-            node = temp_cursor.find_next_visible(temp_cursor.node)
-            if node.lookup == '<ws>':
-                node = node.next_term
-            node.remove_annotations_by_class(JRubyMorphismMsg)
-            node.add_annotation(JRubyMorphismMsg(annotation))
-        except ValueError:
-            pass
-
     def _annotate_text(self, lineno, text, annotation):
         """Annotate a node on a given line with a given symbol name.
         FIXME: Should handle case where line (and all subsequent lines) have
@@ -206,8 +199,12 @@ class JRubyExporter(object):
                 node = node.next_term
                 if isinstance(node, EOS):
                     raise ValueError('EOS')
-            node.remove_annotations_by_class(JRubyMorphismMsg)
-            node.add_annotation(JRubyMorphismMsg(annotation))
+            if isinstance(annotation, basestring):
+                node.remove_annotations_by_class(JRubyMorphismMsg)
+                node.add_annotation(JRubyMorphismMsg(annotation))
+            else:
+                node.remove_annotations_by_class(JRubyMorphismLine)
+                node.add_annotation(JRubyMorphismLine(annotation))
         except ValueError:
             pass
 
@@ -325,7 +322,34 @@ class JRubyExporter(object):
                         else:
                             cmsg = ('Call to %s defined on line %g.' %
                                     (method.name, method.source.line_start))
-                        self._annotate_line(callsite_version.callsite.line, cmsg)
+                        self._annotate_text(callsite_version.callsite.line, method.name, cmsg)
+
+                        # Information for railroad diagram.
+                        temp_cursor = self.tm.cursor.copy()
+                        self.tm.cursor.line = method.source.line_start - 1  # Line 9, first definition
+                        self.tm.cursor.move_to_x(0, self.tm.lines)
+                        self.tm.key_end()
+                        method_defn_x = self.tm.cursor.get_x()
+                        max_x = method_defn_x
+                        while self.tm.cursor.line < callsite_version.callsite.line - 1:
+                            self.tm.cursor.down(self.tm.lines)
+                            self.tm.key_end()
+                            max_x = max(max_x, self.tm.cursor.get_x())
+                        else:
+                            call_x = self.tm.cursor.get_x()
+
+                        self.tm.cursor = temp_cursor # Restore cursor
+
+                        if callsite_version.callsite.line > 0:
+                            rr = { method.name :
+                                     {   'definition' : (method.source.line_start, method_defn_x),
+                                         'calls' : set(((callsite_version.callsite.line, call_x),)),
+                                         'max_x' : max_x
+                                     }
+                                 }
+                            self._annotate_text(callsite_version.callsite.line,
+                                                method.name, rr)
+
                         num_calls += 1
                 if method.is_mega:
                     dmsg = ('Method %s is megamorphic. %s has %g versions and %g callsite versions and is called %g times' %
@@ -340,4 +364,4 @@ class JRubyExporter(object):
                              len(method.versions),
                              len(method.callsites),
                              num_calls))
-                self._annotate_line(method.source.line_start, dmsg)
+                self._annotate_text(method.source.line_start, method.name, dmsg)
