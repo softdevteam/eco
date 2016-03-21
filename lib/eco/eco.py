@@ -924,6 +924,7 @@ class Window(QtGui.QMainWindow):
         text = QApplication.clipboard().text()
         self.getEditor().tm.pasteText(text)
         self.getEditor().update()
+        self.btReparse([])
 
     def show_input_log(self):
         if self.getEditor():
