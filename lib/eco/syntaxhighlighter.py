@@ -167,6 +167,7 @@ class JavaScriptHighlighter(SyntaxHighlighter):
         "string": "purple",
         "decimal": "purple",
         "bool": "purple",
+        "regex": "purple",
     }
 
     parent_colors = {
