@@ -126,6 +126,18 @@ class Cursor(object):
             if node.image and not node.plain_mode:
                 self.pos = len(node.symbol.name)
 
+    def jump_to(self, other):
+        """Apply other attributes to self.
+
+        This ensures that the history is not lost.
+        `self.cursor = other.copy()` becomes
+        `self.cursor.jump_to(other)`.
+        """
+
+        self.node = other.node
+        self.pos = other.pos
+        self.line = other.line
+
     def jump_left(self):
         self.node = self.find_previous_visible(self.node)
         self.pos = len(self.node.symbol.name)
@@ -1048,14 +1060,14 @@ class TreeManager(object):
             [self.selection_start, self.selection_end])
 
         if key.left:
-            self.cursor = selection_start.copy()
+            self.cursor.jump_to(selection_start)
         elif key.right:
-            self.cursor = selection_end.copy()
+            self.cursor.jump_to(selection_end)
         elif key.up:
-            self.cursor = selection_start.copy()
+            self.cursor.jump_to(selection_start)
             self.cursor_movement(key)
         elif key.down:
-            self.cursor = selection_end.copy()
+            self.cursor.jump_to(selection_end)
             self.cursor_movement(key)
 
     def ctrl_cursor(self, key, shift=False):
