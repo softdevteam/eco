@@ -39,7 +39,7 @@ class SyntaxHighlighter(object):
         "green": "#B8BB26",
         "yellow": "#FABD2F",
         "blue": "#83A598",
-        "purple": "#83A598",
+        "purple": "#A791B6",
         "cyan": "#8EC07C",
         "grey": "#A89984",
     }
@@ -184,10 +184,20 @@ class JavaScriptHighlighter(SyntaxHighlighter):
 class SqlHighlighter(SyntaxHighlighter):
     keyword_colors = {
         "SELECT": "yellow",
-        "FROM": "purple",
-        "WHERE": "purple",
-        "INTNUM": "red",
-        "STRING": "red",
+        "FROM": "yellow",
+        "WHERE": "yellow",
+        "JOIN": "yellow",
+        "INNER": "yellow",
+        "OUTER": "yellow",
+        "NATURAL": "yellow",
+        "LEFT": "yellow",
+        "RIGHT": "yellow",
+        "ON": "yellow",
+        "BETWEEN": "yellow",
+        "INT_LITERAL": "red",
+        "STRING_LITERAL": "cyan",
+        # "IDENTIFIER": "blue",
+        "QUOTED_IDENTIFIER": "purple",
     }
 
 class PrologHighlighter(SyntaxHighlighter):
