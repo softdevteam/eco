@@ -322,7 +322,8 @@ class JRubyExporter(object):
                                             method.name, cmsg, JRubyMorphismMsg)
                         if callsite_version.callsite.line > 0:
                             self._annotate_text(callsite_version.callsite.line,
-                                                method.name, method.name,
+                                                method.name,
+                                                { method.name : method.is_mega },
                                                 JRubyMorphismLine)
                         num_calls += 1
                 if method.is_mega:
