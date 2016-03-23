@@ -151,10 +151,6 @@ class NodeEditor(QFrame):
 
     def event(self, event):
         if event.type() == QEvent.ToolTip:
-            if QToolTip.isVisible():
-                QToolTip.hideText()
-                event.ignore()
-                return True
             pos = event.pos()
             temp_cursor = self.tm.cursor.copy()
             result = self.coordinate_to_cursor(pos.x(), pos.y())
@@ -163,12 +159,14 @@ class NodeEditor(QFrame):
             self.tm.cursor.node = temp_cursor.node
             self.tm.cursor.pos = temp_cursor.pos
             if not result:
+                QToolTip.hideText()
                 event.ignore()
                 return True
             # Draw errors, if there are any.
             msg = self.tm.get_error(node)
             if msg:
                 QToolTip.showText(event.globalPos(), msg)
+                return True
             # Draw annotations if there are any.
             elif self.show_tool_visualisations:
                 annotes = [annote.annotation for annote in node.get_annotations_with_hint(ToolTip)]
@@ -177,6 +175,9 @@ class NodeEditor(QFrame):
                     if self.tm.tool_data_is_dirty:
                         msg += "\n[Warning: Information may be out of date.]"
                     QToolTip.showText(event.globalPos(), msg)
+                    return True
+            QToolTip.hideText()
+            event.ignore()
             return True
         return QFrame.event(self, event)
 
