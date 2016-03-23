@@ -128,6 +128,8 @@ class Cursor(object):
 
     def jump_left(self):
         self.node = self.find_previous_visible(self.node)
+        if self.node.symbol.name == "\r":
+            self.line -= 1
         self.pos = len(self.node.symbol.name)
 
     def jump_right(self):
@@ -135,6 +137,8 @@ class Cursor(object):
         if self.inside() or isinstance(node, EOS):
             self.pos = len(self.node.symbol.name)
             return
+        if node.symbol.name == "\r":
+            self.line += 1
         self.node = node
         self.pos = len(self.node.symbol.name)
 
