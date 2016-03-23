@@ -1,6 +1,7 @@
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
+from incparser.astree import EOS
 from colorsys import hsv_to_rgb
 
 import random
@@ -24,16 +25,15 @@ class Overlay(QWidget):
         palette.setColor(palette.Background, Qt.transparent)
         self.setPalette(palette)
 
+        # Link to the current treemanager object. Set in eco.py when the
+        # current tab is changed.
+        self.tm = None
+
         # line no -> normalised float in [0.0, 1.0]
         self._heatmap_data = dict()
 
-        # { method_name :
-        #     { 'definition' : (line_no, char_no),
-        #        'calls' : [ (line_no, char_no) ],
-        #        'max_x' : max_char_no
-        #     }
-        # }
-        self._railroad_data = dict()
+        # Set of method / function names.
+        self._railroad_data = set()
 
         # Generate a list of random colours. Seeded so that the user
         # sees the same colours on each invocation of Eco.
@@ -49,17 +49,11 @@ class Overlay(QWidget):
         self._heatmap_data[lineno] = datum
 
     def add_railroad_datum(self, datum):
-        for method in datum:  # Should only be one method per annotation.
-            if method in self._railroad_data:
-                self._railroad_data[method]['calls'] = self._railroad_data[method]['calls'].union(datum[method]['calls'])
-                self._railroad_data[method]['max_x'] = max(datum[method]['max_x'],
-                                                           self._railroad_data[method]['max_x'])
-            else:
-                self._railroad_data[method] = datum[method]
+        self._railroad_data.add(datum)
 
     def clear_data(self):
         self._heatmap_data = dict()
-        self._railroad_data = dict()
+        self._railroad_data = set()
 
     def get_heatmap_colour(self, value):
         """Map a normalised value [0.0, 0.1] to a QColor.
@@ -105,19 +99,52 @@ class Overlay(QWidget):
         def get_rhs_of_hline(nchars):
             return ((nchars + HOFFSET) * gfont.fontwt) + SPACING
 
-        # Compute lines (and their colours).
+        # Translate the method names in self._railroad_data into line and char
+        # numbers. railroad_data will look like this:
+        #     { method_name : { 'definition': (line_no, char_no),
+        #                       'calls': set((line_no, char_no), ...),
+        #                        'max_x': <int> }
+        #     }
+        railroad_data = dict()
         for method_name in self._railroad_data:
+            railroad_data[method_name] = { 'definition': None,
+                                           'calls': set(),
+                                           'max_x': 0 }
+        temp_cursor = self.tm.cursor.copy()  # Save cursor to restore later.
+        self.tm.cursor.line = 0  # Start at beginning of syntax tree.
+        self.tm.cursor.move_to_x(0, self.tm.lines)
+        while not (isinstance(self.tm.cursor.node, EOS) or
+                   isinstance(self.tm.cursor.node.next_term, EOS)):
+            if self.tm.cursor.node.symbol.name in self._railroad_data:
+                method = self.tm.cursor.node.symbol.name
+                saved_x = self.tm.cursor.get_x()
+                self.tm.key_end()
+                location = (self.tm.cursor.line + 1, self.tm.cursor.get_x())
+                self.tm.cursor.move_to_x(saved_x, self.tm.lines)
+                # Assume the first occurrence of the method is its definition.
+                if railroad_data[method]['definition'] is None:
+                    railroad_data[method]['definition'] = location
+                elif railroad_data[method]['definition'] is not None:
+                    railroad_data[method]['calls'].add(location)
+                max_x = max(railroad_data[method]['max_x'],
+                            location[1])
+                railroad_data[method]['max_x'] = max_x
+            self.tm.cursor.jump_right()
+        self.tm.cursor = temp_cursor # Restore cursor.
+
+        # Compute lines (and their colours).
+        for method_name in railroad_data:
             col += 1
             colour = self._random_colours[col]
             qlines[colour] = list()
-            method = self._railroad_data[method_name]
+            method = railroad_data[method_name]
             def_line = QLine((gfont.fontwt * method['definition'][1]) + SPACING,
                              (gfont.fontht * method['definition'][0]) + VOFFSET,
                              get_rhs_of_hline(method['max_x']),
                              (gfont.fontht * method['definition'][0]) + VOFFSET)
             qlines[colour].append(def_line)
             last_line = -1
-            for call in self._railroad_data[method_name]['calls']:
+            for call in railroad_data[method_name]['calls']:
                 c_line = QLine((gfont.fontwt * call[1]) + SPACING,
                                (gfont.fontht * call[0]) + VOFFSET,
                                get_rhs_of_hline(method['max_x']),
