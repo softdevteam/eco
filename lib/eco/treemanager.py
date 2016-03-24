@@ -1323,7 +1323,6 @@ class TreeManager(object):
             text = self.copySelection()
             self.input_log.pop()
             self.deleteSelection()
-            self.changed = True
             return text
 
     def deleteSelection(self):
@@ -1361,7 +1360,8 @@ class TreeManager(object):
                 continue
             repair_node = repair_node.next_term
             break
-        self.relex(repair_node)
+
+        self.reparse(repair_node)
         cur_start = min(self.selection_start, self.selection_end)
         cur_end = max(self.selection_start, self.selection_end)
         self.cursor.node = cur_start.node
