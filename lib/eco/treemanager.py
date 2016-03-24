@@ -1372,6 +1372,7 @@ class TreeManager(object):
         self.selection_start = self.cursor.copy()
         self.selection_end = self.cursor.copy()
         self.changed = True
+        self.reparse(nodes[-1])
 
     def delete_if_empty(self, node):
         if node.symbol.name == "":

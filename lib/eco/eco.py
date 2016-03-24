@@ -925,6 +925,7 @@ class Window(QtGui.QMainWindow):
         text = QApplication.clipboard().text()
         self.getEditor().tm.pasteText(text)
         self.getEditor().update()
+        self.btReparse([])
 
     def select_all(self):
         editor = self.getEditor()
