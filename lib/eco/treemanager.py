@@ -30,6 +30,7 @@ from export import HTMLPythonSQL, PHPPython, ATerms
 from export.jruby_simple_language import JRubySimpleLanguageExporter
 from export.simple_language import SimpleLanguageExporter
 from export.cpython import CPythonExporter
+from utils import arrow_keys, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT
 
 import math
 
@@ -124,6 +125,18 @@ class Cursor(object):
             self.pos = 1
             if node.image and not node.plain_mode:
                 self.pos = len(node.symbol.name)
+
+    def jump_to(self, other):
+        """Apply other attributes to self.
+
+        This ensures that the history is not lost.
+        `self.cursor = other.copy()` becomes
+        `self.cursor.jump_to(other)`.
+        """
+
+        self.node = other.node
+        self.pos = other.pos
+        self.line = other.line
 
     def jump_left(self):
         self.node = self.find_previous_visible(self.node)
@@ -994,10 +1007,11 @@ class TreeManager(object):
         self.reparse(repairnode, need_reparse)
         self.changed = True
 
+    def start_new_selection(self):
+        self.selection_start = self.cursor.copy()
+
     def key_shift(self):
         self.log_input("key_shift")
-        self.selection_start = self.cursor.copy()
-        self.selection_end = self.cursor.copy()
 
     def key_escape(self):
         self.log_input("key_escape")
@@ -1005,21 +1019,70 @@ class TreeManager(object):
         if node.plain_mode:
             node.plain_mode = False
 
-    def key_cursors(self, key, mod_shift=False):
-        self.log_input("key_cursors", repr(key), str(mod_shift))
+    def key_cursors(self, key, shift=False):
+        self.log_input("key_cursors", arrow_keys[key.key], str(shift))
         self.edit_rightnode = False
-        self.cursor_movement(key)
-        if mod_shift:
+
+        # Four possible cases:
+        # no   shift, no   selection -> normal movement of cursor
+        # no   shift, with selection -> jump cursor w.r.t selection
+        # with shift, no   selection -> start new selection, modify selection
+        # with shift, with selection -> modify selection
+
+        if shift:
+            if not self.hasSelection():
+                self.selection_start = self.cursor.copy()
+            self.cursor_movement(key)
             self.selection_end = self.cursor.copy()
         else:
+            if self.hasSelection():
+                self.jump_cursor_within_selection(key)
+            else:
+                self.cursor_movement(key)
             self.unselect()
 
-    def ctrl_cursor(self, key):
-        self.log_input("key_escape", repr(key))
-        if key == "left":
+    def jump_cursor_within_selection(self, key):
+        """
+            Jump cursor with respect to text selection.
+
+            There are 4*2 = 8 different cases, with four different
+            arrow keys and two selection directions.
+
+            Note: The start of the selection does not equal the left end
+                  of the selection in right-to-left selections.
+
+            * LEFT:  Jump to left end of selection.
+            * RIGHT: Jump to right end of selection.
+            * UP:    Jump one line upwards w.r.t. left end of selection.
+            * DOWN:  Jump one line downwards w.r.t. right end of selection.
+        """
+        selection_start, selection_end = sorted(
+            [self.selection_start, self.selection_end])
+
+        if key.left:
+            self.cursor.jump_to(selection_start)
+        elif key.right:
+            self.cursor.jump_to(selection_end)
+        elif key.up:
+            self.cursor.jump_to(selection_start)
+            self.cursor_movement(key)
+        elif key.down:
+            self.cursor.jump_to(selection_end)
+            self.cursor_movement(key)
+
+    def ctrl_cursor(self, key, shift=False):
+        self.log_input("key_escape", arrow_keys[key.key])
+
+        if shift and not self.hasSelection():
+            self.start_new_selection()
+
+        if key.left:
             self.cursor.jump_left()
-        if key == "right":
+        elif key.right:
             self.cursor.jump_right()
+
+        if shift:
+            self.selection_end = self.cursor.copy()
 
     def doubleclick_select(self):
         self.selection_start = self.cursor.copy()
@@ -1030,9 +1093,17 @@ class TreeManager(object):
         self.cursor.pos = self.selection_end.pos
         self.cursor.node = self.selection_end.node
 
+    def select_all(self):
+        self.selection_start = Cursor(self.get_bos(), -1, 0)
+        self.cursor.node = self.get_eos()
+        self.cursor.jump_left() # for now ignore invisible nodes
+        self.cursor.pos = len(self.cursor.node.symbol.name)
+        self.cursor.line = len(self.lines) - 1
+        self.selection_end = self.cursor.copy()
+
     def unselect(self):
-            self.selection_start = self.cursor.copy()
-            self.selection_end = self.cursor.copy()
+        self.selection_start = self.cursor.copy()
+        self.selection_end = self.cursor.copy()
 
     def add_languagebox(self, language):
         if isinstance(language, str):
@@ -1309,13 +1380,13 @@ class TreeManager(object):
     def cursor_movement(self, key):
         cur = self.cursor
 
-        if key == "up":
+        if key.up:
             self.cursor.up(self.lines)
-        elif key == "down":
+        elif key.down:
             self.cursor.down(self.lines)
-        elif key == "left":
+        elif key.left:
             self.cursor.left()
-        elif key == "right":
+        elif key.right:
             self.cursor.right()
         #self.fix_cursor_on_image() #XXX refactor (obsolete after refactoring cursor)
 

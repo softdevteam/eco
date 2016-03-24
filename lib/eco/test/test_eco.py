@@ -25,6 +25,7 @@ from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
 from incparser.astree import BOS, EOS
 from grammar_parser.gparser import MagicTerminal
+from utils import KEY_UP as UP, KEY_DOWN as DOWN, KEY_LEFT as LEFT, KEY_RIGHT as RIGHT
 
 from PyQt4 import QtCore
 
@@ -68,7 +69,7 @@ class Test_Typing:
     def test_cursormovement1(self):
         self.treemanager.key_home()
         assert isinstance(self.treemanager.cursor.node, BOS)
-        self.treemanager.cursor_movement("right")
+        self.treemanager.cursor_movement(RIGHT)
         assert self.treemanager.cursor.node.symbol.name == "1"
         self.treemanager.key_end()
         assert self.treemanager.cursor.node.symbol.name == "2"
@@ -87,11 +88,11 @@ class Test_Typing:
         assert self.treemanager.cursor.node.symbol.name == "5"
         self.treemanager.key_end()
         assert self.treemanager.cursor.node.symbol.name == "5"
-        self.treemanager.cursor_movement("up")
+        self.treemanager.cursor_movement(UP)
         assert self.treemanager.cursor.node.symbol.name == "2"
-        self.treemanager.cursor_movement("left")
+        self.treemanager.cursor_movement(LEFT)
         assert self.treemanager.cursor.node.symbol.name == "+"
-        self.treemanager.cursor_movement("down")
+        self.treemanager.cursor_movement(DOWN)
         assert self.treemanager.cursor.node.symbol.name == "+"
 
     def test_deletion(self):
@@ -102,7 +103,7 @@ class Test_Typing:
         assert self.treemanager.cursor.node.symbol.name == "+"
         self.treemanager.key_delete()
         assert self.treemanager.cursor.node.symbol.name == "+"
-        self.treemanager.cursor_movement("left")
+        self.treemanager.cursor_movement(LEFT)
         self.treemanager.key_delete()
         assert self.treemanager.cursor.node.symbol.name == "3"
 
@@ -114,7 +115,7 @@ class Test_Typing:
         self.reset()
         self.treemanager.key_normal("a")
         self.treemanager.key_shift()
-        self.treemanager.key_cursors("left", mod_shift=True)
+        self.treemanager.key_cursors(LEFT, shift=True)
         assert self.treemanager.hasSelection()
         nodes, _, _ = self.treemanager.get_nodes_from_selection()
         self.treemanager.key_delete()
@@ -682,23 +683,23 @@ class Test_Bugs(Test_Python):
 
         self.treemanager.key_end()
         self.treemanager.key_shift()
-        self.treemanager.key_cursors("left", True)
-        self.treemanager.key_cursors("left", True)
-        self.treemanager.key_cursors("left", True)
-        self.treemanager.key_cursors("left", True)
+        self.treemanager.key_cursors(LEFT, True)
+        self.treemanager.key_cursors(LEFT, True)
+        self.treemanager.key_cursors(LEFT, True)
+        self.treemanager.key_cursors(LEFT, True)
         self.treemanager.pasteText("back")
         assert self.treemanager.export_as_text() == "back"
 
         self.treemanager.key_home()
         self.treemanager.key_shift()
-        self.treemanager.key_cursors("right", True)
-        self.treemanager.key_cursors("right", True)
-        self.treemanager.key_cursors("right", True)
-        self.treemanager.key_cursors("right", True)
+        self.treemanager.key_cursors(RIGHT, True)
+        self.treemanager.key_cursors(RIGHT, True)
+        self.treemanager.key_cursors(RIGHT, True)
+        self.treemanager.key_cursors(RIGHT, True)
         self.treemanager.pasteText("again")
         assert self.treemanager.export_as_text() == "again"
 
-        self.move("left", 2)
+        self.move(LEFT, 2)
         self.treemanager.doubleclick_select()
         self.treemanager.pasteText("test")
         assert self.treemanager.export_as_text() == "test"
@@ -766,7 +767,7 @@ class Test_Indentation(Test_Python):
 """
         self.treemanager.import_file(inputstring)
         assert self.parser.last_status == True
-        self.move("down", 2)
+        self.move(DOWN, 2)
         self.treemanager.key_normal("z")
         assert self.parser.last_status == True
 
@@ -790,8 +791,8 @@ class Test_Indentation(Test_Python):
         assert isinstance(self.treemanager.cursor.node, BOS)
 
         # move cursor to 'break'
-        self.move('down', 9)
-        self.move('right', 16)
+        self.move(DOWN, 9)
+        self.move(RIGHT, 16)
 
         assert self.treemanager.cursor.node.symbol.name == "                "
         assert self.treemanager.cursor.node.next_term.symbol.name == "break"
@@ -837,14 +838,14 @@ class Test_Indentation(Test_Python):
         assert isinstance(self.treemanager.cursor.node, BOS)
 
         # move cursor to 'break'
-        self.move('down', 4)
-        self.move('right', 8)
+        self.move(DOWN, 4)
+        self.move(RIGHT, 8)
 
         # indent 'for' and 'x = x + 1'
         assert self.treemanager.cursor.node.next_term.symbol.name == "for"
         for i in range(4): self.treemanager.key_normal(" ")
         assert self.parser.last_status == False
-        self.move('down', 1)
+        self.move(DOWN, 1)
         assert self.treemanager.cursor.node.next_term.symbol.name == "x"
         for i in range(4): self.treemanager.key_normal(" ")
         assert self.parser.last_status == True
@@ -867,19 +868,19 @@ class Test_Indentation(Test_Python):
         assert isinstance(self.treemanager.cursor.node, BOS)
 
         # move cursor to 'break'
-        self.move('down', 4)
-        self.move('right', 4)
+        self.move(DOWN, 4)
+        self.move(RIGHT, 4)
 
         # indent 'def y', 'y = 2' and 'return y'
         assert self.treemanager.cursor.node.next_term.symbol.name == "def"
         for i in range(4): self.treemanager.key_normal(" ")
         assert self.parser.last_status == False
-        self.move('down', 1)
+        self.move(DOWN, 1)
         assert self.treemanager.cursor.node.next_term.symbol.name == "y"
         for i in range(4): self.treemanager.key_normal(" ")
         assert self.parser.last_status == True
-        self.move('down', 1)
-        self.move('left', 4)
+        self.move(DOWN, 1)
+        self.move(LEFT, 4)
         assert self.treemanager.cursor.node.next_term.symbol.name == "return"
         for i in range(4): self.treemanager.key_normal(" ")
         assert self.parser.last_status == True
@@ -902,8 +903,8 @@ class Test_Indentation(Test_Python):
                 del_ws = random.randint(0, whitespace)
                 if del_ws > 0:
                     self.treemanager.cursor_reset()
-                    self.move('down', linenr)
-                    self.move('right', del_ws)
+                    self.move(DOWN, linenr)
+                    self.move(RIGHT, del_ws)
                     assert self.treemanager.cursor.node.symbol.name == " " * whitespace
                     for i in range(del_ws):
                         self.treemanager.key_backspace()
@@ -914,7 +915,7 @@ class Test_Indentation(Test_Python):
         for linenr in deleted:
             del_ws = deleted[linenr]
             self.treemanager.cursor_reset()
-            self.move('down', linenr)
+            self.move(DOWN, linenr)
             for i in range(del_ws):
                 self.treemanager.key_normal(" ")
         assert self.parser.last_status == True
@@ -968,7 +969,7 @@ if b:
         inputstring = """class X(object):\rpass"""
         self.treemanager.import_file(inputstring)
         assert self.parser.last_status == False
-        self.treemanager.cursor_movement("down")
+        self.treemanager.cursor_movement(DOWN)
         self.treemanager.key_home()
         self.treemanager.key_normal(" ")
         assert self.parser.last_status == True
@@ -977,7 +978,7 @@ if b:
         self.reset()
         inputstring = """class X:\r    def x():\r        pass\r    def y():\r        pass"""
         self.treemanager.import_file(inputstring)
-        self.move("down", 3)
+        self.move(DOWN, 3)
         assert self.parser.last_status == True
         # delete whitespace before def y():
         self.treemanager.key_delete()
@@ -999,7 +1000,7 @@ if b:
         inputstring = """class X:\r    def x():\r        pass\rdef y():\r        pass"""
         self.treemanager.import_file(inputstring)
         assert self.parser.last_status == True
-        self.move("down", 3)
+        self.move(DOWN, 3)
         # insert whitespace before def y()
         self.treemanager.key_normal(" ")
         self.treemanager.key_normal(" ")
@@ -1026,7 +1027,7 @@ string
         y"""
         self.treemanager.import_file(inputstring)
         assert self.parser.last_status == False
-        self.move("down", 3)
+        self.move(DOWN, 3)
         self.treemanager.key_end()
         self.treemanager.key_normal("\"")
         self.treemanager.key_normal("\"")
@@ -1043,15 +1044,15 @@ string
 x()"""
         self.treemanager.import_file(inputstring)
         assert self.parser.last_status == True
-        self.move("down", 1)
-        self.move("right", 4)
+        self.move(DOWN, 1)
+        self.move(RIGHT, 4)
         self.treemanager.key_normal("    ")
         assert self.parser.last_status == False
         self.treemanager.key_shift()
-        self.treemanager.key_cursors('left', True)
-        self.treemanager.key_cursors('left', True)
-        self.treemanager.key_cursors('left', True)
-        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_cursors(LEFT, True)
+        self.treemanager.key_cursors(LEFT, True)
+        self.treemanager.key_cursors(LEFT, True)
+        self.treemanager.key_cursors(LEFT, True)
         self.treemanager.key_backspace()
         assert self.parser.last_status == True
 
@@ -1066,17 +1067,17 @@ x()
 """
         self.treemanager.import_file(inputstring)
         assert self.parser.last_status == True
-        self.move("down", 3)
+        self.move(DOWN, 3)
         self.treemanager.key_end()
         self.treemanager.key_normal("p")
         assert self.parser.last_status == False
-        self.move("down", 1)
-        self.move("left", 4)
+        self.move(DOWN, 1)
+        self.move(LEFT, 4)
         self.treemanager.key_shift()
-        self.treemanager.key_cursors('left', True)
-        self.treemanager.key_cursors('left', True)
-        self.treemanager.key_cursors('left', True)
-        self.treemanager.key_cursors('left', True)
+        self.treemanager.key_cursors(LEFT, True)
+        self.treemanager.key_cursors(LEFT, True)
+        self.treemanager.key_cursors(LEFT, True)
+        self.treemanager.key_cursors(LEFT, True)
         self.treemanager.key_backspace()
         assert self.parser.last_status == True
 
@@ -1088,7 +1089,7 @@ x()
 """
         for k in inputstring:
             self.treemanager.key_normal(k)
-        self.move("up", 2)
+        self.move(UP, 2)
         self.treemanager.key_home()
         assert self.parser.last_status == True
         self.treemanager.key_normal("    ")
@@ -1106,14 +1107,14 @@ def z():
     z"""
         self.treemanager.import_file(inputstring)
         assert self.parser.last_status == True
-        self.move("down", 4)
+        self.move(DOWN, 4)
         self.treemanager.key_end()
         self.treemanager.key_normal("\"")
         self.treemanager.key_normal("\"")
         self.treemanager.key_normal("\"")
-        self.move("up", 2)
+        self.move(UP, 2)
         self.treemanager.key_end()
-        self.move("left", 1)
+        self.move(LEFT, 1)
         self.treemanager.key_normal("\"")
         self.treemanager.key_normal("\"")
         self.treemanager.key_normal("\"")
@@ -1122,7 +1123,7 @@ def z():
         self.treemanager.key_backspace()
         self.treemanager.key_backspace()
         self.treemanager.key_backspace()
-        self.move("down", 2)
+        self.move(DOWN, 2)
         self.treemanager.key_end()
         self.treemanager.key_backspace()
         self.treemanager.key_backspace()
@@ -1245,14 +1246,14 @@ class Test_Languageboxes(Test_Python):
         assert lbox.symbol.name == "<Prolog>"
         for c in "abc def":
             self.treemanager.key_normal(c)
-        self.treemanager.key_cursors("left")
+        self.treemanager.key_cursors(LEFT)
         # select "bc de"
         self.treemanager.key_shift()
-        self.treemanager.key_cursors("left", mod_shift=True)
-        self.treemanager.key_cursors("left", mod_shift=True)
-        self.treemanager.key_cursors("left", mod_shift=True)
-        self.treemanager.key_cursors("left", mod_shift=True)
-        self.treemanager.key_cursors("left", mod_shift=True)
+        self.treemanager.key_cursors(LEFT, shift=True)
+        self.treemanager.key_cursors(LEFT, shift=True)
+        self.treemanager.key_cursors(LEFT, shift=True)
+        self.treemanager.key_cursors(LEFT, shift=True)
+        self.treemanager.key_cursors(LEFT, shift=True)
         self.treemanager.deleteSelection()
         assert lbox.symbol.name == "<Prolog>"
 
@@ -1309,7 +1310,7 @@ class Test_Backslash(Test_Python):
             self.treemanager.key_normal(c)
 
         assert self.parser.last_status == True
-        self.move("up", 1)
+        self.move(UP, 1)
         self.treemanager.key_end()
         self.treemanager.key_backspace()
         assert self.parser.last_status == False
@@ -1342,8 +1343,8 @@ class Test_Java:
         for c in prog:
             self.treemanager.key_normal(c)
         assert self.parser.last_status == True
-        self.move("left", 1)
-        self.move("up", 3)
+        self.move(LEFT, 1)
+        self.move(UP, 3)
         self.treemanager.key_end()
         self.treemanager.key_normal("\r")
         for c in "int x = 1;":
@@ -1442,7 +1443,7 @@ class Test_Undo(Test_Python):
         self.type_save("1")
         self.type_save("\r")
         self.type_save("2")
-        self.move("up", 1)
+        self.move(UP, 1)
         self.compare("1\n2")
         self.type_save("\r")
         self.type_save("3")
@@ -1460,7 +1461,7 @@ class Test_Undo(Test_Python):
         self.treemanager.key_shift_ctrl_z()
         self.compare("1\n3\n2")
 
-        self.move("down", 1)
+        self.move(DOWN, 1)
         self.treemanager.key_backspace()
         self.compare("1\n3\n")
         self.treemanager.key_backspace()
@@ -1475,7 +1476,7 @@ class Test_Undo(Test_Python):
         self.type_save("1")
         self.type_save("+")
         self.type_save("2")
-        self.move("left", 2)
+        self.move(LEFT, 2)
         self.compare("1+2")
         self.treemanager.key_delete()
         self.treemanager.undo_snapshot()
@@ -1502,14 +1503,14 @@ class Test_Undo(Test_Python):
         return 23"""
         self.treemanager.import_file(p)
         self.treemanager.key_end()
-        self.move("left", 1)
+        self.move(LEFT, 1)
         self.treemanager.key_normal("s")
         self.treemanager.undo_snapshot()
         dp = self.copy()
 
-        self.move("down", 2)
+        self.move(DOWN, 2)
         self.treemanager.key_end()
-        self.move("left", 1)
+        self.move(LEFT, 1)
         self.treemanager.key_normal("+")
         self.treemanager.undo_snapshot()
 
@@ -1536,36 +1537,36 @@ class Test_Undo(Test_Python):
         imptext = self.treemanager.export_as_text()
 
         self.treemanager.key_end()
-        self.move("left", 1)
+        self.move(LEFT, 1)
         self.treemanager.key_normal("a")
         self.treemanager.undo_snapshot()
         a = self.copy()
         atext = self.treemanager.export_as_text()
 
-        self.move("down", 1)
+        self.move(DOWN, 1)
         self.treemanager.key_end()
-        self.move("left", 3)
+        self.move(LEFT, 3)
         self.treemanager.key_normal("b")
         self.treemanager.undo_snapshot()
         b = self.copy()
         btext = self.treemanager.export_as_text()
 
-        self.move("down", 1)
+        self.move(DOWN, 1)
         self.treemanager.key_end()
         self.treemanager.key_normal("c")
         self.treemanager.undo_snapshot()
         #c = self.copy()
         ctext = self.treemanager.export_as_text()
 
-        self.move("down", 2)
+        self.move(DOWN, 2)
         self.treemanager.key_end()
-        self.move("left", 3)
+        self.move(LEFT, 3)
         self.treemanager.key_normal("d")
         self.treemanager.undo_snapshot()
         #d = self.copy()
         dtext = self.treemanager.export_as_text()
 
-        self.move("down", 1)
+        self.move(DOWN, 1)
         self.treemanager.key_end()
         self.treemanager.key_normal("e")
         self.treemanager.undo_snapshot()
@@ -1626,7 +1627,7 @@ class Test_Undo(Test_Python):
         self.reset() # saves automatically
 
         self.treemanager.import_file("class X:\n    def x():\n         pass") # saves automatically
-        self.move("down", 2)
+        self.move(DOWN, 2)
         self.treemanager.key_end()
         self.treemanager.key_normal("1")
         self.compare("class X:\n    def x():\n         pass1")
@@ -1676,10 +1677,10 @@ class Test_Undo(Test_Python):
             for col in cols:
                 self.treemanager.cursor_reset()
                 print("self.treemanager.cursor_reset()")
-                self.move('down', linenr)
-                print("self.move('down', %s)" % linenr)
-                self.move('right', col)
-                print("self.move('right', %s)" % col)
+                self.move(DOWN, linenr)
+                print("self.move(DOWN, %s)" % linenr)
+                self.move(RIGHT, col)
+                print("self.move(RIGHT, %s)" % col)
                 x = self.treemanager.key_delete()
                 print("self.treemanager.key_delete()")
                 if x == "eos":
@@ -1732,12 +1733,12 @@ class Test_Undo(Test_Python):
         start_version = self.treemanager.version
 
         self.treemanager.cursor_reset()
-        self.move('down', 3)
-        self.move('right', 12)
+        self.move(DOWN, 3)
+        self.move(RIGHT, 12)
         self.treemanager.key_delete()
         self.treemanager.cursor_reset()
-        self.move('down', 3)
-        self.move('right', 19)
+        self.move(DOWN, 3)
+        self.move(RIGHT, 19)
         self.treemanager.key_delete()
 
         self.treemanager.undo_snapshot()
@@ -1775,8 +1776,8 @@ class Test_Undo(Test_Python):
             random.shuffle(cols)
             for col in cols:
                 self.treemanager.cursor_reset()
-                self.move('down', linenr)
-                self.move('right', col)
+                self.move(DOWN, linenr)
+                self.move(RIGHT, col)
                 k = self.get_random_key()
                 x = self.treemanager.key_normal(k)
                 if x == "eos":
@@ -1841,8 +1842,8 @@ class Test_Undo(Test_Python):
             random.shuffle(cols)
             for col in cols[:1]: # add one newline per line
                 self.treemanager.cursor_reset()
-                self.move('down', linenr)
-                self.move('right', col)
+                self.move(DOWN, linenr)
+                self.move(RIGHT, col)
                 x = self.treemanager.key_normal("\r")
                 if x == "eos":
                     continue
@@ -1899,14 +1900,14 @@ class Test_Undo(Test_Python):
         start_version = self.treemanager.version
 
         self.treemanager.cursor_reset()
-        self.move("down", 4)
-        self.move("right", 1)
+        self.move(DOWN, 4)
+        self.move(RIGHT, 1)
         self.treemanager.key_normal("\r")
         self.treemanager.undo_snapshot()
 
         self.treemanager.cursor_reset()
-        self.move("down", 6)
-        self.move("right", 1)
+        self.move(DOWN, 6)
+        self.move(RIGHT, 1)
         self.treemanager.key_normal("\r")
         self.treemanager.undo_snapshot()
 
@@ -1961,23 +1962,23 @@ class Test_Undo(Test_Python):
         start_version = self.treemanager.version
 
         self.treemanager.cursor_reset()
-        self.move("down", 1)
-        self.move("right", 6)
+        self.move(DOWN, 1)
+        self.move(RIGHT, 6)
         self.treemanager.key_delete()
         self.treemanager.key_delete()
         self.treemanager.key_delete()
         self.treemanager.undo_snapshot()
 
         self.treemanager.cursor_reset()
-        self.move("down", 2)
-        self.move("right", 7)
+        self.move(DOWN, 2)
+        self.move(RIGHT, 7)
         self.treemanager.key_delete()
         self.treemanager.key_delete()
         self.treemanager.undo_snapshot()
 
         self.treemanager.cursor_reset()
-        self.move("down", 3)
-        self.move("right", 10)
+        self.move(DOWN, 3)
+        self.move(RIGHT, 10)
         self.treemanager.key_delete()
         self.treemanager.key_delete()
         self.treemanager.undo_snapshot()
@@ -2034,14 +2035,14 @@ class Test_Undo(Test_Python):
         start_version = self.treemanager.version
 
         self.treemanager.cursor_reset()
-        self.move("down", 7)
-        self.move("right", 10)
+        self.move(DOWN, 7)
+        self.move(RIGHT, 10)
         self.treemanager.key_normal("\r")
         self.treemanager.undo_snapshot()
 
         self.treemanager.cursor_reset()
-        self.move("down", 6)
-        self.move("right", 0)
+        self.move(DOWN, 6)
+        self.move(RIGHT, 0)
         self.treemanager.key_normal("\r") # this has to be \r not \n (Eco works with \r)
         self.treemanager.undo_snapshot()
 
@@ -2092,8 +2093,8 @@ class Test_Undo(Test_Python):
             random.shuffle(cols)
             for col in cols:
                 self.treemanager.cursor_reset()
-                self.move('down', linenr)
-                self.move('right', col)
+                self.move(DOWN, linenr)
+                self.move(RIGHT, col)
                 k = self.get_random_key()
                 if k in ["a", "c", "e", "g", "i", "k", "m", "1", "3", "5", "7"]:
                     # for a few characters DELETE instead of INSERT
@@ -2152,17 +2153,17 @@ class Test_Undo(Test_Python):
         start_version = self.treemanager.version
 
         self.treemanager.cursor_reset()
-        self.move('down', 2)
-        self.move('right', 0)
+        self.move(DOWN, 2)
+        self.move(RIGHT, 0)
         self.treemanager.key_normal(',')
         self.treemanager.undo_snapshot()
         self.treemanager.cursor_reset()
-        self.move('down', 1)
-        self.move('right', 3)
+        self.move(DOWN, 1)
+        self.move(RIGHT, 3)
         self.treemanager.key_delete()
         self.treemanager.cursor_reset()
-        self.move('down', 1)
-        self.move('right', 4)
+        self.move(DOWN, 1)
+        self.move(RIGHT, 4)
         self.treemanager.key_normal(' ')
         self.treemanager.undo_snapshot()
 
@@ -2195,10 +2196,10 @@ class Test_Undo(Test_Python):
                 last_was_undo = False
                 print("self.treemanager.cursor_reset()")
                 self.treemanager.cursor_reset()
-                print("self.move('down', %s)" % (linenr))
-                print("self.move('right', %s)" % (col))
-                self.move('down', linenr)
-                self.move('right', col)
+                print("self.move(DOWN, %s)" % (linenr))
+                print("self.move(RIGHT, %s)" % (col))
+                self.move(DOWN, linenr)
+                self.move(RIGHT, col)
                 k = self.get_random_key()
                 if k in ["a", "c", "e", "g", "i", "k", "m", "1", "3", "5", "7"]:
                     # for a few characters DELETE instead of INSERT
@@ -2250,15 +2251,15 @@ class Test_Undo(Test_Python):
         assert self.parser.last_status == True
 
         self.treemanager.cursor_reset()
-        self.move('down', 8)
-        self.move('right', 0)
+        self.move(DOWN, 8)
+        self.move(RIGHT, 0)
         self.treemanager.key_delete()
         self.treemanager.undo_snapshot()
         self.treemanager.cursor_reset()
         self.treemanager.key_ctrl_z()
         self.treemanager.cursor_reset()
-        self.move('down', 9)
-        self.move('right', 0)
+        self.move(DOWN, 9)
+        self.move(RIGHT, 0)
         self.treemanager.key_delete()
 
     def test_bug_undo_loop_2(self):
@@ -2271,12 +2272,12 @@ class Test_Undo(Test_Python):
         start_version = self.treemanager.version
 
         self.treemanager.cursor_reset()
-        self.move('down', 5)
-        self.move('right', 3)
+        self.move(DOWN, 5)
+        self.move(RIGHT, 3)
         self.treemanager.key_normal('#')
         self.treemanager.cursor_reset()
-        self.move('down', 5)
-        self.move('right', 3)
+        self.move(DOWN, 5)
+        self.move(RIGHT, 3)
         self.treemanager.key_normal(')')
         self.treemanager.undo_snapshot()
 
@@ -2302,20 +2303,20 @@ class Test_Undo(Test_Python):
         assert self.parser.last_status == True
 
         self.treemanager.cursor_reset()
-        self.move("down", 12)
-        self.move("right", 0)
+        self.move(DOWN, 12)
+        self.move(RIGHT, 0)
         self.treemanager.key_normal("g")
         self.treemanager.key_ctrl_z()
 
         self.treemanager.cursor_reset()
-        self.move("down", 12)
-        self.move("right", 2)
+        self.move(DOWN, 12)
+        self.move(RIGHT, 2)
         self.treemanager.key_normal("%")
         self.treemanager.key_ctrl_z()
 
         self.treemanager.cursor_reset()
-        self.move("down", 13)
-        self.move("right", 0)
+        self.move(DOWN, 13)
+        self.move(RIGHT, 0)
         self.treemanager.key_normal("y")
 
 
@@ -2335,7 +2336,7 @@ class Test_Undo_LBoxes(Test_Helper):
     def test_simple(self):
         self.reset()
         self.treemanager.import_file(programs.phpclass)
-        self.move("up", 1)
+        self.move(UP, 1)
 
         self.treemanager.add_languagebox(lang_dict["Python + PHP"])
 
@@ -2345,7 +2346,7 @@ class Test_Undo_LBoxes(Test_Helper):
         self.treemanager.key_normal("s")
         self.treemanager.undo_snapshot()
 
-        self.move("down", 1)
+        self.move(DOWN, 1)
         self.treemanager.key_end()
         self.treemanager.key_normal("a")
         self.treemanager.undo_snapshot()
@@ -2359,7 +2360,7 @@ class Test_Undo_LBoxes(Test_Helper):
         self.versions.append(self.treemanager.export_as_text())
         self.treemanager.import_file(programs.phpclass)
         self.versions.append(self.treemanager.export_as_text())
-        self.move("down", 1)
+        self.move(DOWN, 1)
 
         self.treemanager.add_languagebox(lang_dict["Python + PHP"])
 
@@ -2376,7 +2377,7 @@ class Test_Undo_LBoxes(Test_Helper):
         self.treemanager.undo_snapshot()
         self.versions.append(self.treemanager.export_as_text())
 
-        self.move("up", 2)
+        self.move(UP, 2)
         self.treemanager.key_end()
         self.treemanager.key_normal("\r")
         self.treemanager.undo_snapshot()
@@ -2398,7 +2399,7 @@ class Test_Undo_LBoxes(Test_Helper):
     def test_clean_version_bug(self):
         self.reset()
         self.treemanager.import_file(programs.phpclass)
-        self.move("down", 1)
+        self.move(DOWN, 1)
 
         self.treemanager.add_languagebox(lang_dict["Python + PHP"])
         self.treemanager.key_normal("p")
@@ -2417,9 +2418,9 @@ class Test_Undo_LBoxes(Test_Helper):
 
         self.tree_compare(self.parser.previous_version.parent, dp)
 
-        self.move("up", 1)
+        self.move(UP, 1)
         self.treemanager.key_end()
-        self.move("left", 2)
+        self.move(LEFT, 2)
         self.treemanager.key_normal("x")
         self.treemanager.undo_snapshot()
 
@@ -2465,9 +2466,9 @@ self.key_normal(' ')
 self.key_normal('=')
 self.key_normal(' ')
 self.key_normal('1')
-self.key_cursors('up', False)
-self.key_cursors('left', False)
-self.key_cursors('left', False)
+self.key_cursors(KEY_UP, False)
+self.key_cursors(KEY_LEFT, False)
+self.key_cursors(KEY_LEFT, False)
 # mousePressEvent
 self.cursor.line = 1
 self.cursor.move_to_x(11, self.lines)
@@ -2521,7 +2522,7 @@ class Test_Comments_Indents(Test_Python):
             self.treemanager.key_normal(c)
         assert self.parser.last_status == True
 
-        self.move("left", 6)
+        self.move(LEFT, 6)
         self.treemanager.key_normal("\r")
         assert self.parser.last_status == True
 
@@ -2531,8 +2532,8 @@ y = 13""":
             self.treemanager.key_normal(c)
         assert self.parser.last_status == True
 
-        self.move("left", 6)
-        self.move("up", 1)
+        self.move(LEFT, 6)
+        self.move(UP, 1)
         self.treemanager.key_normal("#")
         assert self.parser.last_status == True
         

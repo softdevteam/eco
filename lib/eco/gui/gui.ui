@@ -46,7 +46,7 @@
      <x>0</x>
      <y>0</y>
      <width>920</width>
-     <height>22</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -107,7 +107,8 @@
      </property>
      <property name="icon">
       <iconset theme="reload">
-       <normaloff>.</normaloff>.</iconset>
+       <normaloff/>
+      </iconset>
      </property>
      <addaction name="actionDummy"/>
     </widget>
@@ -117,6 +118,8 @@
     <addaction name="actionCut"/>
     <addaction name="actionCopy"/>
     <addaction name="actionPaste"/>
+    <addaction name="separator"/>
+    <addaction name="actionSelect_all"/>
     <addaction name="separator"/>
     <addaction name="actionFind"/>
     <addaction name="actionFind_next"/>
@@ -342,7 +345,8 @@
    </property>
    <property name="icon">
     <iconset theme="edit-undo">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Undo</string>
@@ -357,7 +361,8 @@
    </property>
    <property name="icon">
     <iconset theme="edit-redo">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Redo</string>
@@ -372,7 +377,8 @@
    </property>
    <property name="icon">
     <iconset theme="edit-cut">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Cut</string>
@@ -387,7 +393,8 @@
    </property>
    <property name="icon">
     <iconset theme="edit-copy">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Copy</string>
@@ -402,7 +409,8 @@
    </property>
    <property name="icon">
     <iconset theme="edit-paste">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Paste</string>
@@ -432,7 +440,8 @@
    </property>
    <property name="icon">
     <iconset theme="list-add">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Add language box</string>
@@ -447,7 +456,8 @@
    </property>
    <property name="icon">
     <iconset theme="go-next">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Select next language box</string>
@@ -513,13 +523,28 @@
     <string>F3</string>
    </property>
   </action>
+  <action name="actionSelect_all">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="edit-select-all"/>
+   </property>
+   <property name="text">
+    <string>Select all</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+A</string>
+   </property>
+  </action>
   <action name="actionExportAs">
    <property name="enabled">
     <bool>false</bool>
    </property>
    <property name="icon">
     <iconset theme="document-export">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Export as...</string>
@@ -534,7 +559,8 @@
    </property>
    <property name="icon">
     <iconset theme="document-export">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Export</string>
@@ -546,7 +572,8 @@
   <action name="actionSettings">
    <property name="icon">
     <iconset theme="gnome-settings">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Settings...</string>

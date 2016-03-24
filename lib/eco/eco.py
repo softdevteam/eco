@@ -584,6 +584,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionPreview, SIGNAL("triggered()"), self.showPreviewDialog)
         self.connect(self.ui.actionUndo, SIGNAL("triggered()"), self.undo)
         self.connect(self.ui.actionRedo, SIGNAL("triggered()"), self.redo)
+        self.connect(self.ui.actionSelect_all, SIGNAL("triggered()"), self.select_all)
         self.connect(self.ui.actionCopy, SIGNAL("triggered()"), self.copy)
         self.connect(self.ui.actionCut, SIGNAL("triggered()"), self.cut)
         self.connect(self.ui.actionPaste, SIGNAL("triggered()"), self.paste)
@@ -925,6 +926,11 @@ class Window(QtGui.QMainWindow):
         self.getEditor().tm.pasteText(text)
         self.getEditor().update()
 
+    def select_all(self):
+        editor = self.getEditor()
+        editor.tm.select_all()
+        editor.update()
+
     def show_input_log(self):
         if self.getEditor():
             v = InputLogView(self)
@@ -1214,6 +1220,7 @@ class Window(QtGui.QMainWindow):
         self.ui.actionPaste.setEnabled(enabled)
         self.ui.actionCut.setEnabled(enabled)
         self.ui.actionFind.setEnabled(enabled)
+        self.ui.actionSelect_all.setEnabled(enabled)
         self.ui.actionFind_next.setEnabled(enabled)
         self.ui.actionAdd_language_box.setEnabled(enabled)
         self.ui.actionSelect_next_language_box.setEnabled(enabled)
