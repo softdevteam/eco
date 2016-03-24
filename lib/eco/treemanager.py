@@ -139,6 +139,8 @@ class Cursor(object):
         self.line = other.line
 
     def jump_left(self):
+        if self.node.symbol.name == "\r":
+            self.line -= 1
         self.node = self.find_previous_visible(self.node)
         self.pos = len(self.node.symbol.name)
 
@@ -149,6 +151,8 @@ class Cursor(object):
             return
         self.node = node
         self.pos = len(self.node.symbol.name)
+        if node.symbol.name == "\r":
+            self.line += 1
 
     def find_next_visible(self, node):
         if self.is_visible(node) or isinstance(node.symbol, MagicTerminal):
