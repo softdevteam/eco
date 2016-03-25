@@ -1,4 +1,4 @@
-# import copy
+import logging
 import os
 import os.path
 import tempfile
@@ -13,6 +13,8 @@ from PyQt4.QtCore import QSettings
 
 
 class JRubyMorphismLine(Annotation):
+    """Annotation for JRuby callgraph railroad diagrams.
+    """
 
     def __init__(self, annotation):
         self._hints = [Railroad()]
@@ -23,6 +25,8 @@ class JRubyMorphismLine(Annotation):
 
 
 class JRubyMorphismMsg(Annotation):
+    """Annotation for JRuby callgraph tooltips.
+    """
 
     def __init__(self, annotation):
         self._hints = [ToolTip()]
@@ -33,6 +37,8 @@ class JRubyMorphismMsg(Annotation):
 
 
 class Source(object):
+    """JRuby source file (needed by callgraph profiler).
+    """
 
     def __init__(self, file, line_start, line_end):
         self.file = file
@@ -41,6 +47,8 @@ class Source(object):
 
 
 class Method(object):
+    """JRuby method (needed by callgraph profiler).
+    """
 
     def __init__(self, id_, name, source):
         self.id = int(id_)
@@ -87,6 +95,8 @@ class MethodVersion(object):
 
 
 class CallSite(object):
+    """JRuby callsite (needed by callgraph profiler).
+    """
 
     def __init__(self, id_, method, line):
         self.id = int(id_)
@@ -103,6 +113,8 @@ class CallSite(object):
 
 
 class CallSiteVersion(object):
+    """JRuby callsite version (needed by callgraph profiler).
+    """
 
     def __init__(self, id_, callsite, method_version):
         self.id = int(id_)
@@ -120,12 +132,17 @@ class CallSiteVersion(object):
 
 
 class Mega(object):
+    """Class used to indicate that a method is megamorphic.
+    """
 
     def __str__(self):
         return 'Megamorphic'
 
 
 class JRubyExporter(object):
+    """Export, run or profile a JRuby file.
+    """
+
     def __init__(self, tm):
         self.tm = tm  # TreeManager object.
         self.sl_functions = dict()
@@ -176,9 +193,7 @@ class JRubyExporter(object):
         self._export_as_text(f[1])
         # Run this command:
         #     $ jruby -X+T FILE.rb
-        return subprocess.Popen([jruby_bin,
-                                 '-X+T',
-                                 f[1]],
+        return subprocess.Popen([jruby_bin, '-X+T', f[1]],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT,
                                 bufsize=0)
@@ -205,13 +220,17 @@ class JRubyExporter(object):
             pass
 
     def _profile(self):
+        """Run JRuby and dump a callgraph to disk.
+        Parse the callgraph and annotate the syntax tree.
+        """
+
         src_file_fd, src_file_name = tempfile.mkstemp(suffix='.rb')
         self.tm.export_as_text(src_file_name).split('\n')
 
         info_file_name = os.path.join('/',
                                       'tmp',
                                       next(tempfile._get_candidate_names()) + '.txt')
-        print 'Placing callgraph trace in', info_file_name
+        logging.debug('Placing callgraph trace in', info_file_name)
 
         # Run this command:
         #  $ jruby -X+T -Xtruffle.callgraph=true -Xtruffle.callgraph.write=test.txt -Xtruffle.dispatch.cache=2 FILE
@@ -222,8 +241,7 @@ class JRubyExporter(object):
                '-Xtruffle.callgraph.write=' + info_file_name,
                '-Xtruffle.dispatch.cache=' + pic_size,
                src_file_name]
-        print 'Running command:'
-        print ' '.join(cmd)
+        logging.debug('Running command: ' + ' '.join(cmd))
         settings = QSettings('softdev', 'Eco')
         graalvm_bin = str(settings.value('env_graalvm', '').toString())
         subprocess.call(cmd, env={'JAVACMD':graalvm_bin})
@@ -268,7 +286,7 @@ class JRubyExporter(object):
                 elif tokens[0] == 'local':
                     pass
                 else:
-                    print 'Cannot parse the following:', line
+                    logging.debug('Cannot parse the following:', line)
                     return
                 i += 1
 
@@ -328,14 +346,14 @@ class JRubyExporter(object):
                                                 JRubyMorphismLine)
                         num_calls += 1
                 if method.is_mega:
-                    dmsg = ('Method %s is megamorphic. %s has %g versions and %g callsite versions and is called %g times' %
+                    dmsg = ('Method %s is megamorphic. %s has %g version(s) and %g callsite version(s) and is called %g time(s)' %
                             (method.name,
                              method.name,
                              len(method.versions),
                              len(method.callsites),
                              num_calls))
                 else:
-                    dmsg = ('Method %s has %g versions and %g callsite versions and is called %g times' %
+                    dmsg = ('Method %s has %g version(s) and %g callsite version(s) and is called %g time(s)' %
                             (method.name,
                              len(method.versions),
                              len(method.callsites),

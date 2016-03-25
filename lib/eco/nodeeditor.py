@@ -218,7 +218,6 @@ class NodeEditor(QFrame):
     def paintEvent(self, event):
         # Clear data in the visualisation overlay
         self.overlay.clear_data()
-        self.overlay.clear_data()
 
         gfont = QApplication.instance().gfont
         self.font = gfont.font
