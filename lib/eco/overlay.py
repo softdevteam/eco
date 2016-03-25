@@ -25,10 +25,6 @@ class Overlay(QWidget):
         palette.setColor(palette.Background, Qt.transparent)
         self.setPalette(palette)
 
-        # Link to the current treemanager object. Set in eco.py when the
-        # current tab is changed.
-        self.tm = None
-
         # line no -> normalised float in [0.0, 1.0]
         self._heatmap_data = dict()
 
@@ -47,6 +43,10 @@ class Overlay(QWidget):
             self._random_colours.append(QColor(*rgb))
             rgb = [col * 255 for col in hsv_to_rgb(hue, SATURATION / 2.0, VALUE)]
             self._random_colours_outdated.append(QColor(*rgb))
+
+    @property
+    def tm(self):
+        return self.node_editor.tm
 
     def add_heatmap_datum(self, lineno, datum):
         self._heatmap_data[lineno] = datum
@@ -67,7 +67,7 @@ class Overlay(QWidget):
         transparency = QApplication.instance().heatmap_alpha.toInt()[0]
 
         # If data is out of date, draw the heatmap with 10% less opacity
-        if self.node_editor.tm.tool_data_is_dirty:
+        if self.tm.tool_data_is_dirty:
             transparency_new = int(transparency * 0.8)
             if transparency_new > 0:
                 transparency = transparency_new
