@@ -1234,7 +1234,7 @@ class Window(QtGui.QMainWindow):
         self.ui.menuChange_language_box.setEnabled(enabled)
         self.ui.actionPreview.setEnabled(enabled)
         self.ui.actionInput_log.setEnabled(enabled)
-        
+
         if enabled == False:
             self.ui.actionProfile.setEnabled(enabled)
             self.ui.actionStateGraph.setEnabled(enabled)

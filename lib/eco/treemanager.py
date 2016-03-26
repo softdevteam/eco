@@ -1548,6 +1548,8 @@ class TreeManager(object):
             self.export_unipycation(path)
         elif lang == "HTML + Python + SQL":
             self.export_html_python_sql(path)
+        elif lang == "Python + HTML + SQL":
+            self.export_html_python_sql(path)
         elif lang == "PHP + Python" or lang == "PHP":
             return self.export_php_python(path, run, source=source)
         elif lang == "Python 2.7.5":
@@ -1591,7 +1593,6 @@ class TreeManager(object):
             f = tempfile.mkstemp()
             os.write(f[0],"".join(output))
             os.close(f[0])
-            
             settings = QSettings("softdev", "Eco")
             unipath = str(settings.value("env_unipycation", "").toString())
             if unipath:
