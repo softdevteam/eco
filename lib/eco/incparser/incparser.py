@@ -147,6 +147,7 @@ class IncParser(object):
         logging.debug("============ NEW INCREMENTAL PARSE ================= ")
         self.validating = False
         self.error_node = None
+        self.error_nodes = []
         self.stack = []
         self.undo = []
         self.current_state = 0
@@ -259,7 +260,140 @@ class IncParser(object):
                 logging.debug("After breakdown: %s", self.stack[-1])
                 self.validating = False
             else:
+                logging.debug("Proper error, let's try and recover")
+                self.error_nodes.append(la)
+                new_la = self.recover(la)
+                if new_la:
+                    logging.debug("Recovered. Continue from here")
+                    return new_la
+                logging.debug("Could not recover. Undo")
                 return self.do_undo(la)
+
+    def recover(self, error_node):
+        self.right_breakdown()
+        sp = 0
+        node = self.stack.pop()
+        error_offset = self.offset(error_node)
+        while not isinstance(node, BOS):
+            sp += 1
+            # if node is new -> continue
+            node = self.stack.pop()
+            la = self.is_valid_iso_subtree(node, error_offset)
+            if la:
+                return la
+            # check parents
+            logging.debug("checking ancestors")
+            while node.parent:
+                # XXX missing get_cut statement
+                node = node.parent
+                la = self.is_valid_iso_subtree(node, error_offset)
+                if la:
+                    return la
+        logging.debug("Need to do something with root")
+        assert False
+
+    def is_valid_iso_subtree(self, node, error_offset):
+        logging.debug("Checking if %s is valid isolation tree", node.symbol.name)
+        left_offset = self.offset(node)
+        logging.debug("left offset: %s", left_offset)
+        last_offset = self.offset(node, node.version)
+        logging.debug("last offset: %s", last_offset)
+        logging.debug("error offset: %s", error_offset)
+        if left_offset != last_offset:
+            logging.debug("offsets don't align")
+            return False
+        if last_offset > error_offset:
+            logging.debug(">error")
+            return False
+        nlen, content = self.text_length(node)
+        logging.debug("nlen:%s, '%s'", nlen, content)
+        if last_offset + nlen < error_offset:
+            logging.debug("<error+node")
+            return False
+
+        logging.debug("FOUND AN ISO TREE CANDIDATE")
+        # set state to state after last node on stack
+        cut_point = self.find_cut_point(left_offset)
+        # test shitfability
+        
+        element = self.syntaxtable.lookup(self.stack[cut_point].state, node.symbol)
+        logging.debug("state: %s", self.stack[cut_point].state)
+        logging.debug("elem: %s", element)
+        logging.debug("stack: %s", self.stack)
+        if isinstance(element, Goto):
+            logging.debug("Found valid ISO tree")
+            logging.debug("Item at cutpoint: %s", self.stack[cut_point])
+            self.current_state = self.stack[cut_point].state
+            logging.debug("Item on stack: %s", self.stack[-1])
+            logging.debug("Cutpoint: %s", cut_point)
+            logging.debug("Cutpoint+1: %s", cut_point + 1)
+
+            self.stack = self.stack[:cut_point+1]
+            logging.debug("stack: %s", self.stack)
+            self.current_state = element.action # now advance
+            self.stack.append(node)
+            node.state = element.action
+            return self.pop_lookahead(node)
+        assert False
+
+    def find_cut_point(self, offset):
+        # finds the position on the stack from which we need
+        # to restart parsing. reset parser to this point
+        logging.debug("find cut point")
+        cut_point = 0
+        length = 0
+        while cut_point < len(self.stack):
+            cur_node = self.stack[cut_point]
+            length += self.text_length(cur_node)[0]
+            logging.debug("node, length: %s %s", cur_node.symbol.name, length)
+            if length == offset:
+                logging.debug("whoo iso tree works: %s %s", cut_point, cur_node.symbol.name)
+                last_valid_cutpoint = cut_point
+                # we need to keep going to consider empty nodes as well
+            if length > offset:
+                break
+            cut_point += 1
+        return last_valid_cutpoint
+
+    def text_length(self, node):
+        # XXX temporary hack -> really slow
+        if isinstance(node.symbol, Nonterminal):
+            l = 0
+            content = ""
+            for c in node.children:
+                tl, tc = self.text_length(c)
+                l += tl
+                content += tc
+            return l, content
+        else:
+            if isinstance(node.symbol, IndentationTerminal) or isinstance(node.symbol, FinishSymbol):
+                return 0, ""
+            else:
+                return len(node.symbol.name), node.symbol.name
+
+    def offset(self, node, version=None):
+        while isinstance(node.symbol, Nonterminal):
+            if version:
+                print(node)
+                node = node.get_attr("children", version)[0]
+            else:
+                node = node.children[0]
+        offset = 0
+        node = node.prev_term
+        while not isinstance(node, BOS):
+            if version:
+                name = node.get_attr("symbol.name", version)
+            else:
+                name = node.symbol.name
+            offset += len(name)
+            if version:
+                node = node.get_attr("prev_term", version)
+            else:
+                node = node.prev_term
+        return offset
+
+    def isolate(self, node, sp, cut_point):
+        logging.debug("Isolate: %s", node)
 
     def get_lookup(self, la):
         if la.lookup != "":
@@ -285,10 +419,12 @@ class IncParser(object):
         # COMMENT subtrees that are found on the stack during reduction are
         # added "silently" to the subtree (they don't count to the amount of
         # symbols of the reduction)
+        logging.debug("   Element on stack: %s(%s)", self.stack[-1].symbol, self.stack[-1].state)
         children = []
         i = 0
         while i < element.amount():
             c = self.stack.pop()
+            logging.debug("   popped: %s", c)
             # apply folding information from grammar to tree nodes
             fold = element.action.right[element.amount()-i-1].folding
             c.symbol.folding = fold

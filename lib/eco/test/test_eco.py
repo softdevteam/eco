@@ -23,8 +23,8 @@ from grammars.grammars import calc, java, python, Language, sql, pythonprolog, l
 from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
-from incparser.astree import BOS, EOS
-from grammar_parser.gparser import MagicTerminal
+from incparser.astree import BOS, EOS, TextNode
+from grammar_parser.gparser import MagicTerminal, Terminal
 
 from PyQt4 import QtCore
 
@@ -2536,3 +2536,27 @@ y = 13""":
         self.treemanager.key_normal("#")
         assert self.parser.last_status == True
         
+class Test_ErrorRecovery(Test_Helper):
+
+    def setup_class(cls):
+        parser, lexer = calc.load()
+        cls.lexer = lexer
+        cls.parser = parser
+        cls.parser.init_ast()
+        one = TextNode(Terminal("1"))
+        one.lookup = "INT"
+        cls.parser.previous_version.parent.children[0].insert_after(one)
+        cls.ast = cls.parser.previous_version
+        cls.treemanager = TreeManager()
+        cls.treemanager.add_parser(cls.parser, cls.lexer, calc.name)
+        cls.treemanager.set_font_test(7, 17)
+
+    def test_simple(self):
+        self.treemanager.import_file("1*1+2+3*4+2")
+        assert self.parser.last_status == True
+
+        self.treemanager.key_end()
+        self.move("left", 3)
+        self.treemanager.key_normal("+")
+
+        assert self.parser.last_status == False

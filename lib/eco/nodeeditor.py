@@ -296,6 +296,7 @@ class NodeEditor(QFrame):
         first_node = node
         selected_language = self.tm.mainroot
         error_node = self.tm.get_mainparser().error_node
+        error_nodes = self.tm.get_mainparser().error_nodes
         error_node = self.fix_errornode(error_node)
 
         highlighter = self.get_highlighter(node)
@@ -464,7 +465,7 @@ class NodeEditor(QFrame):
                 draw_cursor = False
 
             # draw squiggly line
-            if node is error_node or (show_namebinding and self.tm.has_error(node)):
+            if node is error_node or node in error_nodes or (show_namebinding and self.tm.has_error(node)):
                 if isinstance(node, EOS):
                     length = self.fontwt
                 else:

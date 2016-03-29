@@ -403,7 +403,7 @@ class TreeManager(object):
     def get_error(self, node):
         for p in self.parsers:
             # check for syntax error
-            if node is p[0].error_node:
+            if node is p[0].error_node or node in p[0].error_nodes:
                 return "Syntax error on token '%s' (%s)." % (node.symbol.name, node.lookup)
             # check for namebinding error
             if p[3]:
