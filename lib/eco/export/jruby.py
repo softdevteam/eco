@@ -214,18 +214,19 @@ class JRubyExporter(object):
         print 'Placing callgraph trace in', info_file_name
 
         # Run this command:
-        #  $ cd $GRAAL_WORKSPACE/jruby
         #  $ jruby -X+T -Xtruffle.callgraph=true -Xtruffle.callgraph.write=test.txt -Xtruffle.dispatch.cache=2 FILE
         settings = QSettings('softdev', 'Eco')
         jruby_bin = str(settings.value('env_jruby', '').toString())
+        pic_size = str(settings.value('graalvm_pic_size', '').toString())
         cmd = [jruby_bin, '-X+T', '-Xtruffle.callgraph=true',
                '-Xtruffle.callgraph.write=' + info_file_name,
-               '-Xtruffle.dispatch.cache=2',
+               '-Xtruffle.dispatch.cache=' + pic_size,
                src_file_name]
         print 'Running command:'
         print ' '.join(cmd)
-        # FIXME: GraalVM binary should be set in settings pane.
-        subprocess.call(cmd, env={'JAVACMD':'/home/snim2/Desktop/vms/work/graal-workspace/GraalVM-0.10/jre/bin/javao'})
+        settings = QSettings('softdev', 'Eco')
+        graalvm_bin = str(settings.value('env_graalvm', '').toString())
+        subprocess.call(cmd, env={'JAVACMD':graalvm_bin})
 
         objects = dict()
         with open(info_file_name) as fd:
