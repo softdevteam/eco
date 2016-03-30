@@ -168,7 +168,7 @@ class JRubySimpleLanguageExporter(object):
         # Remove old annotations
         for lineno in xrange(len(self.tm.lines)):
             temp_cursor.line = lineno
-            temp_cursor.move_to_x(0, self.tm.lines)
+            temp_cursor.move_to_x(0)
             node = temp_cursor.find_next_visible(temp_cursor.node)
             if node.lookup == "<ws>":
                 node = node.next_term
@@ -196,7 +196,7 @@ class JRubySimpleLanguageExporter(object):
                     lineno = plain_lines.index(line.split(":")[1][1:]) + 1
                     msg = ('Line %s ran %s times' % (lineno, ncalls))
                     temp_cursor.line = lineno - 1
-                    temp_cursor.move_to_x(0, self.tm.lines)
+                    temp_cursor.move_to_x(0)
                     node = temp_cursor.find_next_visible(temp_cursor.node)
                     if node.lookup == "<ws>":
                         node = node.next_term

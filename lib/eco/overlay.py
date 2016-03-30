@@ -110,7 +110,7 @@ class Overlay(QWidget):
                                            'is_mega': False, }
         temp_cursor = self.tm.cursor.copy()  # Save cursor to restore later.
         self.tm.cursor.line = 0  # Start at beginning of syntax tree.
-        self.tm.cursor.move_to_x(0, self.tm.lines)
+        self.tm.cursor.move_to_x(0)
         while not (isinstance(self.tm.cursor.node, EOS) or
                    isinstance(self.tm.cursor.node.next_term, EOS)):
             if self.tm.cursor.node.symbol.name in self._railroad_data.keys():
@@ -118,7 +118,7 @@ class Overlay(QWidget):
                 saved_x = self.tm.cursor.get_x()
                 self.tm.key_end()
                 location = (self.tm.cursor.line + 1, self.tm.cursor.get_x())
-                self.tm.cursor.move_to_x(saved_x, self.tm.lines)
+                self.tm.cursor.move_to_x(saved_x)
                 # Assume the first occurrence of the method is its definition.
                 if railroad_data[method]['definition'] is None:
                     railroad_data[method]['definition'] = location

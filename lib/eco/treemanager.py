@@ -59,17 +59,19 @@ class Line(object):
         return "Line(%s, width=%s, height=%s)" % (self.node, self.width, self.height)
 
 class Cursor(object):
-    def __init__(self, node, pos, line):
+    def __init__(self, node, pos, line, lines):
         self.node = node
         self.pos = pos
         self.line = line
+        self.lines = lines
         self.log = {}
 
     def save(self, version):
         self.log[version] = (self.node, self.pos, self.line)
 
-    def load(self, version):
+    def load(self, version, lines):
         (self.node, self.pos, self.line) = self.log[version]
+        self.lines = lines
 
     def clean_versions(self, version):
         for key in self.log.keys():
@@ -77,7 +79,7 @@ class Cursor(object):
                 del self.log[key]
 
     def copy(self):
-        return Cursor(self.node, self.pos, self.line)
+        return Cursor(self.node, self.pos, self.line, self.lines)
 
     def fix(self):
         while self.node.deleted:
@@ -202,20 +204,33 @@ class Cursor(object):
             return False
         return True
 
-    def up(self, lines):
+    def up(self):
         if self.line > 0:
             x = self.get_x()
             self.line -= 1
-            self.move_to_x(x, lines)
+            self.move_to_x(x)
 
-    def down(self, lines):
-        if self.line < len(lines) - 1:
+    def down(self):
+        if self.line < len(self.lines) - 1:
             x = self.get_x()
             self.line += 1
-            self.move_to_x(x, lines)
+            self.move_to_x(x)
 
-    def move_to_x(self, x, lines):
-        node = lines[self.line].node
+    def home(self):
+        self.node = self.lines[self.line].node
+        self.pos = len(self.node.symbol.name)
+
+    def end(self):
+        if self.line < len(self.lines)-1:
+            self.node = self.find_previous_visible(self.lines[self.line+1].node)
+        else:
+            while not isinstance(self.node, EOS):
+                self.node = self.node.next_term
+            self.node = self.find_previous_visible(self.node)
+        self.pos = len(self.node.symbol.name)
+
+    def move_to_x(self, x):
+        node = self.lines[self.line].node
         while x > 0:
             newnode = self.find_next_visible(node)
             if newnode is node:
@@ -297,9 +312,6 @@ class TreeManager(object):
     def __init__(self):
         self.lines = []             # storage for line objects
         self.mainroot = None        # root node (main language)
-        #self.cursor = Cursor(0,0)
-        #self.selection_start = Cursor(0,0)
-        #self.selection_end = Cursor(0,0)
         self.parsers = []           # stores all currently used parsers
         self.edit_rightnode = False # changes which node to select when inbetween two nodes
         self.changed = False
@@ -384,7 +396,7 @@ class TreeManager(object):
         if len(self.parsers) == 1:
             self.lines.append(Line(parser.previous_version.parent.children[0]))
             self.mainroot = parser.previous_version.parent
-            self.cursor = Cursor(self.mainroot.children[0], 0, 0)
+            self.cursor = Cursor(self.mainroot.children[0], 0, 0, self.lines)
             self.selection_start = self.cursor.copy()
             self.selection_end = self.cursor.copy()
             lboxnode = self.create_node("<%s>" % language, lbox=True)
@@ -660,7 +672,7 @@ class TreeManager(object):
             self.version += 1
             TreeManager.version = self.version
             self.recover_version("redo")
-            self.cursor.load(self.version)
+            self.cursor.load(self.version, self.lines)
 
     def get_max_version(self):
         root = self.get_bos().parent
@@ -687,8 +699,8 @@ class TreeManager(object):
         for i in range(undo_amount):
             self.version -= 1
             TreeManager.version = self.version
-            self.cursor.load(self.version)
             self.recover_version("undo")
+            self.cursor.load(self.version, self.lines)
 
     def recover_version(self, direction):
         self.load_lines()
@@ -845,19 +857,14 @@ class TreeManager(object):
     def key_home(self, shift=False):
         self.log_input("key_home", str(shift))
         self.unselect()
-        self.cursor.node = self.lines[self.cursor.line].node
-        self.cursor.pos = len(self.cursor.node.symbol.name)
+        self.cursor.home()
         if shift:
             self.selection_end = self.cursor.copy()
 
     def key_end(self, shift=False):
         self.log_input("key_end", str(shift))
         self.unselect()
-        if self.cursor.line < len(self.lines)-1:
-            self.cursor.node = self.cursor.find_previous_visible(self.lines[self.cursor.line+1].node)
-        else:
-            self.cursor.node = self.cursor.find_previous_visible(self.mainroot.children[-1])
-        self.cursor.pos = len(self.cursor.node.symbol.name)
+        self.cursor.end()
         if shift:
             self.selection_end = self.cursor.copy()
 
@@ -1100,7 +1107,7 @@ class TreeManager(object):
         self.cursor.node = self.selection_end.node
 
     def select_all(self):
-        self.selection_start = Cursor(self.get_bos(), -1, 0)
+        self.selection_start = Cursor(self.get_bos(), -1, 0, self.lines)
         self.cursor.node = self.get_eos()
         self.cursor.jump_left() # for now ignore invisible nodes
         self.cursor.pos = len(self.cursor.node.symbol.name)
@@ -1388,9 +1395,9 @@ class TreeManager(object):
         cur = self.cursor
 
         if key.up:
-            self.cursor.up(self.lines)
+            self.cursor.up()
         elif key.down:
-            self.cursor.down(self.lines)
+            self.cursor.down()
         elif key.left:
             self.cursor.left()
         elif key.right:
@@ -1399,7 +1406,7 @@ class TreeManager(object):
 
     def cursor_reset(self):
         self.cursor.line = 0
-        self.cursor.move_to_x(0, self.lines)
+        self.cursor.move_to_x(0)
 
     def fix_cursor_on_image(self):
         return

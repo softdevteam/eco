@@ -27,7 +27,7 @@ from PyQt4.QtGui import *
 BODY_FONT = "Monospace"
 BODY_FONT_SIZE = 9
 
-from treemanager import TreeManager, Cursor
+from treemanager import TreeManager
 from grammars.grammars import submenu_langs as languages, lang_dict
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from grammar_parser.bootstrap import ListNode, AstNode
@@ -692,10 +692,10 @@ class NodeEditor(QFrame):
 
         self.tm.cursor.line = line
         cursor_x = int(round(float(x) / self.fontwt))
-        self.tm.cursor.move_to_x(cursor_x, self.tm.lines)
+        self.tm.cursor.move_to_x(cursor_x)
 
         self.tm.input_log.append("self.cursor.line = %s" % str(line))
-        self.tm.log_input("cursor.move_to_x", str(cursor_x), "self.lines")
+        self.tm.log_input("cursor.move_to_x", str(cursor_x))
 
         if mouse_y > y or self.tm.cursor.get_x() != cursor_x:
             return False
