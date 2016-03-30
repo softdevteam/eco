@@ -21,6 +21,15 @@ class Heatmap(Hint):
     pass
 
 
+class Railroad(Hint):
+    """Annotations which can be displayed as railroad lines between tokens.
+    Annotations should be dicts of tuples, e.g. { (10, 'foo'): (20, 'bar')}
+    requests that Eco should draw a line between token 'foo' on line 10
+    and token 'bar' on line 20.
+    """
+    pass
+
+
 class Footnote(Hint):
     """Annotations which can be displayed as a footnote.
     A footnote (in Eco) is a line of text underneath a node.

@@ -299,6 +299,8 @@ class SettingsView(QtGui.QMainWindow):
         self.connect(self.ui.btpypyprefix, SIGNAL("clicked()"), self.choose_dir)
         self.connect(self.ui.btunipycation, SIGNAL("clicked()"), self.choose_file)
         self.connect(self.ui.btlspaceroot, SIGNAL("clicked()"), self.choose_dir)
+        self.connect(self.ui.btjruby, SIGNAL("clicked()"), self.choose_file)
+        self.connect(self.ui.btgraalvm, SIGNAL("clicked()"), self.choose_file)
 
         self.foreground = None
         self.background = None
@@ -323,6 +325,10 @@ class SettingsView(QtGui.QMainWindow):
                 self.ui.env_pypyprefix.setText(filename)
             elif self.sender() is self.ui.btunipycation:
                 self.ui.env_unipycation.setText(filename)
+            elif self.sender() is self.ui.btjruby:
+                self.ui.env_jruby.setText(filename)
+            elif self.sender() is self.ui.btgraalvm:
+                self.ui.env_graalvm.setText(filename)
 
     def choose_dir(self):
         filename = QFileDialog.getExistingDirectory(self, "Choose directory")
@@ -356,6 +362,7 @@ class SettingsView(QtGui.QMainWindow):
         self.heatmap_low = settings.value("heatmap_low", "#deebf7").toString()
         self.heatmap_high = settings.value("heatmap_high", "#3182bd").toString()
         self.ui.heatmap_alpha.setValue(settings.value("heatmap_alpha", 100).toInt()[0])
+        self.ui.graalvm_pic_size.setValue(settings.value("graalvm_pic_size", 2).toInt()[0])
 
         self.change_color(self.ui.app_foreground, self.foreground)
         self.change_color(self.ui.app_background, self.background)
@@ -366,6 +373,8 @@ class SettingsView(QtGui.QMainWindow):
         self.ui.env_unipycation.setText(settings.value("env_unipycation", "").toString())
         self.ui.env_pypyprefix.setText(settings.value("env_pypyprefix", "").toString())
         self.ui.env_lspaceroot.setText(settings.value("env_lspaceroot", "").toString())
+        self.ui.env_jruby.setText(settings.value("env_jruby", "").toString())
+        self.ui.env_graalvm.setText(settings.value("env_graalvm", "").toString())
 
     def saveSettings(self):
         settings = QSettings("softdev", "Eco")
@@ -388,11 +397,14 @@ class SettingsView(QtGui.QMainWindow):
         settings.setValue("heatmap_low", self.heatmap_low)
         settings.setValue("heatmap_high", self.heatmap_high)
         settings.setValue("heatmap_alpha", self.ui.heatmap_alpha.value())
+        settings.setValue("graalvm_pic_size", self.ui.graalvm_pic_size.value())
 
         settings.setValue("env_pyhyp", self.ui.env_pyhyp.text())
         settings.setValue("env_unipycation", self.ui.env_unipycation.text())
         settings.setValue("env_pypyprefix", self.ui.env_pypyprefix.text())
         settings.setValue("env_lspaceroot", self.ui.env_lspaceroot.text())
+        settings.setValue("env_jruby", self.ui.env_jruby.text())
+        settings.setValue("env_graalvm", self.ui.env_graalvm.text())
 
     def accept(self):
         self.saveSettings()
@@ -407,6 +419,7 @@ class SettingsView(QtGui.QMainWindow):
         app.heatmap_low = settings.value("heatmap_low")
         app.heatmap_high = settings.value("heatmap_high")
         app.heatmap_alpha = settings.value("heatmap_alpha")
+        app.graalvm_pic_size = settings.value("graalvm_pic_size")
 
         self.window.refreshTheme()
         self.close()
@@ -1234,7 +1247,7 @@ class Window(QtGui.QMainWindow):
         self.ui.menuChange_language_box.setEnabled(enabled)
         self.ui.actionPreview.setEnabled(enabled)
         self.ui.actionInput_log.setEnabled(enabled)
-        
+
         if enabled == False:
             self.ui.actionProfile.setEnabled(enabled)
             self.ui.actionStateGraph.setEnabled(enabled)
@@ -1260,10 +1273,13 @@ def main():
         settings.setValue("heatmap_high", QColor(49, 130, 189))
     if not settings.contains("heatmap_alpha"):
         settings.setValue("heatmap_alpha", 100)
+    if not settings.contains("graalvm_pic_size"):
+        settings.setValue("graalvm_pic_size", 2)
 
     app.heatmap_low = settings.value("heatmap_low")
     app.heatmap_high = settings.value("heatmap_high")
     app.heatmap_alpha = settings.value("heatmap_alpha")
+    app.graalvm_pic_size = settings.value("graalvm_pic_size")
 
     app.showindent = False
 
@@ -1324,6 +1340,8 @@ class ProfileThread(QThread):
             text = p.stdout.read()
             self.emit(self.signal, text.strip())
             self.emit(self.signal_overlay, self.window.getEditor().tm.profile_data)
+        else:
+            self.emit(self.signal_overlay, None)
         self.emit(self.signal_done, None)
 
 

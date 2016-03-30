@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>378</width>
-    <height>426</height>
+    <height>544</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,14 +15,15 @@
   </property>
   <property name="windowIcon">
    <iconset theme="gnome-settings">
-    <normaloff>.</normaloff>.</iconset>
+    <normaloff/>
+   </iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_2">
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>3</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab">
        <property name="sizePolicy">
@@ -239,6 +240,9 @@
            <string>Font (profiler and tool information)</string>
           </property>
           <layout class="QFormLayout" name="formLayout_6">
+           <property name="fieldGrowthPolicy">
+            <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+           </property>
            <item row="0" column="0">
             <widget class="QLabel" name="label_8">
              <property name="text">
@@ -341,6 +345,32 @@
           </layout>
          </widget>
         </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_10">
+          <property name="title">
+           <string>GraalVM Polymorphic Inline Cache</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_16">
+             <property name="text">
+              <string>Size (for profiling only):</string>
+             </property>
+             <property name="buddy">
+              <cstring>graalvm_pic_size</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QSpinBox" name="graalvm_pic_size">
+             <property name="maximum">
+              <number>255</number>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
        </layout>
       </widget>
       <widget class="QWidget" name="tab_4">
@@ -361,6 +391,9 @@
             <widget class="QLabel" name="label_5">
              <property name="text">
               <string>Binary</string>
+             </property>
+             <property name="buddy">
+              <cstring>env_pyhyp</cstring>
              </property>
             </widget>
            </item>
@@ -388,6 +421,9 @@
             <widget class="QLabel" name="label_12">
              <property name="text">
               <string>PyPy bridge</string>
+             </property>
+             <property name="buddy">
+              <cstring>env_pypyprefix</cstring>
              </property>
             </widget>
            </item>
@@ -424,6 +460,9 @@
             <widget class="QLabel" name="label_6">
              <property name="text">
               <string>Binary</string>
+             </property>
+             <property name="buddy">
+              <cstring>env_unipycation</cstring>
              </property>
             </widget>
            </item>
@@ -481,6 +520,87 @@
              <property name="text">
               <string>Root dir</string>
              </property>
+             <property name="buddy">
+              <cstring>env_lspaceroot</cstring>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_8">
+          <property name="title">
+           <string>JRuby</string>
+          </property>
+          <layout class="QFormLayout" name="formLayout_9">
+           <item row="0" column="1">
+            <layout class="QHBoxLayout" name="horizontalLayout_6">
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QLineEdit" name="env_jruby"/>
+             </item>
+             <item>
+              <widget class="QToolButton" name="btjruby">
+               <property name="text">
+                <string>...</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_14">
+             <property name="text">
+              <string>Binary</string>
+             </property>
+             <property name="buddy">
+              <cstring>env_jruby</cstring>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_9">
+          <property name="title">
+           <string>GraalVM</string>
+          </property>
+          <layout class="QFormLayout" name="formLayout_10">
+           <item row="0" column="1">
+            <layout class="QHBoxLayout" name="horizontalLayout_7">
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QLineEdit" name="env_graalvm"/>
+             </item>
+             <item>
+              <widget class="QToolButton" name="btgraalvm">
+               <property name="text">
+                <string>...</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_15">
+             <property name="text">
+              <string>Binary</string>
+             </property>
+             <property name="buddy">
+              <cstring>env_graalvm</cstring>
+             </property>
             </widget>
            </item>
           </layout>
@@ -505,7 +625,7 @@
      <x>0</x>
      <y>0</y>
      <width>378</width>
-     <height>22</height>
+     <height>26</height>
     </rect>
    </property>
   </widget>
