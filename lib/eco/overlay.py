@@ -109,16 +109,16 @@ class Overlay(QWidget):
                                            'max_x': 0,
                                            'is_mega': False, }
         temp_cursor = self.tm.cursor.copy()  # Save cursor to restore later.
-        self.tm.cursor.line = 0  # Start at beginning of syntax tree.
-        self.tm.cursor.move_to_x(0)
-        while not (isinstance(self.tm.cursor.node, EOS) or
-                   isinstance(self.tm.cursor.node.next_term, EOS)):
-            if self.tm.cursor.node.symbol.name in self._railroad_data.keys():
-                method = self.tm.cursor.node.symbol.name
-                saved_x = self.tm.cursor.get_x()
-                self.tm.key_end()
-                location = (self.tm.cursor.line + 1, self.tm.cursor.get_x())
-                self.tm.cursor.move_to_x(saved_x)
+        temp_cursor.line = 0  # Start at beginning of syntax tree.
+        temp_cursor.move_to_x(0)
+        while not (isinstance(temp_cursor.node, EOS) or
+                   isinstance(temp_cursor.node.next_term, EOS)):
+            if temp_cursor.node.symbol.name in self._railroad_data.keys():
+                method = temp_cursor.node.symbol.name
+                saved_x = temp_cursor.get_x()
+                temp_cursor.end()
+                location = (temp_cursor.line + 1, temp_cursor.get_x())
+                temp_cursor.move_to_x(saved_x)
                 # Assume the first occurrence of the method is its definition.
                 if railroad_data[method]['definition'] is None:
                     railroad_data[method]['definition'] = location
@@ -129,8 +129,7 @@ class Overlay(QWidget):
                 railroad_data[method]['max_x'] = max_x
                 if self._railroad_data[method]:
                     railroad_data[method]['is_mega'] = True
-            self.tm.cursor.jump_right()
-        self.tm.cursor = temp_cursor # Restore cursor.
+            temp_cursor.jump_right()
 
         # Compute lines (and their colours).
         painter = QPainter()
