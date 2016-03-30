@@ -79,7 +79,7 @@ class CPythonExporter(object):
                 # Move cursor to correct line and character
                 msg = ('%s: called %s times ran at %ss / call' % (func, ncalls, tokens[2]))
                 temp_cursor.line = lineno - 1
-                temp_cursor.move_to_x(0, self.tm.lines)
+                temp_cursor.move_to_x(0)
                 node = temp_cursor.find_next_visible(temp_cursor.node)
                 if node.lookup == "<ws>":
                     node = node.next_term

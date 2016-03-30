@@ -2471,11 +2471,11 @@ self.key_cursors(KEY_LEFT, False)
 self.key_cursors(KEY_LEFT, False)
 # mousePressEvent
 self.cursor.line = 1
-self.cursor.move_to_x(11, self.lines)
+self.cursor.move_to_x(11)
 self.selection_start = self.cursor.copy()
 self.selection_end = self.cursor.copy()
 self.cursor.line = 1
-self.cursor.move_to_x(8, self.lines)
+self.cursor.move_to_x(8)
 self.selection_end = self.cursor.copy()
 self.cursor.line = 2
 self.key_normal('f')
@@ -2483,7 +2483,7 @@ self.key_normal('o')
 self.key_normal('o')
 # mousePressEvent
 self.cursor.line = 2
-self.cursor.move_to_x(16, self.lines)
+self.cursor.move_to_x(16)
 self.selection_start = self.cursor.copy()
 self.selection_end = self.cursor.copy()
 self.key_backspace()
