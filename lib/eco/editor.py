@@ -187,9 +187,9 @@ else:
 
 def get_editor(parent, fontwt, fontht, fontd):
     if parent == "Chemicals":
-        return ChemicalEditor(fontwt, fontht)
+        return ChemicalEditor(fontwt, fontht, fontd)
     if parent == "Image":
-        return ImageEditor(fontwt, fontht)
+        return ImageEditor(fontwt, fontht, fontd)
     if parent == "IPython":
-        return IPythonEditor(fontwt, fontht)
+        return IPythonEditor(fontwt, fontht, fontd)
     return NormalEditor(fontwt, fontht, fontd)
