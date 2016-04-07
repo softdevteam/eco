@@ -36,9 +36,10 @@ import math, os
 
 class Editor(object):
 
-    def __init__(self, fontwt, fontht):
+    def __init__(self, fontwt, fontht, fontd):
         self.fontwt = fontwt
         self.fontht = fontht
+        self.fontd  = fontd
 
     def paint_node(self, paint, node, x, y, highlighter):
         raise NotImplementedError
@@ -80,7 +81,7 @@ class NormalEditor(Editor):
                     text = "<"
                 else:
                     return dx, dy
-                paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text)
+                paint.drawText(QtCore.QPointF(x, 3 + self.fontht + y*self.fontht - self.fontd), text)
                 return 1*self.fontwt, dy
             else:
                 return dx, dy
@@ -89,7 +90,7 @@ class NormalEditor(Editor):
             self.setStyle(paint, highlighter.get_style(node))
             text = node.symbol.name
             if not (node.lookup == "<ws>" and node.symbol.name.startswith(" ")): # speedhack: don't draw invisible nodes
-                paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text)
+                paint.drawText(QtCore.QPointF(x, 3 + self.fontht + y*self.fontht - self.fontd), text)
             #print("drawing node", text, "at", x,y)
             dx = len(text) * self.fontwt
             dy = 0
@@ -184,11 +185,11 @@ else:
         def on_error(self, ename, value, traceback):
             raise Exception(ename)
 
-def get_editor(parent, fontwt, fontht):
+def get_editor(parent, fontwt, fontht, fontd):
     if parent == "Chemicals":
         return ChemicalEditor(fontwt, fontht)
     if parent == "Image":
         return ImageEditor(fontwt, fontht)
     if parent == "IPython":
         return IPythonEditor(fontwt, fontht)
-    return NormalEditor(fontwt, fontht)
+    return NormalEditor(fontwt, fontht, fontd)

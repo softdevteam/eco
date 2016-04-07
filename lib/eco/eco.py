@@ -85,8 +85,9 @@ class GlobalFont(object):
     def setfont(self, font):
         self.font = font
         self.fontm = QtGui.QFontMetrics(self.font)
-        self.fontht = self.fontm.height() + 3
+        self.fontht = self.fontm.height()
         self.fontwt = self.fontm.width(" "*99)/99.0
+        self.fontd = self.fontm.descent()
 
 class LineNumbers(QFrame):
     def __init__(self, parent=None):
