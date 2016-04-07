@@ -653,7 +653,7 @@ class Window(QtGui.QMainWindow):
         dpi = QApplication.desktop().physicalDpiX()
         if dpi > 96:
             iconsize = dpi / 96 * 16
-            self.ui.toolbar.setIconSize(QtCore.QSize(iconsize, iconsize))
+            self.ui.toolBar.setIconSize(QtCore.QSize(iconsize, iconsize))
 
     def set_profiler_enabled(self):
         ed = self.getEditor()
