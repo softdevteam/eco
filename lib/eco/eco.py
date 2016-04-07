@@ -33,11 +33,12 @@ More detailed install instructions for py can be found at:
 """)
     sys.exit(1)
 
-from PyQt4 import QtCore
-from PyQt4.QtCore import *
-from PyQt4 import QtGui
-from PyQt4.QtGui import *
-from PyQt4 import uic
+from PyQt5 import QtCore
+from PyQt5.QtCore import *
+from PyQt5 import QtGui
+from PyQt5.QtGui import *
+from PyQt5 import uic
+from PyQt5.QtWidgets import *
 
 from grammar_parser.plexer import PriorityLexer
 from incparser.incparser import IncParser
@@ -91,7 +92,7 @@ class GlobalFont(object):
 
 class LineNumbers(QFrame):
     def __init__(self, parent=None):
-        QtGui.QFrame.__init__(self, parent)
+        QFrame.__init__(self, parent)
 
         family = settings.value("font-family").toString()
         size = settings.value("font-size").toInt()[0]
@@ -132,7 +133,7 @@ class LineNumbers(QFrame):
         self.fontht = self.fontm.height() + 3
         self.fontwt = self.fontm.width(" ")
 
-class ScopeScrollArea(QtGui.QAbstractScrollArea):
+class ScopeScrollArea(QAbstractScrollArea):
     def setWidgetResizable(self, b):
         self.resizable = True
 
@@ -160,9 +161,9 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
     def decVSlider(self):
         self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() - self.verticalScrollBar().singleStep())
 
-class ParseView(QtGui.QMainWindow):
+class ParseView(QMainWindow):
     def __init__(self, window):
-        QtGui.QMainWindow.__init__(self, window)
+        QMainWindow.__init__(self, window)
         self.ui = Ui_ParseTree()
         self.ui.setupUi(self)
 
@@ -251,9 +252,9 @@ class ParseView(QtGui.QMainWindow):
             self.viewer.get_tree_image(parent, [start, end], whitespaces, nodes)
             self.showImage(self.ui.graphicsView, self.viewer.image)
 
-class StateView(QtGui.QMainWindow):
+class StateView(QMainWindow):
     def __init__(self, window):
-        QtGui.QMainWindow.__init__(self)
+        QMainWindow.__init__(self)
         self.ui = Ui_StateView()
         self.ui.setupUi(self)
 
@@ -281,9 +282,9 @@ class StateView(QtGui.QMainWindow):
         graphicsview.setScene(scene)
         graphicsview.resetMatrix()
 
-class SettingsView(QtGui.QMainWindow):
+class SettingsView(QMainWindow):
     def __init__(self, window):
-        QtGui.QMainWindow.__init__(self)
+        QMainWindow.__init__(self)
         self.ui = Ui_Settings()
         self.ui.setupUi(self)
 
@@ -447,10 +448,10 @@ class SettingsView(QtGui.QMainWindow):
         """
         widget.setStyleSheet("background-color: %s" % (color))
 
-class InputLogView(QtGui.QDialog):
+class InputLogView(QDialog):
     def __init__(self, parent):
         self.parent = parent
-        QtGui.QDialog.__init__(self, parent)
+        QDialog.__init__(self, parent)
         self.ui = Ui_InputLog()
         self.ui.setupUi(self)
 
@@ -461,17 +462,17 @@ class InputLogView(QtGui.QDialog):
         self.tm.apply_inputlog(str(log))
         self.accept()
 
-class AboutView(QtGui.QDialog):
+class AboutView(QDialog):
     def __init__(self, parent):
         self.parent = parent
-        QtGui.QDialog.__init__(self, parent)
+        QDialog.__init__(self, parent)
         self.ui = Ui_About()
         self.ui.setupUi(self)
 
-class PreviewDialog(QtGui.QDialog):
+class PreviewDialog(QDialog):
     def __init__(self, parent):
         self.parent = parent
-        QtGui.QDialog.__init__(self, parent)
+        QDialog.__init__(self, parent)
         self.ui = Ui_Preview()
         self.ui.setupUi(self)
 
@@ -485,10 +486,10 @@ class PreviewDialog(QtGui.QDialog):
             text = self.tm.export("/dev/null")
             self.ui.textEdit.setText(text)
 
-class FindDialog(QtGui.QDialog):
+class FindDialog(QDialog):
     def __init__(self, parent):
         self.parent = parent
-        QtGui.QDialog.__init__(self)
+        QDialog.__init__(self)
         self.ui = Ui_FindDialog()
         self.ui.setupUi(self)
         self.ui.buttonBox.button(QDialogButtonBox.Ok).setText("Find")
@@ -501,10 +502,10 @@ class FindDialog(QtGui.QDialog):
         self.ui.leText.setFocus(True)
         self.ui.leText.selectAll()
 
-class LanguageView(QtGui.QDialog):
+class LanguageView(QDialog):
     def __init__(self, parent, languages):
         self.parent = parent
-        QtGui.QDialog.__init__(self)
+        QDialog.__init__(self)
         self.ui = Ui_LanguageDialog()
         self.ui.setupUi(self)
 
@@ -561,11 +562,9 @@ class LanguageView(QtGui.QDialog):
 
 
 from optparse import OptionParser
-class Window(QtGui.QMainWindow):
-
-
+class Window(QMainWindow):
     def __init__(self):
-        QtGui.QMainWindow.__init__(self)
+        QMainWindow.__init__(self)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
@@ -1254,7 +1253,7 @@ class Window(QtGui.QMainWindow):
             self.ui.actionStateGraph.setEnabled(enabled)
 
 def main():
-    app = QtGui.QApplication(sys.argv)
+    app = QApplication(sys.argv)
     app.setStyle('gtk')
 
     settings = QSettings("softdev", "Eco")
@@ -1265,8 +1264,8 @@ def main():
         settings.setValue("tool-font-family", "Monospace")
         settings.setValue("tool-font-size", 9)
 
-    app.gfont = GlobalFont(settings.value("font-family").toString(), settings.value("font-size").toInt()[0])
-    app.tool_info_font = GlobalFont(settings.value("tool-font-family").toString(), settings.value("tool-font-size").toInt()[0])
+    app.gfont = GlobalFont(settings.value("font-family"), int(settings.value("font-size")))
+    app.tool_info_font = GlobalFont(settings.value("tool-font-family"), int(settings.value("tool-font-size")))
 
     if not settings.contains("heatmap_low"):
         settings.setValue("heatmap_low", QColor(222, 235, 247))

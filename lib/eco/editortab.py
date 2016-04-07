@@ -19,10 +19,11 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from PyQt4 import QtCore
-from PyQt4.QtCore import *
-from PyQt4 import QtGui
-from PyQt4.QtGui import *
+from PyQt5 import QtCore
+from PyQt5.QtCore import *
+from PyQt5 import QtGui
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
 from nodeeditor import NodeEditor
 from grammars.grammars import Language, EcoGrammar, EcoFile
@@ -107,7 +108,7 @@ class EditorTab(QWidget):
             incparser, inclexer = lang.load()
             self.editor.set_mainlanguage(incparser, inclexer, lang.name)
 
-class ScopeScrollArea(QtGui.QAbstractScrollArea):
+class ScopeScrollArea(QAbstractScrollArea):
 
     def update(self):
         QWidget.update(self)

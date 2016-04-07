@@ -1,5 +1,6 @@
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
 from incparser.astree import EOS
 from colorsys import hsv_to_rgb

@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 
-from PyQt4 import QtGui
+from PyQt5 import QtGui
 
 from incparser.astree import BOS, EOS, TextNode
 from grammar_parser.gparser import MagicTerminal, IndentationTerminal

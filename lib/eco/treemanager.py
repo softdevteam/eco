@@ -23,8 +23,8 @@ from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
-from PyQt4.QtGui import QApplication
-from PyQt4.QtCore import QSettings
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import QSettings
 from grammars.grammars import lang_dict, Language, EcoFile
 from export import HTMLPythonSQL, PHPPython, ATerms
 from export.jruby import JRubyExporter

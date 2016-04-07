@@ -22,7 +22,7 @@
 from grammar_parser.plexer import PriorityLexer
 from grammar_parser.gparser import MagicTerminal, Terminal, IndentationTerminal
 from incparser.astree import BOS, EOS, TextNode, ImageNode
-from PyQt4.QtGui import QImage
+from PyQt5.QtGui import QImage
 import re, os
 
 class IncrementalLexer(object):

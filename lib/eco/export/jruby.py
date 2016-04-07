@@ -9,7 +9,7 @@ from incparser.annotation import Annotation, ToolTip, Railroad
 from incparser.astree import EOS
 from grammar_parser.gparser import MagicTerminal, IndentationTerminal
 
-from PyQt4.QtCore import QSettings
+from PyQt5.QtCore import QSettings
 
 
 class JRubyMorphismLine(Annotation):
