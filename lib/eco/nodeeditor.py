@@ -223,6 +223,7 @@ class NodeEditor(QFrame):
         self.font = gfont.font
         self.fontwt = gfont.fontwt
         self.fontht = gfont.fontht
+        self.fontd  = gfont.fontd
         QtGui.QFrame.paintEvent(self, event)
         paint = QtGui.QPainter()
         if self.imagemode:
@@ -618,7 +619,7 @@ class NodeEditor(QFrame):
     def get_editor(self, node):
         root = node.get_root()
         base = lang_dict[self.tm.get_language(root)].base
-        return editor.get_editor(base, self.fontwt, self.fontht)
+        return editor.get_editor(base, self.fontwt, self.fontht, self.fontd)
 
     def focusNextPrevChild(self, b):
         # don't switch to next widget on TAB
