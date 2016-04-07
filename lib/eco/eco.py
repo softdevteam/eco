@@ -650,6 +650,12 @@ class Window(QtGui.QMainWindow):
             self.ui.actionFind_next.setShortcut("Ctrl+G")
             self.ui.actionCode_complete.setShortcut("Meta+Space")
 
+        # adjust icon size depending on DPI
+        dpi = QApplication.desktop().physicalDpiX()
+        if dpi > 96:
+            iconsize = dpi / 96 * 16
+            self.ui.toolBar.setIconSize(QtCore.QSize(iconsize, iconsize))
+
     def set_profiler_enabled(self):
         ed = self.getEditor()
         if (ed is not None) and (ed.tm is not None):
