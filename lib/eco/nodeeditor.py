@@ -465,7 +465,7 @@ class NodeEditor(QFrame):
                 draw_cursor = False
 
             # draw squiggly line
-            if node is error_node or node in error_nodes or (show_namebinding and self.tm.has_error(node)):
+            if node is error_node or id(node) in error_nodes or (show_namebinding and self.tm.has_error(node)):
                 if isinstance(node, EOS):
                     length = self.fontwt
                 else:

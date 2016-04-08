@@ -151,8 +151,10 @@ class IncParser(object):
         self.stack = []
         self.undo = []
         self.current_state = 0
-        self.stack.append(Node(FinishSymbol(), 0, []))
         bos = self.previous_version.parent.children[0]
+        eos = self.previous_version.parent.children[-1]
+        self.stack.append(eos)
+        eos.state = 0
         self.loopcount = 0
 
         USE_OPT = True
@@ -170,6 +172,9 @@ class IncParser(object):
                     lookup_symbol = self.get_lookup(la)
                     result = self.parse_terminal(la, lookup_symbol)
                     if result == "Accept":
+                        if len(self.error_nodes) > 0:
+                            self.last_status = False
+                            return False
                         self.last_status = True
                         return True
                     elif result == "Error":
@@ -250,6 +255,7 @@ class IncParser(object):
 
         elif isinstance(element, Reduce):
             logging.debug("\x1b[33mReduce\x1b[0m: %s -> %s", la, element)
+            self.validating = False
             self.reduce(element)
             return self.parse_terminal(la, lookup_symbol)
         elif element is None:
@@ -260,8 +266,9 @@ class IncParser(object):
                 logging.debug("After breakdown: %s", self.stack[-1])
                 self.validating = False
             else:
-                logging.debug("Proper error, let's try and recover")
-                self.error_nodes.append(la)
+                logging.debug("\x1b[31mProper error\x1b[0m: let's try and recover")
+                self.error_node = la
+                self.error_nodes.append(id(la))
                 new_la = self.recover(la)
                 if new_la:
                     logging.debug("Recovered. Continue from here")
@@ -270,84 +277,132 @@ class IncParser(object):
                 return self.do_undo(la)
 
     def recover(self, error_node):
+        if isinstance(self.stack[-1].symbol, FinishSymbol):
+            return False
+        if isinstance(error_node, EOS):
+            return False
+        error_offset = self.stack_offset(len(self.stack)-1)
         self.right_breakdown()
         sp = 0
         node = self.stack.pop()
-        error_offset = self.offset(error_node)
-        while not isinstance(node, BOS):
+        print("RECOVER", error_node)
+        while not isinstance(node, EOS):
+            logging.debug("Recover-loop: %s", node)
             sp += 1
-            # if node is new -> continue
-            node = self.stack.pop()
+            # XXX if node is new -> continue
+            if self.is_new(node):
+                logging.debug("node is new -> continue")
+                node = self.stack.pop()
+                continue
             la = self.is_valid_iso_subtree(node, error_offset)
             if la:
+                print("found valid iso 1", la)
                 return la
-            # check parents
+            # check parents in previous version
             logging.debug("checking ancestors")
-            while node.parent:
+            while node.get_attr("parent", node.version):
                 # XXX missing get_cut statement
-                node = node.parent
+                node = node.get_attr("parent", node.version)
                 la = self.is_valid_iso_subtree(node, error_offset)
                 if la:
+                    print("found valid iso 2", la)
                     return la
+            node = self.stack.pop()
         logging.debug("Need to do something with root")
-        assert False
+        return None
+
+    def is_new(self, node):
+        if len(node.log) == 2:
+            return True
+        if len(node.log) == 1:
+            return True
+        if len(node.log) == 0:
+            return True
+        return False
 
     def is_valid_iso_subtree(self, node, error_offset):
         logging.debug("Checking if %s is valid isolation tree", node.symbol.name)
-        left_offset = self.offset(node)
-        logging.debug("left offset: %s", left_offset)
+        if len(node.children) == 0:
+            logging.debug("    No children -> Return")
+            return False
+        cut = self.get_cut(node)
+        logging.debug("    get_cut: %s", cut)
+        left_offset = self.stack_offset(cut)
+        if left_offset == -1:
+            assert False
+        logging.debug("    left offset: %s", left_offset)
         last_offset = self.offset(node, node.version)
-        logging.debug("last offset: %s", last_offset)
-        logging.debug("error offset: %s", error_offset)
+        logging.debug("    last offset: %s", last_offset)
+        logging.debug("    error offset: %s", error_offset)
         if left_offset != last_offset:
-            logging.debug("offsets don't align")
+            logging.debug("    offsets don't align -> Return")
             return False
         if last_offset > error_offset:
-            logging.debug(">error")
+            logging.debug("    last_offset > error -> Return")
             return False
         nlen, content = self.text_length(node)
-        logging.debug("nlen:%s, '%s'", nlen, content)
+        logging.debug("    text-length: %s, '%s'", nlen, content)
         if last_offset + nlen < error_offset:
-            logging.debug("<error+node")
+            logging.debug("    last_offset + textlength < error -> Return")
             return False
 
-        logging.debug("FOUND AN ISO TREE CANDIDATE")
+        logging.debug("    FOUND AN ISO TREE CANDIDATE!")
         # set state to state after last node on stack
         cut_point = self.find_cut_point(left_offset)
         # test shitfability
         
         element = self.syntaxtable.lookup(self.stack[cut_point].state, node.symbol)
-        logging.debug("state: %s", self.stack[cut_point].state)
-        logging.debug("elem: %s", element)
-        logging.debug("stack: %s", self.stack)
+        logging.debug("        state: %s", self.stack[cut_point].state)
+        logging.debug("        elem: %s", element)
+        logging.debug("        stack: %s", self.stack)
         if isinstance(element, Goto):
-            logging.debug("Found valid ISO tree")
-            logging.debug("Item at cutpoint: %s", self.stack[cut_point])
+            logging.debug("         \x1b[32mFound valid ISO tree\x1b[0m %s", node.symbol)
+            logging.debug("         Item at cutpoint: %s", self.stack[cut_point])
             self.current_state = self.stack[cut_point].state
-            logging.debug("Item on stack: %s", self.stack[-1])
-            logging.debug("Cutpoint: %s", cut_point)
-            logging.debug("Cutpoint+1: %s", cut_point + 1)
+            logging.debug("         Item on stack: %s", self.stack[-1])
+            logging.debug("         Cutpoint: %s", cut_point)
+            logging.debug("         Cutpoint+1: %s", cut_point + 1)
 
             self.stack = self.stack[:cut_point+1]
-            logging.debug("stack: %s", self.stack)
+            logging.debug("         stack: %s", self.stack)
             self.current_state = element.action # now advance
+            # XXX undo ALL changes withint this subtree
+            self.needtoundonodes = set()
+            self.isolate(node)
+            for n, key, val in self.undo:
+                if n in self.needtoundonodes:
+                    logging.debug("        %s.%s: %s -> %s", n.symbol.name, key, getattr(n, key), val) 
+                    setattr(n, key, val)
             self.stack.append(node)
             node.state = element.action
+            print("    DONE", node)
             return self.pop_lookahead(node)
-        assert False
+        logging.debug("    Not shiftable -> Return")
+        return False
+
+    def isolate(self, node):
+        # Undo all (reduction) changes up to the error node
+        if isinstance(node.symbol, Nonterminal):
+            self.needtoundonodes.add(node) # need to undo node.changed = False
+            for c in node.children:
+                self.isolate(c)
+        else:
+            logging.debug("resetting %s %s", node.symbol, node.version)
+            self.needtoundonodes.add(node)
+
 
     def find_cut_point(self, offset):
         # finds the position on the stack from which we need
         # to restart parsing. reset parser to this point
-        logging.debug("find cut point")
+        logging.debug("        Finding cut point...")
         cut_point = 0
         length = 0
         while cut_point < len(self.stack):
             cur_node = self.stack[cut_point]
             length += self.text_length(cur_node)[0]
-            logging.debug("node, length: %s %s", cur_node.symbol.name, length)
+            logging.debug("        node, length: %s %s", cur_node.symbol.name, length)
             if length == offset:
-                logging.debug("whoo iso tree works: %s %s", cut_point, cur_node.symbol.name)
+                logging.debug("        whoo iso tree works: %s %s", cut_point, cur_node.symbol.name)
                 last_valid_cutpoint = cut_point
                 # we need to keep going to consider empty nodes as well
             if length > offset:
@@ -371,29 +426,59 @@ class IncParser(object):
             else:
                 return len(node.symbol.name), node.symbol.name
 
-    def offset(self, node, version=None):
-        while isinstance(node.symbol, Nonterminal):
-            if version:
-                print(node)
-                node = node.get_attr("children", version)[0]
-            else:
-                node = node.children[0]
+    def stack_offset(self, cut):
+        """Get text offset of stack up to the index `cut`."""
         offset = 0
-        node = node.prev_term
-        while not isinstance(node, BOS):
-            if version:
-                name = node.get_attr("symbol.name", version)
-            else:
-                name = node.symbol.name
-            offset += len(name)
-            if version:
-                node = node.get_attr("prev_term", version)
-            else:
-                node = node.prev_term
+        i = 0
+        for n in self.stack:
+            if i == cut:
+                break
+            offset += self.text_length(n)[0]
+            i += 1
         return offset
 
-    def isolate(self, node, sp, cut_point):
-        logging.debug("Isolate: %s", node)
+    def get_cut(self, node):
+        """Get stack index at which the offset is the same as the offset of
+        `node` in the previous version."""
+        node_offset = self.offset(node, node.version)
+        logging.debug("get cut %s %s", node, node_offset)
+        index = 0
+        length = 0
+        last_index = -1
+        for n in self.stack:
+            length += self.text_length(n)[0] # XXX needs version
+            if length == node_offset:
+                last_index = index
+                # found a valid cut, continue to skip empty nonterms
+            if length > node_offset:
+                return last_index
+            index += 1
+        logging.debug("found cut at %s", last_index)
+        return last_index
+
+    def offset(self, node, version=None):
+        logging.debug("    Getting offset of %s" % node.symbol)
+        n = self.previous_version.parent.children[0]
+        offset = 0
+        while n is not node:
+            n = self.traverse(n, version) # traverse through tree
+            if isinstance(n, EOS):
+                logging.debug("    Reached EOS, %s", offset)
+                break
+            if n.symbol.__class__ is Terminal:
+                offset += len(n.symbol.name)
+            else:
+                continue
+        return offset
+
+    def traverse(self, node, version=None):
+        c = node.get_attr("children", version)
+        if len(c) > 0:
+            return c[0]
+        else:
+            while(node.get_attr("right", version) is None):
+                node = node.get_attr("parent", version)
+            return node.get_attr("right", version)
 
     def get_lookup(self, la):
         if la.lookup != "":

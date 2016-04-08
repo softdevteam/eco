@@ -220,6 +220,10 @@ class Node(object):
         self.children = children
         last = None
         for c in children:
+            if c.changed:
+                # if any of the children still has changes the parent has
+                # changes as well
+                self.changed = True
             c.parent = self
             c.left = last
             if last is not None:
@@ -257,6 +261,8 @@ class Node(object):
             version -= 1
 
     def get_attr(self, attr, version):
+        if version is None:
+            return self.__getattribute__(attr)
         version = int(version)
         while version >= 0:
             try:
@@ -449,9 +455,9 @@ digits = set(list(string.digits))
 class TextNode(Node):
     __slots__ = ["log", "version", "position", "changed", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookup", "parent_lbox", "magic_backpointer", "indent"]
     def __init__(self, symbol, state=-1, children=[], pos=-1, lookahead=0):
+        self.changed = False
         Node.__init__(self, symbol, state, children)
         self.position = 0
-        self.changed = False
         self.deleted = False
         self.image = None
         self.image_src = None

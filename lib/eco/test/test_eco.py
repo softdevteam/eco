@@ -2560,3 +2560,92 @@ class Test_ErrorRecovery(Test_Helper):
         self.treemanager.key_normal("+")
 
         assert self.parser.last_status == False
+
+    def test_empty(self):
+        self.reset()
+        assert self.parser.last_status == False
+
+    def test_slow_input(self):
+        self.reset()
+        assert self.parser.last_status == False
+        self.treemanager.key_normal("1")
+        self.treemanager.key_normal("+")
+        assert self.parser.last_status == False
+        self.treemanager.key_normal("2")
+        assert self.parser.last_status == True
+
+    def test_simple2(self):
+        self.reset()
+        self.treemanager.import_file("1+2")
+        assert self.parser.last_status == True
+
+        self.treemanager.key_end()
+        self.move("left", 1)
+        self.treemanager.key_normal("*")
+
+        assert self.parser.last_status == False
+
+    def test_simple3(self):
+        self.reset()
+        self.treemanager.import_file("1+2")
+        assert self.parser.last_status == True
+
+        self.treemanager.key_end()
+        self.move("left", 2)
+        self.treemanager.key_normal("*")
+
+        assert self.parser.last_status == False
+
+    def test_double_error(self):
+        self.reset()
+        assert self.parser.last_status == False
+        self.treemanager.import_file("1*1+2+3*4+2")
+        assert self.parser.last_status == True
+
+        self.treemanager.key_end()
+        self.move("left", 3)
+        self.treemanager.key_normal("+")
+        self.move("left", 5)
+        self.treemanager.key_normal("*")
+
+        #assert self.parser.last_status == False
+
+        assert len(self.parser.error_nodes) == 2
+
+    def test_triple_error(self):
+        self.reset()
+        assert self.parser.last_status == False
+        self.treemanager.import_file("1*1+2+3*4+2")
+        assert self.parser.last_status == True
+
+        self.treemanager.key_end()
+        self.move("left", 3)
+        self.treemanager.key_normal("+")
+        assert len(self.parser.error_nodes) == 1
+        self.move("left", 5)
+        self.treemanager.key_normal("*")
+        assert len(self.parser.error_nodes) == 2
+        self.move("left", 3)
+        self.treemanager.key_normal("+")
+        assert len(self.parser.error_nodes) == 3
+
+        assert self.parser.last_status == False
+
+    def test_error_in_isotree(self):
+        self.reset()
+        self.treemanager.import_file("1+2*3")
+        self.treemanager.key_end()
+        self.move("left", 1)
+        self.treemanager.key_normal("+")
+        assert len(self.parser.error_nodes) == 1
+
+        self.move("left", 3)
+        self.treemanager.key_normal("*")
+        assert len(self.parser.error_nodes) == 2
+
+class Test_ErrorRecoveryPython(Test_Python):
+    def test_delete(self):
+        self.reset()
+        self.treemanager.import_file("class X:\n    pass")
+        for i in range(18):
+            self.treemanager.key_delete()
