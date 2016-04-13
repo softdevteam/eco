@@ -209,6 +209,7 @@ class ParseView(QtGui.QMainWindow):
     def showImage(self, graphicsview, imagefile):
         scene = QGraphicsScene()
         item = QGraphicsPixmapItem(QPixmap(imagefile))
+        item.setTransformationMode(Qt.SmoothTransformation)
         scene.addItem(item);
         graphicsview.setScene(scene)
         graphicsview.resetMatrix()
