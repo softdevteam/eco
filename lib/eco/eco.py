@@ -190,6 +190,7 @@ class ParseView(QtGui.QMainWindow):
         self.ui.comboBox.clear()
         for v in xrange(editor.tm.get_max_version()):
             self.ui.comboBox.addItem(QString(str(v+1)))
+        self.ui.comboBox.addItem(QString("-1"))
         self.ui.comboBox.setCurrentIndex(editor.tm.get_max_version()-1)
         self.redraw()
 

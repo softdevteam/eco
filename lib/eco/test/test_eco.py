@@ -535,7 +535,7 @@ class Test_Helper:
         self.treemanager.set_font_test(7, 17)
 
     def move(self, direction, times):
-        for i in range(times): self.treemanager.cursor_movement(direction)
+        for i in range(times): self.treemanager.key_cursors(direction)
 
     def tree_compare(self, node1, node2):
         # XXX: test references (next_term, parent, lookup)
@@ -1335,7 +1335,7 @@ class Test_Java:
         self.treemanager.set_font_test(7, 17)
 
     def move(self, direction, times):
-        for i in range(times): self.treemanager.cursor_movement(direction)
+        for i in range(times): self.treemanager.key_cursors(direction)
 
     def test_incparse_optshift_bug(self):
         prog = """class Test {\r    public static void main() {\r        String y = z;\r    }\r}"""
@@ -1874,6 +1874,48 @@ class Test_Undo(Test_Python):
         self.text_compare(t1.export_as_text())
 
         self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+    def test_bug_undo_random_newlines_errorrecovery(self):
+        self.reset()
+
+        self.treemanager.import_file("""class X:
+    def helloworld():
+            return 12
+        
+    def foo():
+        y = 2""")
+        self.treemanager.cursor_reset()
+        self.treemanager.key_cursors('down', False)
+        self.treemanager.key_cursors('down', False)
+        self.treemanager.key_cursors('down', False)
+        self.treemanager.key_cursors('down', False)
+        self.treemanager.key_cursors('down', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_normal('\r')
+        self.treemanager.cursor_reset()
+        self.treemanager.key_cursors('down', False)
+        self.treemanager.key_cursors('down', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_cursors('right', False)
+        self.treemanager.key_normal('\r')
 
     def test_bug_insert_newline_2(self):
         import random

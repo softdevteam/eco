@@ -1320,6 +1320,7 @@ class TreeManager(object):
         #self.fix_cursor_on_image() #XXX refactor (obsolete after refactoring cursor)
 
     def cursor_reset(self):
+        self.log_input("self.cursor_reset()")
         self.cursor.line = 0
         self.cursor.move_to_x(0, self.lines)
 
@@ -1616,6 +1617,11 @@ class TreeManager(object):
             self.clean_versions(self.version)
             self.last_saved_version = self.version
         if changed:
+            # XXX save current version here. This allows us to revert subtrees
+            # if parsing fails or for isolation. Once parsing is done, save
+            # again, to overwrite the current version with the altered tree and
+            # by doing this "forget" about the temporary changes saved in this
+            # step. Need to (temporarily) increase version here.
             root = node.get_root()
             parser = self.get_parser(root)
             parser.inc_parse()

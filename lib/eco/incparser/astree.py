@@ -453,7 +453,7 @@ uppercase = set(list(string.ascii_uppercase))
 digits = set(list(string.digits))
 
 class TextNode(Node):
-    __slots__ = ["log", "version", "position", "changed", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookup", "parent_lbox", "magic_backpointer", "indent"]
+    __slots__ = ["textlen", "log", "version", "position", "changed", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookup", "parent_lbox", "magic_backpointer", "indent"]
     def __init__(self, symbol, state=-1, children=[], pos=-1, lookahead=0):
         self.changed = False
         Node.__init__(self, symbol, state, children)
@@ -468,6 +468,7 @@ class TextNode(Node):
         self.log = {}
         self.version = 0
         self.indent = None
+        self.textlen = -1
 
     def get_magicterminal(self):
         try:
@@ -485,6 +486,19 @@ class TextNode(Node):
         if self.parent:
             return self.parent
         return self.get_magicterminal()
+
+    def textlength(self):
+        if isinstance(self.symbol, Nonterminal):
+            if self.changed or self.textlen == -1:
+                l = 0
+                for c in self.children:
+                    l += c.textlength()
+                self.textlen = l
+            return self.textlen
+        if isinstance(self.symbol, IndentationTerminal) or isinstance(self.symbol, FinishSymbol):
+            return 0
+        return len(self.symbol.name)
+
 
     def matches(self, text):
         if self.symbol.name == "":

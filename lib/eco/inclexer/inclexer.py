@@ -533,6 +533,9 @@ class IncrementalLexerCF(object):
             # we need to invalidate the newline if we changed whitespace or
             # logical nodes that come after it
             if node.lookup == "<ws>" or node.lookup != t.name:
+                if self.is_indentation_based():
+                    node.mark_changed()
+                    any_changes = True
                 prev = node.prev_term
                 while isinstance(prev.symbol, IndentationTerminal):
                     prev = prev.prev_term

@@ -110,6 +110,9 @@ class Viewer(object):
                 label.append("?")
             else:
                 label.append(str(node.lookup))
+        label.append("\ntlen: %s" % node.textlen)
+        if node.parent:
+            label.append("\np: %s" % node.parent.symbol.name)
         if not ast and node.indent:
             label.append("\n")
             label.append(repr(node.indent))
@@ -120,17 +123,22 @@ class Viewer(object):
         self.countnodes += 1
         if node.changed:
             dotnode.set('color','green')
-        try:
-            if node.has_changes(version):
-                pass#dotnode.set('color','blue')
-        except AttributeError:
-            pass
+       #try:
+       #    if node.has_changes(version):
+       #        pass#dotnode.set('color','blue')
+       #except AttributeError:
+       #    pass
+        if not node.parent:
+            dotnode.set('color', 'purple')
+        else:
+            if not node.parent.parent:
+                dotnode.set('color', 'purple')
         dotnode.set('fontsize', '8')
         dotnode.set('fontname', 'Arial')
         graph.add_node(dotnode)
 
         children = node.children
-        if node.symbol.name == "Root":
+        if node.symbol.name == "Root" and version >= 0 :
             children = node.log[("children", version)]
         for c in children:
             key = ""

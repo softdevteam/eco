@@ -300,7 +300,7 @@ class IncParser(object):
                 return la
             # check parents in previous version
             logging.debug("checking ancestors")
-            while node.get_attr("parent", node.version):
+            while node.get_attr("parent", node.version): # XXX reduce v by 1
                 # XXX missing get_cut statement
                 node = node.get_attr("parent", node.version)
                 la = self.is_valid_iso_subtree(node, error_offset)
@@ -340,8 +340,8 @@ class IncParser(object):
         if last_offset > error_offset:
             logging.debug("    last_offset > error -> Return")
             return False
-        nlen, content = self.text_length(node)
-        logging.debug("    text-length: %s, '%s'", nlen, content)
+        nlen = node.textlength()
+        logging.debug("    text-length: %s", nlen)
         if last_offset + nlen < error_offset:
             logging.debug("    last_offset + textlength < error -> Return")
             return False
@@ -351,6 +351,7 @@ class IncParser(object):
         cut_point = self.find_cut_point(left_offset)
         # test shitfability
         
+        # XXX if this fails, try shifting all empty nonterms first
         element = self.syntaxtable.lookup(self.stack[cut_point].state, node.symbol)
         logging.debug("        state: %s", self.stack[cut_point].state)
         logging.debug("        elem: %s", element)
@@ -383,6 +384,9 @@ class IncParser(object):
     def isolate(self, node):
         # Undo all (reduction) changes up to the error node
         if isinstance(node.symbol, Nonterminal):
+            # XXX doesn't undo added/deleted indentation stuff
+            # or is that already included?
+            # maybe between version is the way to go
             self.needtoundonodes.add(node) # need to undo node.changed = False
             for c in node.children:
                 self.isolate(c)
@@ -399,7 +403,7 @@ class IncParser(object):
         length = 0
         while cut_point < len(self.stack):
             cur_node = self.stack[cut_point]
-            length += self.text_length(cur_node)[0]
+            length += cur_node.textlength()
             logging.debug("        node, length: %s %s", cur_node.symbol.name, length)
             if length == offset:
                 logging.debug("        whoo iso tree works: %s %s", cut_point, cur_node.symbol.name)
@@ -410,22 +414,6 @@ class IncParser(object):
             cut_point += 1
         return last_valid_cutpoint
 
-    def text_length(self, node):
-        # XXX temporary hack -> really slow
-        if isinstance(node.symbol, Nonterminal):
-            l = 0
-            content = ""
-            for c in node.children:
-                tl, tc = self.text_length(c)
-                l += tl
-                content += tc
-            return l, content
-        else:
-            if isinstance(node.symbol, IndentationTerminal) or isinstance(node.symbol, FinishSymbol):
-                return 0, ""
-            else:
-                return len(node.symbol.name), node.symbol.name
-
     def stack_offset(self, cut):
         """Get text offset of stack up to the index `cut`."""
         offset = 0
@@ -433,7 +421,7 @@ class IncParser(object):
         for n in self.stack:
             if i == cut:
                 break
-            offset += self.text_length(n)[0]
+            offset += n.textlength()
             i += 1
         return offset
 
@@ -446,7 +434,7 @@ class IncParser(object):
         length = 0
         last_index = -1
         for n in self.stack:
-            length += self.text_length(n)[0] # XXX needs version
+            length += n.textlength() # XXX needs version
             if length == node_offset:
                 last_index = index
                 # found a valid cut, continue to skip empty nonterms
@@ -533,6 +521,7 @@ class IncParser(object):
             self.undo.append((c, 'log', c.log.copy()))
 
         new_node = Node(element.action.left.copy(), goto.action, children)
+        new_node.textlength()
         self.pm.do_incparse_reduce(new_node)
         logging.debug("   Add %s to stack and goto state %s", new_node.symbol, new_node.state)
         self.stack.append(new_node)
