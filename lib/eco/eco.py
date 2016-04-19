@@ -77,6 +77,9 @@ Ui_Preview, _        = uic.loadUiType('gui/preview.ui')
 def print_var(name, value):
     print("%s: %s" % (name, value))
 
+def makelambda(func, arg):
+    return lambda: func(arg)
+
 class GlobalFont(object):
     def __init__(self, font, size):
         font = QtGui.QFont(font, size)
@@ -619,6 +622,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionShow_indentation, SIGNAL("triggered()"), self.toogle_indentation)
         self.connect(self.ui.actionShow_lspaceview, SIGNAL("triggered()"), self.view_in_lspace)
         self.connect(self.ui.menuChange_language_box, SIGNAL("aboutToShow()"), self.showEditMenu)
+        self.connect(self.ui.menuRecent_files, SIGNAL("aboutToShow()"), self.showRecentFiles)
         self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
         self.connect(self.ui.actionShow_tool_visualisations, SIGNAL("triggered()"), self.toggle_overlay)
 
@@ -762,6 +766,17 @@ class Window(QtGui.QMainWindow):
             self.ui.menuChange_language_box.update()
             for a in self.ui.menuChange_language_box.actions():
                 self.connect(a, SIGNAL("triggered()"), self.actionChangeLBoxMenu)
+
+    def showRecentFiles(self):
+        settings = QSettings("softdev", "Eco")
+        rf = settings.value("recent_files", []).toList()
+        self.ui.menuRecent_files.clear()
+        for f in rf:
+            n = os.path.basename(str(f.toString()))
+            fullname = f.toString()
+            action = QAction(n, self.ui.menuRecent_files)
+            action.triggered.connect(makelambda(self.openfile, fullname))
+            self.ui.menuRecent_files.addAction(action)
 
     def actionChangeLBoxMenu(self):
         action = self.sender()
@@ -1030,6 +1045,7 @@ class Window(QtGui.QMainWindow):
         filename = QFileDialog.getSaveFileName(self, "Save File", self.get_last_dir(), "Eco files (*.eco *.nb);; All files (*.*)")
         if filename:
             self.save_last_dir(str(filename))
+            self.add_to_recent_files(str(filename))
             self.getEditor().saveToJson(filename)
             self.getEditorTab().filename = filename
         ed_ = self.getEditor()
@@ -1092,11 +1108,22 @@ class Window(QtGui.QMainWindow):
         settings = QSettings("softdev", "Eco")
         settings.setValue("last_dir", filename)
 
+    def add_to_recent_files(self, filename):
+        settings = QSettings("softdev", "Eco")
+        prev = settings.value("recent_files", []).toList()
+        if filename in prev:
+            prev.remove(filename)
+        prev.insert(0, filename)
+        if len(prev) > 10:
+            prev.pop()
+        settings.setValue("recent_files", prev)
+
     def openfile(self, filename=None):
         if not filename:
             filename = QFileDialog.getOpenFileName(self, "Open File", self.get_last_dir(), "Eco files (*.eco *.nb *.eco.bak);; All files (*.*)")
         if filename:
             self.save_last_dir(str(filename))
+            self.add_to_recent_files(str(filename))
             if filename.endsWith(".eco") or filename.endsWith(".nb") or filename.endsWith(".eco.bak") or filename.endsWith(".eco.swp"):
                 ret = self.show_backup_msgbox(filename + ".swp")
                 if ret == "abort":
