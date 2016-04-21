@@ -1622,8 +1622,13 @@ class TreeManager(object):
             # again, to overwrite the current version with the altered tree and
             # by doing this "forget" about the temporary changes saved in this
             # step. Need to (temporarily) increase version here.
+            self.version += 1
+            self.save()
+            self.version -= 1
             root = node.get_root()
             parser = self.get_parser(root)
+            parser.current_version = self.version
+            parser.last_version = self.version
             parser.inc_parse()
         self.save_current_version()
         TreeManager.version = self.version

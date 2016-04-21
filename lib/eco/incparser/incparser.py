@@ -104,6 +104,10 @@ class IncParser(object):
         self.pm.do_incparse_init()
 
         self.previous_version = None
+
+        self.current_version = 0
+        self.last_version = 0
+
         logging.debug("Incemental parser done")
 
     def from_dict(self, rules, startsymbol, lr_type, whitespaces, pickle_id, precedences):
@@ -281,31 +285,28 @@ class IncParser(object):
             return False
         if isinstance(error_node, EOS):
             return False
-        error_offset = self.stack_offset(len(self.stack)-1)
+        error_offset = self.stack_offset(len(self.stack)-1) + len(error_node.symbol.name)
         self.right_breakdown()
         sp = 0
         node = self.stack.pop()
         print("RECOVER", error_node)
         while not isinstance(node, EOS):
-            logging.debug("Recover-loop: %s", node)
             sp += 1
             # XXX if node is new -> continue
             if self.is_new(node):
-                logging.debug("node is new -> continue")
                 node = self.stack.pop()
                 continue
             la = self.is_valid_iso_subtree(node, error_offset)
             if la:
-                print("found valid iso 1", la)
+                print("found valid iso node", la)
                 return la
             # check parents in previous version
-            logging.debug("checking ancestors")
-            while node.get_attr("parent", node.version): # XXX reduce v by 1
+            while node.get_attr("parent", self.last_version): # XXX reduce v by 1
                 # XXX missing get_cut statement
-                node = node.get_attr("parent", node.version)
+                node = node.get_attr("parent", self.last_version)
                 la = self.is_valid_iso_subtree(node, error_offset)
                 if la:
-                    print("found valid iso 2", la)
+                    print("found valid iso parent", la)
                     return la
             node = self.stack.pop()
         logging.debug("Need to do something with root")
@@ -321,7 +322,7 @@ class IncParser(object):
         return False
 
     def is_valid_iso_subtree(self, node, error_offset):
-        logging.debug("Checking if %s is valid isolation tree", node.symbol.name)
+        logging.debug("Checking if %s(%s) is valid isolation tree", node.symbol.name, node.textlength())
         if len(node.children) == 0:
             logging.debug("    No children -> Return")
             return False
@@ -331,7 +332,7 @@ class IncParser(object):
         if left_offset == -1:
             assert False
         logging.debug("    left offset: %s", left_offset)
-        last_offset = self.offset(node, node.version)
+        last_offset = self.offset(node, self.last_version)
         logging.debug("    last offset: %s", last_offset)
         logging.debug("    error offset: %s", error_offset)
         if left_offset != last_offset:
@@ -357,7 +358,7 @@ class IncParser(object):
         logging.debug("        elem: %s", element)
         logging.debug("        stack: %s", self.stack)
         if isinstance(element, Goto):
-            logging.debug("         \x1b[32mFound valid ISO tree\x1b[0m %s", node.symbol)
+            logging.debug("         \x1b[32mFound valid ISO tree\x1b[0m %s %s", node.symbol, id(node))
             logging.debug("         Item at cutpoint: %s", self.stack[cut_point])
             self.current_state = self.stack[cut_point].state
             logging.debug("         Item on stack: %s", self.stack[-1])
@@ -369,11 +370,8 @@ class IncParser(object):
             self.current_state = element.action # now advance
             # XXX undo ALL changes withint this subtree
             self.needtoundonodes = set()
+            logging.debug("ISOLATE")
             self.isolate(node)
-            for n, key, val in self.undo:
-                if n in self.needtoundonodes:
-                    logging.debug("        %s.%s: %s -> %s", n.symbol.name, key, getattr(n, key), val) 
-                    setattr(n, key, val)
             self.stack.append(node)
             node.state = element.action
             print("    DONE", node)
@@ -383,17 +381,17 @@ class IncParser(object):
 
     def isolate(self, node):
         # Undo all (reduction) changes up to the error node
-        if isinstance(node.symbol, Nonterminal):
-            # XXX doesn't undo added/deleted indentation stuff
-            # or is that already included?
-            # maybe between version is the way to go
-            self.needtoundonodes.add(node) # need to undo node.changed = False
+        node.load(int(node.version))
+      # XXX this optimisation causes problems with whitespace nodes
+      # seems like whitespace nodes are not properly marked as changed
+      # XXX MAYBE need to isolate all nodes that were cut off the stack
+        if not (node.has_changes() or node.changed):
+            logging.debug("not changed, return %s", node)
+            return
+        logging.debug("changed, revert %s", node)
+        if node.children:
             for c in node.children:
                 self.isolate(c)
-        else:
-            logging.debug("resetting %s %s", node.symbol, node.version)
-            self.needtoundonodes.add(node)
-
 
     def find_cut_point(self, offset):
         # finds the position on the stack from which we need
@@ -428,17 +426,17 @@ class IncParser(object):
     def get_cut(self, node):
         """Get stack index at which the offset is the same as the offset of
         `node` in the previous version."""
-        node_offset = self.offset(node, node.version)
-        logging.debug("get cut %s %s", node, node_offset)
+        old_offset = self.offset(node, node.version-1)
+        logging.debug("get cut %s %s", node, old_offset)
         index = 0
         length = 0
         last_index = -1
         for n in self.stack:
             length += n.textlength() # XXX needs version
-            if length == node_offset:
+            if length == old_offset:
                 last_index = index
                 # found a valid cut, continue to skip empty nonterms
-            if length > node_offset:
+            if length > old_offset:
                 return last_index
             index += 1
         logging.debug("found cut at %s", last_index)
@@ -454,7 +452,7 @@ class IncParser(object):
                 logging.debug("    Reached EOS, %s", offset)
                 break
             if n.symbol.__class__ is Terminal:
-                offset += len(n.symbol.name)
+                offset += len(n.symbol.name) # get old versioned name
             else:
                 continue
         return offset
@@ -479,10 +477,14 @@ class IncParser(object):
         return lookup_symbol
 
     def do_undo(self, la):
-        while len(self.undo) > 0:
-            node, attribute, value = self.undo.pop(-1)
-            setattr(node, attribute, value)
+        #while len(self.undo) > 0:
+        #    node, attribute, value = self.undo.pop(-1)
+        #    setattr(node, attribute, value)
         self.error_node = la
+
+        # isolate whole tree
+        self.isolate(self.previous_version.parent)
+
         logging.debug ("\x1b[31mError\x1b[0m: %s %s %s", la, la.prev_term, la.next_term)
         logging.debug("loopcount: %s", self.loopcount)
         return "Error"
@@ -502,7 +504,14 @@ class IncParser(object):
             fold = element.action.right[element.amount()-i-1].folding
             c.symbol.folding = fold
             children.insert(0, c)
+            if c.parent:
+                c.parent.mark_version()
             i += 1
+
+        # XXX when putting children into a new parent, the old parent needs to
+        # be marked as having changes. even if he doesn't exist in the new parse
+        # tree anymore, this is neccessary to get a path down to the nodes that
+        # need to be revererted if parsing went wrong
 
         logging.debug("   Element on stack: %s(%s)", self.stack[-1].symbol, self.stack[-1].state)
         self.current_state = self.stack[-1].state #XXX don't store on nodes, but on stack

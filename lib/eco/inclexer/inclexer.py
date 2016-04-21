@@ -430,6 +430,7 @@ class IncrementalLexerCF(object):
             node.left = last_node
             node.prev_term = last_node
             node.parent = parent
+            node.mark_changed()
             last_node = node
         parent.children.append(eos)
         last_node.right = eos # link to eos

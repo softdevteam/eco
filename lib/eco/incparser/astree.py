@@ -23,6 +23,8 @@ import re
 from grammar_parser.gparser import Nonterminal, Terminal, IndentationTerminal
 from syntaxtable import FinishSymbol
 
+import logging
+
 class AST(object):
     def __init__(self, parent=None):
         self.parent = parent
@@ -186,12 +188,13 @@ class Node(object):
     def save_ns(self, setchildren=False):
         from treemanager import TreeManager
         self.log[("ns", TreeManager.version)] = True
+        logging.debug("mark ns %s %s %s", self.symbol.name, id(self), TreeManager.version)
 
     def mark_changed(self):
         node = self
         while True:
             node.save_ns()
-            node.version = node.version + 0.000001
+            #node.version = node.version + 0.000001
             if not node.parent:
                 # if language box changed we need to update the version numbers
                 # in the parent parser as well
@@ -207,7 +210,7 @@ class Node(object):
         node = self
         while True:
             node.save_ns()
-            node.version = node.version + 0.000001
+            #node.version = node.version + 0.000001
             if not node.parent:
                 if node.get_magicterminal():
                     node.get_magicterminal().mark_version()
@@ -559,7 +562,7 @@ class TextNode(Node):
                 return self.log[("symbol.name", version)]
             except KeyError:
                 version -= 1
-                if version == -1:
+                if version <= -1:
                     return None
                 continue
 
