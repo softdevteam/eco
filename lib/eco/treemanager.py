@@ -683,6 +683,8 @@ class TreeManager(object):
 
     def key_ctrl_z(self):
         self.log_input("key_ctrl_z")
+        if len(self.undo_snapshots) == 0 and self.get_max_version() > 1:
+            self.undo_snapshots.append(self.version)
         if not self.undo_snapshots:
             return
         if self.undo_snapshots[-1] != self.get_max_version() and self.version == self.get_max_version():
