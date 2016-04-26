@@ -53,8 +53,18 @@
     <property name="title">
      <string>File</string>
     </property>
+    <widget class="QMenu" name="menuRecent_files">
+     <property name="title">
+      <string>Recent files</string>
+     </property>
+     <property name="icon">
+      <iconset theme="document-open-recent"/>
+     </property>
+     <addaction name="actionActionDummy"/>
+    </widget>
     <addaction name="actionNew"/>
     <addaction name="actionOpen"/>
+    <addaction name="menuRecent_files"/>
     <addaction name="separator"/>
     <addaction name="actionSave"/>
     <addaction name="actionSave_as"/>
@@ -528,7 +538,9 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset theme="edit-select-all"/>
+    <iconset theme="edit-select-all">
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Select all</string>
@@ -643,6 +655,11 @@
   <action name="actionShow_lspaceview">
    <property name="text">
     <string>View in LSpace</string>
+   </property>
+  </action>
+  <action name="actionActionDummy">
+   <property name="text">
+    <string>actionDummy</string>
    </property>
   </action>
  </widget>
