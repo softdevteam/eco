@@ -39,6 +39,16 @@ import logging
 
 Node = TextNode
 
+def debug_trace():
+  '''Set a tracepoint in the Python debugger that works with Qt'''
+  from PyQt4.QtCore import pyqtRemoveInputHook
+
+  # Or for Qt5
+  #from PyQt5.QtCore import pyqtRemoveInputHook
+
+  from pdb import set_trace
+  pyqtRemoveInputHook()
+  set_trace()
 
 def printc(text, color):
     print("\033[%sm%s\033[0m" % (color, text))
@@ -275,21 +285,29 @@ class IncParser(object):
                 self.error_nodes.append(id(la))
                 new_la = self.recover(la)
                 if new_la:
-                    logging.debug("Recovered. Continue from here")
+                    logging.debug("Recovered. Continue from here %s", self.current_state)
                     return new_la
                 logging.debug("Could not recover. Undo")
                 return self.do_undo(la)
 
     def recover(self, error_node):
+        #debug_trace()
         if isinstance(self.stack[-1].symbol, FinishSymbol):
             return False
         if isinstance(error_node, EOS):
             return False
         error_offset = self.stack_offset(len(self.stack)-1) + len(error_node.symbol.name)
-        self.right_breakdown()
+        #if not self.stack[-1].changed:
+            # don't right breakdown if we just pushed an isolated tree as this
+            # wil then result in an error due to the changes in the isolated
+            # tree being rb-shifted
+            # If I understand this correctly, right breakdown is only used to get the child
+            # of a newly parsed subtree. This child is then used to find a
+            # previous parent to isolate
+            # We might not need this at all as our parser doesn't use "default reductions"
+        #self.right_breakdown()
         sp = 0
         node = self.stack.pop()
-        print("RECOVER", error_node)
         while not isinstance(node, EOS):
             sp += 1
             # XXX if node is new -> continue
@@ -298,7 +316,7 @@ class IncParser(object):
                 continue
             la = self.is_valid_iso_subtree(node, error_offset)
             if la:
-                print("found valid iso node", la)
+                print("found valid iso node STACK", la)
                 return la
             # check parents in previous version
             while node.get_attr("parent", self.last_version): # XXX reduce v by 1
@@ -306,13 +324,14 @@ class IncParser(object):
                 node = node.get_attr("parent", self.last_version)
                 la = self.is_valid_iso_subtree(node, error_offset)
                 if la:
-                    print("found valid iso parent", la)
+                    print("found valid iso parent PARENT", node)
                     return la
             node = self.stack.pop()
         logging.debug("Need to do something with root")
         return None
 
     def is_new(self, node):
+        # XXX redo
         if len(node.log) == 2:
             return True
         if len(node.log) == 1:
@@ -327,24 +346,24 @@ class IncParser(object):
             logging.debug("    No children -> Return")
             return False
         cut = self.get_cut(node)
-        logging.debug("    get_cut: %s", cut)
+        #logging.debug("    get_cut: %s", cut)
         left_offset = self.stack_offset(cut)
         if left_offset == -1:
             assert False
-        logging.debug("    left offset: %s", left_offset)
+        #logging.debug("    left offset: %s", left_offset)
         last_offset = self.offset(node, self.last_version)
-        logging.debug("    last offset: %s", last_offset)
-        logging.debug("    error offset: %s", error_offset)
+        #logging.debug("    last offset: %s", last_offset)
+        #logging.debug("    error offset: %s", error_offset)
         if left_offset != last_offset:
-            logging.debug("    offsets don't align -> Return")
+            #logging.debug("    offsets don't align -> Return")
             return False
         if last_offset > error_offset:
-            logging.debug("    last_offset > error -> Return")
+            #logging.debug("    last_offset > error -> Return")
             return False
         nlen = node.textlength()
-        logging.debug("    text-length: %s", nlen)
+        #logging.debug("    text-length: %s", nlen)
         if last_offset + nlen < error_offset:
-            logging.debug("    last_offset + textlength < error -> Return")
+            #logging.debug("    last_offset + textlength < error -> Return")
             return False
 
         logging.debug("    FOUND AN ISO TREE CANDIDATE!")
@@ -354,6 +373,19 @@ class IncParser(object):
         
         # XXX if this fails, try shifting all empty nonterms first
         element = self.syntaxtable.lookup(self.stack[cut_point].state, node.symbol)
+        if not element:
+            # shift empty reductions
+            logging.debug("Trying to adjust cut_point with empty nonterminals")
+            temp_cp = cut_point + 1
+            while len(self.stack[temp_cp].children) == 0:
+                element = self.syntaxtable.lookup(self.stack[temp_cp].state, node.symbol)
+                if isinstance(element, Goto):
+                    cut_point = temp_cp
+                    break
+                temp_cp += 1
+                if temp_cp > len(self.stack) - 1:
+                    break
+
         logging.debug("        state: %s", self.stack[cut_point].state)
         logging.debug("        elem: %s", element)
         logging.debug("        stack: %s", self.stack)
@@ -372,6 +404,7 @@ class IncParser(object):
             self.needtoundonodes = set()
             logging.debug("ISOLATE")
             self.isolate(node)
+            self.pm.do_incparse_optshift(node)
             self.stack.append(node)
             node.state = element.action
             print("    DONE", node)
@@ -381,7 +414,9 @@ class IncParser(object):
 
     def isolate(self, node):
         # Undo all (reduction) changes up to the error node
+        logging.debug("c before %s", node.children)
         node.load(int(node.version))
+        logging.debug("c after  %s", node.children)
       # XXX this optimisation causes problems with whitespace nodes
       # seems like whitespace nodes are not properly marked as changed
       # XXX MAYBE need to isolate all nodes that were cut off the stack
@@ -402,10 +437,11 @@ class IncParser(object):
         while cut_point < len(self.stack):
             cur_node = self.stack[cut_point]
             length += cur_node.textlength()
-            logging.debug("        node, length: %s %s", cur_node.symbol.name, length)
+            #logging.debug("        node, length: %s %s", cur_node.symbol.name, length)
             if length == offset:
                 logging.debug("        whoo iso tree works: %s %s", cut_point, cur_node.symbol.name)
                 last_valid_cutpoint = cut_point
+                return cut_point
                 # we need to keep going to consider empty nodes as well
             if length > offset:
                 break
@@ -417,9 +453,9 @@ class IncParser(object):
         offset = 0
         i = 0
         for n in self.stack:
+            offset += n.textlength()
             if i == cut:
                 break
-            offset += n.textlength()
             i += 1
         return offset
 
@@ -435,6 +471,8 @@ class IncParser(object):
             length += n.textlength() # XXX needs version
             if length == old_offset:
                 last_index = index
+                logging.debug("found cut on %s", node)
+                return index
                 # found a valid cut, continue to skip empty nonterms
             if length > old_offset:
                 return last_index

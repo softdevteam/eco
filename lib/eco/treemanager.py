@@ -1061,8 +1061,8 @@ class TreeManager(object):
         self.edit_rightnode = True # writes next char into magic ast
         self.cursor.node = newnode.symbol.ast.children[0]
         self.cursor.pos = 0
-        self.reparse(newnode)
         self.changed = True
+        self.reparse(newnode)
 
     def leave_languagebox(self):
         self.log_input("leave_languagebox")

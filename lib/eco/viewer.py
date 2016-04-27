@@ -110,9 +110,10 @@ class Viewer(object):
                 label.append("?")
             else:
                 label.append(str(node.lookup))
-        label.append("\ntlen: %s" % node.textlen)
-        if node.parent:
-            label.append("\np: %s" % node.parent.symbol.name)
+        label.append("\nns: %s" % node.has_changes())
+        label.append("\nid: %s" % id(node))
+       #if node.parent:
+       #    label.append("\np: %s" % node.parent.symbol.name)
         if not ast and node.indent:
             label.append("\n")
             label.append(repr(node.indent))

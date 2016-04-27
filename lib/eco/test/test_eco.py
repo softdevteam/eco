@@ -1717,6 +1717,51 @@ class Test_Undo(Test_Python):
 
         self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
 
+
+    def test_undo_random_deletion_bug2(self):
+        self.reset()
+
+        p = """class Connect4:
+
+    def _turn(self):
+        while True:
+            break # comment
+
+    def _end(self, winner):
+        pass"""
+        self.treemanager.import_file(p)
+        assert self.parser.last_status == True
+        self.text_compare(p)
+
+        start_version = self.treemanager.version
+
+        # do some changes
+        self.treemanager.cursor_reset()
+        self.move("down", 6)
+        self.move("right", 10)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move("down", 6)
+        self.move("right", 2)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move("down", 6)
+        self.move("right", 15)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move("down", 5)
+        self.move("right", 0)
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(p)
+
     def test_undo_random_deletion_bug1(self):
         self.reset()
 
@@ -2691,3 +2736,15 @@ class Test_ErrorRecoveryPython(Test_Python):
         self.treemanager.import_file("class X:\n    pass")
         for i in range(18):
             self.treemanager.key_delete()
+
+    def test_foo(self):
+        self.reset()
+        self.treemanager.import_file("class X:\n    def x():\n        x = 1")
+
+        self.move("down", 2)
+        self.treemanager.key_end()
+        self.treemanager.key_backspace()
+        self.treemanager.key_normal("]")
+        self.treemanager.key_normal("e")
+
+        assert len(self.parser.error_nodes) == 1
