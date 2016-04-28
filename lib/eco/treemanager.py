@@ -1116,6 +1116,24 @@ class TreeManager(object):
         self.cursor.line = len(self.lines) - 1
         self.selection_end = self.cursor.copy()
 
+    def get_all_annotations_with_hint(self, hint):
+        """Return all annotations (optionally of a specific type).
+        Call sparingly as this runs over the whole tree.
+        """
+        node = self.lines[0].node
+        annotations = list()
+        while True:
+            for annote in node.get_annotations_with_hint(hint):
+                annotations.append(annote.annotation)
+            node = node.next_term
+            if isinstance(node, EOS):
+                lbnode = self.get_languagebox(node)
+                if lbnode:
+                    node = lbnode
+                else:
+                    break
+        return annotations
+
     def unselect(self):
         self.selection_start = self.cursor.copy()
         self.selection_end = self.cursor.copy()

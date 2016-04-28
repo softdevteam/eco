@@ -257,6 +257,9 @@ class NodeEditor(QFrame):
         current_width = self.parentWidget().geometry().width() / self.fontwt
         self.scroll_width = max(0, max_width - current_width)
 
+        railroad_annotations = self.tm.get_all_annotations_with_hint(Railroad)
+        self.overlay.add_railroad_data(railroad_annotations)
+
         self.emit(SIGNAL("painted()"))
 
     # paint lines using new line manager
@@ -280,7 +283,7 @@ class NodeEditor(QFrame):
         line = internal_line
         node = self.tm.lines[line].node
 
-        self.paint_nodes(paint, node, x, y, line, max_y)
+        _, _, self.end_line = self.paint_nodes(paint, node, x, y, line, max_y)
 
 
     #XXX if starting node is inside language box, init lbox with amout of languge boxes
@@ -409,13 +412,10 @@ class NodeEditor(QFrame):
             #y += dy
             self.lines[line].height = max(self.lines[line].height, dy)
 
-            # Draw footnotes and add data to overlay.
+            # Draw footnotes and add heatmap data to overlay.
             annotes = [annote.annotation for annote in node.get_annotations_with_hint(Heatmap)]
             for annote in annotes:
                 self.overlay.add_heatmap_datum(line + 1, annote)
-            annotes = [annote.annotation for annote in node.get_annotations_with_hint(Railroad)]
-            for annote in annotes:
-                self.overlay.add_railroad_datum(annote)
             if self.show_tool_visualisations:
                 # Draw footnotes.
                 infofont = QApplication.instance().tool_info_font
