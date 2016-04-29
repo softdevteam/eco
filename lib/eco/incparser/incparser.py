@@ -162,6 +162,7 @@ class IncParser(object):
         self.validating = False
         self.error_node = None
         self.error_nodes = []
+        self.iso_rejects = set()
         self.stack = []
         self.undo = []
         self.current_state = 0
@@ -296,7 +297,7 @@ class IncParser(object):
             return False
         if isinstance(error_node, EOS):
             return False
-        error_offset = self.stack_offset(len(self.stack)-1) + len(error_node.symbol.name)
+        error_offset = self.stack_offset(len(self.stack)-1)# + len(error_node.symbol.name)
         #if not self.stack[-1].changed:
             # don't right breakdown if we just pushed an isolated tree as this
             # wil then result in an error due to the changes in the isolated
@@ -307,12 +308,13 @@ class IncParser(object):
             # We might not need this at all as our parser doesn't use "default reductions"
         #self.right_breakdown()
         sp = 0
-        node = self.stack.pop()
+        node = self.stack[-1]
         while not isinstance(node, EOS):
             sp += 1
             # XXX if node is new -> continue
             if self.is_new(node):
-                node = self.stack.pop()
+                self.stack.pop()
+                node = self.stack[-1]
                 continue
             la = self.is_valid_iso_subtree(node, error_offset)
             if la:
@@ -322,11 +324,14 @@ class IncParser(object):
             while node.get_attr("parent", self.last_version): # XXX reduce v by 1
                 # XXX missing get_cut statement
                 node = node.get_attr("parent", self.last_version)
+                if node is self.previous_version.parent:
+                    break
                 la = self.is_valid_iso_subtree(node, error_offset)
                 if la:
                     print("found valid iso parent PARENT", node)
                     return la
-            node = self.stack.pop()
+            self.stack.pop()
+            node = self.stack[-1]
         logging.debug("Need to do something with root")
         return None
 
@@ -342,6 +347,9 @@ class IncParser(object):
 
     def is_valid_iso_subtree(self, node, error_offset):
         logging.debug("Checking if %s(%s) is valid isolation tree", node.symbol.name, node.textlength())
+        if node in self.iso_rejects:
+            return False
+        self.iso_rejects.add(node)
         if len(node.children) == 0:
             logging.debug("    No children -> Return")
             return False
@@ -350,7 +358,7 @@ class IncParser(object):
         left_offset = self.stack_offset(cut)
         if left_offset == -1:
             assert False
-        #logging.debug("    left offset: %s", left_offset)
+        logging.debug("    left offset: %s", left_offset)
         last_offset = self.offset(node, self.last_version)
         #logging.debug("    last offset: %s", last_offset)
         #logging.debug("    error offset: %s", error_offset)
@@ -462,7 +470,7 @@ class IncParser(object):
     def get_cut(self, node):
         """Get stack index at which the offset is the same as the offset of
         `node` in the previous version."""
-        old_offset = self.offset(node, node.version-1)
+        old_offset = self.offset(node, self.last_version)
         logging.debug("get cut %s %s", node, old_offset)
         index = 0
         length = 0
@@ -475,7 +483,7 @@ class IncParser(object):
                 return index
                 # found a valid cut, continue to skip empty nonterms
             if length > old_offset:
-                return last_index
+                return -1
             index += 1
         logging.debug("found cut at %s", last_index)
         return last_index

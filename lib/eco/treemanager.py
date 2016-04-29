@@ -1628,7 +1628,7 @@ class TreeManager(object):
             root = node.get_root()
             parser = self.get_parser(root)
             parser.current_version = self.version
-            parser.last_version = self.version
+            parser.last_version = self.version + 1
             parser.inc_parse()
         self.save_current_version()
         TreeManager.version = self.version
