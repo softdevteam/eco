@@ -348,7 +348,7 @@
         <item>
          <widget class="QGroupBox" name="groupBox_10">
           <property name="title">
-           <string>GraalVM Polymorphic Inline Cache</string>
+           <string>GraalVM polymorphic inline cache</string>
           </property>
           <layout class="QGridLayout" name="gridLayout">
            <item row="0" column="0">

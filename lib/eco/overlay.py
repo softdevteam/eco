@@ -76,6 +76,11 @@ class Overlay(QWidget):
         for key in datum:
             self._railroad_data[key] = datum[key]
 
+    def add_railroad_data(self, data):
+        for datum in data:
+            for key in datum:
+                self._railroad_data[key] = datum[key]
+
     def clear_data(self):
         self._heatmap_data = dict()
         self._railroad_data = dict()
@@ -162,8 +167,14 @@ class Overlay(QWidget):
         col = -1           # Next random colour in the list.
         columns = set()    # Keep track of which columns have been drawn in.
 
+        # Find top and bottom of viewport.
+        visible_lines = (self.node_editor.paint_start[0] + 1,
+                         self.node_editor.end_line)
+
+        # Compute the lines which need to be drawn.
         for method_name in railroad_data:
             col += 1
+            # Set pen colour and style for this method.
             if railroad_data[method_name]['is_mega']:
                 line_style = Qt.SolidLine
             else:
@@ -180,28 +191,37 @@ class Overlay(QWidget):
             while max_x in columns:  # Separate out overlapping vertical lines.
                 max_x += 4
             columns.add(max_x)
-            def_line = QLine((gfont.fontwt * method['definition'][1]) + SPACING,
-                             (gfont.fontht * method['definition'][0]) + VOFFSET,
-                             get_rhs_of_hline(max_x),
-                             (gfont.fontht * method['definition'][0]) + VOFFSET)
-            qlines[pen].append(def_line)
+
+            # Horizontal line at definition.
+            if visible_lines[0] <= method['definition'][0] <= visible_lines[1]:
+                y = (gfont.fontht * (method['definition'][0] -
+                                     visible_lines[0] + 1)) + VOFFSET
+                d_line = QLine((gfont.fontwt * method['definition'][1]) + SPACING,
+                               y,
+                               get_rhs_of_hline(max_x),
+                               y)
+                qlines[pen].append(d_line)
+
+            # Horizontal line at each callsite.
             last_line = -1
             for call in railroad_data[method_name]['calls']:
-                c_line = QLine((gfont.fontwt * call[1]) + SPACING,
-                               (gfont.fontht * call[0]) + VOFFSET,
-                               get_rhs_of_hline(max_x),
-                               (gfont.fontht * call[0]) + VOFFSET)
-                qlines[pen].append(c_line)
-                if (gfont.fontht * call[0]) + VOFFSET > last_line:
-                    last_line = (gfont.fontht * call[0]) + VOFFSET
-            # Vertical line.
+                if visible_lines[0] <= call[0] <= visible_lines[1]:
+                    y = (gfont.fontht * (call[0] - visible_lines[0] + 1)) + VOFFSET
+                    c_line = QLine((gfont.fontwt * call[1]) + SPACING, y,
+                                   get_rhs_of_hline(max_x), y)
+                    qlines[pen].append(c_line)
+                if call[0] > last_line:
+                    last_line = call[0]
+            # Vertical line between definition and all callsites.
             v_line = QLine(get_rhs_of_hline(max_x),
-                           (gfont.fontht * method['definition'][0]) + VOFFSET,
+                           (gfont.fontht * (method['definition'][0] -
+                                            visible_lines[0] + 1)) + VOFFSET,
                            get_rhs_of_hline(max_x),
-                           last_line)
+                           (gfont.fontht * (last_line -
+                                            visible_lines[0] + 1)) + VOFFSET)
             qlines[pen].append(v_line)
 
-        # Draw lines.
+        # Draw all lines.
         for pen in qlines:
             painter.setPen(pen)
             for qline in qlines[pen]:
