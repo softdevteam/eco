@@ -333,9 +333,9 @@ class TreeManager(object):
             "PHP + Python" : False,
             "PHP" : False,
             "Python 2.7.5" : True,
-            "SimpleLanguage" : True,
+            "SimpleLanguage" : False,
             "Ruby" : True,
-            "Ruby + SimpleLanguage" : True,
+            "Ruby + SimpleLanguage" : False,
         }
         self.input_log = []
 
@@ -1582,11 +1582,11 @@ class TreeManager(object):
         elif lang == "Python 2.7.5":
             return CPythonExporter(self).export(path, run, profile)
         elif lang == "SimpleLanguage":
-            return SimpleLanguageExporter(self).export(path=path, run=run, profile=profile)
+            return SimpleLanguageExporter(self).export(path=path, run=run)
         elif lang == "Ruby":
             return JRubyExporter(self).export(path=path, run=run, profile=profile)
         elif lang == "Ruby + SimpleLanguage":
-            return JRubySimpleLanguageExporter(self).export(path=path, run=run, profile=profile)
+            return JRubySimpleLanguageExporter(self).export(path=path, run=run)
         else:
             return self.export_as_text(path)
 
