@@ -39,7 +39,7 @@ from PyQt4 import QtGui
 from PyQt4.QtGui import *
 from PyQt4 import uic
 
-if not QtGui.QIcon.themeName():
+if not QtGui.QIcon.hasThemeIcon("document-new"):
     # attempt to fall back on generic icon theme
     QtGui.QIcon.setThemeName("gnome")
 
