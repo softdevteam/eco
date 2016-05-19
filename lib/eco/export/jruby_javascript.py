@@ -110,8 +110,10 @@ class JRubyJavaScriptExporter(object):
         self._walk_rb(node)
         for func in self._js_functions:
             self._wrappers.append(self._apply_template(func))
-        output = "Truffle::Interop.eval('application/x-javascript', %{\n"
+        output = "Truffle::Interop.eval('application/javascript', %{\n"
         output += "".join(self._js_output)
+        for fund in self._js_functions:
+            output += "Interop.export('%s', %s.bind(this));" % (fund, func)
         output += "})\n\n"
         output += "\n".join(self._wrappers)
         output += "\n\n"
