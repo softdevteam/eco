@@ -314,6 +314,8 @@ class SettingsView(QtGui.QMainWindow):
         self.connect(self.ui.btjsjar, SIGNAL("clicked()"), self.choose_file)
         self.connect(self.ui.bttrufflejar, SIGNAL("clicked()"), self.choose_file)
 
+        self.connect(self.ui.listWidget, SIGNAL("currentRowChanged(int)"), self.switch_view)
+
         self.foreground = None
         self.background = None
 
@@ -323,6 +325,9 @@ class SettingsView(QtGui.QMainWindow):
         self.window = window
 
         self.loadSettings()
+
+    def switch_view(self, row):
+        self.ui.stackedWidget.setCurrentIndex(self.ui.listWidget.currentRow())
 
     def showEvent(self, event):
         QWidget.showEvent(self, event)

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>378</width>
-    <height>544</height>
+    <width>539</width>
+    <height>403</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,717 +15,837 @@
   </property>
   <property name="windowIcon">
    <iconset theme="gnome-settings">
-    <normaloff/>
-   </iconset>
+    <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout_2">
+   <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QTabWidget" name="tabWidget">
-      <property name="currentIndex">
-       <number>2</number>
+     <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="0,1">
+      <property name="topMargin">
+       <number>0</number>
       </property>
-      <widget class="QWidget" name="tab">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <attribute name="title">
-        <string>General</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_3" stretch="0">
-        <item>
-         <widget class="QGroupBox" name="groupBox_2">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="title">
-           <string>Startup</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-          </property>
-          <property name="flat">
-           <bool>false</bool>
-          </property>
-          <layout class="QFormLayout" name="formLayout_2">
-           <property name="fieldGrowthPolicy">
-            <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
-           </property>
-           <item row="0" column="0">
-            <widget class="QCheckBox" name="gen_showconsole">
-             <property name="text">
-              <string>Show console</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QCheckBox" name="gen_showparsestatus">
-             <property name="text">
-              <string>Show Parsing status</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="tab_2">
-       <attribute name="title">
-        <string>Appearance</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,1">
-        <property name="sizeConstraint">
-         <enum>QLayout::SetDefaultConstraint</enum>
+      <item>
+       <widget class="QListWidget" name="listWidget">
+        <property name="flow">
+         <enum>QListView::TopToBottom</enum>
+        </property>
+        <property name="resizeMode">
+         <enum>QListView::Fixed</enum>
+        </property>
+        <property name="viewMode">
+         <enum>QListView::ListMode</enum>
+        </property>
+        <property name="uniformItemSizes">
+         <bool>true</bool>
         </property>
         <item>
-         <widget class="QGroupBox" name="groupBox_4">
-          <property name="title">
-           <string>Font</string>
-          </property>
-          <layout class="QFormLayout" name="formLayout_4">
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_3">
-             <property name="text">
-              <string>Family</string>
-             </property>
-             <property name="buddy">
-              <cstring>app_fontfamily</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QFontComboBox" name="app_fontfamily">
-             <property name="fontFilters">
-              <set>QFontComboBox::MonospacedFonts</set>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QSpinBox" name="app_fontsize"/>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_4">
-             <property name="text">
-              <string>Size</string>
-             </property>
-             <property name="buddy">
-              <cstring>app_fontsize</cstring>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
+         <property name="text">
+          <string>General</string>
+         </property>
+         <property name="icon">
+          <iconset theme="gnome-settings">
+           <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
+         </property>
         </item>
         <item>
-         <widget class="QGroupBox" name="groupBox_3">
-          <property name="title">
-           <string>Theme</string>
-          </property>
-          <layout class="QFormLayout" name="formLayout_3">
-           <property name="bottomMargin">
-            <number>9</number>
-           </property>
-           <item row="0" column="1">
-            <widget class="QComboBox" name="app_theme">
-             <item>
-              <property name="text">
-               <string>Light (Default)</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Dark</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Gruvbox</string>
-              </property>
-             </item>
-            </widget>
-           </item>
-          </layout>
-         </widget>
+         <property name="text">
+          <string>Appearance</string>
+         </property>
+         <property name="icon">
+          <iconset theme="style">
+           <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
+         </property>
         </item>
         <item>
-         <widget class="QGroupBox" name="app_custom">
-          <property name="title">
-           <string>Custom</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-          </property>
-          <property name="flat">
-           <bool>false</bool>
-          </property>
-          <property name="checkable">
-           <bool>true</bool>
-          </property>
-          <property name="checked">
-           <bool>false</bool>
-          </property>
-          <layout class="QFormLayout" name="formLayout">
-           <property name="fieldGrowthPolicy">
-            <enum>QFormLayout::FieldsStayAtSizeHint</enum>
-           </property>
-           <property name="labelAlignment">
-            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-           </property>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label">
-             <property name="text">
-              <string>Foreground:</string>
-             </property>
-             <property name="buddy">
-              <cstring>app_foreground</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QPushButton" name="app_foreground">
-             <property name="autoFillBackground">
-              <bool>false</bool>
-             </property>
-             <property name="styleSheet">
-              <string notr="true">background-color:  rgb(72, 72, 72)</string>
-             </property>
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_2">
-             <property name="text">
-              <string>Background:</string>
-             </property>
-             <property name="buddy">
-              <cstring>app_background</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QPushButton" name="app_background">
-             <property name="styleSheet">
-              <string notr="true">background-color: rgb(255, 255, 255)</string>
-             </property>
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="tab_3">
-       <attribute name="title">
-        <string>Profiling</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_4">
-        <item>
-         <widget class="QGroupBox" name="groupBox">
-          <property name="title">
-           <string>Font (profiler and tool information)</string>
-          </property>
-          <layout class="QFormLayout" name="formLayout_6">
-           <property name="fieldGrowthPolicy">
-            <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
-           </property>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_8">
-             <property name="text">
-              <string>Family</string>
-             </property>
-             <property name="buddy">
-              <cstring>tool_info_fontfamily</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QFontComboBox" name="tool_info_fontfamily">
-             <property name="fontFilters">
-              <set>QFontComboBox::MonospacedFonts</set>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_7">
-             <property name="text">
-              <string>Size</string>
-             </property>
-             <property name="buddy">
-              <cstring>tool_info_fontsize</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QSpinBox" name="tool_info_fontsize"/>
-           </item>
-          </layout>
-         </widget>
+         <property name="text">
+          <string>Profiling</string>
+         </property>
+         <property name="icon">
+          <iconset theme="applications-science">
+           <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
+         </property>
         </item>
         <item>
-         <widget class="QGroupBox" name="groupbox_5">
-          <property name="title">
-           <string>Heatmap gradient</string>
-          </property>
-          <layout class="QFormLayout" name="formLayout_7">
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_9">
-             <property name="text">
-              <string>Highest value:</string>
-             </property>
-             <property name="buddy">
-              <cstring>heatmap_high</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QPushButton" name="heatmap_high">
-             <property name="autoFillBackground">
-              <bool>false</bool>
-             </property>
-             <property name="styleSheet">
-              <string notr="true">background-color:  rgb(72, 72, 72)</string>
-             </property>
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_10">
-             <property name="text">
-              <string>Lowest value:</string>
-             </property>
-             <property name="buddy">
-              <cstring>heatmap_low</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QPushButton" name="heatmap_low">
-             <property name="styleSheet">
-              <string notr="true">background-color: rgb(255, 255, 255)</string>
-             </property>
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QLabel" name="label_11">
-             <property name="text">
-              <string>Transparency:</string>
-             </property>
-             <property name="buddy">
-              <cstring>heatmap_alpha</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
-            <widget class="QSpinBox" name="heatmap_alpha">
-             <property name="maximum">
-              <number>255</number>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
+         <property name="text">
+          <string>PyHyp</string>
+         </property>
+         <property name="icon">
+          <iconset theme="gnome-mime-text-x-python">
+           <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
+         </property>
         </item>
         <item>
-         <widget class="QGroupBox" name="groupBox_10">
-          <property name="title">
-           <string>GraalVM polymorphic inline cache</string>
-          </property>
-          <layout class="QGridLayout" name="gridLayout">
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_16">
-             <property name="text">
-              <string>Size (for profiling only):</string>
-             </property>
-             <property name="buddy">
-              <cstring>graalvm_pic_size</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QSpinBox" name="graalvm_pic_size">
-             <property name="maximum">
-              <number>255</number>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
+         <property name="text">
+          <string>Unipycation</string>
+         </property>
+         <property name="icon">
+          <iconset theme="gnome-mime-text-x-python">
+           <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
+         </property>
         </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="tab_4">
-       <attribute name="title">
-        <string>Paths</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_5">
         <item>
-         <widget class="QGroupBox" name="groupBox_5">
-          <property name="title">
-           <string>PyHyp</string>
-          </property>
-          <layout class="QFormLayout" name="formLayout_5">
-           <property name="fieldGrowthPolicy">
-            <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
-           </property>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_5">
-             <property name="text">
-              <string>Binary</string>
+         <property name="text">
+          <string>L-Space</string>
+         </property>
+         <property name="icon">
+          <iconset theme="package">
+           <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>JRuby</string>
+         </property>
+         <property name="icon">
+          <iconset theme="gnome-mime-application-x-ruby">
+           <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>GraalVM</string>
+         </property>
+         <property name="icon">
+          <iconset theme="package">
+           <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Truffle</string>
+         </property>
+         <property name="icon">
+          <iconset theme="package">
+           <normaloff>../../../../../.designer/backup</normaloff>../../../../../.designer/backup</iconset>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item>
+       <widget class="QStackedWidget" name="stackedWidget">
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="currentIndex">
+         <number>0</number>
+        </property>
+        <widget class="QWidget" name="page">
+         <layout class="QFormLayout" name="formLayout_15">
+          <item row="0" column="0">
+           <widget class="QGroupBox" name="groupBox_2">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="title">
+             <string>Startup</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
+            <property name="flat">
+             <bool>false</bool>
+            </property>
+            <layout class="QFormLayout" name="formLayout_2">
+             <property name="fieldGrowthPolicy">
+              <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
              </property>
-             <property name="buddy">
-              <cstring>env_pyhyp</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0">
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <item>
-              <widget class="QLineEdit" name="env_pyhyp"/>
-             </item>
-             <item>
-              <widget class="QToolButton" name="btpyhyp">
+             <item row="0" column="0">
+              <widget class="QCheckBox" name="gen_showconsole">
                <property name="text">
-                <string>...</string>
+                <string>Show console</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QCheckBox" name="gen_showparsestatus">
+               <property name="text">
+                <string>Show Parsing status</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
             </layout>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_12">
-             <property name="text">
-              <string>PyPy bridge</string>
-             </property>
-             <property name="buddy">
-              <cstring>env_pypyprefix</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <layout class="QHBoxLayout" name="horizontalLayout_3">
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <item>
-              <widget class="QLineEdit" name="env_pypyprefix"/>
-             </item>
-             <item>
-              <widget class="QToolButton" name="btpypyprefix">
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="page_2">
+         <layout class="QVBoxLayout" name="verticalLayout_8" stretch="0,0,1">
+          <item>
+           <widget class="QGroupBox" name="groupBox_4">
+            <property name="title">
+             <string>Font</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_4">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_3">
                <property name="text">
-                <string>...</string>
+                <string>Family</string>
+               </property>
+               <property name="buddy">
+                <cstring>app_fontfamily</cstring>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QFontComboBox" name="app_fontfamily">
+               <property name="fontFilters">
+                <set>QFontComboBox::MonospacedFonts</set>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QSpinBox" name="app_fontsize"/>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_4">
+               <property name="text">
+                <string>Size</string>
+               </property>
+               <property name="buddy">
+                <cstring>app_fontsize</cstring>
                </property>
               </widget>
              </item>
             </layout>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QGroupBox" name="groupBox_6">
-          <property name="title">
-           <string>Unipycation</string>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="groupBox_3">
+            <property name="title">
+             <string>Theme</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_3">
+             <property name="bottomMargin">
+              <number>9</number>
+             </property>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="app_theme">
+               <item>
+                <property name="text">
+                 <string>Light (Default)</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Dark</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Gruvbox</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="app_custom">
+            <property name="title">
+             <string>Custom</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+            </property>
+            <property name="flat">
+             <bool>false</bool>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
+            </property>
+            <layout class="QFormLayout" name="formLayout">
+             <property name="fieldGrowthPolicy">
+              <enum>QFormLayout::FieldsStayAtSizeHint</enum>
+             </property>
+             <property name="labelAlignment">
+              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             </property>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label">
+               <property name="text">
+                <string>Foreground:</string>
+               </property>
+               <property name="buddy">
+                <cstring>app_foreground</cstring>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QPushButton" name="app_foreground">
+               <property name="autoFillBackground">
+                <bool>false</bool>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">background-color:  rgb(72, 72, 72)</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_2">
+               <property name="text">
+                <string>Background:</string>
+               </property>
+               <property name="buddy">
+                <cstring>app_background</cstring>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QPushButton" name="app_background">
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(255, 255, 255)</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="page_3">
+         <layout class="QFormLayout" name="formLayout_16">
+          <property name="fieldGrowthPolicy">
+           <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
           </property>
-          <layout class="QFormLayout" name="formLayout_10">
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_6">
-             <property name="text">
-              <string>Binary</string>
+          <item row="0" column="0">
+           <widget class="QGroupBox" name="groupBox">
+            <property name="title">
+             <string>Font (profiler and tool information)</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_6">
+             <property name="fieldGrowthPolicy">
+              <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
              </property>
-             <property name="buddy">
-              <cstring>env_unipycation</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <layout class="QHBoxLayout" name="horizontalLayout_2">
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <item>
-              <widget class="QLineEdit" name="env_unipycation"/>
-             </item>
-             <item>
-              <widget class="QToolButton" name="btunipycation">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_8">
                <property name="text">
-                <string>...</string>
+                <string>Family</string>
+               </property>
+               <property name="buddy">
+                <cstring>tool_info_fontfamily</cstring>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QFontComboBox" name="tool_info_fontfamily">
+               <property name="fontFilters">
+                <set>QFontComboBox::MonospacedFonts</set>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_7">
+               <property name="text">
+                <string>Size</string>
+               </property>
+               <property name="buddy">
+                <cstring>tool_info_fontsize</cstring>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QSpinBox" name="tool_info_fontsize"/>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QGroupBox" name="groupbox_5">
+            <property name="title">
+             <string>Heatmap gradient</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_7">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_9">
+               <property name="text">
+                <string>Highest value:</string>
+               </property>
+               <property name="buddy">
+                <cstring>heatmap_high</cstring>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QPushButton" name="heatmap_high">
+               <property name="autoFillBackground">
+                <bool>false</bool>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">background-color:  rgb(72, 72, 72)</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_10">
+               <property name="text">
+                <string>Lowest value:</string>
+               </property>
+               <property name="buddy">
+                <cstring>heatmap_low</cstring>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QPushButton" name="heatmap_low">
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(255, 255, 255)</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_11">
+               <property name="text">
+                <string>Transparency:</string>
+               </property>
+               <property name="buddy">
+                <cstring>heatmap_alpha</cstring>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QSpinBox" name="heatmap_alpha">
+               <property name="maximum">
+                <number>255</number>
                </property>
               </widget>
              </item>
             </layout>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QGroupBox" name="groupBox_7">
-          <property name="title">
-           <string>L-Space</string>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="page_4">
+         <layout class="QVBoxLayout" name="verticalLayout_3">
+          <item>
+           <widget class="QGroupBox" name="groupBox_5">
+            <property name="title">
+             <string>PyHyp</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_5">
+             <property name="fieldGrowthPolicy">
+              <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+             </property>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_5">
+               <property name="text">
+                <string>Binary</string>
+               </property>
+               <property name="buddy">
+                <cstring>env_pyhyp</cstring>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0">
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLineEdit" name="env_pyhyp"/>
+               </item>
+               <item>
+                <widget class="QToolButton" name="btpyhyp">
+                 <property name="text">
+                  <string>...</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_12">
+               <property name="text">
+                <string>PyPy bridge</string>
+               </property>
+               <property name="buddy">
+                <cstring>env_pypyprefix</cstring>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <layout class="QHBoxLayout" name="horizontalLayout_3">
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLineEdit" name="env_pypyprefix"/>
+               </item>
+               <item>
+                <widget class="QToolButton" name="btpypyprefix">
+                 <property name="text">
+                  <string>...</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="page_5">
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <widget class="QGroupBox" name="groupBox_6">
+            <property name="title">
+             <string>Unipycation</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_10">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_6">
+               <property name="text">
+                <string>Binary</string>
+               </property>
+               <property name="buddy">
+                <cstring>env_unipycation</cstring>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <layout class="QHBoxLayout" name="horizontalLayout_2">
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLineEdit" name="env_unipycation"/>
+               </item>
+               <item>
+                <widget class="QToolButton" name="btunipycation">
+                 <property name="text">
+                  <string>...</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="page_6">
+         <layout class="QVBoxLayout" name="verticalLayout_4">
+          <item>
+           <widget class="QGroupBox" name="groupBox_7">
+            <property name="title">
+             <string>L-Space</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_8">
+             <item row="0" column="1">
+              <layout class="QHBoxLayout" name="horizontalLayout_5">
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLineEdit" name="env_lspaceroot"/>
+               </item>
+               <item>
+                <widget class="QToolButton" name="btlspaceroot">
+                 <property name="text">
+                  <string>...</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_13">
+               <property name="text">
+                <string>Root dir</string>
+               </property>
+               <property name="buddy">
+                <cstring>env_lspaceroot</cstring>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="page_7">
+         <layout class="QVBoxLayout" name="verticalLayout_5">
+          <item>
+           <widget class="QGroupBox" name="groupBox_8">
+            <property name="title">
+             <string>JRuby</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_9">
+             <item row="0" column="1">
+              <layout class="QHBoxLayout" name="horizontalLayout_6">
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLineEdit" name="env_jruby"/>
+               </item>
+               <item>
+                <widget class="QToolButton" name="btjruby">
+                 <property name="text">
+                  <string>...</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_14">
+               <property name="text">
+                <string>Binary</string>
+               </property>
+               <property name="buddy">
+                <cstring>env_jruby</cstring>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="page_8">
+         <layout class="QVBoxLayout" name="verticalLayout_6" stretch="0,1">
+          <item>
+           <widget class="QGroupBox" name="groupBox_9">
+            <property name="title">
+             <string>GraalVM</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_10">
+             <item row="0" column="1">
+              <layout class="QHBoxLayout" name="horizontalLayout_7">
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLineEdit" name="env_graalvm"/>
+               </item>
+               <item>
+                <widget class="QToolButton" name="btgraalvm">
+                 <property name="text">
+                  <string>...</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_15">
+               <property name="text">
+                <string>Binary</string>
+               </property>
+               <property name="buddy">
+                <cstring>env_graalvm</cstring>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="groupBox_10">
+            <property name="title">
+             <string>GraalVM polymorphic inline cache</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_14">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_16">
+               <property name="text">
+                <string>Size (for profiling only):</string>
+               </property>
+               <property name="buddy">
+                <cstring>graalvm_pic_size</cstring>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QSpinBox" name="graalvm_pic_size">
+               <property name="maximum">
+                <number>255</number>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="page_9">
+         <layout class="QVBoxLayout" name="verticalLayout_7" stretch="0,0,1">
+          <property name="spacing">
+           <number>6</number>
           </property>
-          <layout class="QFormLayout" name="formLayout_8">
-           <item row="0" column="1">
-            <layout class="QHBoxLayout" name="horizontalLayout_5">
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <item>
-              <widget class="QLineEdit" name="env_lspaceroot"/>
-             </item>
-             <item>
-              <widget class="QToolButton" name="btlspaceroot">
-               <property name="text">
-                <string>...</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_13">
-             <property name="text">
-              <string>Root dir</string>
-             </property>
-             <property name="buddy">
-              <cstring>env_lspaceroot</cstring>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QGroupBox" name="groupBox_8">
-          <property name="title">
-           <string>JRuby</string>
+          <property name="sizeConstraint">
+           <enum>QLayout::SetDefaultConstraint</enum>
           </property>
-          <layout class="QFormLayout" name="formLayout_9">
-           <item row="0" column="1">
-            <layout class="QHBoxLayout" name="horizontalLayout_6">
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <item>
-              <widget class="QLineEdit" name="env_jruby"/>
+          <item>
+           <widget class="QGroupBox" name="groupBox_10">
+            <property name="title">
+             <string>Truffle SimpleLanguage .jar file</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_11">
+             <item row="0" column="1">
+              <layout class="QHBoxLayout" name="horizontalLayout_8">
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLineEdit" name="env_sl_jar"/>
+               </item>
+               <item>
+                <widget class="QToolButton" name="btsljar">
+                 <property name="text">
+                  <string>...</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
-             <item>
-              <widget class="QToolButton" name="btjruby">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_16">
                <property name="text">
-                <string>...</string>
+                <string>Binary</string>
+               </property>
+               <property name="buddy">
+                <cstring>env_sl_jar</cstring>
                </property>
               </widget>
              </item>
             </layout>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_14">
-             <property name="text">
-              <string>Binary</string>
-             </property>
-             <property name="buddy">
-              <cstring>env_jruby</cstring>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QGroupBox" name="groupBox_9">
-          <property name="title">
-           <string>GraalVM</string>
-          </property>
-          <layout class="QFormLayout" name="formLayout_10">
-           <item row="0" column="1">
-            <layout class="QHBoxLayout" name="horizontalLayout_7">
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <item>
-              <widget class="QLineEdit" name="env_graalvm"/>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="groupBox_10">
+            <property name="title">
+             <string>Truffle JavaScript .jar file</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_12">
+             <item row="0" column="1">
+              <layout class="QHBoxLayout" name="horizontalLayout_9">
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLineEdit" name="env_js_jar"/>
+               </item>
+               <item>
+                <widget class="QToolButton" name="btjsjar">
+                 <property name="text">
+                  <string>...</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
-             <item>
-              <widget class="QToolButton" name="btgraalvm">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_17">
                <property name="text">
-                <string>...</string>
+                <string>Binary</string>
+               </property>
+               <property name="buddy">
+                <cstring>env_js_jar</cstring>
                </property>
               </widget>
              </item>
             </layout>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_15">
-             <property name="text">
-              <string>Binary</string>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="groupBox_11">
+            <property name="title">
+             <string>Truffle API .jar file</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_13">
+             <property name="sizeConstraint">
+              <enum>QLayout::SetDefaultConstraint</enum>
              </property>
-             <property name="buddy">
-              <cstring>env_graalvm</cstring>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QGroupBox" name="groupBox_10">
-          <property name="title">
-           <string>Truffle SimpleLanguage .jar file</string>
-          </property>
-          <layout class="QFormLayout" name="formLayout_11">
-           <item row="0" column="1">
-            <layout class="QHBoxLayout" name="horizontalLayout_8">
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <item>
-              <widget class="QLineEdit" name="env_sl_jar"/>
+             <item row="0" column="1">
+              <layout class="QHBoxLayout" name="horizontalLayout_10" stretch="0,0">
+               <property name="sizeConstraint">
+                <enum>QLayout::SetMaximumSize</enum>
+               </property>
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLineEdit" name="env_truffle_jar"/>
+               </item>
+               <item>
+                <widget class="QToolButton" name="bttrufflejar">
+                 <property name="text">
+                  <string>...</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </item>
-             <item>
-              <widget class="QToolButton" name="btsljar">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_18">
                <property name="text">
-                <string>...</string>
+                <string>Binary</string>
+               </property>
+               <property name="buddy">
+                <cstring>env_truffle_jar</cstring>
                </property>
               </widget>
              </item>
             </layout>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_16">
-             <property name="text">
-              <string>Binary</string>
-             </property>
-             <property name="buddy">
-              <cstring>env_sl_jar</cstring>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QGroupBox" name="groupBox_10">
-          <property name="title">
-           <string>Truffle JavaScript .jar file</string>
-          </property>
-          <layout class="QFormLayout" name="formLayout_12">
-           <item row="0" column="1">
-            <layout class="QHBoxLayout" name="horizontalLayout_9">
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <item>
-              <widget class="QLineEdit" name="env_js_jar"/>
-             </item>
-             <item>
-              <widget class="QToolButton" name="btjsjar">
-               <property name="text">
-                <string>...</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_17">
-             <property name="text">
-              <string>Binary</string>
-             </property>
-             <property name="buddy">
-              <cstring>env_js_jar</cstring>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QGroupBox" name="groupBox_11">
-          <property name="title">
-           <string>Truffle API .jar file</string>
-          </property>
-          <layout class="QFormLayout" name="formLayout_13">
-           <item row="0" column="1">
-            <layout class="QHBoxLayout" name="horizontalLayout_10">
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <item>
-              <widget class="QLineEdit" name="env_truffle_jar"/>
-             </item>
-             <item>
-              <widget class="QToolButton" name="bttrufflejar">
-               <property name="text">
-                <string>...</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_18">
-             <property name="text">
-              <string>Binary</string>
-             </property>
-             <property name="buddy">
-              <cstring>env_truffle_jar</cstring>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </widget>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </widget>
+      </item>
+     </layout>
     </item>
     <item>
      <widget class="QDialogButtonBox" name="buttonBox">
@@ -741,8 +861,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>378</width>
-     <height>26</height>
+     <width>539</width>
+     <height>23</height>
     </rect>
    </property>
   </widget>
