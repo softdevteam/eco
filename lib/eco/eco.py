@@ -311,6 +311,7 @@ class SettingsView(QtGui.QMainWindow):
         self.connect(self.ui.btjruby, SIGNAL("clicked()"), self.choose_file)
         self.connect(self.ui.btgraalvm, SIGNAL("clicked()"), self.choose_file)
         self.connect(self.ui.btsljar, SIGNAL("clicked()"), self.choose_file)
+        self.connect(self.ui.btjsjar, SIGNAL("clicked()"), self.choose_file)
         self.connect(self.ui.bttrufflejar, SIGNAL("clicked()"), self.choose_file)
 
         self.foreground = None
@@ -342,6 +343,8 @@ class SettingsView(QtGui.QMainWindow):
                 self.ui.env_graalvm.setText(filename)
             elif self.sender() is self.ui.btsljar:
                 self.ui.env_sl_jar.setText(filename)
+            elif self.sender() is self.ui.btjsjar:
+                self.ui.env_js_jar.setText(filename)
             elif self.sender() is self.ui.bttrufflejar:
                 self.ui.env_truffle_jar.setText(filename)
 
@@ -391,6 +394,7 @@ class SettingsView(QtGui.QMainWindow):
         self.ui.env_jruby.setText(settings.value("env_jruby", "").toString())
         self.ui.env_graalvm.setText(settings.value("env_graalvm", "").toString())
         self.ui.env_sl_jar.setText(settings.value("env_sl_jar", "").toString())
+        self.ui.env_js_jar.setText(settings.value("env_js_jar", "").toString())
         self.ui.env_truffle_jar.setText(settings.value("env_truffle_jar", "").toString())
 
     def saveSettings(self):
@@ -423,6 +427,7 @@ class SettingsView(QtGui.QMainWindow):
         settings.setValue("env_jruby", self.ui.env_jruby.text())
         settings.setValue("env_graalvm", self.ui.env_graalvm.text())
         settings.setValue("env_sl_jar", self.ui.env_sl_jar.text())
+        settings.setValue("env_js_jar", self.ui.env_js_jar.text())
         settings.setValue("env_truffle_jar", self.ui.env_truffle_jar.text())
 
     def accept(self):
