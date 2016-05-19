@@ -29,6 +29,7 @@ from grammars.grammars import lang_dict, Language, EcoFile
 from export import HTMLPythonSQL, PHPPython, ATerms
 from export.jruby import JRubyExporter
 from export.jruby_simple_language import JRubySimpleLanguageExporter
+from export.jruby_javascript import JRubyJavaScriptExporter
 from export.simple_language import SimpleLanguageExporter
 from export.cpython import CPythonExporter
 from utils import arrow_keys, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT
@@ -336,6 +337,7 @@ class TreeManager(object):
             "SimpleLanguage" : False,
             "Ruby" : True,
             "Ruby + SimpleLanguage" : False,
+            "Ruby + JavaScript" : False,
         }
         self.input_log = []
 
@@ -1587,6 +1589,8 @@ class TreeManager(object):
             return JRubyExporter(self).export(path=path, run=run, profile=profile)
         elif lang == "Ruby + SimpleLanguage":
             return JRubySimpleLanguageExporter(self).export(path=path, run=run)
+        elif lang == "Ruby + JavaScript":
+            return JRubyJavaScriptExporter(self).export(path=path, run=run)
         else:
             return self.export_as_text(path)
 
