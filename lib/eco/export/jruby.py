@@ -219,39 +219,16 @@ class JRubyExporter(object):
                                 stderr=subprocess.STDOUT,
                                 bufsize=0)
 
-    def _annotate_text(self, lineno, text, annotation, klass):
-        """Annotate a node on a given line with a given symbol name.
-        FIXME: Should handle case where line (and all subsequent lines) have
-        already been deleted by the user.
-        FIXME: Needs to handle the case where same text appears in more than
-        one node on the same line.
-        """
-        try:
-            temp_cursor = self.tm.cursor.copy()
-            temp_cursor.line = lineno - 1
-            temp_cursor.move_to_x(0)
-            node = temp_cursor.find_next_visible(temp_cursor.node)
-            while node.lookup == '<ws>' or node.symbol.name != text:
-                node = node.next_term
-                if isinstance(node, EOS):
-                    raise ValueError('EOS')
-            node.remove_annotations_by_class(klass)
-            node.add_annotation(klass(annotation))
-        except ValueError:
-            pass
-
     def _profile(self):
-        """Run JRuby and dump a callgraph to disk.
-        Parse the callgraph and annotate the syntax tree.
-        """
+        callgraph_processor = JRubyCallgraphProcessor(self.tm)
 
-        src_file_fd, src_file_name = tempfile.mkstemp(suffix='.rb')
+        _, src_file_name = tempfile.mkstemp(suffix='.rb')
         self.tm.export_as_text(src_file_name).split('\n')
 
-        info_file_name = os.path.join('/',
-                                      'tmp',
-                                      next(tempfile._get_candidate_names()) + '.txt')
-        logging.debug('Placing callgraph trace in', info_file_name)
+        log_file_name = os.path.join('/',
+                                     'tmp',
+                                     next(tempfile._get_candidate_names()) + '.txt')
+        logging.debug('Placing callgraph trace in', log_file_name)
 
         # Run this command:
         #  $ jruby -X+T -Xtruffle.callgraph=true -Xtruffle.callgraph.write=test.txt -Xtruffle.dispatch.cache=2 FILE
@@ -259,7 +236,7 @@ class JRubyExporter(object):
         jruby_bin = str(settings.value('env_jruby', '').toString())
         pic_size = str(settings.value('graalvm_pic_size', '').toString())
         cmd = [jruby_bin, '-X+T', '-Xtruffle.callgraph=true',
-               '-Xtruffle.callgraph.write=' + info_file_name,
+               '-Xtruffle.callgraph.write=' + log_file_name,
                '-Xtruffle.dispatch.cache=' + pic_size,
                src_file_name]
         logging.debug('Running command: ' + ' '.join(cmd))
@@ -267,8 +244,22 @@ class JRubyExporter(object):
         graalvm_bin = str(settings.value('env_graalvm', '').toString())
         subprocess.call(cmd, env={'JAVACMD':graalvm_bin})
 
+        return callgraph_processor.annotate_tree(src_file_name, log_file_name)
+
+
+class JRubyCallgraphProcessor(object):
+    """Process a JRuby callgraph log and annotate the current parse tree.
+    """
+
+    def __init__(self, tm):
+        self.tm = tm
+
+    def annotate_tree(self, src_file_name, log_file_name):
+        """Run JRuby and dump a callgraph to disk.
+        Parse the callgraph and annotate the syntax tree.
+        """
         objects = dict()
-        with open(info_file_name) as fd:
+        with open(log_file_name) as fd:
             output = fd.read()
             lines = output.split('\n')
             i = 0
@@ -381,3 +372,21 @@ class JRubyExporter(object):
                              num_calls))
                 self._annotate_text(method.source.line_start, method.name,
                                     dmsg, JRubyMorphismMsg)
+
+    def _annotate_text(self, lineno, text, annotation, klass):
+        """Annotate a node on a given line with a given symbol name.
+        """
+
+        try:
+            temp_cursor = self.tm.cursor.copy()
+            temp_cursor.line = lineno - 1
+            temp_cursor.move_to_x(0)
+            node = temp_cursor.find_next_visible(temp_cursor.node)
+            while node.lookup == '<ws>' or node.symbol.name != text:
+                node = node.next_term
+                if isinstance(node, EOS):
+                    raise ValueError('EOS')
+            node.remove_annotations_by_class(klass)
+            node.add_annotation(klass(annotation))
+        except ValueError:
+            pass
