@@ -19,6 +19,9 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+import logging
+import os
+import os.path
 import tempfile
 import subprocess
 
@@ -26,6 +29,7 @@ from incparser.annotation import Annotation, ToolTip, Heatmap
 
 from PyQt4.QtCore import QSettings
 from incparser.astree import EOS
+from export.jruby import JRubyCallgraphProcessor
 from grammar_parser.gparser import MagicTerminal, IndentationTerminal
 
 
@@ -56,12 +60,14 @@ class JRubySimpleLanguageExporter(object):
         self._output = list()
         self._sl_functions = list()
 
-    def export(self, path=None, run=False):
+    def export(self, path=None, run=False, profile=False):
         if path is not None:
             self._export_as_text(path)
             return
         if run:
             return self._run()
+        elif profile:
+            return self._profile()
 
     def _language_box(self, name, node):
         if name == "<Ruby + SimpleLanguage>":
@@ -143,3 +149,35 @@ class JRubySimpleLanguageExporter(object):
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT,
                                     bufsize=0)
+
+    def _profile(self):
+        callgraph_processor = JRubyCallgraphProcessor(self.tm)
+
+        _, src_file_name = tempfile.mkstemp(suffix='.rb')
+        self._export_as_text(src_file_name)
+
+        log_file_name = os.path.join('/',
+                                     'tmp',
+                                     next(tempfile._get_candidate_names()) + '.txt')
+        logging.debug('Placing callgraph trace in', log_file_name)
+
+        # Run this command:
+        #  $ jruby -X+T ... -Xtruffle.callgraph=true -Xtruffle.callgraph.write=test.txt -Xtruffle.dispatch.cache=2 FILE
+        settings = QSettings('softdev', 'Eco')
+        graalvm_bin = str(settings.value('env_graalvm', '').toString())
+        jruby_bin = str(settings.value('env_jruby', '').toString())
+        sl_jar = str(settings.value('env_sl_jar', '').toString())
+        truffle_jar = str(settings.value('env_truffle_jar', '').toString())
+        jars = sl_jar + ':' + truffle_jar
+        pic_size = str(settings.value('graalvm_pic_size', '').toString())
+        cmd = [jruby_bin, '-X+T', '-J-classpath', jars,
+               '-Xtruffle.callgraph=true',
+               '-Xtruffle.callgraph.write=' + log_file_name,
+               '-Xtruffle.dispatch.cache=' + pic_size,
+               src_file_name]
+        logging.debug('Running command: ' + ' '.join(cmd))
+        settings = QSettings('softdev', 'Eco')
+        graalvm_bin = str(settings.value('env_graalvm', '').toString())
+        subprocess.call(cmd, env={'JAVACMD':graalvm_bin})
+
+        return callgraph_processor.annotate_tree(src_file_name, log_file_name)

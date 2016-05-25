@@ -336,7 +336,7 @@ class TreeManager(object):
             "Python 2.7.5" : True,
             "SimpleLanguage" : False,
             "Ruby" : True,
-            "Ruby + SimpleLanguage" : False,
+            "Ruby + SimpleLanguage" : True,
             "Ruby + JavaScript" : True,
         }
         self.input_log = []
@@ -1588,7 +1588,7 @@ class TreeManager(object):
         elif lang == "Ruby":
             return JRubyExporter(self).export(path=path, run=run, profile=profile)
         elif lang == "Ruby + SimpleLanguage":
-            return JRubySimpleLanguageExporter(self).export(path=path, run=run)
+            return JRubySimpleLanguageExporter(self).export(path=path, run=run, profile=profile)
         elif lang == "Ruby + JavaScript":
             return JRubyJavaScriptExporter(self).export(path=path, run=run, profile=profile)
         else:
