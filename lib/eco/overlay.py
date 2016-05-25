@@ -137,8 +137,7 @@ class Overlay(QWidget):
         temp_cursor = self.tm.cursor.copy()  # Save cursor to restore later.
         temp_cursor.line = 0  # Start at beginning of syntax tree.
         temp_cursor.move_to_x(0)
-        while not (isinstance(temp_cursor.node, EOS) or
-                   isinstance(temp_cursor.node.next_term, EOS)):
+        while True:
             if temp_cursor.node.symbol.name in self._railroad_data.keys():
                 method = temp_cursor.node.symbol.name
                 saved_x = temp_cursor.get_x()
@@ -148,15 +147,24 @@ class Overlay(QWidget):
                 # Assume the first occurrence of the method is its definition.
                 if railroad_data[method]['definition'] is None:
                     railroad_data[method]['definition'] = location
-                elif railroad_data[method]['definition'] is not None:
+                else:
                     railroad_data[method]['calls'].add(location)
                 max_x = max(railroad_data[method]['max_x'],
                             location[1])
                 railroad_data[method]['max_x'] = max_x
                 if self._railroad_data[method]:
                     railroad_data[method]['is_mega'] = True
-            temp_cursor.jump_right()
-
+            if isinstance(temp_cursor.node.next_term, EOS):
+                root = temp_cursor.node.get_root()
+                lbox = root.get_magicterminal()
+                if lbox is None:
+                    break
+                else:
+                    temp_cursor.node = lbox.next_term
+                if lbox.symbol.name == '\r' or lbox.next_term.symbol.name == '\r':
+                    temp_cursor.line += 1
+            else:
+                temp_cursor.jump_right()
         # Compute lines (and their colours).
         painter = QPainter()
         painter.begin(self)
