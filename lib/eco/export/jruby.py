@@ -79,6 +79,9 @@ class Method(object):
         self.callsites = []
         self.is_mega = False
 
+    def is_library(self):
+        return 'jruby/lib/' in self.source.file
+
     def is_core(self):
         return ('/core/' in self.source.file or 'core.rb' in self.source.file
                 or self.source.file == '(unknown)')
@@ -158,6 +161,14 @@ class Mega(object):
 
     def __str__(self):
         return 'Megamorphic'
+
+
+class Foreign(object):
+    """Indicate that a method was defined in a language other than JRuby.
+    """
+
+    def __str__(self):
+        return 'Foreign function'
 
 
 class JRubyExporter(object):
@@ -254,6 +265,18 @@ class JRubyCallgraphProcessor(object):
     def __init__(self, tm):
         self.tm = tm
 
+    def remove_all_annotations(self):
+        temp_cursor = self.tm.cursor.copy()
+        temp_cursor.line = 1
+        temp_cursor.move_to_x(0)
+        node = temp_cursor.find_next_visible(temp_cursor.node)
+        while True:
+            if isinstance(node, EOS):
+                break
+            for klass in (JRubyMorphismLine, JRubyMorphismMsg):
+                node.remove_annotations_by_class(klass)
+            node = node.next_term
+
     def annotate_tree(self, src_file_name, log_file_name):
         """Run JRuby and dump a callgraph to disk.
         Parse the callgraph and annotate the syntax tree.
@@ -291,10 +314,12 @@ class JRubyCallgraphProcessor(object):
                 elif tokens[0] == 'calls':
                     callsite_version = objects[int(tokens[1])]
                     if tokens[2] == 'mega':
-                      callsite_version.calls.append(Mega())
+                        callsite_version.calls.append(Mega())
+                    elif tokens[2] == 'foreign':
+                        callsite_version.calls.append(Foreign())
                     else:
-                      # We just store the method id here for now as we may not have seen all methods yet
-                      callsite_version.calls.append(int(tokens[2]))
+                        # We just store the method id here for now as we may not have seen all methods yet
+                        callsite_version.calls.append(int(tokens[2]))
                 elif tokens[0] == 'local':
                     pass
                 else:
@@ -311,6 +336,8 @@ class JRubyCallgraphProcessor(object):
                     if isinstance(call, Mega):
                         new_calls.append(Mega())
                         callsite_version.method_version.method.is_mega = True
+                    elif isinstance(call, Foreign):
+                        callsite_version.method_version.method.is_foreign = True
                     else:
                         called = objects[call]
                         called.called_from.append(callsite_version)
@@ -337,26 +364,16 @@ class JRubyCallgraphProcessor(object):
                 reachable_objects.add(obj)
                 reachable_worklist.update(obj.reachable())
 
+        # Process graph of reachable objects and annotate parse tree.
+        self.remove_all_annotations()
         for obj in reachable_objects:
-            if isinstance(obj, Method) and obj.source.file == src_file_name:
+            if (isinstance(obj, Method) and obj.source.file != '(unknown)'
+                and not obj.is_hidden() and not obj.is_core()
+                and not obj.is_library() and obj.source.file != '(eval)'
+                and obj.name != '<main>'):
                 method = obj
                 num_calls = 0
-                for version in method.versions:
-                    for callsite_version in version.called_from:
-                        if method.is_mega:
-                            cmsg = ('Call to %s defined on line %g (megamorphic).' %
-                                    (method.name, method.source.line_start))
-                        else:
-                            cmsg = ('Call to %s defined on line %g.' %
-                                    (method.name, method.source.line_start))
-                        self._annotate_text(callsite_version.callsite.line,
-                                            method.name, cmsg, JRubyMorphismMsg)
-                        if callsite_version.callsite.line > 0:
-                            self._annotate_text(callsite_version.callsite.line,
-                                                method.name,
-                                                { method.name : method.is_mega },
-                                                JRubyMorphismLine)
-                        num_calls += 1
+                # Annotate method definitions.
                 if method.is_mega:
                     dmsg = ('Method %s is megamorphic. %s has %g version(s) and %g callsite version(s) and is called %g time(s)' %
                             (method.name,
@@ -372,11 +389,31 @@ class JRubyCallgraphProcessor(object):
                              num_calls))
                 self._annotate_text(method.source.line_start, method.name,
                                     dmsg, JRubyMorphismMsg)
+                # Find and annotate method calls.
+                for version in method.versions:
+                    for callsite_version in version.called_from:
+                        if method.is_mega:
+                            cmsg = ('Call to %s defined on line %g (megamorphic).' %
+                                    (method.name, method.source.line_start))
+                        else:
+                            cmsg = ('Call to %s defined on line %g.\n' %
+                                    (method.name, method.source.line_start))
+                        cmsg += '\n(line numbers may be inaccurate in polyglot programs)'
+                        self._annotate_text(callsite_version.callsite.line,
+                                            method.name, cmsg, JRubyMorphismMsg)
+                        if callsite_version.callsite.line > 0:
+                            self._annotate_text(callsite_version.callsite.line,
+                                                method.name,
+                                                { method.name : method.is_mega },
+                                                JRubyMorphismLine)
+                        num_calls += 1
 
     def _annotate_text(self, lineno, text, annotation, klass):
         """Annotate a node on a given line with a given symbol name.
         """
-
+        if lineno < 0:
+            return
+        # Attempt to find 'text' on 'lineno'.
         try:
             temp_cursor = self.tm.cursor.copy()
             temp_cursor.line = lineno - 1
@@ -384,9 +421,31 @@ class JRubyCallgraphProcessor(object):
             node = temp_cursor.find_next_visible(temp_cursor.node)
             while node.lookup == '<ws>' or node.symbol.name != text:
                 node = node.next_term
-                if isinstance(node, EOS):
+                if isinstance(node, EOS) or node is None:
                     raise ValueError('EOS')
-            node.remove_annotations_by_class(klass)
-            node.add_annotation(klass(annotation))
-        except ValueError:
-            pass
+            if node is not None:
+                node.add_annotation(klass(annotation))
+        except (ValueError, IndexError):
+            try:
+                # Could not find 'text' on 'lineno', so search the whole tree.
+                # This is necessary because polyglot code will add wrappers to
+                # the original program, and change the line numbers.
+                temp_cursor = self.tm.cursor.copy()
+                temp_cursor.line = 0
+                temp_cursor.move_to_x(0)
+                node = temp_cursor.find_next_visible(temp_cursor.node)
+                while True:
+                    if (node.symbol.name == text and
+                       not node.has_annotation_by_class(klass)):
+                        node.add_annotation(klass(annotation))
+                        break
+                    elif isinstance(node, EOS):
+                        lbnode = self.tm.get_languagebox(node)
+                        if lbnode:
+                            node = lbnode
+                        else:
+                            break
+                    node = node.next_term
+            except Exception:
+                logging.error('Failed to annotate "%s" on line %g' % \
+                              (text, lineno))
