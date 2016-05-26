@@ -80,24 +80,24 @@ class Method(object):
         self.is_mega = False
 
     def is_library(self):
-        return 'jruby/lib/' in self.source.file
+        return "jruby/lib/" in self.source.file
 
     def is_core(self):
-        return ('/core/' in self.source.file or 'core.rb' in self.source.file
-                or self.source.file == '(unknown)')
+        return ("/core/" in self.source.file or "core.rb" in self.source.file
+                or self.source.file == "(unknown)")
 
     def is_hidden(self):
-        return (self.source.file == 'run_jruby_root' or
-                self.source.file == 'context' or
-                self.name == 'Truffle::Primitive#run_jruby_root' or
-                self.name == 'Truffle::Primitive#context')
+        return (self.source.file == "run_jruby_root" or
+                self.source.file == "context" or
+                self.name == "Truffle::Primitive#run_jruby_root" or
+                self.name == "Truffle::Primitive#context")
 
     def reachable(self):
         return self.callsites
 
     def __str__(self):
-        return ('Method: %s id=%g callsites=[ %s ]' %
-                (self.name, self.id, ' '.join([str(cs) for cs in self.callsites])))
+        return ("Method: %s id=%g callsites=[ %s ]" %
+                (self.name, self.id, " ".join([str(cs) for cs in self.callsites])))
 
 
 class MethodVersion(object):
@@ -113,9 +113,9 @@ class MethodVersion(object):
         return [self.method] + self.callsite_versions
 
     def __str__(self):
-        return ('Method Version: %s id=%g called_from=[ %s ]' %
+        return ("Method Version: %s id=%g called_from=[ %s ]" %
                 (self.method.name, self.id,
-                 ' '.join([str(cs) for cs in self.called_from])))
+                 " ".join([str(cs) for cs in self.called_from])))
 
 
 class CallSite(object):
@@ -132,7 +132,7 @@ class CallSite(object):
         return [self.method] + self.versions
 
     def __str__(self):
-        return ('Callsite: %s id=%g line=%g' %
+        return ("Callsite: %s id=%g line=%g" %
                 (self.method.name, self.id, self.line))
 
 
@@ -151,7 +151,7 @@ class CallSiteVersion(object):
         return [self.callsite] + self.calls
 
     def __str__(self):
-        return ('Callsite Version: %s id=%g' %
+        return ("Callsite Version: %s id=%g" %
                 (self.callsite.method.name, self.id))
 
 
@@ -160,7 +160,7 @@ class Mega(object):
     """
 
     def __str__(self):
-        return 'Megamorphic'
+        return "Megamorphic"
 
 
 class Foreign(object):
@@ -168,7 +168,7 @@ class Foreign(object):
     """
 
     def __str__(self):
-        return 'Foreign function'
+        return "Foreign function"
 
 
 class JRubyExporter(object):
@@ -193,7 +193,7 @@ class JRubyExporter(object):
             return self._profile()
 
     def _language_box(self, name, node):
-        if name == '<Ruby>':
+        if name == "<Ruby>":
             self._walk_rb(node)
 
     def _walk_rb(self, node):
@@ -206,26 +206,26 @@ class JRubyExporter(object):
                 self._language_box(sym.name, node.symbol.ast.children[0])
             elif isinstance(sym, IndentationTerminal):
                 self._output.append(sym)
-            elif sym.name == '\r':
-                self._output.append('\n')
+            elif sym.name == "\r":
+                self._output.append("\n")
             else:
                 self._output.append(sym.name)
 
     def _export_as_text(self, path):
         node = self.tm.lines[0].node # first node
         self._walk_rb(node)
-        output = ''.join(self._output)
-        with open(path, 'w') as fp:
-            fp.write(''.join(output))
+        output = "".join(self._output)
+        with open(path, "w") as fp:
+            fp.write("".join(output))
 
     def _run(self):
-        f = tempfile.mkstemp(suffix='.rb')
-        settings = QSettings('softdev', 'Eco')
-        jruby_bin =str (settings.value('env_jruby').toString())
+        f = tempfile.mkstemp(suffix=".rb")
+        settings = QSettings("softdev", "Eco")
+        jruby_bin =str (settings.value("env_jruby").toString())
         self._export_as_text(f[1])
         # Run this command:
         #     $ jruby -X+T FILE.rb
-        return subprocess.Popen([jruby_bin, '-X+T', f[1]],
+        return subprocess.Popen([jruby_bin, "-X+T", f[1]],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT,
                                 bufsize=0)
@@ -233,27 +233,27 @@ class JRubyExporter(object):
     def _profile(self):
         callgraph_processor = JRubyCallgraphProcessor(self.tm)
 
-        _, src_file_name = tempfile.mkstemp(suffix='.rb')
-        self.tm.export_as_text(src_file_name).split('\n')
+        _, src_file_name = tempfile.mkstemp(suffix=".rb")
+        self.tm.export_as_text(src_file_name).split("\n")
 
-        log_file_name = os.path.join('/',
-                                     'tmp',
-                                     next(tempfile._get_candidate_names()) + '.txt')
-        logging.debug('Placing callgraph trace in', log_file_name)
+        log_file_name = os.path.join("/",
+                                     "tmp",
+                                     next(tempfile._get_candidate_names()) + ".txt")
+        logging.debug("Placing callgraph trace in", log_file_name)
 
         # Run this command:
         #  $ jruby -X+T -Xtruffle.callgraph=true -Xtruffle.callgraph.write=test.txt -Xtruffle.dispatch.cache=2 FILE
-        settings = QSettings('softdev', 'Eco')
-        jruby_bin = str(settings.value('env_jruby', '').toString())
-        pic_size = str(settings.value('graalvm_pic_size', '').toString())
-        cmd = [jruby_bin, '-X+T', '-Xtruffle.callgraph=true',
-               '-Xtruffle.callgraph.write=' + log_file_name,
-               '-Xtruffle.dispatch.cache=' + pic_size,
+        settings = QSettings("softdev", "Eco")
+        jruby_bin = str(settings.value("env_jruby", "").toString())
+        pic_size = str(settings.value("graalvm_pic_size", "").toString())
+        cmd = [jruby_bin, "-X+T", "-Xtruffle.callgraph=true",
+               "-Xtruffle.callgraph.write=" + log_file_name,
+               "-Xtruffle.dispatch.cache=" + pic_size,
                src_file_name]
-        logging.debug('Running command: ' + ' '.join(cmd))
-        settings = QSettings('softdev', 'Eco')
-        graalvm_bin = str(settings.value('env_graalvm', '').toString())
-        subprocess.call(cmd, env={'JAVACMD':graalvm_bin})
+        logging.debug("Running command: " + " ".join(cmd))
+        settings = QSettings("softdev", "Eco")
+        graalvm_bin = str(settings.value("env_graalvm", "").toString())
+        subprocess.call(cmd, env={"JAVACMD":graalvm_bin})
 
         return callgraph_processor.annotate_tree(src_file_name, log_file_name)
 
@@ -284,46 +284,46 @@ class JRubyCallgraphProcessor(object):
         objects = dict()
         with open(log_file_name) as fd:
             output = fd.read()
-            lines = output.split('\n')
+            lines = output.split("\n")
             i = 0
             while i < len(lines):
                 line = lines[i]
                 tokens = line.split()
                 if len(tokens) == 0:
                     pass
-                elif tokens[0] == 'method':
+                elif tokens[0] == "method":
                     method = Method(tokens[1], tokens[2], Source(*tokens[3:6]))
                     objects[method.id] = method
-                elif tokens[0] == 'method-version':
+                elif tokens[0] == "method-version":
                     method = objects[int(tokens[1])]
                     method_version = MethodVersion(tokens[2], method)
                     objects[method_version.id] = method_version
                     method.versions.append(method_version)
-                elif tokens[0] == 'callsite':
+                elif tokens[0] == "callsite":
                     method = objects[int(tokens[1])]
                     callsite = CallSite(tokens[2], method, tokens[3])
                     objects[callsite.id] = callsite
                     method.callsites.append(callsite)
-                elif tokens[0] == 'callsite-version':
+                elif tokens[0] == "callsite-version":
                     callsite = objects[int(tokens[1])]
                     method_version = objects[int(tokens[2])]
                     callsite_version = CallSiteVersion(tokens[3], callsite, method_version)
                     objects[callsite_version.id] = callsite_version
                     callsite.versions.append(callsite_version)
                     method_version.callsite_versions.append(callsite_version)
-                elif tokens[0] == 'calls':
+                elif tokens[0] == "calls":
                     callsite_version = objects[int(tokens[1])]
-                    if tokens[2] == 'mega':
+                    if tokens[2] == "mega":
                         callsite_version.calls.append(Mega())
-                    elif tokens[2] == 'foreign':
+                    elif tokens[2] == "foreign":
                         callsite_version.calls.append(Foreign())
                     else:
                         # We just store the method id here for now as we may not have seen all methods yet
                         callsite_version.calls.append(int(tokens[2]))
-                elif tokens[0] == 'local':
+                elif tokens[0] == "local":
                     pass
                 else:
-                    logging.debug('Cannot parse the following:', line)
+                    logging.debug("Cannot parse the following:", line)
                     return
                 i += 1
 
@@ -350,7 +350,7 @@ class JRubyCallgraphProcessor(object):
         for obj in objects.itervalues():
             if ((isinstance(obj, Method) and not obj.is_core()) or
                 (isinstance(obj, MethodVersion) and
-                 obj.method.name == '<main>' and
+                 obj.method.name == "<main>" and
                  not obj.method.is_core())):
                 reachable_worklist.add(obj)
 
@@ -367,22 +367,22 @@ class JRubyCallgraphProcessor(object):
         # Process graph of reachable objects and annotate parse tree.
         self.remove_all_annotations()
         for obj in reachable_objects:
-            if (isinstance(obj, Method) and obj.source.file != '(unknown)'
+            if (isinstance(obj, Method) and obj.source.file != "(unknown)"
                 and not obj.is_hidden() and not obj.is_core()
-                and not obj.is_library() and obj.source.file != '(eval)'
-                and obj.name != '<main>'):
+                and not obj.is_library() and obj.source.file != "(eval)"
+                and obj.name != "<main>"):
                 method = obj
                 num_calls = 0
                 # Annotate method definitions.
                 if method.is_mega:
-                    dmsg = ('Method %s is megamorphic. %s has %g version(s) and %g callsite version(s) and is called %g time(s)' %
+                    dmsg = ("Method %s is megamorphic. %s has %g version(s) and %g callsite version(s) and is called %g time(s)" %
                             (method.name,
                              method.name,
                              len(method.versions),
                              len(method.callsites),
                              num_calls))
                 else:
-                    dmsg = ('Method %s has %g version(s) and %g callsite version(s) and is called %g time(s)' %
+                    dmsg = ("Method %s has %g version(s) and %g callsite version(s) and is called %g time(s)" %
                             (method.name,
                              len(method.versions),
                              len(method.callsites),
@@ -393,12 +393,12 @@ class JRubyCallgraphProcessor(object):
                 for version in method.versions:
                     for callsite_version in version.called_from:
                         if method.is_mega:
-                            cmsg = ('Call to %s defined on line %g (megamorphic).' %
+                            cmsg = ("Call to %s defined on line %g (megamorphic)." %
                                     (method.name, method.source.line_start))
                         else:
-                            cmsg = ('Call to %s defined on line %g.\n' %
+                            cmsg = ("Call to %s defined on line %g.\n" %
                                     (method.name, method.source.line_start))
-                        cmsg += '\n(line numbers may be inaccurate in polyglot programs)'
+                        cmsg += "\n(line numbers may be inaccurate in polyglot programs)"
                         self._annotate_text(callsite_version.callsite.line,
                                             method.name, cmsg, JRubyMorphismMsg)
                         if callsite_version.callsite.line > 0:
@@ -411,7 +411,7 @@ class JRubyCallgraphProcessor(object):
     def _annotate_text(self, lineno, text, annotation, klass):
         """Annotate a node on a given line with a given symbol name.
         """
-        if lineno < 0:
+        if lineno < 0:  # Method not defined by the programmer (e.g. <main>)
             return
         # Attempt to find 'text' on 'lineno'.
         try:
@@ -419,10 +419,10 @@ class JRubyCallgraphProcessor(object):
             temp_cursor.line = lineno - 1
             temp_cursor.move_to_x(0)
             node = temp_cursor.find_next_visible(temp_cursor.node)
-            while node.lookup == '<ws>' or node.symbol.name != text:
+            while node.lookup == "<ws>" or node.symbol.name != text:
                 node = node.next_term
                 if isinstance(node, EOS) or node is None:
-                    raise ValueError('EOS')
+                    raise ValueError("EOS")
             if node is not None:
                 node.add_annotation(klass(annotation))
         except (ValueError, IndexError):
@@ -447,5 +447,5 @@ class JRubyCallgraphProcessor(object):
                             break
                     node = node.next_term
             except Exception:
-                logging.error('Failed to annotate "%s" on line %g' % \
+                logging.error("Failed to annotate '%s' on line %g" % \
                               (text, lineno))
