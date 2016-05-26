@@ -175,6 +175,12 @@ class Node(object):
             if isinstance(annotation, klass):
                 self.annotations.remove(annotation)
 
+    def has_annotation_by_class(self, klass):
+        for annotation in self.annotations:
+            if isinstance(annotation, klass):
+                return True
+        return False
+
     def get_annotations_with_hint(self, klass):
         matching = []
         for annotation in self.annotations:
