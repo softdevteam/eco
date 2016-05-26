@@ -130,10 +130,10 @@ class Overlay(QWidget):
         #     }
         railroad_data = dict()
         for method_name in self._railroad_data:
-            railroad_data[method_name] = { 'definition': None,
-                                           'calls': set(),
-                                           'max_x': 0,
-                                           'is_mega': False, }
+            railroad_data[method_name] = { "definition": None,
+                                           "calls": set(),
+                                           "max_x": 0,
+                                           "is_mega": False, }
         temp_cursor = self.tm.cursor.copy()  # Save cursor to restore later.
         temp_cursor.line = 0  # Start at beginning of syntax tree.
         temp_cursor.move_to_x(0)
@@ -145,15 +145,15 @@ class Overlay(QWidget):
                 location = (temp_cursor.line + 1, temp_cursor.get_x())
                 temp_cursor.move_to_x(saved_x)
                 # Assume the first occurrence of the method is its definition.
-                if railroad_data[method]['definition'] is None:
-                    railroad_data[method]['definition'] = location
+                if railroad_data[method]["definition"] is None:
+                    railroad_data[method]["definition"] = location
                 else:
-                    railroad_data[method]['calls'].add(location)
-                max_x = max(railroad_data[method]['max_x'],
+                    railroad_data[method]["calls"].add(location)
+                max_x = max(railroad_data[method]["max_x"],
                             location[1])
-                railroad_data[method]['max_x'] = max_x
+                railroad_data[method]["max_x"] = max_x
                 if self._railroad_data[method]:
-                    railroad_data[method]['is_mega'] = True
+                    railroad_data[method]["is_mega"] = True
             if isinstance(temp_cursor.node.next_term, EOS):
                 root = temp_cursor.node.get_root()
                 lbox = root.get_magicterminal()
@@ -161,7 +161,7 @@ class Overlay(QWidget):
                     break
                 else:
                     temp_cursor.node = lbox.next_term
-                if lbox.symbol.name == '\r' or lbox.next_term.symbol.name == '\r':
+                if lbox.symbol.name == "\r" or lbox.next_term.symbol.name == "\r":
                     temp_cursor.line += 1
             else:
                 temp_cursor.jump_right()
@@ -183,7 +183,7 @@ class Overlay(QWidget):
         for method_name in railroad_data:
             col += 1
             # Set pen colour and style for this method.
-            if railroad_data[method_name]['is_mega']:
+            if railroad_data[method_name]["is_mega"]:
                 line_style = Qt.SolidLine
             else:
                 line_style = Qt.DashLine
@@ -195,16 +195,16 @@ class Overlay(QWidget):
 
             qlines[pen] = list()
             method = railroad_data[method_name]
-            max_x = method['max_x']
+            max_x = method["max_x"]
             while max_x in columns:  # Separate out overlapping vertical lines.
                 max_x += 4
             columns.add(max_x)
 
             # Horizontal line at definition.
-            if visible_lines[0] <= method['definition'][0] <= visible_lines[1]:
-                y = (gfont.fontht * (method['definition'][0] -
+            if visible_lines[0] <= method["definition"][0] <= visible_lines[1]:
+                y = (gfont.fontht * (method["definition"][0] -
                                      visible_lines[0] + 1)) + VOFFSET
-                d_line = QLine((gfont.fontwt * method['definition'][1]) + SPACING,
+                d_line = QLine((gfont.fontwt * method["definition"][1]) + SPACING,
                                y,
                                get_rhs_of_hline(max_x),
                                y)
@@ -212,7 +212,7 @@ class Overlay(QWidget):
 
             # Horizontal line at each callsite.
             last_line = -1
-            for call in railroad_data[method_name]['calls']:
+            for call in railroad_data[method_name]["calls"]:
                 if visible_lines[0] <= call[0] <= visible_lines[1]:
                     y = (gfont.fontht * (call[0] - visible_lines[0] + 1)) + VOFFSET
                     c_line = QLine((gfont.fontwt * call[1]) + SPACING, y,
@@ -222,7 +222,7 @@ class Overlay(QWidget):
                     last_line = call[0]
             # Vertical line between definition and all callsites.
             v_line = QLine(get_rhs_of_hline(max_x),
-                           (gfont.fontht * (method['definition'][0] -
+                           (gfont.fontht * (method["definition"][0] -
                                             visible_lines[0] + 1)) + VOFFSET,
                            get_rhs_of_hline(max_x),
                            (gfont.fontht * (last_line -
