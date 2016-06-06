@@ -76,7 +76,7 @@ further language boxes.
 
 Delete the variable "db", create a new language box using "SQL" and then type:
 ```
-    SELECT name FROM people
+    SELECT name FROM people;
 ```
 Afterwards delete the variable "html" and replace it with a language box "HTML"
 and type:
