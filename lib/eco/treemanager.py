@@ -635,6 +635,8 @@ class TreeManager(object):
         # get linenode
         linenode = node
         while True:
+            if isinstance(linenode, BOS):
+                break
             if linenode is None:
                 break
             if linenode.symbol.name == "\r":
@@ -654,6 +656,13 @@ class TreeManager(object):
         self.cursor.node = node
         self.cursor.pos = 0
         if node is eos:
+            lbox = node.get_root().get_magicterminal()
+            if lbox:
+                self.cursor.node = node.prev_term
+            else:
+                self.cursor.node = self.cursor.find_previous_visible(node)
+            self.cursor.pos = len(self.cursor.node.symbol.name)
+        if isinstance(node.symbol, MagicTerminal):
             self.cursor.node = self.cursor.find_previous_visible(node)
             self.cursor.pos = len(self.cursor.node.symbol.name)
         self.selection_start = self.cursor.copy()
