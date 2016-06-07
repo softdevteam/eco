@@ -955,6 +955,7 @@ class Window(QtGui.QMainWindow):
         self.getEditor().update()
         self.btReparse([])
         self.getEditorTab().keypress(center=True)
+        self.getEditor().setFocus(True)
 
     def redo(self):
         self.getEditor().tm.key_shift_ctrl_z()

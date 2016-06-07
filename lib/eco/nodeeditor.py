@@ -357,6 +357,7 @@ class NodeEditor(QFrame):
                     self.draw_cursor(paint, x, 5 + y * self.fontht)
                 if lbnode:
                     #l_x.pop()
+                    color = colors[(lbox-1) % len(colors)]
                     if lbox > 0:
                         lbox -= 1
                     node = lbnode.next_term
@@ -393,7 +394,10 @@ class NodeEditor(QFrame):
                 editor.update_image(node)
                 if node.symbol.name != "\r" and not isinstance(node.symbol, IndentationTerminal):
                     if not node.image or node.plain_mode:
-                        paint.fillRect(QRectF(x,3 + y*self.fontht, len(node.symbol.name)*self.fontwt, self.fontht), color)
+                        if isinstance(node, BOS) and isinstance(node.next_term, EOS):
+                            self.draw_lbox_hints(paint, node, x, y, color)
+                        else:
+                            paint.fillRect(QRectF(x,3 + y*self.fontht, len(node.symbol.name)*self.fontwt, self.fontht), color)
 
             # prepare selection drawing
             if node is selection_start.node:
@@ -504,6 +508,23 @@ class NodeEditor(QFrame):
 
         return x, y, line
 
+    def draw_lbox_hints(self, paint, node, x, y, color):
+        if node is self.cursor.node:
+            return
+        alpha = color.alpha()
+        color.setAlpha(255)
+        path = QPainterPath()
+        x = x - 2
+        y = y*self.fontht + 4
+
+        path.moveTo(x, y)
+        path.lineTo(x+6, y)
+        path.lineTo(x+3, y+3)
+        path.lineTo(x, y)
+
+        paint.fillPath (path, QBrush (color));
+        color.setAlpha(alpha)
+
     def draw_lbox_bracket(self, paint, bracket, node, x, y, color):
         assert bracket in ['[',']']
         oldpen = paint.pen()
@@ -524,14 +545,14 @@ class NodeEditor(QFrame):
             path.moveTo(tmpx,   3+y*self.fontht)
             path.lineTo(tmpx-2, 3+y*self.fontht)
             path.moveTo(tmpx-2, 3+y*self.fontht)
-            path.lineTo(tmpx-2, 3+y*self.fontht + self.fontht)
+            path.lineTo(tmpx-2, 3+y*self.fontht + self.fontht - 1)
         else:
             tmpx = x - 1
             path.moveTo(tmpx,   3+y*self.fontht)
             path.lineTo(tmpx+2, 3+y*self.fontht)
             path.moveTo(tmpx+2, 3+y*self.fontht)
-            path.lineTo(tmpx+2, 3+y*self.fontht + self.fontht)
-        path.lineTo(tmpx, 3+y*self.fontht + self.fontht)
+            path.lineTo(tmpx+2, 3+y*self.fontht + self.fontht - 1)
+        path.lineTo(tmpx, 3+y*self.fontht + self.fontht - 1)
         paint.drawPath(path)
 
         paint.setPen(oldpen)
