@@ -603,6 +603,8 @@ class Window(QtGui.QMainWindow):
             sys.stderr.write("Warning: pydot not installed, so viewing of trees is disabled.\n")
             self.ui.actionParse_Tree.setEnabled(False)
             self.ui.actionStateGraph.setEnabled(False)
+        self.connect(self.ui.actionPvShow, SIGNAL("triggered()"), self.showPygameTree)
+
         self.connect(self.ui.actionSettings, SIGNAL("triggered()"), self.showSettingsView)
         self.connect(self.ui.actionAbout, SIGNAL("triggered()"), self.showAboutView)
         self.connect(self.ui.actionPreview, SIGNAL("triggered()"), self.showPreviewDialog)
@@ -651,6 +653,7 @@ class Window(QtGui.QMainWindow):
         self.ui.teConsole.setContextMenuPolicy(Qt.CustomContextMenu)
 
         self.viewer = Viewer("pydot")
+        self.pgviewer = None
 
         self.finddialog = FindDialog(self)
 
@@ -788,6 +791,20 @@ class Window(QtGui.QMainWindow):
             return
         self.getEditor().update()
         self.btReparse([])
+
+    def showPygameTree(self):
+        if not self.pgviewer:
+            editor = self.getEditor()
+            tree = editor.tm.main_lbox
+            from pgviewer import PGViewer
+            self.pgviewer = PGViewer(tree, editor.tm.version)
+            self.pgviewer.max_version = self.getEditor().tm.get_max_version()
+            self.pgviewer.run()
+            return
+        if not self.pgviewer.is_alive():
+            self.pgviewer.max_version = self.getEditor().tm.get_max_version()
+            self.pgviewer.version = self.getEditor().tm.version
+            self.pgviewer.run()
 
     def showEditMenu(self):
         self.ui.menuChange_language_box.clear()
@@ -1240,6 +1257,8 @@ class Window(QtGui.QMainWindow):
             self.ui.tabWidget.setCurrentIndex(i)
             self.closeTab(i)
         if self.ui.tabWidget.count() == 0:
+            if self.pgviewer and self.pgviewer.is_alive():
+                self.pgviewer.quit()
             QApplication.quit()
 
     def getEditor(self):
@@ -1281,6 +1300,10 @@ class Window(QtGui.QMainWindow):
         self.ui.treeWidget.expandAll()
 
         self.showAst(selected_node)
+        if self.pgviewer:
+            self.pgviewer.max_version = editor.tm.get_max_version()
+            self.pgviewer.refresh(editor.tm.version)
+
 
     def add_parsingstatus(self, nested, root, parent):
         if not nested.has_key(root):
