@@ -46,7 +46,7 @@
      <x>0</x>
      <y>0</y>
      <width>920</width>
-     <height>23</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -58,7 +58,9 @@
       <string>Recent files</string>
      </property>
      <property name="icon">
-      <iconset theme="document-open-recent"/>
+      <iconset theme="document-open-recent">
+       <normaloff/>
+      </iconset>
      </property>
      <addaction name="actionActionDummy"/>
     </widget>
@@ -80,6 +82,7 @@
      <string>Project</string>
     </property>
     <addaction name="actionRun"/>
+    <addaction name="actionRunPdb"/>
     <addaction name="actionProfile"/>
     <addaction name="actionVisualise_automatically"/>
    </widget>
@@ -660,6 +663,17 @@
   <action name="actionActionDummy">
    <property name="text">
     <string>actionDummy</string>
+   </property>
+  </action>
+  <action name="actionRunPdb">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="system-run"/>
+   </property>
+   <property name="text">
+    <string>Run with debugger (Python)</string>
    </property>
   </action>
  </widget>

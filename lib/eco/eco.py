@@ -552,6 +552,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionExport, SIGNAL("triggered()"), self.export)
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
+        self.connect(self.ui.actionRunPdb, SIGNAL("triggered()"), self.runPdb_subprocess)
         self.connect(self.ui.actionProfile, SIGNAL("triggered()"), self.profile_subprocess)
         self.connect(self.ui.actionVisualise_automatically, SIGNAL("triggered()"), self.run_background_tools)
 
@@ -649,6 +650,12 @@ class Window(QtGui.QMainWindow):
             self.profile_subprocess()
         else:
             ed_tab.run_background_tools = False
+    
+    def pdb_finished(self):
+        # What should happen after debug finishes?
+        # Close console if it wasn't open before debug?
+        if not settings.value("gen_showconsole", False).toBool():
+            self.ui.dockWidget.hide()
 
     def draw_overlay(self, tool_data):
         """Send profiler or tool information to the overlay object."""
@@ -848,6 +855,11 @@ class Window(QtGui.QMainWindow):
         self.ui.teConsole.clear()
         self.thread.start()
 
+    def runPdb_subprocess(self):
+        self.ui.teConsole.clear()
+        self.ui.dockWidget.show()
+        self.thread_pdb.start()
+
     def profile_subprocess(self):
         self.ui.teConsole.clear()
         self.ui.actionShow_tool_visualisations.setChecked(True)
@@ -983,7 +995,8 @@ class Window(QtGui.QMainWindow):
             etab.editor.setFocus(Qt.OtherFocusReason)
             etab.editor.setContextMenuPolicy(Qt.CustomContextMenu)
             etab.editor.customContextMenuRequested.connect(self.contextMenu)
-            self.toggle_menu(True)
+            pythononly = "Python" in str(lang) and not "+" in str(lang)
+            self.toggle_menu(True, pythononly)
             return True
         return False
 
@@ -1100,6 +1113,8 @@ class Window(QtGui.QMainWindow):
                 etab.editor.loadFromJson(filename)
                 etab.editor.update()
                 etab.filename = filename
+                lang = etab.editor.get_mainlanguage()
+                pythononly = "Python" in str(lang) and not "+" in str(lang)
 
                 self.ui.tabWidget.addTab(etab, os.path.basename(str(filename)))
                 self.ui.tabWidget.setCurrentWidget(etab)
@@ -1108,7 +1123,7 @@ class Window(QtGui.QMainWindow):
                 if self.newfile():
                     self.importfile(filename)
                     self.getEditorTab().update()
-            self.toggle_menu(True)
+            self.toggle_menu(True, pythononly)
 
     def closeTab(self, index):
         etab = self.ui.tabWidget.widget(index)
@@ -1142,6 +1157,9 @@ class Window(QtGui.QMainWindow):
                 self.ui.actionStateGraph.setEnabled(True)
             else:
                 self.ui.actionStateGraph.setEnabled(False)
+            lang = ed_tab.editor.get_mainlanguage()
+            pythononly = "Python" in str(lang) and not "+" in str(lang)
+            self.toggle_menu(True, pythononly)
         else:
             self.toggle_menu(False)
         self.btReparse()
@@ -1217,12 +1235,13 @@ class Window(QtGui.QMainWindow):
     def showLookahead(self):
         pass
 
-    def toggle_menu(self, enabled=True):
+    def toggle_menu(self, enabled=True, enablePdb=False):
         self.ui.actionSave.setEnabled(enabled)
         self.ui.actionSave_as.setEnabled(enabled)
         self.ui.actionExport.setEnabled(enabled)
         self.ui.actionExportAs.setEnabled(enabled)
         self.ui.actionRun.setEnabled(enabled)
+        self.ui.actionRunPdb.setEnabled(enablePdb)
         self.ui.actionUndo.setEnabled(enabled)
         self.ui.actionRedo.setEnabled(enabled)
         self.ui.actionCopy.setEnabled(enabled)
@@ -1282,13 +1301,18 @@ def main():
     t = SubProcessThread(window, app)
     window.thread = t
     window.thread_prof = ProfileThread(window, app)
+    window.thread_pdb = PdbThread(window, app)
     window.profile_throbber = Throbber(window.ui.tabWidget)
     window.connect(window.thread, t.signal, window.show_output)
+    window.connect(window.thread_pdb, t.signal, window.show_output)
     window.connect(window.thread_prof, window.thread_prof.signal, window.show_output)
     # Connect the profiler (tool) thread to the throbber.
     window.connect(window.thread_prof,
                    window.thread_prof.signal_done,
                    window.profiler_finished)
+    window.connect(window.thread_pdb,
+                   window.thread_pdb.signal_done,
+                   window.pdb_finished)
     # Connect the profiler(tool) thread to the overlay which draws a heatmap
     # or other visualisation.
     window.connect(window.thread_prof,
@@ -1318,6 +1342,18 @@ class SubProcessThread(QThread):
                         line = "  " + line[9:]
                 self.emit(self.signal, line.rstrip())
 
+class PdbThread(QThread):
+    def __init__(self, window, parent):
+        QThread.__init__(self, parent=parent)
+        self.window = window
+        self.signal_done = QtCore.SIGNAL("finished")
+        self.signal = QtCore.SIGNAL("output")
+
+    def run(self):
+        self.emit(self.signal, "Welcome to Python Debugger.")
+        
+        # Commented out below: For when user quits debugger or it finishes
+        # self.emit(self.signal_done, None)
 
 class ProfileThread(QThread):
     def __init__(self, window, parent):
