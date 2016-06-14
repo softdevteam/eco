@@ -304,21 +304,22 @@ class SettingsView(QtGui.QMainWindow):
         self.connect(self.ui.heatmap_low, SIGNAL("clicked()"), self.pick_color)
         self.connect(self.ui.heatmap_high, SIGNAL("clicked()"), self.pick_color)
         # PyHyp pane.
-        self.connect(self.ui.btpyhyp, SIGNAL("clicked()"), self.choose_file)
-        self.connect(self.ui.btpypyprefix, SIGNAL("clicked()"), self.choose_dir)
+        self.connect(self.ui.btpyhyp, SIGNAL("clicked()"), self.choose_file_or_dir)
+        self.connect(self.ui.btpypyprefix, SIGNAL("clicked()"), self.choose_file_or_dir)
         # Unipycation pane.
-        self.connect(self.ui.btunipycation, SIGNAL("clicked()"), self.choose_file)
+        self.connect(self.ui.btunipycation, SIGNAL("clicked()"), self.choose_file_or_dir)
         # L-Space pane.
-        self.connect(self.ui.btlspaceroot, SIGNAL("clicked()"), self.choose_dir)
+        self.connect(self.ui.btlspaceroot, SIGNAL("clicked()"), self.choose_file_or_dir)
         # JRuby pane.
-        self.connect(self.ui.btjruby, SIGNAL("clicked()"), self.choose_file)
-        self.connect(self.ui.btjruby_load, SIGNAL("clicked()"), self.choose_dir)
+        self.connect(self.ui.btjruby, SIGNAL("clicked()"), self.choose_file_or_dir)
+        self.connect(self.ui.btjruby_load, SIGNAL("clicked()"), self.choose_file_or_dir)
         # GraalVM pane.
-        self.connect(self.ui.btgraalvm, SIGNAL("clicked()"), self.choose_file)
-        self.connect(self.ui.btsljar, SIGNAL("clicked()"), self.choose_file)
-        self.connect(self.ui.btjsjar, SIGNAL("clicked()"), self.choose_file)
-        self.connect(self.ui.bttrufflejar, SIGNAL("clicked()"), self.choose_file)
+        self.connect(self.ui.btgraalvm, SIGNAL("clicked()"), self.choose_file_or_dir)
         # Truffle pane.
+        self.connect(self.ui.btsljar, SIGNAL("clicked()"), self.choose_file_or_dir)
+        self.connect(self.ui.btjsjar, SIGNAL("clicked()"), self.choose_file_or_dir)
+        self.connect(self.ui.bttrufflejar, SIGNAL("clicked()"), self.choose_file_or_dir)
+        # Tab switcher.
         self.connect(self.ui.listWidget, SIGNAL("currentRowChanged(int)"), self.switch_view)
         # Defaults.
         self.foreground = None
@@ -335,35 +336,42 @@ class SettingsView(QtGui.QMainWindow):
         QWidget.showEvent(self, event)
         self.loadSettings()
 
-    def choose_file(self):
-        filename = QFileDialog.getOpenFileName(self, "Choose file")
-        if filename:
-            if self.sender() is self.ui.btpyhyp:
-                self.ui.env_pyhyp.setText(filename)
-            elif self.sender() is self.ui.btpypyprefix:
-                self.ui.env_pypyprefix.setText(filename)
-            elif self.sender() is self.ui.btunipycation:
-                self.ui.env_unipycation.setText(filename)
-            elif self.sender() is self.ui.btjruby:
-                self.ui.env_jruby.setText(filename)
-            elif self.sender() is self.ui.btgraalvm:
-                self.ui.env_graalvm.setText(filename)
-            elif self.sender() is self.ui.btsljar:
-                self.ui.env_sl_jar.setText(filename)
-            elif self.sender() is self.ui.btjsjar:
-                self.ui.env_js_jar.setText(filename)
-            elif self.sender() is self.ui.bttrufflejar:
-                self.ui.env_truffle_jar.setText(filename)
+    def _get_path_from_user(self, setting, is_file=True):
+        settings = QSettings("softdev", "Eco")
+        dir_ = os.path.dirname(str(settings.value(setting, "").toString()))
+        if not dir_:
+            dir_ = os.path.expanduser("~")
+        if is_file:
+            path = QFileDialog.getOpenFileName(self, "Choose file", directory=dir_)
+        else:
+            path = QFileDialog.getExistingDirectory(self, "Choose directory",
+                                                    directory=dir_)
+        if path:
+            self.ui.__getattribute__(setting).setText(path)
 
-    def choose_dir(self):
-        directory = QFileDialog.getExistingDirectory(self, "Choose directory")
-        if directory:
-            if self.sender() is self.ui.btpypyprefix:
-                self.ui.env_pypyprefix.setText(directory)
-            elif self.sender() is self.ui.btlspaceroot:
-                self.ui.env_lspaceroot.setText(directory)
-            elif self.sender() is self.ui.btjruby_load:
-                self.ui.env_jruby_load.setText(directory)
+    def choose_file_or_dir(self):
+        if self.sender() is self.ui.btpyhyp:
+            self._get_path_from_user("env_pyhyp", is_file=True)
+        elif self.sender() is self.ui.btpypyprefix:
+            self._get_path_from_user("env_pypyprefix", is_file=True)
+        elif self.sender() is self.ui.btunipycation:
+            self._get_path_from_user("env_unipycation", is_file=True)
+        elif self.sender() is self.ui.btjruby:
+            self._get_path_from_user("env_jruby", is_file=True)
+        elif self.sender() is self.ui.btgraalvm:
+            self._get_path_from_user("env_graalvm", is_file=True)
+        elif self.sender() is self.ui.btsljar:
+            self._get_path_from_user("env_sl_jar", is_file=True)
+        elif self.sender() is self.ui.btjsjar:
+            self._get_path_from_user("env_js_jar", is_file=True)
+        elif self.sender() is self.ui.bttrufflejar:
+            self._get_path_from_user("env_truffle_jar", is_file=True)
+        elif self.sender() is self.ui.btpypyprefix:
+            self._get_path_from_user("env_pypyprefix", is_file=False)
+        elif self.sender() is self.ui.btlspaceroot:
+            self._get_path_from_user("env_lspaceroot", is_file=False)
+        elif self.sender() is self.ui.btjruby_load:
+            self._get_path_from_user("env_jruby_load", is_file=False)
 
     def loadSettings(self):
         settings = QSettings("softdev", "Eco")
