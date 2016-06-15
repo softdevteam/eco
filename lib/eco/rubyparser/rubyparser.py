@@ -8,43 +8,42 @@ import subprocess
 import tempfile
 
 lexingrules = [
-        ("<ws>", "[ \t]"),
-        ("<return>", "[\n\r]"),
-        ("alias", "alias"),
-        ("class", "class"),
-        ("module", "module"),
-        ("module", "module"),
-        ("def", "def"),
-        ("undef", "undef"),
-        ("begin", "begin"),
-        ("rescue", "rescue"),
-        ("ensure", "ensure"),
-        ("end", "end"),
-        ("if", "if"),
-        ("unless", "unless"),
-        ("then", "then"),
-        ("elseif", "elseif"),
-        ("else", "else"),
-        ("case", "case"),
-        ("when", "when"),
-        ("while", "while"),
-        ("until", "until"),
-        ("for", "for"),
-        ("break", "break"),
-        ("next", "next"),
-        ("redo", "redo"),
-        ("retry", "retry"),
-        ("in", "in"),
-        ("do", "do"),
-        ("super", "super"),
-        ("self", "self"),
-        ("tIDENTIFIER", "[a-z_][a-zA-Z_0-9]*"),
-        ("tCONSTANT", "[A-Z][a-zA-Z_0-9]*"),
-        ("rest", ".")
-        ]
+    ("<ws>", "[ \t]"),
+    ("<return>", "[\n\r]"),
+    ("alias", "alias"),
+    ("class", "class"),
+    ("module", "module"),
+    ("module", "module"),
+    ("def", "def"),
+    ("undef", "undef"),
+    ("begin", "begin"),
+    ("rescue", "rescue"),
+    ("ensure", "ensure"),
+    ("end", "end"),
+    ("if", "if"),
+    ("unless", "unless"),
+    ("then", "then"),
+    ("elseif", "elseif"),
+    ("else", "else"),
+    ("case", "case"),
+    ("when", "when"),
+    ("while", "while"),
+    ("until", "until"),
+    ("for", "for"),
+    ("break", "break"),
+    ("next", "next"),
+    ("redo", "redo"),
+    ("retry", "retry"),
+    ("in", "in"),
+    ("do", "do"),
+    ("super", "super"),
+    ("self", "self"),
+    ("tIDENTIFIER", "[a-z_][a-zA-Z_0-9]*"),
+    ("tCONSTANT", "[A-Z][a-zA-Z_0-9]*"),
+    ("rest", "."),
+]
 
 class RubyProxy(EcoFile):
-
     def __init__(self):
         self.name = "Ruby"
         self.base = "Ruby"
@@ -121,9 +120,13 @@ class RubyParser(object):
         exporter = JRubyExporter(DummyTM(self.previous_version.parent.children[0]))
         f = tempfile.mkstemp(suffix=".rb")
         exporter.export(path=f[1])
-        proc = subprocess.Popen(["ruby-parse", f[1]],
+        try:
+            proc = subprocess.Popen(["ruby-parse", f[1]],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
+        except OSError:
+            print("Warning: Could not parse ruby. Please install https://github.com/whitequark/parser with `sudo gem install parser`")
+            return
         stdout, _ = proc.communicate()
         for line in stdout.split('\n'):
             if line.startswith('warning:'):
