@@ -118,6 +118,26 @@ class EcoFile(object):
         h3 = hash(str(self.extract))
         return h1 ^ h2 ^ h3
 
+class ExternalParser(object):
+
+    def __init__(self):
+        self.name = "ExternalRuby"
+        self.base = "Ruby"
+
+    def load(self):
+        from rubyparser import rubyparser
+        from inclexer.inclexer import IncrementalLexerCF
+        lexer = IncrementalLexerCF()
+        names = ["identifier", "<ws>", "<return>", "def", "all"]
+        regexs = ["[a-zA-Z_][a-zA-Z_0-9]*", "[ \t]+", "[\r\n]", "def", "."]
+        lexer.from_name_and_regex(names, regexs)
+        parser = rubyparser.RubyParser()
+        parser.init_ast()
+        return parser, lexer
+
+    def __str__(self):
+        return self.name
+
 from eco_grammar import eco_grammar # needed to edit EcoGrammar
 
 # base languages
@@ -172,7 +192,7 @@ pythonipython = EcoFile("Python + IPython", "grammars/python275.eco", "Python")
 pythonipython.add_alternative("atom", ipython)
 
 simplelang = EcoFile("SimpleLanguage", "grammars/simplelang.eco", "SimpleLanguage")
-ruby = EcoFile("Ruby", "grammars/ruby.eco", "Ruby")
+ruby = ExternalParser()#EcoFile("Ruby", "grammars/ruby.eco", "Ruby")
 
 rubysl = EcoFile("Ruby + SimpleLanguage", "grammars/ruby.eco", "Ruby")
 rubysl.add_alternative("top_stmt", simplelang)
