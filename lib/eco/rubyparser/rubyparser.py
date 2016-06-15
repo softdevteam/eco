@@ -1,3 +1,4 @@
+from grammars.grammars import EcoFile
 from export.jruby import JRubyExporter
 from incparser.astree import AST, BOS, EOS, TextNode
 from grammar_parser.gparser import Terminal, Nonterminal
@@ -5,6 +6,65 @@ from incparser.syntaxtable import FinishSymbol
 
 import subprocess
 import tempfile
+
+lexingrules = [
+        ("<ws>", "[ \t]"),
+        ("<return>", "[\n\r]"),
+        ("alias", "alias"),
+        ("class", "class"),
+        ("module", "module"),
+        ("module", "module"),
+        ("def", "def"),
+        ("undef", "undef"),
+        ("begin", "begin"),
+        ("rescue", "rescue"),
+        ("ensure", "ensure"),
+        ("end", "end"),
+        ("if", "if"),
+        ("unless", "unless"),
+        ("then", "then"),
+        ("elseif", "elseif"),
+        ("else", "else"),
+        ("case", "case"),
+        ("when", "when"),
+        ("while", "while"),
+        ("until", "until"),
+        ("for", "for"),
+        ("break", "break"),
+        ("next", "next"),
+        ("redo", "redo"),
+        ("retry", "retry"),
+        ("in", "in"),
+        ("do", "do"),
+        ("super", "super"),
+        ("self", "self"),
+        ("tIDENTIFIER", "[a-z_][a-zA-Z_0-9]*"),
+        ("tCONSTANT", "[A-Z][a-zA-Z_0-9]*"),
+        ("rest", ".")
+        ]
+
+class RubyProxy(EcoFile):
+
+    def __init__(self):
+        self.name = "Ruby"
+        self.base = "Ruby"
+        self.filename = ""
+
+    def load(self):
+        from inclexer.inclexer import IncrementalLexerCF
+        lexer = IncrementalLexerCF()
+        names = []
+        regexs = []
+        for n, r in lexingrules:
+            names.append(n)
+            regexs.append(r)
+        lexer.from_name_and_regex(names, regexs)
+        parser = RubyParser()
+        parser.init_ast()
+        return parser, lexer
+
+    def __str__(self):
+        return self.name
 
 class RubyLexer(object):
     def relex(self, node):
