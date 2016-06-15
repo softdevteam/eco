@@ -187,8 +187,8 @@ class JRubyExporter(object):
         if run:
             return self._run()
         elif profile:
-            return self._profile()
-        if path is not None:
+            return self._profile(path=path)
+        elif path is not None:
             self._export_as_text(path)
             return
 
@@ -230,7 +230,7 @@ class JRubyExporter(object):
                                 stderr=subprocess.STDOUT,
                                 bufsize=0)
 
-    def _profile(self):
+    def _profile(self, path):
         callgraph_processor = JRubyCallgraphProcessor(self.tm)
 
         _, src_file_name = tempfile.mkstemp(suffix=".rb")
@@ -241,12 +241,16 @@ class JRubyExporter(object):
                                      next(tempfile._get_candidate_names()) + ".txt")
         logging.debug("Placing callgraph trace in", log_file_name)
 
-        # Run this command:
-        #  $ jruby -X+T -Xtruffle.callgraph=true -Xtruffle.callgraph.write=test.txt -Xtruffle.dispatch.cache=2 FILE
         settings = QSettings("softdev", "Eco")
         jruby_bin = str(settings.value("env_jruby", "").toString())
+        directory = str(settings.value("env_jruby_load", "").toString())
+        if directory:
+            load_path = "-I" + directory
+        else:
+            load_path = ""
         pic_size = str(settings.value("graalvm_pic_size", "").toString())
         cmd = [jruby_bin, "-X+T", "-Xtruffle.callgraph=true",
+               load_path,
                "-Xtruffle.callgraph.write=" + log_file_name,
                "-Xtruffle.dispatch.cache=" + pic_size,
                src_file_name]
@@ -254,6 +258,7 @@ class JRubyExporter(object):
         settings = QSettings("softdev", "Eco")
         graalvm_bin = str(settings.value("env_graalvm", "").toString())
         subprocess.call(cmd, env={"JAVACMD":graalvm_bin})
+
         return callgraph_processor.annotate_tree(src_file_name, log_file_name)
 
 
@@ -365,49 +370,74 @@ class JRubyCallgraphProcessor(object):
 
         # Process graph of reachable objects and annotate parse tree.
         self.remove_all_annotations()
+
         for obj in reachable_objects:
-            if (isinstance(obj, Method) and obj.source.file != "(unknown)"
-                and not obj.is_hidden() and not obj.is_core()
-                and not obj.is_library() and obj.source.file != "(eval)"
-                and obj.name != "<main>"):
+            if (isinstance(obj, Method) and obj.source.file != "(unknown)" and
+                not obj.is_hidden() and not obj.is_core()
+                and not "jruby/lib/" in obj.source.file
+                and obj.source.file != "(eval)"):
                 method = obj
-                num_calls = 0
-                # Annotate method definitions.
+                def_msg = method.name
                 if method.is_mega:
-                    dmsg = ("Method %s is megamorphic. %s has %g version(s) and %g callsite version(s) and is called %g time(s)" %
-                            (method.name,
-                             method.name,
-                             len(method.versions),
-                             len(method.callsites),
-                             num_calls))
-                else:
-                    dmsg = ("Method %s has %g version(s) and %g callsite version(s) and is called %g time(s)" %
-                            (method.name,
-                             len(method.versions),
-                             len(method.callsites),
-                             num_calls))
-                self._annotate_text(method.source.line_start, method.name,
-                                    dmsg, JRubyMorphismMsg)
+                    def_msg += "is megamorphic."
+                num_versions = len(method.versions)
+                def_lineno = method.source.line_start
+                def_filename = method.source.file
+                # For now, if a method is not defined in the currently open
+                # file, we ignore it. We also ignore methods like <main>
+                # or times which were inserted by the interpreter.
+                if (def_filename != src_file_name or
+                      method.name.startswith('<') or
+                      method.source.line_start < 0):
+                    continue
+                def_msg += "\n%s has %d versions" % (method.name, num_versions)
+                num_calls = 0
                 # Find and annotate method calls.
                 for version in method.versions:
-                    for callsite_version in version.called_from:
+                    if len(version.called_from) == 0:
+                        continue
+                    for caller in version.called_from:
+                        call_filename = caller.callsite.method.source.file
+                        # For now, if a method was called in the currently
+                        # open file, but defined elsewhere, we ignore it.
+                        if (call_filename != src_file_name or
+                              method.source.file != src_file_name or
+                              method.source.line_start < 0):
+                            continue
+                        call_lineno = caller.callsite.line
                         if method.is_mega:
-                            cmsg = ("Call to %s defined on line %g (megamorphic)." %
-                                    (method.name, method.source.line_start))
+                            call_msg = ("Call to %s (megamorphic) defined on line %d." %
+                                        (method.name, def_lineno))
                         else:
-                            cmsg = ("Call to %s defined on line %g.\n" %
-                                    (method.name, method.source.line_start))
-                        cmsg += "\n(line numbers may be inaccurate in polyglot programs)"
-                        self._annotate_text(callsite_version.callsite.line,
-                                            method.name, cmsg, JRubyMorphismMsg)
-                        if callsite_version.callsite.line > 0:
-                            self._annotate_text(callsite_version.callsite.line,
-                                                method.name,
-                                                { method.name : method.is_mega },
-                                                JRubyMorphismLine)
+                            call_msg = ("Call to %s defined on line %d." %
+                                        (method.name, def_lineno))
+                        call_msg += "\n(line numbers may be inaccurate in polyglot programs)"
+                        self._annotate_text(call_lineno,
+                                            call_filename,
+                                            method.name,
+                                            call_msg,
+                                            JRubyMorphismMsg)
+                        self._annotate_text(call_lineno,
+                                            call_filename,
+                                            method.name,
+                                            { method.name : method.is_mega },
+                                            JRubyMorphismLine)
                         num_calls += 1
+                # We can't visualise definitions which are never called.
+                if num_calls > 0:
+                    def_msg += " and is called %d times." % num_calls
+                    self._annotate_text(def_lineno,
+                                        def_filename,
+                                        method.name,
+                                        def_msg,
+                                        JRubyMorphismMsg)
+                    self._annotate_text(def_lineno,
+                                        def_filename,
+                                        method.name,
+                                        { method.name : method.is_mega },
+                                        JRubyMorphismLine)
 
-    def _annotate_text(self, lineno, text, annotation, klass):
+    def _annotate_text(self, lineno, filename, text, annotation, klass):
         """Annotate a node on a given line with a given symbol name.
         """
         if lineno < 0:  # Method not defined by the programmer (e.g. <main>)
