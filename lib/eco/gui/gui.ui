@@ -82,7 +82,7 @@
      <string>Project</string>
     </property>
     <addaction name="actionRun"/>
-    <addaction name="actionRunPdb"/>
+    <addaction name="actionDebug"/>
     <addaction name="actionProfile"/>
     <addaction name="actionVisualise_automatically"/>
    </widget>
@@ -254,6 +254,16 @@
      <item>
       <widget class="QTextEdit" name="teConsole">
        <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="consoleInput">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="dragEnabled">
         <bool>true</bool>
        </property>
       </widget>
@@ -665,15 +675,17 @@
     <string>actionDummy</string>
    </property>
   </action>
-  <action name="actionRunPdb">
+  <action name="actionDebug">
    <property name="enabled">
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset theme="system-run"/>
+    <iconset theme="system-run">
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
-    <string>Run with debugger (Python)</string>
+    <string>Run with debugger</string>
    </property>
   </action>
  </widget>

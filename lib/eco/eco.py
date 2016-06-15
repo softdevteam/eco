@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 from __future__ import print_function
-import sys
+import subprocess, sys
 
 try:
     import py
@@ -43,9 +43,18 @@ if not QtGui.QIcon.hasThemeIcon("document-new"):
     # attempt to fall back on generic icon theme
     QtGui.QIcon.setThemeName("gnome")
 
+from grammar_parser.plexer import PriorityLexer
+from incparser.incparser import IncParser
+from inclexer.inclexer import IncrementalLexer
 from viewer import Viewer
 from grammars.grammars import languages, newfile_langs, submenu_langs, lang_dict
 import os
+import math
+
+import syntaxhighlighter
+import editor
+
+from nodeeditor import NodeEditor
 from editortab import EditorTab
 
 from lspace_ext import view_ecodoc_in_lspace
@@ -552,7 +561,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionExport, SIGNAL("triggered()"), self.export)
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
-        self.connect(self.ui.actionRunPdb, SIGNAL("triggered()"), self.runPdb_subprocess)
+        self.connect(self.ui.actionDebug, SIGNAL("triggered()"), self.debug_subprocess)
         self.connect(self.ui.actionProfile, SIGNAL("triggered()"), self.profile_subprocess)
         self.connect(self.ui.actionVisualise_automatically, SIGNAL("triggered()"), self.run_background_tools)
 
@@ -593,9 +602,10 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
         self.connect(self.ui.actionShow_tool_visualisations, SIGNAL("triggered()"), self.toggle_overlay)
 
-        # Make sure the Project -> Profile menu item only appears for
-        # languages that support it.
+        # Make sure the Project -> Profile and Project -> Run with Debugger menu items
+        # only appear for languages that support it.
         self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.set_profiler_enabled)
+        self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.set_debugger_enabled)
 
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
@@ -617,6 +627,9 @@ class Window(QtGui.QMainWindow):
         if not settings.value("gen_showparsestatus", True).toBool():
             self.ui.dockWidget_2.hide()
 
+        # hide debug console text edit box
+        self.ui.consoleInput.hide()
+
         # hardcoded key bindings for OS X
         if sys.platform == "darwin":
             self.ui.actionFind_next.setShortcut("Ctrl+G")
@@ -632,6 +645,11 @@ class Window(QtGui.QMainWindow):
         ed = self.getEditor()
         if (ed is not None) and (ed.tm is not None):
             self.ui.actionProfile.setEnabled(ed.tm.can_profile())
+
+    def set_debugger_enabled(self):
+        ed = self.getEditor()
+        if (ed is not None) and (ed.tm is not None):
+            self.ui.actionDebug.setEnabled(ed.tm.can_debug(ed.get_mainlanguage()))
 
     def run_background_tools(self):
         self.ui.actionShow_tool_visualisations.setChecked(True)
@@ -651,7 +669,7 @@ class Window(QtGui.QMainWindow):
         else:
             ed_tab.run_background_tools = False
     
-    def pdb_finished(self):
+    def debug_finished(self):
         # What should happen after debug finishes?
         # Close console if it wasn't open before debug?
         if not settings.value("gen_showconsole", False).toBool():
@@ -855,10 +873,11 @@ class Window(QtGui.QMainWindow):
         self.ui.teConsole.clear()
         self.thread.start()
 
-    def runPdb_subprocess(self):
+    def debug_subprocess(self):
         self.ui.teConsole.clear()
         self.ui.dockWidget.show()
-        self.thread_pdb.start()
+        self.ui.consoleInput.show()        
+        self.thread_debug.start()
 
     def profile_subprocess(self):
         self.ui.teConsole.clear()
@@ -981,6 +1000,8 @@ class Window(QtGui.QMainWindow):
                 text = text[:-1]
             # key simulated opening
             self.getEditor().insertTextNoSim(text)
+            #self.btReparse(None)
+            #self.getEditor().update()
 
     def newfile(self):
         # create new nodeeditor
@@ -995,8 +1016,7 @@ class Window(QtGui.QMainWindow):
             etab.editor.setFocus(Qt.OtherFocusReason)
             etab.editor.setContextMenuPolicy(Qt.CustomContextMenu)
             etab.editor.customContextMenuRequested.connect(self.contextMenu)
-            pythononly = "Python" in str(lang) and not "+" in str(lang)
-            self.toggle_menu(True, pythononly)
+            self.toggle_menu(True)
             return True
         return False
 
@@ -1114,7 +1134,6 @@ class Window(QtGui.QMainWindow):
                 etab.editor.update()
                 etab.filename = filename
                 lang = etab.editor.get_mainlanguage()
-                pythononly = "Python" in str(lang) and not "+" in str(lang)
 
                 self.ui.tabWidget.addTab(etab, os.path.basename(str(filename)))
                 self.ui.tabWidget.setCurrentWidget(etab)
@@ -1123,7 +1142,7 @@ class Window(QtGui.QMainWindow):
                 if self.newfile():
                     self.importfile(filename)
                     self.getEditorTab().update()
-            self.toggle_menu(True, pythononly)
+            self.toggle_menu(True)
 
     def closeTab(self, index):
         etab = self.ui.tabWidget.widget(index)
@@ -1158,8 +1177,6 @@ class Window(QtGui.QMainWindow):
             else:
                 self.ui.actionStateGraph.setEnabled(False)
             lang = ed_tab.editor.get_mainlanguage()
-            pythononly = "Python" in str(lang) and not "+" in str(lang)
-            self.toggle_menu(True, pythononly)
         else:
             self.toggle_menu(False)
         self.btReparse()
@@ -1186,12 +1203,15 @@ class Window(QtGui.QMainWindow):
         return self.ui.tabWidget.currentWidget()
 
     def btReparse(self, selected_node=[]):
+        results = []
         self.ui.treeWidget.clear()
         editor = self.getEditor()
         if editor is None:
             return
         nested = {}
         for parser, lexer, lang, _ in editor.tm.parsers:
+            #import cProfile
+            #cProfile.runctx("parser.inc_parse(self.ui.frame.line_indents)", globals(), locals())
             root = parser.previous_version.parent
             lbox_terminal = root.get_magicterminal()
             if lbox_terminal:
@@ -1235,13 +1255,12 @@ class Window(QtGui.QMainWindow):
     def showLookahead(self):
         pass
 
-    def toggle_menu(self, enabled=True, enablePdb=False):
+    def toggle_menu(self, enabled=True):
         self.ui.actionSave.setEnabled(enabled)
         self.ui.actionSave_as.setEnabled(enabled)
         self.ui.actionExport.setEnabled(enabled)
         self.ui.actionExportAs.setEnabled(enabled)
         self.ui.actionRun.setEnabled(enabled)
-        self.ui.actionRunPdb.setEnabled(enablePdb)
         self.ui.actionUndo.setEnabled(enabled)
         self.ui.actionRedo.setEnabled(enabled)
         self.ui.actionCopy.setEnabled(enabled)
@@ -1264,7 +1283,12 @@ class Window(QtGui.QMainWindow):
 
         if enabled == False:
             self.ui.actionProfile.setEnabled(enabled)
+            self.ui.actionDebug.setEnabled(enabled)
             self.ui.actionStateGraph.setEnabled(enabled)
+
+    def keyPressEvent(self, e):
+        if (e.key() == QtCore.Qt.Key_Return or e.key() == QtCore.Qt.Key_Enter):
+            self.ui.consoleInput.clear()
 
 def main():
     app = QtGui.QApplication(sys.argv)
@@ -1301,18 +1325,18 @@ def main():
     t = SubProcessThread(window, app)
     window.thread = t
     window.thread_prof = ProfileThread(window, app)
-    window.thread_pdb = PdbThread(window, app)
+    window.thread_debug = DebugThread(window, app)
     window.profile_throbber = Throbber(window.ui.tabWidget)
     window.connect(window.thread, t.signal, window.show_output)
-    window.connect(window.thread_pdb, t.signal, window.show_output)
+    window.connect(window.thread_debug, t.signal, window.show_output)
     window.connect(window.thread_prof, window.thread_prof.signal, window.show_output)
     # Connect the profiler (tool) thread to the throbber.
     window.connect(window.thread_prof,
                    window.thread_prof.signal_done,
                    window.profiler_finished)
-    window.connect(window.thread_pdb,
-                   window.thread_pdb.signal_done,
-                   window.pdb_finished)
+    window.connect(window.thread_debug,
+                   window.thread_debug.signal_done,
+                   window.debug_finished)
     # Connect the profiler(tool) thread to the overlay which draws a heatmap
     # or other visualisation.
     window.connect(window.thread_prof,
@@ -1323,7 +1347,6 @@ def main():
     window.show()
     t.wait()
     sys.exit(app.exec_())
-
 
 class SubProcessThread(QThread):
     def __init__(self, window, parent):
@@ -1342,18 +1365,36 @@ class SubProcessThread(QThread):
                         line = "  " + line[9:]
                 self.emit(self.signal, line.rstrip())
 
-class PdbThread(QThread):
+class DebugThread(QThread):
     def __init__(self, window, parent):
         QThread.__init__(self, parent=parent)
         self.window = window
         self.signal_done = QtCore.SIGNAL("finished")
         self.signal = QtCore.SIGNAL("output")
 
-    def run(self):
-        self.emit(self.signal, "Welcome to Python Debugger.")
+    def run(self):        
+        p = self.window.getEditor().tm.export(debug=True)
+
+        tn = False
+        while not tn:
+            sleep(0.5)
+            tn = telnetlib.Telnet("localhost", 8210)
         
-        # Commented out below: For when user quits debugger or it finishes
-        # self.emit(self.signal_done, None)
+        while True:
+            try:
+                output = tn.read_until("(Pdb)")
+            except EOFError:
+                self.emit(self.signal, "Debugging complete.")
+                break
+            sys.stdout.flush()
+            self.emit(self.signal, output)
+            command = raw_input()
+            tn.write(command + "\n")
+            # If user quits then don't wait for (Pdb)
+            if (command == "q" or command == "quit"):
+                break
+
+       # self.emit(self.signal_done, None)
 
 class ProfileThread(QThread):
     def __init__(self, window, parent):

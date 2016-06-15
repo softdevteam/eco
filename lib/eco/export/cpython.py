@@ -45,11 +45,13 @@ class CPythonExporter(object):
     def __init__(self, tm):
         self.tm = tm
 
-    def export(self, path, run, profile):
+    def export(self, path, run, profile, debug):
         if profile:
             return self._profile()
         elif run:
             return self._run()
+        elif debug:
+            return self._debug()
         else:
             f = tempfile.mkstemp()
             self.tm.export_as_text(f[1])
@@ -59,6 +61,16 @@ class CPythonExporter(object):
         self.tm.export_as_text(f[1])
         return subprocess.Popen(["python2", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
 
+    def _debug(self):
+        f = tempfile.mkstemp()        
+        code = self.tm.export_as_text(f[1])
+
+        # These are the lines for remotepdb  
+        pdb_lines = "from remote_pdb import RemotePdb\nRemotePdb('localhost', 8210).set_trace()\n"
+        code = pdb_lines + code
+        with open(f[1], "w") as f2:
+            f2.write("".join(code))                 
+        return subprocess.Popen(["python2", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
 
     def _profile(self):
         f = tempfile.mkstemp()
