@@ -25,7 +25,7 @@ from PyQt4 import QtGui
 from PyQt4.QtGui import *
 
 from nodeeditor import NodeEditor
-from grammars.grammars import Language, EcoGrammar, EcoFile, ExternalParser
+from grammars.grammars import Language, EcoGrammar, EcoFile, GrammarProxy
 
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
@@ -106,7 +106,7 @@ class EditorTab(QWidget):
         elif isinstance(lang, EcoFile):
             incparser, inclexer = lang.load()
             self.editor.set_mainlanguage(incparser, inclexer, lang.name)
-        elif isinstance(lang, ExternalParser):
+        elif isinstance(lang, GrammarProxy):
             incparser, inclexer = lang.load()
             self.editor.set_mainlanguage(incparser, inclexer, lang.name)
 

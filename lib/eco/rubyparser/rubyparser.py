@@ -74,5 +74,8 @@ class RubyParser(object):
                 self.last_status = False
                 return
 
+    def reparse(self):
+        self.inc_parse()
+
     def save_status(self, version):
         pass

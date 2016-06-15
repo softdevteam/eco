@@ -25,7 +25,7 @@ from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from PyQt4.QtGui import QApplication
 from PyQt4.QtCore import QSettings
-from grammars.grammars import lang_dict, Language, EcoFile
+from grammars.grammars import lang_dict, Language, EcoFile, GrammarProxy
 from export import HTMLPythonSQL, PHPPython, ATerms
 from export.jruby import JRubyExporter
 from export.jruby_simple_language import JRubySimpleLanguageExporter
@@ -838,6 +838,7 @@ class TreeManager(object):
     def save_parsers(self):
         self.saved_parsers[self.version] = list(self.parsers)
 
+
     def load_parsers(self):
         self.parsers = list(self.saved_parsers[self.version])
 
@@ -1568,6 +1569,9 @@ class TreeManager(object):
             inclexer = IncrementalLexer(grammar.priorities)
             return incparser, inclexer
         elif isinstance(grammar, EcoFile):
+            incparser, inclexer = grammar.load()
+            return incparser, inclexer
+        elif isinstance(grammar, GrammarProxy):
             incparser, inclexer = grammar.load()
             return incparser, inclexer
         else:

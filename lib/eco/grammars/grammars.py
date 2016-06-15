@@ -118,7 +118,7 @@ class EcoFile(object):
         h3 = hash(str(self.extract))
         return h1 ^ h2 ^ h3
 
-class ExternalParser(object):
+class GrammarProxy(object):
 
     def __init__(self):
         self.name = "ExternalRuby"
@@ -192,7 +192,7 @@ pythonipython = EcoFile("Python + IPython", "grammars/python275.eco", "Python")
 pythonipython.add_alternative("atom", ipython)
 
 simplelang = EcoFile("SimpleLanguage", "grammars/simplelang.eco", "SimpleLanguage")
-ruby = ExternalParser()#EcoFile("Ruby", "grammars/ruby.eco", "Ruby")
+ruby = GrammarProxy()
 
 rubysl = EcoFile("Ruby + SimpleLanguage", "grammars/ruby.eco", "Ruby")
 rubysl.add_alternative("top_stmt", simplelang)
