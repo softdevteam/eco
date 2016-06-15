@@ -77,5 +77,8 @@ class RubyParser(object):
     def reparse(self):
         self.inc_parse()
 
+    def get_next_symbols_list(self, state=-1):
+        return []
+
     def save_status(self, version):
         pass

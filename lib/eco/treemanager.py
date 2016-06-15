@@ -1581,7 +1581,7 @@ class TreeManager(object):
     def export(self, path=None, run=False, profile=False, source=None):
         for p, _, _, _ in self.parsers:
             if p.last_status == False:
-                print("Cannot export a syntacially incorrect grammar")
+                print("Cannot export a syntactically incorrect grammar")
                 return
 
         if str(path).endswith(".aterms"):

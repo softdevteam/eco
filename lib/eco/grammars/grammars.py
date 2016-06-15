@@ -121,7 +121,7 @@ class EcoFile(object):
 class GrammarProxy(object):
 
     def __init__(self):
-        self.name = "ExternalRuby"
+        self.name = "Ruby"
         self.base = "Ruby"
 
     def load(self):
