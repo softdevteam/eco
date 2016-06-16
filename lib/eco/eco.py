@@ -313,6 +313,7 @@ class SettingsView(QtGui.QMainWindow):
         # JRuby pane.
         self.connect(self.ui.btjruby, SIGNAL("clicked()"), self.choose_file_or_dir)
         self.connect(self.ui.btjruby_load, SIGNAL("clicked()"), self.choose_file_or_dir)
+        self.connect(self.ui.btruby_parser, SIGNAL("clicked()"), self.set_ruby_parser)
         # GraalVM pane.
         self.connect(self.ui.btgraalvm, SIGNAL("clicked()"), self.choose_file_or_dir)
         # Truffle pane.
@@ -373,6 +374,11 @@ class SettingsView(QtGui.QMainWindow):
         elif self.sender() is self.ui.btjruby_load:
             self._get_path_from_user("env_jruby_load", is_file=False)
 
+    def set_ruby_parser(self):
+        settings = QSettings("softdev", "Eco")
+        if self.sender() is self.ui.btruby_parser:
+            settings.setValue("env_ruby_parser", self.ui.env_ruby_parser.text())
+
     def loadSettings(self):
         settings = QSettings("softdev", "Eco")
         # General pane.
@@ -410,6 +416,7 @@ class SettingsView(QtGui.QMainWindow):
         # JRuby pane.
         self.ui.env_jruby.setText(settings.value("env_jruby", "").toString())
         self.ui.env_jruby_load.setText(settings.value("env_jruby_load", "").toString())
+        self.ui.env_ruby_parser.setText(settings.value("env_ruby_parser", "").toString())
         # GraalVM pane.
         self.ui.env_graalvm.setText(settings.value("env_graalvm", "").toString())
         # Truffle pane.
@@ -445,6 +452,7 @@ class SettingsView(QtGui.QMainWindow):
         # JRuby pane.
         settings.setValue("env_jruby", self.ui.env_jruby.text())
         settings.setValue("env_jruby_load", self.ui.env_jruby_load.text())
+        settings.setValue("env_ruby_parser", self.ui.env_ruby_parser.text())
         # GraalVM pane.
         settings.setValue("env_graalvm", self.ui.env_graalvm.text())
         settings.setValue("graalvm_pic_size", self.ui.graalvm_pic_size.value())

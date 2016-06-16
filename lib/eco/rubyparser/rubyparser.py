@@ -1,8 +1,9 @@
-from grammars.grammars import EcoFile
 from export.jruby import JRubyExporter
 from incparser.astree import AST, BOS, EOS, TextNode
-from grammar_parser.gparser import Terminal, Nonterminal
 from incparser.syntaxtable import FinishSymbol
+from grammars.grammars import EcoFile
+from grammar_parser.gparser import Terminal, Nonterminal
+from PyQt4.QtCore import QSettings
 
 import subprocess
 import tempfile
@@ -115,18 +116,22 @@ class RubyParser(object):
                 return node
 
     def inc_parse(self, line_indents = [], reparse=False):
+        settings = QSettings("softdev", "Eco")
+        ruby_parser = str(settings.value("env_ruby_parser", "").toString())
+        if ruby_parser == "":
+            print("Warning: Could not parse Ruby code.\nPlease install a "
+                  "parser and set File->Settings->JRuby->Parser to the "
+                  "command needed to invoke your parser.\n"
+                  "e.g. 'ruby-parse' or 'jruby -c'")
+            return
         self.last_status = True
         self.error_node = None
         exporter = JRubyExporter(DummyTM(self.previous_version.parent.children[0]))
         f = tempfile.mkstemp(suffix=".rb")
         exporter.export(path=f[1])
-        try:
-            proc = subprocess.Popen(["ruby-parse", f[1]],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-        except OSError:
-            print("Warning: Could not parse ruby. Please install https://github.com/whitequark/parser with `sudo gem install parser`")
-            return
+        command = ruby_parser.split(" ")
+        command.append(f[1])
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, _ = proc.communicate()
         for line in stdout.split('\n'):
             if line.startswith('warning:'):
