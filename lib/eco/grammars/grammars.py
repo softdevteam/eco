@@ -172,7 +172,8 @@ pythonipython = EcoFile("Python + IPython", "grammars/python275.eco", "Python")
 pythonipython.add_alternative("atom", ipython)
 
 simplelang = EcoFile("SimpleLanguage", "grammars/simplelang.eco", "SimpleLanguage")
-ruby = EcoFile("Ruby", "grammars/ruby.eco", "Ruby")
+from rubyparser.rubyparser import RubyProxy
+ruby = RubyProxy()
 
 rubysl = EcoFile("Ruby + SimpleLanguage", "grammars/ruby.eco", "Ruby")
 rubysl.add_alternative("top_stmt", simplelang)
