@@ -297,33 +297,37 @@ class SettingsView(QtGui.QMainWindow):
 
         self.connect(self.ui.buttonBox, SIGNAL("accepted()"), self.accept)
         self.connect(self.ui.buttonBox, SIGNAL("rejected()"), self.reject)
-
+        # Appearance pane.
         self.connect(self.ui.app_foreground, SIGNAL("clicked()"), self.pick_color)
         self.connect(self.ui.app_background, SIGNAL("clicked()"), self.pick_color)
-
+        # Profiling pane.
         self.connect(self.ui.heatmap_low, SIGNAL("clicked()"), self.pick_color)
         self.connect(self.ui.heatmap_high, SIGNAL("clicked()"), self.pick_color)
-
-        self.connect(self.ui.btpyhyp, SIGNAL("clicked()"), self.choose_file)
-        self.connect(self.ui.btpypyprefix, SIGNAL("clicked()"), self.choose_dir)
-        self.connect(self.ui.btunipycation, SIGNAL("clicked()"), self.choose_file)
-        self.connect(self.ui.btlspaceroot, SIGNAL("clicked()"), self.choose_dir)
-        self.connect(self.ui.btjruby, SIGNAL("clicked()"), self.choose_file)
-        self.connect(self.ui.btgraalvm, SIGNAL("clicked()"), self.choose_file)
-        self.connect(self.ui.btsljar, SIGNAL("clicked()"), self.choose_file)
-        self.connect(self.ui.btjsjar, SIGNAL("clicked()"), self.choose_file)
-        self.connect(self.ui.bttrufflejar, SIGNAL("clicked()"), self.choose_file)
-
+        # PyHyp pane.
+        self.connect(self.ui.btpyhyp, SIGNAL("clicked()"), self.choose_file_or_dir)
+        self.connect(self.ui.btpypyprefix, SIGNAL("clicked()"), self.choose_file_or_dir)
+        # Unipycation pane.
+        self.connect(self.ui.btunipycation, SIGNAL("clicked()"), self.choose_file_or_dir)
+        # L-Space pane.
+        self.connect(self.ui.btlspaceroot, SIGNAL("clicked()"), self.choose_file_or_dir)
+        # JRuby pane.
+        self.connect(self.ui.btjruby, SIGNAL("clicked()"), self.choose_file_or_dir)
+        self.connect(self.ui.btjruby_load, SIGNAL("clicked()"), self.choose_file_or_dir)
+        self.connect(self.ui.btruby_parser, SIGNAL("clicked()"), self.set_ruby_parser)
+        # GraalVM pane.
+        self.connect(self.ui.btgraalvm, SIGNAL("clicked()"), self.choose_file_or_dir)
+        # Truffle pane.
+        self.connect(self.ui.btsljar, SIGNAL("clicked()"), self.choose_file_or_dir)
+        self.connect(self.ui.btjsjar, SIGNAL("clicked()"), self.choose_file_or_dir)
+        self.connect(self.ui.bttrufflejar, SIGNAL("clicked()"), self.choose_file_or_dir)
+        # Tab switcher.
         self.connect(self.ui.listWidget, SIGNAL("currentRowChanged(int)"), self.switch_view)
-
+        # Defaults.
         self.foreground = None
         self.background = None
-
         self.heatmap_low = None
         self.heatmap_high = None
-
         self.window = window
-
         self.loadSettings()
 
     def switch_view(self, row):
@@ -333,104 +337,126 @@ class SettingsView(QtGui.QMainWindow):
         QWidget.showEvent(self, event)
         self.loadSettings()
 
-    def choose_file(self):
-        filename = QFileDialog.getOpenFileName(self, "Choose file")
-        if filename:
-            if self.sender() is self.ui.btpyhyp:
-                self.ui.env_pyhyp.setText(filename)
-            elif self.sender() is self.ui.btpypyprefix:
-                self.ui.env_pypyprefix.setText(filename)
-            elif self.sender() is self.ui.btunipycation:
-                self.ui.env_unipycation.setText(filename)
-            elif self.sender() is self.ui.btjruby:
-                self.ui.env_jruby.setText(filename)
-            elif self.sender() is self.ui.btgraalvm:
-                self.ui.env_graalvm.setText(filename)
-            elif self.sender() is self.ui.btsljar:
-                self.ui.env_sl_jar.setText(filename)
-            elif self.sender() is self.ui.btjsjar:
-                self.ui.env_js_jar.setText(filename)
-            elif self.sender() is self.ui.bttrufflejar:
-                self.ui.env_truffle_jar.setText(filename)
+    def _get_path_from_user(self, setting, is_file=True):
+        settings = QSettings("softdev", "Eco")
+        dir_ = os.path.dirname(str(settings.value(setting, "").toString()))
+        if not dir_:
+            dir_ = os.path.expanduser("~")
+        if is_file:
+            path = QFileDialog.getOpenFileName(self, "Choose file", directory=dir_)
+        else:
+            path = QFileDialog.getExistingDirectory(self, "Choose directory",
+                                                    directory=dir_)
+        if path:
+            self.ui.__getattribute__(setting).setText(path)
 
-    def choose_dir(self):
-        filename = QFileDialog.getExistingDirectory(self, "Choose directory")
-        if filename:
-            if self.sender() is self.ui.btpypyprefix:
-                self.ui.env_pypyprefix.setText(filename)
-            elif self.sender() is self.ui.btlspaceroot:
-                self.ui.env_lspaceroot.setText(filename)
+    def choose_file_or_dir(self):
+        if self.sender() is self.ui.btpyhyp:
+            self._get_path_from_user("env_pyhyp", is_file=True)
+        elif self.sender() is self.ui.btpypyprefix:
+            self._get_path_from_user("env_pypyprefix", is_file=True)
+        elif self.sender() is self.ui.btunipycation:
+            self._get_path_from_user("env_unipycation", is_file=True)
+        elif self.sender() is self.ui.btjruby:
+            self._get_path_from_user("env_jruby", is_file=True)
+        elif self.sender() is self.ui.btgraalvm:
+            self._get_path_from_user("env_graalvm", is_file=True)
+        elif self.sender() is self.ui.btsljar:
+            self._get_path_from_user("env_sl_jar", is_file=True)
+        elif self.sender() is self.ui.btjsjar:
+            self._get_path_from_user("env_js_jar", is_file=True)
+        elif self.sender() is self.ui.bttrufflejar:
+            self._get_path_from_user("env_truffle_jar", is_file=True)
+        elif self.sender() is self.ui.btpypyprefix:
+            self._get_path_from_user("env_pypyprefix", is_file=False)
+        elif self.sender() is self.ui.btlspaceroot:
+            self._get_path_from_user("env_lspaceroot", is_file=False)
+        elif self.sender() is self.ui.btjruby_load:
+            self._get_path_from_user("env_jruby_load", is_file=False)
+
+    def set_ruby_parser(self):
+        settings = QSettings("softdev", "Eco")
+        if self.sender() is self.ui.btruby_parser:
+            settings.setValue("env_ruby_parser", self.ui.env_ruby_parser.text())
 
     def loadSettings(self):
         settings = QSettings("softdev", "Eco")
+        # General pane.
         self.ui.gen_showconsole.setCheckState(settings.value("gen_showconsole", 0).toInt()[0])
         self.ui.gen_showparsestatus.setCheckState(settings.value("gen_showparsestatus", 2).toInt()[0])
-
+        # Appearance pane.
         family = settings.value("font-family").toString()
         size = settings.value("font-size").toInt()[0]
         self.ui.app_fontfamily.setCurrentFont(QtGui.QFont(family, size))
         self.ui.app_fontsize.setValue(size)
-
+        self.ui.app_theme.setCurrentIndex(settings.value("app_themeindex", 0).toInt()[0])
+        self.ui.app_custom.setChecked(settings.value("app_custom", False).toBool())
+        self.foreground = settings.value("app_foreground", "#000000").toString()
+        self.background = settings.value("app_background", "#ffffff").toString()
+        self.change_color(self.ui.app_foreground, self.foreground)
+        self.change_color(self.ui.app_background, self.background)
+        # Profiling pane.
         tool_info_family = settings.value("tool-font-family").toString()
         tool_info_size = settings.value("tool-font-size").toInt()[0]
         self.ui.tool_info_fontfamily.setCurrentFont(QtGui.QFont(tool_info_family, tool_info_size))
         self.ui.tool_info_fontsize.setValue(tool_info_size)
-
-        self.ui.app_theme.setCurrentIndex(settings.value("app_themeindex", 0).toInt()[0])
-        self.ui.app_custom.setChecked(settings.value("app_custom", False).toBool())
-
-        self.foreground = settings.value("app_foreground", "#000000").toString()
-        self.background = settings.value("app_background", "#ffffff").toString()
-
         self.heatmap_low = settings.value("heatmap_low", "#deebf7").toString()
         self.heatmap_high = settings.value("heatmap_high", "#3182bd").toString()
         self.ui.heatmap_alpha.setValue(settings.value("heatmap_alpha", 100).toInt()[0])
         self.ui.graalvm_pic_size.setValue(settings.value("graalvm_pic_size", 2).toInt()[0])
-
-        self.change_color(self.ui.app_foreground, self.foreground)
-        self.change_color(self.ui.app_background, self.background)
         self.change_color(self.ui.heatmap_low, self.heatmap_low)
         self.change_color(self.ui.heatmap_high, self.heatmap_high)
-
+        # PyHyp pane.
         self.ui.env_pyhyp.setText(settings.value("env_pyhyp", "").toString())
+        # Unipycation pane.
         self.ui.env_unipycation.setText(settings.value("env_unipycation", "").toString())
         self.ui.env_pypyprefix.setText(settings.value("env_pypyprefix", "").toString())
+        # L-Space pane.
         self.ui.env_lspaceroot.setText(settings.value("env_lspaceroot", "").toString())
+        # JRuby pane.
         self.ui.env_jruby.setText(settings.value("env_jruby", "").toString())
+        self.ui.env_jruby_load.setText(settings.value("env_jruby_load", "").toString())
+        self.ui.env_ruby_parser.setText(settings.value("env_ruby_parser", "").toString())
+        # GraalVM pane.
         self.ui.env_graalvm.setText(settings.value("env_graalvm", "").toString())
+        # Truffle pane.
         self.ui.env_sl_jar.setText(settings.value("env_sl_jar", "").toString())
         self.ui.env_js_jar.setText(settings.value("env_js_jar", "").toString())
         self.ui.env_truffle_jar.setText(settings.value("env_truffle_jar", "").toString())
 
     def saveSettings(self):
         settings = QSettings("softdev", "Eco")
+        # General pane.
         settings.setValue("gen_showconsole", self.ui.gen_showconsole.checkState())
         settings.setValue("gen_showparsestatus", self.ui.gen_showparsestatus.checkState())
-
         settings.setValue("font-family", self.ui.app_fontfamily.currentFont().family())
         settings.setValue("font-size", self.ui.app_fontsize.value())
-
-        settings.setValue("tool-font-family", self.ui.tool_info_fontfamily.currentFont().family())
-        settings.setValue("tool-font-size", self.ui.tool_info_fontsize.value())
-
         settings.setValue("app_theme", self.ui.app_theme.currentText())
         settings.setValue("app_themeindex", self.ui.app_theme.currentIndex())
         settings.setValue("app_custom", self.ui.app_custom.isChecked())
-
         settings.setValue("app_foreground", self.foreground)
         settings.setValue("app_background", self.background)
-
+        # Profiling pane.
+        settings.setValue("tool-font-family", self.ui.tool_info_fontfamily.currentFont().family())
+        settings.setValue("tool-font-size", self.ui.tool_info_fontsize.value())
         settings.setValue("heatmap_low", self.heatmap_low)
         settings.setValue("heatmap_high", self.heatmap_high)
         settings.setValue("heatmap_alpha", self.ui.heatmap_alpha.value())
-        settings.setValue("graalvm_pic_size", self.ui.graalvm_pic_size.value())
-
+        # PyHyp pane.
         settings.setValue("env_pyhyp", self.ui.env_pyhyp.text())
+        # Unipycation pane.
         settings.setValue("env_unipycation", self.ui.env_unipycation.text())
         settings.setValue("env_pypyprefix", self.ui.env_pypyprefix.text())
+        # L-Space pane.
         settings.setValue("env_lspaceroot", self.ui.env_lspaceroot.text())
+        # JRuby pane.
         settings.setValue("env_jruby", self.ui.env_jruby.text())
+        settings.setValue("env_jruby_load", self.ui.env_jruby_load.text())
+        settings.setValue("env_ruby_parser", self.ui.env_ruby_parser.text())
+        # GraalVM pane.
         settings.setValue("env_graalvm", self.ui.env_graalvm.text())
+        settings.setValue("graalvm_pic_size", self.ui.graalvm_pic_size.value())
+        # Truffle pane.
         settings.setValue("env_sl_jar", self.ui.env_sl_jar.text())
         settings.setValue("env_js_jar", self.ui.env_js_jar.text())
         settings.setValue("env_truffle_jar", self.ui.env_truffle_jar.text())
@@ -1393,7 +1419,8 @@ class ProfileThread(QThread):
         self.signal_overlay = QtCore.SIGNAL("profile_overlay")
 
     def run(self):
-        p = self.window.getEditor().tm.export(profile=True)
+        ed = self.window.getEditorTab()
+        p = self.window.getEditor().tm.export(path=str(ed.filename), profile=True)
         # Using read() here, rather than readline() because profiler output
         # often includes blank lines in the middle of the output.
         if p:
