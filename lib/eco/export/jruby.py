@@ -184,13 +184,13 @@ class JRubyExporter(object):
         self._sl_functions = list()
 
     def export(self, path=None, run=False, profile=False):
-        if path is not None:
-            self._export_as_text(path)
-            return
         if run:
             return self._run()
         elif profile:
             return self._profile()
+        if path is not None:
+            self._export_as_text(path)
+            return
 
     def _language_box(self, name, node):
         if name == "<Ruby>":
@@ -254,7 +254,6 @@ class JRubyExporter(object):
         settings = QSettings("softdev", "Eco")
         graalvm_bin = str(settings.value("env_graalvm", "").toString())
         subprocess.call(cmd, env={"JAVACMD":graalvm_bin})
-
         return callgraph_processor.annotate_tree(src_file_name, log_file_name)
 
 
