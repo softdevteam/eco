@@ -190,6 +190,12 @@
    <addaction name="separator"/>
    <addaction name="actionRun"/>
    <addaction name="separator"/>
+   <addaction name="actionDebug"/>
+   <addaction name="actionContinue"/>
+   <addaction name="actionStop"/>
+   <addaction name="separator"/>
+   <addaction name="actionStepInto"/>
+   <addaction name="actionStepOver"/>
   </widget>
   <widget class="QDockWidget" name="dockWidget_2">
    <property name="maximumSize">
@@ -254,16 +260,6 @@
      <item>
       <widget class="QTextEdit" name="teConsole">
        <property name="readOnly">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="consoleInput">
-       <property name="enabled">
-        <bool>true</bool>
-       </property>
-       <property name="dragEnabled">
         <bool>true</bool>
        </property>
       </widget>
@@ -680,12 +676,68 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset theme="system-run">
+    <iconset theme="mail-mark-junk">
      <normaloff/>
     </iconset>
    </property>
    <property name="text">
     <string>Run with debugger</string>
+   </property>
+  </action>
+  <action name="actionContinue">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="media-playback-start"/>
+   </property>
+   <property name="text">
+    <string>Continue</string>
+   </property>
+   <property name="toolTip">
+    <string>Continue</string>
+   </property>
+  </action>
+  <action name="actionStepInto">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="down"/>
+   </property>
+   <property name="text">
+    <string>Step Into</string>
+   </property>
+   <property name="toolTip">
+    <string>Step Into</string>
+   </property>
+  </action>
+  <action name="actionStepOver">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="go-jump"/>
+   </property>
+   <property name="text">
+    <string>Step Over</string>
+   </property>
+   <property name="toolTip">
+    <string>Step Over</string>
+   </property>
+  </action>
+  <action name="actionStop">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="player_stop"/>
+   </property>
+   <property name="text">
+    <string>Stop</string>
+   </property>
+   <property name="toolTip">
+    <string>Stop</string>
    </property>
   </action>
  </widget>

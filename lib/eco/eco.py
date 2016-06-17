@@ -602,6 +602,12 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
         self.connect(self.ui.actionShow_tool_visualisations, SIGNAL("triggered()"), self.toggle_overlay)
 
+        # Debug buttons
+        self.connect(self.ui.actionContinue, SIGNAL("triggered()"), self.debug_continue)
+        self.connect(self.ui.actionStop, SIGNAL("triggered()"), self.debug_stop)
+        self.connect(self.ui.actionStepInto, SIGNAL("triggered()"), self.debug_step_into)
+        self.connect(self.ui.actionStepOver, SIGNAL("triggered()"), self.debug_step_over)
+
         # Make sure the Project -> Profile and Project -> Run with Debugger menu items
         # only appear for languages that support it.
         self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.set_profiler_enabled)
@@ -626,9 +632,6 @@ class Window(QtGui.QMainWindow):
             self.ui.dockWidget.hide()
         if not settings.value("gen_showparsestatus", True).toBool():
             self.ui.dockWidget_2.hide()
-
-        # hide debug console text edit box
-        self.ui.consoleInput.hide()
 
         # hardcoded key bindings for OS X
         if sys.platform == "darwin":
@@ -671,9 +674,10 @@ class Window(QtGui.QMainWindow):
     
     def debug_finished(self):
         # What should happen after debug finishes?
-        # Close console if it wasn't open before debug?
-        if not settings.value("gen_showconsole", False).toBool():
-            self.ui.dockWidget.hide()
+        self.ui.actionContinue.setEnabled(False)
+        self.ui.actionStop.setEnabled(False)
+        self.ui.actionStepInto.setEnabled(False)
+        self.ui.actionStepOver.setEnabled(False)
 
     def draw_overlay(self, tool_data):
         """Send profiler or tool information to the overlay object."""
@@ -695,7 +699,6 @@ class Window(QtGui.QMainWindow):
         self.ui.actionShow_tool_visualisations.setChecked(False)
         ed_tab = self.getEditorTab()
         ed_tab.editor.hide_overlay()
-
 
     def consoleContextMenu(self, pos):
         def clear():
@@ -876,7 +879,10 @@ class Window(QtGui.QMainWindow):
     def debug_subprocess(self):
         self.ui.teConsole.clear()
         self.ui.dockWidget.show()
-        self.ui.consoleInput.show()        
+        self.ui.actionContinue.setEnabled(True)
+        self.ui.actionStop.setEnabled(True)
+        self.ui.actionStepInto.setEnabled(True)
+        self.ui.actionStepOver.setEnabled(True)
         self.thread_debug.start()
 
     def profile_subprocess(self):
@@ -1286,9 +1292,21 @@ class Window(QtGui.QMainWindow):
             self.ui.actionDebug.setEnabled(enabled)
             self.ui.actionStateGraph.setEnabled(enabled)
 
-    def keyPressEvent(self, e):
-        if (e.key() == QtCore.Qt.Key_Return or e.key() == QtCore.Qt.Key_Enter):
-            self.ui.consoleInput.clear()
+    def debug_continue(self):
+        # pdb Command
+        self.thread_debug.run_command("c")
+
+    def debug_stop(self):
+        # pdb Command
+        self.thread_debug.run_command("q")
+
+    def debug_step_into(self):
+        # pdb Command
+        self.thread_debug.run_command("s")
+
+    def debug_step_over(self):
+        # pdb Command
+        self.thread_debug.run_command("n")
 
 def main():
     app = QtGui.QApplication(sys.argv)
@@ -1372,29 +1390,47 @@ class DebugThread(QThread):
         self.signal_done = QtCore.SIGNAL("finished")
         self.signal = QtCore.SIGNAL("output")
 
-    def run(self):        
-        p = self.window.getEditor().tm.export(debug=True)
-
-        tn = False
-        while not tn:
+    def run(self):      
+        # Start pdb  
+        self.proc = self.window.getEditor().tm.export(debug=True)
+        self.tn = False
+        while not self.tn:
             sleep(0.5)
-            tn = telnetlib.Telnet("localhost", 8210)
-        
-        while True:
-            try:
-                output = tn.read_until("(Pdb)")
-            except EOFError:
-                self.emit(self.signal, "Debugging complete.")
-                break
-            sys.stdout.flush()
-            self.emit(self.signal, output)
-            command = raw_input()
-            tn.write(command + "\n")
-            # If user quits then don't wait for (Pdb)
-            if (command == "q" or command == "quit"):
-                break
+            self.tn = telnetlib.Telnet("localhost", 8210)                
+        output = False     
+        while not output:
+            sleep(0.1)
+            output = self.tn.read_until("(Pdb)")
+        self.emit(self.signal, output)          
 
-       # self.emit(self.signal_done, None)
+    # Run command and wait for response
+    def run_command(self, command):
+        try:
+            self.tn.write(command + "\n")
+        except EOFError:
+            self.emit(self.signal, "EOF Error? INPUT")
+        # If user quits then don't wait for (Pdb)
+        if (command == "q"):
+            self.exit()
+        self.output_debug()  
+
+    def output_debug(self):
+        try:
+            output = self.tn.read_until("(Pdb)")             
+        except EOFError:
+            output = "EOF Error? OUTPUT"
+            self.exit()
+                
+        if "(Pdb)" not in output:
+            self.exit()
+            return    
+
+        self.emit(self.signal, output) 
+
+    def exit(self):      
+        self.tn.close()
+        self.emit(self.signal, "Exiting.")   
+        self.emit(self.signal_done, None)
 
 class ProfileThread(QThread):
     def __init__(self, window, parent):
