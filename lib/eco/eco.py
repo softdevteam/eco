@@ -96,34 +96,6 @@ class GlobalFont(object):
         self.fontwt = self.fontm.width(" "*99)/99.0
         self.fontd = self.fontm.descent()
 
-class ScopeScrollArea(QtGui.QAbstractScrollArea):
-    def setWidgetResizable(self, b):
-        self.resizable = True
-
-    def setAlignment(self, align):
-        self.alignment = align
-
-    def setWidget(self, widget):
-        self.widget = widget
-        self.viewport().setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        anotherbox = QtGui.QVBoxLayout(self.viewport())
-        anotherbox.addWidget(widget)
-        anotherbox.setSpacing(0)
-        anotherbox.setContentsMargins(3,0,0,0)
-
-    def incHSlider(self):
-        self.horizontalScrollBar().setSliderPosition(self.horizontalScrollBar().sliderPosition() + self.horizontalScrollBar().singleStep())
-
-    def decHSlider(self):
-        self.horizontalScrollBar().setSliderPosition(self.horizontalScrollBar().sliderPosition() - self.horizontalScrollBar().singleStep())
-
-    def incVSlider(self):
-        self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() + self.verticalScrollBar().singleStep())
-
-    def decVSlider(self):
-        self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() - self.verticalScrollBar().singleStep())
-
 class ParseView(QtGui.QMainWindow):
     def __init__(self, window):
         QtGui.QMainWindow.__init__(self, window)
