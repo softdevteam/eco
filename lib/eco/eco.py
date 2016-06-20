@@ -96,49 +96,6 @@ class GlobalFont(object):
         self.fontwt = self.fontm.width(" "*99)/99.0
         self.fontd = self.fontm.descent()
 
-class LineNumbers(QFrame):
-    def __init__(self, parent=None):
-        QtGui.QFrame.__init__(self, parent)
-
-        family = settings.value("font-family").toString()
-        size = settings.value("font-size").toInt()[0]
-        self.font = QtGui.QFont(family, size)
-        self.fontm = QtGui.QFontMetrics(self.font)
-        self.fontht = self.fontm.height() + 3
-        self.fontwt = self.fontm.width(" ")
-
-        self.info = []
-
-    def paintEvent(self, event):
-        paint = QtGui.QPainter()
-        paint.begin(self)
-        paint.setPen(QColor("grey"))
-        paint.setFont(self.font)
-
-        scrollbar_height = self.window().ui.scrollArea.horizontalScrollBar().geometry().height()
-
-        for y, line, indent in self.info:
-            if self.fontht + y*self.fontht > self.geometry().height() - scrollbar_height:
-                break
-            text = str(line)# + "|" + str(indent)
-            x = self.geometry().width() - len(text) * self.fontwt - self.fontwt
-            paint.drawText(QtCore.QPointF(x, self.fontht + y*self.fontht), text +":")
-
-        paint.end()
-        self.info = []
-
-    def getMaxWidth(self):
-        max_width = 0
-        for _, line, _ in self.info:
-            max_width = max(max_width, self.fontm.width(str(line)+":"))
-        return max_width
-
-    def change_font(self, font):
-        self.font = font[0]
-        self.fontm = QtGui.QFontMetrics(self.font)
-        self.fontht = self.fontm.height() + 3
-        self.fontwt = self.fontm.width(" ")
-
 class ScopeScrollArea(QtGui.QAbstractScrollArea):
     def setWidgetResizable(self, b):
         self.resizable = True
