@@ -264,6 +264,13 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QLineEdit" name="expressionBox">
+       <property name="placeholderText">
+        <string>Type an expression here</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </widget>
   </widget>
@@ -689,7 +696,9 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset theme="media-playback-start"/>
+    <iconset theme="media-playback-start">
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Continue</string>
@@ -703,7 +712,9 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset theme="down"/>
+    <iconset theme="down">
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Step Into</string>
@@ -717,7 +728,9 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset theme="go-jump"/>
+    <iconset theme="go-jump">
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Step Over</string>
@@ -731,7 +744,9 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset theme="player_stop"/>
+    <iconset theme="player_stop">
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Stop</string>

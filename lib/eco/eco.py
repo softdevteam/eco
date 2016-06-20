@@ -354,6 +354,9 @@ class SettingsView(QtGui.QMainWindow):
         settings.setValue("gen_showparsestatus", self.ui.gen_showparsestatus.checkState())
         settings.setValue("font-family", self.ui.app_fontfamily.currentFont().family())
         settings.setValue("font-size", self.ui.app_fontsize.value())
+        settings.setValue("tool-font-family", self.ui.tool_info_fontfamily.currentFont().family())
+        settings.setValue("tool-font-size", self.ui.tool_info_fontsize.value())
+
         settings.setValue("app_theme", self.ui.app_theme.currentText())
         settings.setValue("app_themeindex", self.ui.app_theme.currentIndex())
         settings.setValue("app_custom", self.ui.app_custom.isChecked())
@@ -626,6 +629,12 @@ class Window(QtGui.QMainWindow):
 
         self.last_dir = None
 
+        self.debugging = False
+        self.expression_list = []
+        self.expression_num = 0
+        # hide debug expression box
+        self.ui.expressionBox.hide()
+
         # apply settings
         settings = QSettings("softdev", "Eco")
         if not settings.value("gen_showconsole", False).toBool():
@@ -673,11 +682,12 @@ class Window(QtGui.QMainWindow):
             ed_tab.run_background_tools = False
     
     def debug_finished(self):
-        # What should happen after debug finishes?
+        self.ui.expressionBox.hide()
         self.ui.actionContinue.setEnabled(False)
         self.ui.actionStop.setEnabled(False)
         self.ui.actionStepInto.setEnabled(False)
         self.ui.actionStepOver.setEnabled(False)
+        self.debugging = False
 
     def draw_overlay(self, tool_data):
         """Send profiler or tool information to the overlay object."""
@@ -879,11 +889,13 @@ class Window(QtGui.QMainWindow):
     def debug_subprocess(self):
         self.ui.teConsole.clear()
         self.ui.dockWidget.show()
+        self.ui.expressionBox.show()
         self.ui.actionContinue.setEnabled(True)
         self.ui.actionStop.setEnabled(True)
         self.ui.actionStepInto.setEnabled(True)
         self.ui.actionStepOver.setEnabled(True)
         self.thread_debug.start()
+        self.debugging = True
 
     def profile_subprocess(self):
         self.ui.teConsole.clear()
@@ -1307,6 +1319,51 @@ class Window(QtGui.QMainWindow):
     def debug_step_over(self):
         # pdb Command
         self.thread_debug.run_command("n")
+    
+    def debug_expression(self):
+        #pdb Command
+        if self.ui.expressionBox.displayText():
+            ex_input = self.ui.expressionBox.displayText()
+            self.thread_debug.run_command("p " + str(ex_input))
+            # Add expression to top of expression "stack" if it's not already there           
+            if self.expression_list.count(ex_input) > 0:
+                if not self.expression_list[0] == ex_input:
+                    self.expression_list.remove(ex_input)
+                    self.expression_list.insert(0, ex_input)
+            else:
+                # If 10 or more items are in the list, remove the oldest entry 
+                if len(self.expression_list) >= 10:
+                    self.expression_list.pop()  
+                self.expression_list.insert(0, ex_input)                         
+            self.expression_num = -1
+            self.ui.expressionBox.clear()
+
+    def keyPressEvent(self, event):
+        if self.debugging:
+            if event.key() == QtCore.Qt.Key_Return or event.key() == QtCore.Qt.Key_Enter:
+                self.debug_expression()
+            elif event.key() == QtCore.Qt.Key_Down:
+                # Next most recent expression
+                self.change_expression(False)
+            elif event.key() == QtCore.Qt.Key_Up:
+                # Previous expression
+                self.change_expression(True)
+
+    def change_expression(self, previous):
+        if len(self.expression_list) == 0:
+            return None
+
+        # Go through list of used expressions and show next or previous one in the input box
+        if previous:
+           if self.expression_num+1 < len(self.expression_list):
+               self.expression_num += 1          
+        else:
+           if self.expression_num-1 >= 0:
+                self.expression_num -= 1
+        
+        self.ui.expressionBox.setText(self.expression_list[self.expression_num])
+            
+        
 
 def main():
     app = QtGui.QApplication(sys.argv)
@@ -1393,6 +1450,11 @@ class DebugThread(QThread):
     def run(self):      
         # Start pdb  
         self.proc = self.window.getEditor().tm.export(debug=True)
+        if not self.proc:
+            self.emit(self.signal_done, None)
+            self.emit(self.signal, "Cannot run debugger.")
+            self.exit()
+            return
         self.tn = False
         while not self.tn:
             sleep(0.5)
@@ -1427,9 +1489,10 @@ class DebugThread(QThread):
 
         self.emit(self.signal, output) 
 
-    def exit(self):      
-        self.tn.close()
-        self.emit(self.signal, "Exiting.")   
+    def exit(self): 
+        if self.tn:     
+            self.tn.close()
+        self.emit(self.signal, "Debug finished.")   
         self.emit(self.signal_done, None)
 
 class ProfileThread(QThread):
