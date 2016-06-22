@@ -58,6 +58,7 @@ class EditorTab(QWidget):
         self.connect(self.scrollarea.horizontalScrollBar(), SIGNAL("valueChanged(int)"), self.editor.sliderXChanged)
         self.connect(self.editor, SIGNAL("painted()"), self.painted)
         self.connect(self.editor, SIGNAL("keypress(QKeyEvent)"), self.keypress)
+        self.connect(self.linenumbers, SIGNAL("clickedNumber"), self.line_number_clicked)
 
         self.filename = self.export_path = None
 
@@ -105,6 +106,10 @@ class EditorTab(QWidget):
         elif isinstance(lang, EcoFile):
             incparser, inclexer = lang.load()
             self.editor.set_mainlanguage(incparser, inclexer, lang.name)
+
+    def line_number_clicked(self, number):
+        # For debugging, breakpoints
+        self.emit(SIGNAL("clickedNumber"), number)
 
 class ScopeScrollArea(QtGui.QAbstractScrollArea):
 
@@ -202,6 +207,22 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
         self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() - step)
 
 class LineNumbers(QFrame):
+    def mousePressEvent(self, event):
+        
+        # Check which number is clicked
+        gfont = QApplication.instance().gfont
+        clicked_y = event.y()
+        editor = self.parent().editor
+                
+        line = 0
+        while gfont.fontht + line*gfont.fontht < clicked_y:
+            line += 1
+
+        start = editor.paint_start[0]
+        line_clicked = line+start+1
+        if line_clicked <= len(editor.lines):            
+            event.accept()
+            self.emit(SIGNAL("clickedNumber"), line_clicked)
 
     def paintEvent(self, event):
         gfont = QApplication.instance().gfont
@@ -209,7 +230,6 @@ class LineNumbers(QFrame):
         paint.begin(self)
         paint.setPen(QColor("grey"))
         paint.setFont(gfont.font)
-
 
         editor = self.parent().editor
         y = editor.paint_start[1]

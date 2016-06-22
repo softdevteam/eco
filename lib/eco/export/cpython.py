@@ -62,15 +62,25 @@ class CPythonExporter(object):
         return subprocess.Popen(["python2", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
 
     def _debug(self):
-        f = tempfile.mkstemp()        
+        f = tempfile.mkstemp(suffix='.py')        
         code = self.tm.export_as_text(f[1])
 
         # These are the lines for remotepdb  
-        pdb_lines = "from remote_pdb import RemotePdb\nRemotePdb('localhost', 8210).set_trace()\n"
-        code = pdb_lines + code
+        pdb_lines = "from remote_pdb import RemotePdb;RemotePdb('localhost', 8210).set_trace();"
+        
         with open(f[1], "w") as f2:
-            f2.write("".join(code))                 
-        return subprocess.Popen(["python2", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
+            f2.write("".join(code))   
+
+        # The pdb lines are passed in as a command line statement to python,
+        # and the actual file is imported in that statement.
+        # Alternatively the pdb lines could be added to the source code, but
+        # that causes other problems with line numbers and breakpoints
+
+        # get only filename
+        import_file = f[1].split("/tmp/")[1]
+        import_file = import_file.split(".py")[0]                   
+        return subprocess.Popen(["python2" + " -c \"" + pdb_lines + " import " + import_file + '\"'],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0, cwd=tempfile.gettempdir(), shell=True)
 
     def _profile(self):
         f = tempfile.mkstemp()
