@@ -1327,10 +1327,15 @@ class Window(QtGui.QMainWindow):
     def debug_breakpoint(self, isTemp, number):
         # pdb Command
         if self.debugging:
-            if isTemp:
-                self.thread_debug.run_command("tbreak " + str(number))
+            bp_number = self.thread_debug.breakpoint_exists(isTemp, number)
+            if bp_number:
+                # breakpoint exists, delete it
+                self.thread_debug.run_command("cl " + str(bp_number))
             else:
-                self.thread_debug.run_command("b " + str(number))
+                if isTemp:
+                    self.thread_debug.run_command("tbreak " + str(number))
+                else:
+                    self.thread_debug.run_command("b " + str(number))
     
     def debug_expression(self):
         #pdb Command
@@ -1486,7 +1491,7 @@ class DebugThread(QThread):
         # If user quits then don't wait for (Pdb)
         if (command == "q"):
             self.exit()
-        self.output_debug()  
+        return self.output_debug()
 
     def output_debug(self):
         try:
@@ -1498,8 +1503,44 @@ class DebugThread(QThread):
         if "(Pdb)" not in output:
             self.exit()
             return    
-
         self.emit(self.signal, output) 
+        return output
+
+    def breakpoint_exists(self, temp, number):
+        # Returns only the type of breakpoint specified (temp or not)
+        self.tn.write("b\n")
+        try:
+            output = self.tn.read_until("(Pdb)")             
+        except EOFError:
+            output = "EOF Error? OUTPUT"
+            self.exit()
+
+        type_wanted = 'keep'
+        if temp:
+            type_wanted = 'del'
+
+        # The third word in the line will be either 'keep' or 'del'
+        # This tells you whether or not it's a temporary breakpoint
+        lines = output.split('\n')
+        headers_skipped = False
+        for l in lines:
+            if not headers_skipped:
+                headers_skipped = True
+                continue
+            # No parameter for split - split by any whitespace
+            words = l.split()
+            # Breakpoints are numbered from 1 and goes up
+            bp_number = words[0]
+            is_type = False            
+            for w in words:                
+                if w == type_wanted:
+                    is_type = True
+                if is_type:
+                    # Line number comes after colon
+                    if words[5].split(":")[1] == str(number):
+                        return bp_number
+        return 0
+                        
 
     def exit(self): 
         if self.tn:     
