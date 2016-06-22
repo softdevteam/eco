@@ -50,6 +50,7 @@ class EditorTab(QWidget):
         self.scrollarea.update_theme()
 
         self.linenumbers = LineNumbers(self)
+        self.linenumbers.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)      
 
         boxlayout.addWidget(self.linenumbers)
         boxlayout.addWidget(self.scrollarea)
@@ -58,9 +59,10 @@ class EditorTab(QWidget):
         self.connect(self.scrollarea.horizontalScrollBar(), SIGNAL("valueChanged(int)"), self.editor.sliderXChanged)
         self.connect(self.editor, SIGNAL("painted()"), self.painted)
         self.connect(self.editor, SIGNAL("keypress(QKeyEvent)"), self.keypress)
-        self.connect(self.linenumbers, SIGNAL("clickedNumber"), self.line_number_clicked)
+        self.connect(self.linenumbers, SIGNAL("breakpoint"), self.toggle_breakpoint)
 
         self.filename = self.export_path = None
+        self.debugging = False
 
     def update_theme(self):
         self.scrollarea.update_theme()
@@ -107,9 +109,12 @@ class EditorTab(QWidget):
             incparser, inclexer = lang.load()
             self.editor.set_mainlanguage(incparser, inclexer, lang.name)
 
-    def line_number_clicked(self, number):
+    def toggle_breakpoint(self, isTemp, number):
         # For debugging, breakpoints
-        self.emit(SIGNAL("clickedNumber"), number)
+        self.emit(SIGNAL("breakpoint"), isTemp, number)
+
+    def is_debugging(self, isDebugging):
+        self.debugging = isDebugging;
 
 class ScopeScrollArea(QtGui.QAbstractScrollArea):
 
@@ -207,22 +212,45 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
         self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() - step)
 
 class LineNumbers(QFrame):
-    def mousePressEvent(self, event):
-        
+    def mouseDoubleClickEvent(self, event): 
+        if not self.parent().debugging:
+            return None;  
         # Check which number is clicked
-        gfont = QApplication.instance().gfont
-        clicked_y = event.y()
         editor = self.parent().editor
-                
-        line = 0
-        while gfont.fontht + line*gfont.fontht < clicked_y:
-            line += 1
-
-        start = editor.paint_start[0]
-        line_clicked = line+start+1
+        line_clicked = self.findLineNumberAt(event.y())
         if line_clicked <= len(editor.lines):            
             event.accept()
-            self.emit(SIGNAL("clickedNumber"), line_clicked)
+            self.emit(SIGNAL("breakpoint"), False, line_clicked)
+
+    def contextMenuEvent(self, event):
+        # Right click
+
+        if not self.parent().debugging:
+            return None;
+        editor = self.parent().editor
+        line_clicked = self.findLineNumberAt(event.y())
+
+        if line_clicked > len(editor.lines):            
+           return None;
+
+        event.accept()
+        menu = QMenu(self)
+        bAction = menu.addAction("Toggle breakpoint")  
+        tbAction = menu.addAction("Toggle temp breakpoint")
+        action = menu.exec_(self.mapToGlobal(event.pos()))      
+        if action == bAction:
+            self.emit(SIGNAL("breakpoint"), False, line_clicked)
+        elif action == tbAction:
+            self.emit(SIGNAL("breakpoint"), True, line_clicked)
+
+    def findLineNumberAt(self, y):
+        gfont = QApplication.instance().gfont
+        editor = self.parent().editor
+        line = 0
+        while gfont.fontht + line*gfont.fontht < y:
+            line += 1
+        start = editor.paint_start[0]
+        return line+start+1
 
     def paintEvent(self, event):
         gfont = QApplication.instance().gfont

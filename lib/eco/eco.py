@@ -688,6 +688,7 @@ class Window(QtGui.QMainWindow):
         self.ui.actionStepInto.setEnabled(False)
         self.ui.actionStepOver.setEnabled(False)
         self.debugging = False
+        self.getEditorTab().is_debugging(False)
 
     def draw_overlay(self, tool_data):
         """Send profiler or tool information to the overlay object."""
@@ -896,6 +897,7 @@ class Window(QtGui.QMainWindow):
         self.ui.actionStepOver.setEnabled(True)
         self.thread_debug.start()
         self.debugging = True
+        self.getEditorTab().is_debugging(True)
 
     def profile_subprocess(self):
         self.ui.teConsole.clear()
@@ -1034,7 +1036,7 @@ class Window(QtGui.QMainWindow):
             etab.editor.setFocus(Qt.OtherFocusReason)
             etab.editor.setContextMenuPolicy(Qt.CustomContextMenu)
             etab.editor.customContextMenuRequested.connect(self.contextMenu)
-            self.connect(etab, SIGNAL("clickedNumber"), self.debug_breakpoint)
+            self.connect(etab, SIGNAL("breakpoint"), self.debug_breakpoint)
             self.toggle_menu(True)
             return True
         return False
@@ -1153,7 +1155,7 @@ class Window(QtGui.QMainWindow):
                 etab.editor.update()
                 etab.filename = filename
                 lang = etab.editor.get_mainlanguage()
-                self.connect(etab, SIGNAL("clickedNumber"), self.debug_breakpoint)
+                self.connect(etab, SIGNAL("breakpoint"), self.debug_breakpoint)
 
                 self.ui.tabWidget.addTab(etab, os.path.basename(str(filename)))
                 self.ui.tabWidget.setCurrentWidget(etab)
@@ -1322,10 +1324,13 @@ class Window(QtGui.QMainWindow):
         # pdb Command
         self.thread_debug.run_command("n")
     
-    def debug_breakpoint(self, number):
+    def debug_breakpoint(self, isTemp, number):
         # pdb Command
         if self.debugging:
-            self.thread_debug.run_command("b " + str(number))
+            if isTemp:
+                self.thread_debug.run_command("tbreak " + str(number))
+            else:
+                self.thread_debug.run_command("b " + str(number))
     
     def debug_expression(self):
         #pdb Command
