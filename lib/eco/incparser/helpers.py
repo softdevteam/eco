@@ -21,12 +21,10 @@
 
 from __future__ import print_function
 
-from state import State, StateSet, LR0Element
+from state import State, StateSet, LR0Element, LR1Element
 from production import Production
 from grammar_parser.gparser import Terminal, Nonterminal, Epsilon
 from syntaxtable import FinishSymbol
-
-from time import time
 
 epsilon = Epsilon()
 
@@ -191,7 +189,7 @@ class Helper(object):
                 symbol = state.next_symbol()
                 if isinstance(symbol, Nonterminal):
                     f = set()
-                    for l in la_dict[state]:#state.lookahead:
+                    for l in la_dict[state]:
                         betaL = []
                         betaL.extend(state.remaining_symbols())
                         betaL.append(l)
@@ -267,7 +265,7 @@ def old2_first(grammar, symbol):
         if a == []:
             result.add(epsilon)
 
-    # repeat steps until first set doesn't change anymore
+    # repeat steps until first set doesn't change any more
     # this is necessary because later alternatives may change the outcome of
     # earlier alternatives
     changed = True
@@ -321,7 +319,6 @@ def old_first(grammar, symbol):
     # 1)
     if isinstance(symbol, Terminal) or isinstance(symbol, FinishSymbol):
         return set([symbol])
-
 
     has_epsilon = False
     for a in grammar[symbol].alternatives:

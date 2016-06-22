@@ -59,14 +59,12 @@ class IndentationManager:
 
         current_indent = self.get_indentation(bol)
         current_ws = self.count_whitespace(bol)
-        temp = bol
         bol = self.next_line(bol)
         while bol is not None:
             ws = self.count_whitespace(bol)
             if ws is None and bol.prev_term and bol.prev_term.symbol.name != "\\":
                 bol = self.next_line(bol)
                 continue
-            old = self.get_indentation(bol)
             if ws > current_ws:
                 self.indentation[bol] = current_indent + 1
             if ws == current_ws:
@@ -221,7 +219,6 @@ class IndentationManager:
     def find_indentation(self, bol):
         # indentation level
         this_ws = self.count_whitespace(bol)
-        temp = bol
         while not bol is self.bos:
             bol = self.prev_line(bol)
             prev_ws = self.count_whitespace(bol)

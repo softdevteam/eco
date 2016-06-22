@@ -1,6 +1,5 @@
-
 from rpython.rlib.parsing.ebnfparse import parse_ebnf, make_parse_function
-from rpython.rlib.parsing.parsing import ParseError, Rule
+from rpython.rlib.parsing.parsing import ParseError
 import py
 
 def make_parser_from_file(filename):

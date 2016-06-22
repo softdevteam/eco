@@ -68,7 +68,6 @@ class AstAnalyser(object):
 
     def load_nb_file(self, filename):
         from jsonmanager import JsonManager
-        from grammar_parser.bootstrap import BootstrapParser
         from grammars.grammars import lang_dict
 
         manager = JsonManager(unescape=True)
@@ -126,7 +125,7 @@ class AstAnalyser(object):
         if hasattr(node, 'alternate') and node.alternate:
             node = node.alternate
 
-        from grammar_parser.bootstrap import AstNode, ListNode
+        from grammar_parser.bootstrap import AstNode
 
         if isinstance(node.symbol, MagicTerminal) and self.parsers:
             uri = self.merge_lbox_data(node, list(path))
@@ -304,10 +303,6 @@ class AstAnalyser(object):
                 return analyser
 
     def analyse_refs(self):
-       #for key in self.data:
-       #    nbrule = self.data[key][0].nbrule
-       #    if nbrule.is_reference():
-       #        obj = self.data[key]
         if self.data.has_key("reference"):
             for reference in self.data["reference"]:
                 self.find_reference(reference)
@@ -323,7 +318,7 @@ class AstAnalyser(object):
                 if x:
                     return x
 
-            # iteratate through path prefixes
+            # iterate through path prefixes
             path = list(reference.path)
             while len(path) > 0:
                 x = self.get_reference(refers, path, reference.name)

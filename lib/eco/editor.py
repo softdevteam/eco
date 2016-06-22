@@ -91,7 +91,6 @@ class NormalEditor(Editor):
             text = node.symbol.name
             if not (node.lookup == "<ws>" and node.symbol.name.startswith(" ")): # speedhack: don't draw invisible nodes
                 paint.drawText(QtCore.QPointF(x, 3 + self.fontht + y*self.fontht - self.fontd), text)
-            #print("drawing node", text, "at", x,y)
             dx = len(text) * self.fontwt
             dy = 0
         return dx, dy

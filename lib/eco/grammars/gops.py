@@ -25,8 +25,6 @@ import re
 from grammars import Language
 
 
-
-
 def _rules_to_str(rules):
     s = []
     for r in rules:

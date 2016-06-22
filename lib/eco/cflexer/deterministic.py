@@ -11,7 +11,7 @@ def compress_char_set(chars):
     characters; the result is a list of the first character in
     a run and the number of chars following, sorted with longer
     runs first.
-    
+
     Example: 'abc' => [('a', 3)]
     Example: 'abcmxyz' => [('a',3),('x',3),('m',1)]"""
     # Find the runs. Creates a list like [['a',3],['m',1],['x',3]]
@@ -25,7 +25,7 @@ def compress_char_set(chars):
         else:
             # Found a 'hole', so create a new entry
             result += [[b, 1]]
-    
+
     # Change the above list into a list of sorted tuples
     real_result = [(c,l) for [c,l] in result]
     # Sort longer runs first (hence -c), then alphabetically
@@ -146,7 +146,6 @@ class DFA(object):
             new_equivalence_sets = set()
             changed = False
             for equivalent in equivalence_sets:
-                #print "checking", equivalent
                 for char in all_chars:
                     targets = {}
                     for state in equivalent:
@@ -158,26 +157,20 @@ class DFA(object):
                             target = None
                         targets.setdefault(target, set()).add(state)
                     if len(targets) != 1:
-                        #print "\nsplitting %s with %r\ninto %s" % (equivalent, char, targets.values())
                         for target, newequivalent in targets.iteritems():
-                            #print "   ", newequivalent
                             newequivalent = frozenset(newequivalent)
                             new_equivalence_sets.add(newequivalent)
                             for state in newequivalent:
                                 state_to_set[state] = newequivalent
-                            #print "   ", new_equivalence_sets
                         changed = True
                         break
                 else:
                     new_equivalence_sets.add(equivalent)
             if not changed:
                 break
-            #print "end", equivalence_sets
-            #print new_equivalence_sets
             equivalence_sets = new_equivalence_sets
         if len(equivalence_sets) == self.num_states:
             return False
-        #print equivalence_sets
         # merging the states
         newnames = []
         newtransitions = {}
@@ -220,8 +213,8 @@ class DFA(object):
         result.emit("i = 0")
         result.emit("state = 0")
         result.start_block("while 1:")
-        
-        # state_to_chars is a dict containing the sets of 
+
+        # state_to_chars is a dict containing the sets of
         #   Ex: state_to_chars = { 0: set('a','b','c'), ...}
         state_to_chars = {}
         for (state, char), nextstate in self.transitions.iteritems():
@@ -240,7 +233,6 @@ class DFA(object):
                         result.emit("break")
                 elif_prefix = ""
                 for nextstate, chars in nextstates.iteritems():
-                    final = nextstate in self.final_states
                     compressed = compress_char_set(chars)
                     if nextstate in above:
                         continue_prefix = "continue"
@@ -265,8 +257,7 @@ class DFA(object):
                             if not elif_prefix:
                                 elif_prefix = "el"
                 with result.block("else:"):
-                    result.emit("break") 
-        #print state_to_chars.keys()
+                    result.emit("break")
         for state in range(self.num_states):
             if state in state_to_chars:
                 continue
@@ -282,11 +273,10 @@ class DFA(object):
         result = result.get_code()
         while "\n\n" in result:
             result = result.replace("\n\n", "\n")
-        #print result
         d = {'LexerError': LexerError}
         exec py.code.Source(result).compile() in d
         return d['recognize']
-        
+
     def make_lexing_code(self):
         from cflexer.codebuilder import Codebuilder
         result = Codebuilder()
@@ -344,7 +334,6 @@ class DFA(object):
                                 elif_prefix = "el"
                 with result.block("else:"):
                     result.emit("break")
-        #print state_to_chars.keys()
         for state in range(self.num_states):
             if state in state_to_chars:
                 continue
@@ -366,7 +355,6 @@ return ~i""")
         result = result.get_code()
         while "\n\n" in result:
             result = result.replace("\n\n", "\n")
-        #print result
         exec py.code.Source(result).compile()
         return recognize
 
@@ -427,7 +415,7 @@ class DFARunner(object):
     def nextstate(self, char):
         self.state = self.automaton[self.state, char]
         return self.state
-        
+
     def recognize(self, s):
         self.state = 0
         try:
@@ -467,7 +455,6 @@ class NFA(object):
 
     def get_next_states(self, state, char):
         result = set()
-        sub_transitions = self.transitions.get(state, {})
         for e_state in self.epsilon_closure([state]):
             result.update(self.transitions.get(e_state, {}).get(char, set()))
         return result
@@ -593,7 +580,7 @@ class NFA(object):
 class SetNFARunner(object):
     def __init__(self, automaton):
         self.automaton = automaton
-    
+
     def next_state(self, char):
         nextstates = set()
         for state in self.states:
@@ -615,7 +602,7 @@ class SetNFARunner(object):
 class BacktrackingNFARunner(object):
     def __init__(self, automaton):
         self.automaton = automaton
-   
+
     def recognize(self, s):
         def recurse(i, state):
             if i == len(s):

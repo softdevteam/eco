@@ -66,13 +66,6 @@ class RubyProxy(EcoFile):
     def __str__(self):
         return self.name
 
-class RubyLexer(object):
-    def relex(self, node):
-        return True
-
-    def is_indentation_based(self):
-        return False
-
 class LineDummy(object):
     def __init__(self, node):
         self.node = node

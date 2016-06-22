@@ -90,13 +90,12 @@ class Viewer(object):
         if restrict_nodes and node not in restrict_nodes:
             return None
 
-        addtext = ""
         if ast:
             if not isinstance(node, AstNode) and not isinstance(node, ListNode) and node.alternate:
                 node = node.alternate
         try:
             if node.symbol.folding:
-                pass#addtext = node.symbol.folding
+                pass
         except AttributeError:
             pass
         label = []
@@ -122,7 +121,7 @@ class Viewer(object):
             dotnode.set('color','green')
         try:
             if node.has_changes(version):
-                pass#dotnode.set('color','blue')
+                pass
         except AttributeError:
             pass
         dotnode.set('fontsize', '8')
@@ -160,8 +159,6 @@ class Viewer(object):
             node_id = id(node)
             s.append("%s[label=\"%s (%s)\"]" % (node_id, node.symbol.name, node.seen))
             for c in node.children:
-                child_id = id(c)
-                #s.append("%s[label=\"%s\n%s\"]" % (child_id, c.symbol.name, id(c)))
                 s.append("%s--%s" % (node_id, id(c)))
                 l.append(c)
         return ";".join(s)

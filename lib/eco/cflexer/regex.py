@@ -1,5 +1,4 @@
 import py
-import string
 from cflexer.deterministic import NFA
 
 set = py.builtin.set
@@ -10,10 +9,10 @@ class RegularExpression(object):
 
     def make_automaton(self):
         raise NotImplementedError("abstract base class")
-        
+
     def __add__(self, other):
         return AddExpression(self, other)
-    
+
     def __or__(self, other):
         return OrExpression(self, other)
 
@@ -95,7 +94,7 @@ class AddExpression(RegularExpression):
 
     def __repr__(self):
         return "AddExpression(%r, %r)" % (self.rega, self.regb)
- 
+
 class ExpressionTag(RegularExpression):
     def __init__(self, reg, tag):
         self.reg = reg
@@ -221,5 +220,3 @@ class LexingOrExpression(RegularExpression):
 
     def __repr__(self):
         return "LexingOrExpression(%r, %r)" % (self.regs, self.names)
-
-

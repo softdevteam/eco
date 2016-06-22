@@ -93,8 +93,6 @@ class EditorTab(QWidget):
 
     def set_language(self, lang, whitespace):
         if isinstance(lang, Language):
-            grammar = str(lang.grammar)
-            new_priorities = str(lang.priorities)
             lrp = IncParser(str(lang.grammar), 1, whitespace)
             lrp.init_ast()
             lexer = IncrementalLexer(str(lang.priorities))
@@ -119,7 +117,6 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
 
     def fix(self, center=False):
         gfont = QApplication.instance().gfont
-        cursor = self.parent().editor.tm.cursor
         x, y = self.parent().editor.cursor_to_coordinate()
 
         scrollbar_height = self.horizontalScrollBar().geometry().height()

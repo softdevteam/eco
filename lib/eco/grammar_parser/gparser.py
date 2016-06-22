@@ -32,8 +32,6 @@ class Rule(object):
 
     def add_alternative(self, alternative, annotation=None, prec=None):
         # create symbol for empty alternative
-        #if alternative == []:
-        #    alternative = [Epsilon()]
         self.alternatives.append(alternative)
         self.annotations.append(annotation)
         self.precs.append(prec)
@@ -146,7 +144,6 @@ class Parser(object):
         # in the rule or not (can be done in first parse)
         new_rules = []
         for a in original_rule.alternatives:
-            symbols = []
             i = 0
             for s in a:
                 if isinstance(s, ExtendedSymbol):
@@ -203,7 +200,6 @@ class Parser(object):
 
     def parse_rule(self):
         symbols_level = []
-        loop_count = 0
         rule = Rule()
         rule.symbol = self.parse_nonterminal()
 

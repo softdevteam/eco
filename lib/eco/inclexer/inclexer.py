@@ -26,7 +26,7 @@ from PyQt4.QtGui import QImage
 import re, os
 
 class IncrementalLexer(object):
-    # XXX needs to be replaced by a lexing automaton to avoid uneccessary
+    # XXX needs to be replaced by a lexing automaton to avoid unnecessary
     # relexing of unchanged nodes
 
     def __init__(self, rules, language=""):
@@ -175,7 +175,6 @@ class IncrementalLexer(object):
                     additional_node = TextNode(Terminal(match[0]), -1, [], -1)
                 additional_node.lookup = match[1]
                 old_node.prev_term.parent.insert_after_node(old_node.prev_term, additional_node)
-                #self.add_node(old_node.prev_term, additional_node)
                 old_x += 0
                 new_x  += len(match[0])
                 debug_old.append("")
@@ -218,7 +217,7 @@ class IncrementalLexer(object):
         # XXX when typing to not create new node but insert char into old node
         #     (saves a few insertions and is easier to lex)
 
-        # if ndoe itself is a newline it won't be relexed, so do it manually
+        # if node itself is a newline it won't be relexed, so do it manually
         if startnode.symbol.name == "\r":
             result = self.lex(startnode.symbol.name)
             startnode.lookup = result[0][1]
@@ -295,7 +294,6 @@ class IncrementalLexer(object):
                     additional_node = TextNode(Terminal(match[0]), -1, [], -1)
                 additional_node.lookup = match[1]
                 old_node.prev_term.parent.insert_after_node(old_node.prev_term, additional_node)
-                #self.add_node(old_node.prev_term, additional_node)
                 old_x += 0
                 new_x  += len(match[0])
                 debug_old.append("")
