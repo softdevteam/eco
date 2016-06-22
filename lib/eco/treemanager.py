@@ -32,7 +32,7 @@ from export.jruby_simple_language import JRubySimpleLanguageExporter
 from export.jruby_javascript import JRubyJavaScriptExporter
 from export.simple_language import SimpleLanguageExporter
 from export.cpython import CPythonExporter
-from utils import arrow_keys
+from utils import arrow_keys, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT
 
 import math
 
