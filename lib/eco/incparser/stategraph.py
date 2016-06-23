@@ -21,9 +21,9 @@
 
 from __future__ import print_function
 
-from state import StateSet, State, LR1Element, LR0Element
+from state import StateSet, State, LR0Element
 from production import Production
-from helpers import closure_0, goto_0, Helper
+from helpers import Helper
 from syntaxtable import FinishSymbol
 from constants import LR0, LR1, LALR
 from time import time
@@ -67,7 +67,6 @@ class StateGraph(object):
         start = time()
         start_set = self.start_set
         closure = start_set
-        #closure = self.closure(start_set)
         self.state_sets.append(closure)
         self.ids[closure] = 0
         _id = 0
@@ -76,13 +75,11 @@ class StateGraph(object):
             self.addcount += 1
             _id = self.todo.pop()
             self.done.add(_id)
-            #print("id:", _id)
             closure_start = time()
             state_set = self.closure(self.state_sets[_id])
             self.closure_count += 1
             closure_end = time()
             self.closure_time += closure_end - closure_start
-            #state_set = self.state_sets[_id]
             new_gotos = {}
             goto_start = time()
             # create new sets first, then calculate closure
@@ -103,7 +100,6 @@ class StateGraph(object):
 
             for ss in new_gotos:
                 new_state_set = new_gotos[ss]
-                #new_state_set = self.closure(new_gotos[ss])
                 add_start = time()
                 self.add(_id, ss, new_state_set)
                 add_end = time()
@@ -120,10 +116,6 @@ class StateGraph(object):
         logging.info("weakly %s", self.weakly)
         logging.info("weakly count %s", self.weakly_count)
         logging.info("mergetime %s", self.mergetime)
-        #print("maybe", self.maybe_compatible)
-        #for key in self.maybe_compatible:
-        #    print(key, len(self.maybe_compatible[key]))
-
 
         # apply closure
         logging.info("Apply closure to states")
@@ -175,13 +167,6 @@ class StateGraph(object):
     def merge_lookahead(self, old, new):
         self.mergetime -= time()
         changed = False
-       #for e1 in new.elements:
-       #    for e2 in old.elements:
-       #        if e1 == e2: # compare without lookahead
-       #            #print("merging", e1, "and", e2)
-       #            if e1.lookahead - e2.lookahead:
-       #                changed = True
-       #            e2.lookahead |= e1.lookahead
         for element in new.elements:
             la1 = new.get_lookahead(element)
             la2 = old.get_lookahead(element)
@@ -293,4 +278,3 @@ class StateGraph(object):
         l.reverse()
         for j in l:
             self.state_sets.pop(j)
-

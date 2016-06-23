@@ -19,12 +19,10 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-import sys
-
-from grammar_parser.gparser import Parser, Nonterminal, Terminal, Epsilon
+from grammar_parser.gparser import Parser, Nonterminal, Terminal
 from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
 from stategraph import StateGraph
-from constants import LR0, LR1, LALR
+from constants import LR0, LALR
 from astree import AST, Node
 
 class LRParser(object):
@@ -70,7 +68,6 @@ class LRParser(object):
                 self.stack.append(element.action)
                 i += 1
             if isinstance(element, Reduce):
-                #self.add_to_ast(element)
                 for x in range(2*element.amount()):
                     self.stack.pop()
                 state_id = self.stack[-1]

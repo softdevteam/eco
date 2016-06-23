@@ -1,6 +1,5 @@
 import py
-from cflexer.lexer import SourcePos
-from cflexer.tree import Node, Symbol, Nonterminal
+from cflexer.tree import Symbol, Nonterminal
 
 class Rule(object):
     def __init__(self, nonterminal, expansions):
@@ -9,9 +8,6 @@ class Rule(object):
 
     def getkey(self):
         return (self.nonterminal, tuple(self.expansions))
-
-#    def __hash__(self):
-#        return hash(self.getkey())
 
     def __eq__(self, other):
         return self.getkey() == other.getkey()
@@ -100,8 +96,6 @@ class LazyParseTable(object):
         self.errorinformation = {}
 
     def match_symbol(self, i, symbol):
-        #print i, symbol
-        #print self.matched.keys()
         if (i, symbol) in self.matched:
             return self.matched[i, symbol]
         error = None # for the annotator
@@ -145,7 +139,7 @@ class LazyParseTable(object):
             except IndexError:
                 error = ErrorInformation(i)
         return None, 0, error
-    
+
     def terminal_equality(self, symbol, input):
         return symbol == input.name
 
@@ -225,7 +219,6 @@ class ParserCompiler(object):
         self.make_fixed()
         miniglobals = globals().copy()
         miniglobals["baseclass"] = self.parser.__class__
-        #print "\n".join(self.allcode)
         exec py.code.Source("\n".join(self.allcode)).compile() in miniglobals
         kls = miniglobals["CompileableParser"]
         # XXX
@@ -343,4 +336,3 @@ class ParserCompiler(object):
             raise ParseError(None, self.input[result[1]])
         return result[0]""" % (vars()))
         self.allcode.extend(code)
-

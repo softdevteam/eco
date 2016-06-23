@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 from __future__ import print_function
-import subprocess, sys
+import sys
 
 try:
     import py
@@ -43,25 +43,9 @@ if not QtGui.QIcon.hasThemeIcon("document-new"):
     # attempt to fall back on generic icon theme
     QtGui.QIcon.setThemeName("gnome")
 
-from grammar_parser.plexer import PriorityLexer
-from incparser.incparser import IncParser
-from inclexer.inclexer import IncrementalLexer
 from viewer import Viewer
-
-from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
-
-from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
-
-from grammars.grammars import languages, newfile_langs, submenu_langs, lang_dict, Language, EcoGrammar
-
-from time import time
+from grammars.grammars import languages, newfile_langs, submenu_langs, lang_dict
 import os
-import math
-
-import syntaxhighlighter
-import editor
-
-from nodeeditor import NodeEditor
 from editortab import EditorTab
 
 from lspace_ext import view_ecodoc_in_lspace
@@ -466,6 +450,8 @@ class PreviewDialog(QtGui.QDialog):
             self.ui.textEdit.setText(text)
         elif index == "Default":
             text = self.tm.export("/dev/null")
+            if text is None:
+                text = ""
             self.ui.textEdit.setText(text)
 
 class FindDialog(QtGui.QDialog):
@@ -545,7 +531,6 @@ class LanguageView(QtGui.QDialog):
 
 from optparse import OptionParser
 class Window(QtGui.QMainWindow):
-
 
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
@@ -982,8 +967,6 @@ class Window(QtGui.QMainWindow):
                 text = text[:-1]
             # key simulated opening
             self.getEditor().insertTextNoSim(text)
-            #self.btReparse(None)
-            #self.getEditor().update()
 
     def newfile(self):
         # create new nodeeditor
@@ -1183,15 +1166,12 @@ class Window(QtGui.QMainWindow):
         return self.ui.tabWidget.currentWidget()
 
     def btReparse(self, selected_node=[]):
-        results = []
         self.ui.treeWidget.clear()
         editor = self.getEditor()
         if editor is None:
             return
         nested = {}
         for parser, lexer, lang, _ in editor.tm.parsers:
-            #import cProfile
-            #cProfile.runctx("parser.inc_parse(self.ui.frame.line_indents)", globals(), locals())
             root = parser.previous_version.parent
             lbox_terminal = root.get_magicterminal()
             if lbox_terminal:
@@ -1233,8 +1213,6 @@ class Window(QtGui.QMainWindow):
         self.parseview.refresh()
 
     def showLookahead(self):
-        #l = self.ui.frame.tm.getLookaheadList()
-        #self.ui.lineEdit.setText(", ".join(l))
         pass
 
     def toggle_menu(self, enabled=True):

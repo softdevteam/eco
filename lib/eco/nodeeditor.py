@@ -29,11 +29,10 @@ BODY_FONT_SIZE = 9
 
 from treemanager import TreeManager
 from grammars.grammars import submenu_langs as languages, lang_dict
-from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
+from grammar_parser.gparser import MagicTerminal, IndentationTerminal
 from grammar_parser.bootstrap import ListNode, AstNode
-from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
+from incparser.astree import BOS, EOS
 from jsonmanager import JsonManager
-from astanalyser import AstAnalyser
 from utils import KeyPress
 from overlay import Overlay
 from incparser.annotation import Footnote, Heatmap, Railroad, ToolTip
@@ -135,8 +134,6 @@ class NodeEditor(QFrame):
         self.imagemode = boolean
 
     def reset(self):
-        #self.getWindow().ui.scrollArea.horizontalScrollBar().setValue(0)
-        #self.getWindow().ui.scrollArea.verticalScrollBar().setValue(0)
         self.update()
 
     def set_mainlanguage(self, parser, lexer, lang_name):
@@ -191,7 +188,6 @@ class NodeEditor(QFrame):
         self.update()
 
     def sliderChanged(self, value):
-        change = self.viewport_y - value
         self.viewport_y = value
         self.overlay.start_line = self.viewport_y
         self.update()
@@ -233,9 +229,6 @@ class NodeEditor(QFrame):
             paint.begin(self)
         paint.setFont(self.font)
 
-        y = 0
-        x = 0
-
         self.longest_column = 0
 
         # calculate how many lines we need to show
@@ -252,7 +245,6 @@ class NodeEditor(QFrame):
             max_width = max(max_width, l.width)
         max_visible_lines = self.geometry().height() / self.fontht
         self.scroll_height = max(0, total_lines - max_visible_lines)
-
 
         current_width = self.parentWidget().geometry().width() / self.fontwt
         self.scroll_width = max(0, max_width - current_width)
@@ -286,7 +278,7 @@ class NodeEditor(QFrame):
         _, _, self.end_line = self.paint_nodes(paint, node, x, y, line, max_y)
 
 
-    #XXX if starting node is inside language box, init lbox with amout of languge boxes
+    #XXX if starting node is inside language box, init lbox with amount of language boxes
     def paint_nodes(self, paint, node, x, y, line, max_y, lbox=0):
 
         settings = QSettings("softdev", "Eco")
@@ -327,14 +319,11 @@ class NodeEditor(QFrame):
         self.cursor = self.tm.cursor
         self.lines[line].height = 1 # reset height
         draw_cursor = True
-        #l_x = [0]
         show_namebinding = self.getWindow().show_namebinding()
         while y < max_y:
 
             # if we found a language box, continue drawing inside of it
             if isinstance(node.symbol, MagicTerminal):
-                #l_x.append(x)
-                #node.pos = x
                 lbox += 1
                 lbnode = node.symbol.ast
                 if self.selected_lbox is node:
@@ -356,7 +345,6 @@ class NodeEditor(QFrame):
                 if self.cursor.node is lbnode:
                     self.draw_cursor(paint, x, 5 + y * self.fontht)
                 if lbnode:
-                    #l_x.pop()
                     color = colors[(lbox-1) % len(colors)]
                     if lbox > 0:
                         lbox -= 1
@@ -382,7 +370,6 @@ class NodeEditor(QFrame):
 
             # draw language boxes
             if lbox > 0 and (draw_lbox or draw_all_boxes):
-                #color = self.nesting_colors[lbox % 5]
                 if draw_all_boxes:
                     color = colors[(lbox-1) % len(colors)]
                     color.setAlpha(alpha)
@@ -413,7 +400,6 @@ class NodeEditor(QFrame):
             # draw node
             dx, dy = editor.paint_node(paint, node, x, y, highlighter)
             x += dx
-            #y += dy
             self.lines[line].height = max(self.lines[line].height, dy)
 
             # Draw footnotes and add heatmap data to overlay.
@@ -432,8 +418,6 @@ class NodeEditor(QFrame):
                         infofont.font.setBold(False)
                     paint.setFont(infofont.font)
                     paint.setPen(QPen(QColor((highlighter.get_default_color()))))
-                    start_x = (0 if (x - len(footnote) * infofont.fontwt) < 0
-                                 else x - len(footnote) * infofont.fontwt)
                     start_y = self.fontht + ((y + 1) * self.fontht)
                     paint.drawText(QtCore.QPointF(x-dx, start_y), footnote)
                     self.lines[line].height = max(self.lines[line].height, 2)
@@ -446,7 +430,7 @@ class NodeEditor(QFrame):
                     paint.fillRect(QRectF(x,3+y*self.fontht, self.geometry().width()-x, self.fontht), color)
 
                 self.lines[line].width = x / self.fontwt
-                x = 0#l_x[-1]
+                x = 0
                 y += self.lines[line].height
                 line += 1
                 self.lines[line].height = 1 # reset height
@@ -495,7 +479,6 @@ class NodeEditor(QFrame):
         # paint infobox
         if False:
             lang_name = self.tm.parsers[selected_language]
-            parser = self.tmselected_language
             lang_status = self.tm.get_parser[selected_language][0].last_status
             if lang_status is True:
                 color = QColor(100,255,100)
@@ -535,7 +518,6 @@ class NodeEditor(QFrame):
         paint.setPen(newpen)
 
         # paint brackets
-        tmpy = y
         path = QPainterPath()
         if bracket == '[':
             if x == 0:
@@ -589,7 +571,6 @@ class NodeEditor(QFrame):
         pen.setDashPattern([2,2])
         pen.setColor(QColor(color))
         paint.setPen(pen)
-        #x -= length
         y = (y+1)*self.fontht+1
         paint.drawLine(x, y, x+length, y)
         paint.drawLine(x+2, y+1, x+2+length, y+1)
@@ -650,12 +631,10 @@ class NodeEditor(QFrame):
         if e.button() == Qt.LeftButton:
             self.tm.input_log.append("# mousePressEvent")
             self.coordinate_to_cursor(e.x(), e.y())
-           # self.tm.cursor = cursor
             self.tm.selection_start = self.tm.cursor.copy()
             self.tm.selection_end = self.tm.cursor.copy()
             self.tm.input_log.append("self.selection_start = self.cursor.copy()")
             self.tm.input_log.append("self.selection_end = self.cursor.copy()")
-            #self.tm.fix_cursor_on_image()
             self.getWindow().showLookahead()
             self.update()
 
@@ -692,7 +671,6 @@ class NodeEditor(QFrame):
         return (x,y)
 
     def coordinate_to_cursor(self, x, y):
-
         mouse_y = y / self.fontht
         first_line = self.paint_start[0]
         y_offset = self.paint_start[1]
@@ -724,7 +702,7 @@ class NodeEditor(QFrame):
         return True
 
     def mouseMoveEvent(self, e):
-        # apparaently this is only called when a mouse button is clicked while
+        # apparently this is only called when a mouse button is clicked while
         # the mouse is moving
         if self.tm.input_log[-2].startswith("self.cursor.move_to_x"):
             # only log the last move event

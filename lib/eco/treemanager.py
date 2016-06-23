@@ -21,8 +21,8 @@
 
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
-from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
-from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
+from incparser.astree import TextNode, BOS, EOS
+from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal
 from PyQt4.QtGui import QApplication
 from PyQt4.QtCore import QSettings
 from grammars.grammars import lang_dict, Language, EcoFile
@@ -403,7 +403,6 @@ class TreeManager(object):
             self.selection_end = self.cursor.copy()
             lboxnode = self.create_node("<%s>" % language, lbox=True)
             lboxnode.parent_lbox = None
-            #self.mainroot.magic_backpointer = lboxnode
             lboxnode.symbol.parser = self.mainroot
             lboxnode.symbol.ast = self.mainroot
             self.main_lbox = lboxnode
@@ -762,7 +761,6 @@ class TreeManager(object):
         return la.right_sibling()
 
     def clean_versions(self, version):
-        maxversion = self.get_max_version()
         # clean linenumbers
         for key in self.saved_lines.keys():
             if key > version:
@@ -849,7 +847,6 @@ class TreeManager(object):
             parser = l[0]
             parser.save_status(self.version)
             root = parser.previous_version.parent
-            #root = self.cursor.node.get_root()#bos.parent
             root.save(self.version)
             bos = root.children[0]
             bos.save(self.version)
@@ -894,7 +891,6 @@ class TreeManager(object):
         edited_node = self.cursor.node
 
         if text == "\r":
-            root = self.cursor.node.get_root()
             # if previous line is a language box, don't use its indentation
             y = self.cursor.line
             node = self.lines[y].node
@@ -1208,7 +1204,6 @@ class TreeManager(object):
         self.log_input("surround_with_languagebox", repr(language.name))
         #XXX if partly selected node, need to split it
         nodes, _, _ = self.get_nodes_from_selection()
-        appendnode = nodes[0].prev_term
         self.edit_rightnode = False
         # cut text
         text = self.copySelection()
@@ -1255,7 +1250,6 @@ class TreeManager(object):
             # language box is empty -> delete it and all references
             self.cursor.node = self.cursor.find_previous_visible(previous_node)
             self.cursor.pos = len(self.cursor.node.symbol.name)
-            repairnode = self.cursor.node
             magic.parent.remove_child(magic)
             self.delete_parser(root)
             return True
@@ -1271,11 +1265,7 @@ class TreeManager(object):
 
     def post_keypress(self, text):
         self.tool_data_is_dirty = True
-        lines_before = len(self.lines)
         self.rescan_linebreaks(self.cursor.line)
-        new_lines = len(self.lines) - lines_before
-        node = self.cursor.node
-        root = node.get_root()
         changed = False
 
         if text != "" and text[0] == "\r":
@@ -1323,7 +1313,6 @@ class TreeManager(object):
     def pasteText(self, text):
         self.log_input("pasteText", repr(str(text)))
         self.tool_data_is_dirty = True
-        oldpos = self.cursor.get_x()
 
         if self.hasSelection():
             self.deleteSelection()
@@ -1423,8 +1412,6 @@ class TreeManager(object):
             node.parent.remove_child(node)
 
     def cursor_movement(self, key):
-        cur = self.cursor
-
         if key.up:
             self.cursor.up()
         elif key.down:
@@ -1433,7 +1420,6 @@ class TreeManager(object):
             self.cursor.left()
         elif key.right:
             self.cursor.right()
-        #self.fix_cursor_on_image() #XXX refactor (obsolete after refactoring cursor)
 
     def cursor_reset(self):
         self.cursor.line = 0
@@ -1472,7 +1458,6 @@ class TreeManager(object):
                 current = current.next_term
 
     def delete_linebreak(self, y, node):
-        current = self.lines[y].node
         deleted = self.lines[y+1].node
         assert deleted is node
         del self.lines[y+1]
@@ -1509,7 +1494,6 @@ class TreeManager(object):
         bos = parser.previous_version.parent.children[0]
         new = TextNode(Terminal(text))
         bos.insert_after(new)
-        root = new.get_root()
         lexer.relex_import(new, self.version+1)
         self.rescan_linebreaks(0)
         self.reparse(bos)
@@ -1547,7 +1531,6 @@ class TreeManager(object):
                 pass # first language doesn't have parent
 
             self.add_parser(incparser, inclexer, grammar.name)
-            #bootstrap.incparser.reparse()
 
         self.rescan_linebreaks(0)
 
@@ -1560,8 +1543,6 @@ class TreeManager(object):
         self.changed = False
 
     def get_parser_lexer_for_language(self, grammar, whitespaces):
-        from grammar_parser.bootstrap import BootstrapParser
-        from jsonmanager import JsonManager
         if isinstance(grammar, Language):
             incparser = IncParser(grammar.grammar, 1, whitespaces)
             incparser.init_ast()

@@ -314,4 +314,3 @@ def load(caller):
     if type(caller).__name__ == "IncParser":
         return PythonIndent(caller)
     return None
-

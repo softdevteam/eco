@@ -328,17 +328,6 @@ class Node(object):
                     print("returning right sibling", siblings[i+1], self.right)
                     return siblings[i+1]
 
-    def old_right_sibling(self):
-        if not self.parent:
-            return None
-        siblings = self.parent.children
-        last = None
-        for i in range(len(siblings)-1, -1, -1):
-            if siblings[i] is self:
-                return last
-            else:
-                last = siblings[i]
-
     def left_sibling(self):
         siblings = self.parent.children
         last = None
@@ -480,7 +469,6 @@ class TextNode(Node):
     def matches(self, text):
         if self.symbol.name == "":
             return True
-        old = self.symbol.name
         new = text
 
         m = re.match("^" + self.regex + "$", new)
@@ -490,7 +478,7 @@ class TextNode(Node):
 
     def char_in_regex(self, c):
         if c in self.regex:
-            #XXX be carefull to not accidentially match chars with non-escaped regex chars like ., [, etc
+            #XXX be careful to not accidentally match chars with non-escaped regex chars like ., [, etc
             return True
         if c in lowercase and re.findall("\[.*a-z.*\]", self.regex):
             return True
@@ -520,8 +508,6 @@ class TextNode(Node):
         if text:
             self.symbol.name = text
         else:
-            # remove ?
-            #self.parent.remove_child(self)
             pass
 
     def has_changes(self, version=None):
@@ -552,23 +538,9 @@ class TextNode(Node):
         l = list(self.symbol.name)
         if len(l) == 1: # if node going to be empty: delete
             #XXX merge remaining nodes here
-            #left = self.previous_terminal()
-            #right = self.next_terminal()
-            #newtext = left.symbol.name + right.symbol.name
-            #if left.matches(newtext):
-            #    left.change_text(newtext)
-            #    right.mark_changed()
-            #    right.parent.children.remove(right)
-            #print("Merge", left, right)
-            # don't delete right now since we need to find repairnodes first
-            #if isinstance(self.symbol, Terminal):
-            #    self.mark_changed()
-            #    self.parent.children.remove(self)
-            #    self.deleted = True
             self.change_text("")
             return l[0]
         else:
-            internal_pos = pos - self.position
             delchar = l.pop(int(pos))
             self.change_text("".join(l))
             return delchar

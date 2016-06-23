@@ -28,10 +28,10 @@ except:
 
 import time, os
 
-from grammar_parser.gparser import Parser, Nonterminal, Terminal,MagicTerminal, Epsilon, IndentationTerminal
-from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
+from grammar_parser.gparser import Parser, Nonterminal, Terminal, Epsilon, IndentationTerminal
+from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Accept, Shift
 from stategraph import StateGraph
-from constants import LR0, LR1, LALR
+from constants import LR0, LALR
 from astree import AST, TextNode, BOS, EOS
 from ip_plugins.plugin import PluginManager
 
@@ -104,7 +104,7 @@ class IncParser(object):
         self.pm.do_incparse_init()
 
         self.previous_version = None
-        logging.debug("Incemental parser done")
+        logging.debug("Incremental parser done")
 
     def from_dict(self, rules, startsymbol, lr_type, whitespaces, pickle_id, precedences):
         self.graph = None
@@ -163,7 +163,7 @@ class IncParser(object):
             logging.debug("\x1b[35mProcessing\x1b[0m %s %s %s %s", la, la.changed, id(la), la.indent)
             self.loopcount += 1
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
-                if la.changed:#self.has_changed(la):
+                if la.changed:
                     assert False # with prelexing you should never end up here!
                 else:
                     lookup_symbol = self.get_lookup(la)
@@ -190,7 +190,7 @@ class IncParser(object):
                             self.pm.do_incparse_optshift(la)
                             follow_id = goto.action
                             self.stack.append(la)
-                            la.state = follow_id #XXX this fixed goto error (i should think about storing the states on the stack instead of inside the elements)
+                            la.state = follow_id #XXX this fixed goto error (I should think about storing the states on the stack instead of inside the elements)
                             self.current_state = follow_id
                             logging.debug("USE_OPT: set state to %s", self.current_state)
                             la = self.pop_lookahead(la)
@@ -207,7 +207,7 @@ class IncParser(object):
                             else:
                                 la = self.left_breakdown(la)
                     else:
-                    # PARSER WITHOUT OPTIMISATION
+                        # PARSER WITHOUT OPTIMISATION
                         if la.lookup != "":
                             lookup_symbol = Terminal(la.lookup)
                         else:
@@ -337,7 +337,7 @@ class IncParser(object):
         teared = []
         for i in range(len(node.children)):
             if production.inserts.has_key(i):
-                # insert teared nodes at right position
+                # insert tiered nodes at right position
                 value = production.inserts[i]
                 for t in teared:
                     if t.symbol.name == value.name:

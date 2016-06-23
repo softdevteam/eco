@@ -7,7 +7,7 @@ from cflexer.regexparse import parse_regex
 from cflexer.regex import StringExpression
 from cflexer.deterministic import DFA
 from cflexer.lexer import Lexer, DummyLexer
-#from rpython.rlib.objectmodel import we_are_translated
+
 def we_are_translated():
     return False
 
@@ -50,7 +50,6 @@ def make_ebnf_parser():
 def parse_ebnf(s):
     visitor = ParserBuilder()
     tokens = lexer.tokenize(s, True)
-    #print tokens
     s = parser.parse(tokens)
     s = s.visit(EBNFToAST())
     assert len(s) == 1

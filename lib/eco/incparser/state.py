@@ -86,12 +86,8 @@ class StateSet(object):
         return symbols
 
     def __eq__(self, other):
-        #temp = LR1Element.__eq__
-        #LR1Element.__eq__ = LR1Element.equal_with_la
         result = self.elements == other.elements
-        #LR1Element.__eq__ = temp
         return result
-        #return self.equals(other, True)
 
     def equals(self, other, with_lookahead=True):
         if with_lookahead:
@@ -102,8 +98,6 @@ class StateSet(object):
         e1 = self
         e2 = other
         #XXX why not equal only?
-        #if len(e2) > len(e1):
-        #    e1, e2 = e2, e1
         if len(e1) != len(e2):
             return False
 
@@ -200,7 +194,6 @@ class State(object):
         right = [x.name.strip("\"") for x in self.p.right]
         right.insert(self.d, ".")
         right = "".join(right)
-        #s = "%s ::= %s %s %s" % (left, right, self.k, self.b)
         s = "%s ::= %s" % (left, right)
         return s
 

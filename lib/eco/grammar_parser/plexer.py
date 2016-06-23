@@ -74,7 +74,6 @@ class PriorityLexer(object):
 
     def regex(self, text):
         for k in self.rules.keys():
-            #m = re.match("^("+k+")$", text)
             m = self.compiled_regex[k].match(text)
             if m:
                 return k
@@ -150,4 +149,3 @@ class PriorityLexer(object):
             chars |= set(list(string.ascii_lowercase))
         if len(re.findall("\[.*0-9.*\]", terminal)) > 0:
             chars |= set(list(string.ascii_lowercase))
-

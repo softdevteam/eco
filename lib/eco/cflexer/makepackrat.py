@@ -1,9 +1,7 @@
 from __future__ import with_statement
 import py
-import sys
 from cflexer.tree import Nonterminal, Symbol, RPythonVisitor
 from cflexer.codebuilder import Codebuilder
-#from rpython.rlib.objectmodel import we_are_translated
 def we_are_translated():
     return False
 
@@ -56,7 +54,7 @@ IGNORE:
 newline:
     COMMENT
   | `( *\n *)*`;
-    
+
 
 REGEX:
     r = `\`[^\\\`]*(\\.[^\\\`]*)*\``
@@ -111,8 +109,8 @@ productionargs:
     IGNORE*
     return {Nonterminal('productionargs', args + [arg])}
   | return {Nonterminal('productionargs', [])};
-        
-    
+
+
 or_:
     l = (commands ['|' IGNORE*])+
     last = commands
@@ -224,7 +222,7 @@ primary:
     call | REGEX [IGNORE*] | QUOTE [IGNORE*];
 
 call:
-    x = NAME 
+    x = NAME
     args = arguments
     IGNORE*
     return {Nonterminal("call", [x, args])};
@@ -290,7 +288,7 @@ class Status(object):
     INPROGRESS = 2
     LEFTRECURSION = 3
     SOMESOLUTIONS = 4
-    
+
     _annspecialcase_ = 'specialize:ctr_location' # polymorphic
     def __repr__(self):
         return "Status(%s, %s, %s, %s)" % (self.pos, self.result, self.error,
@@ -596,7 +594,7 @@ class ParserBuilder(RPythonVisitor, Codebuilder):
         r = t.additional_info[1:-1].replace('\\`', '`')
         matcher = self.get_regex(r)
         self.emit("_result = self._regex%s()" % (abs(hash(r)), ))
-        
+
     def visit_QUOTE(self, t):
         self.emit("_result = self.__chars__(%r)" % (
                     str(t.additional_info[1:-1]), ))
