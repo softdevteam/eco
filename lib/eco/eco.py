@@ -1327,7 +1327,7 @@ class Window(QtGui.QMainWindow):
     def debug_breakpoint(self, isTemp, number):
         # pdb Command
         if self.debugging:
-            bp_number = self.thread_debug.breakpoint_exists(isTemp, number)
+            bp_number = self.thread_debug.get_breakpoints(isTemp, number, False)
             if bp_number:
                 # breakpoint exists, delete it
                 self.thread_debug.run_command("cl " + str(bp_number))
@@ -1463,6 +1463,7 @@ class DebugThread(QThread):
         self.window = window
         self.signal_done = QtCore.SIGNAL("finished")
         self.signal = QtCore.SIGNAL("output")
+        self.bps = {'keep': [], 'del': []}
 
     def run(self):      
         # Start pdb  
@@ -1484,35 +1485,32 @@ class DebugThread(QThread):
 
     # Run command and wait for response
     def run_command(self, command):
-        try:
-            self.tn.write(command + "\n")
-        except EOFError:
-            self.emit(self.signal, "EOF Error? INPUT")
+        self.tn.write(command + "\n")     
         # If user quits then don't wait for (Pdb)
         if (command == "q"):
             self.exit()
-        return self.output_debug()
+            return None
+        ot = self.output_debug()
+        self.window.getEditorTab().set_breakpoints(self.get_breakpoints())
+        return ot
 
     def output_debug(self):
         try:
             output = self.tn.read_until("(Pdb)")             
         except EOFError:
-            output = "EOF Error? OUTPUT"
-            self.exit()
-                
+            self.exit()                
         if "(Pdb)" not in output:
             self.exit()
-            return    
+            return None
         self.emit(self.signal, output) 
         return output
 
-    def breakpoint_exists(self, temp, number):
+    def get_breakpoints(self, temp=False, number=0, get_all=True):
         # Returns only the type of breakpoint specified (temp or not)
         self.tn.write("b\n")
         try:
             output = self.tn.read_until("(Pdb)")             
         except EOFError:
-            output = "EOF Error? OUTPUT"
             self.exit()
 
         type_wanted = 'keep'
@@ -1523,24 +1521,34 @@ class DebugThread(QThread):
         # This tells you whether or not it's a temporary breakpoint
         lines = output.split('\n')
         headers_skipped = False
+        self.bps['del'] = []
+        self.bps['keep'] = []
         for l in lines:
             if not headers_skipped:
                 headers_skipped = True
+                continue
+            elif "(Pdb)" in l:
                 continue
             # No parameter for split - split by any whitespace
             words = l.split()
             # Breakpoints are numbered from 1 and goes up
             bp_number = words[0]
-            is_type = False            
-            for w in words:                
-                if w == type_wanted:
-                    is_type = True
-                if is_type:
-                    # Line number comes after colon
-                    if words[5].split(":")[1] == str(number):
-                        return bp_number
+            is_type = False
+            if get_all:
+                # just add to the list
+                self.bps[words[2]].append(words[5].split(":")[1])
+            else:            
+                # check if it matches
+                for w in words:                
+                    if w == type_wanted:
+                        is_type = True
+                    if is_type:
+                        # Line number comes after colon
+                        if words[5].split(":")[1] == str(number):
+                            return bp_number
+        if get_all:
+            return self.bps
         return 0
-                        
 
     def exit(self): 
         if self.tn:     

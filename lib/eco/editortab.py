@@ -63,6 +63,7 @@ class EditorTab(QWidget):
 
         self.filename = self.export_path = None
         self.debugging = False
+        self.breakpoints = {'keep': [], 'del': []}
 
     def update_theme(self):
         self.scrollarea.update_theme()
@@ -115,6 +116,11 @@ class EditorTab(QWidget):
 
     def is_debugging(self, isDebugging):
         self.debugging = isDebugging;
+        if not isDebugging:
+            self.breakpoints = {'keep': [], 'del': []}
+
+    def set_breakpoints(self, bps):
+        self.breakpoints = bps
 
 class ScopeScrollArea(QtGui.QAbstractScrollArea):
 
@@ -224,7 +230,6 @@ class LineNumbers(QFrame):
 
     def contextMenuEvent(self, event):
         # Right click
-
         if not self.parent().debugging:
             return None;
         editor = self.parent().editor
@@ -235,8 +240,8 @@ class LineNumbers(QFrame):
 
         event.accept()
         menu = QMenu(self)
-        bAction = menu.addAction("Toggle breakpoint")  
-        tbAction = menu.addAction("Toggle temp breakpoint")
+        bAction = menu.addAction("Toggle breakpoint at "+str(line_clicked))  
+        tbAction = menu.addAction("Toggle temp breakpoint at "+str(line_clicked))
         action = menu.exec_(self.mapToGlobal(event.pos()))      
         if action == bAction:
             self.emit(SIGNAL("breakpoint"), False, line_clicked)
@@ -257,14 +262,19 @@ class LineNumbers(QFrame):
         paint = QtGui.QPainter()
         paint.begin(self)
         paint.setPen(QColor("grey"))
-        paint.setFont(gfont.font)
+        paint.setFont(gfont.font)     
+
+        debugging = self.parent().debugging  
+        self.breakpoint_space = 10
 
         editor = self.parent().editor
         y = editor.paint_start[1]
         start = editor.paint_start[0]
         for i in range(start, len(editor.lines)):
             text = str(i+1)
-            paint.drawText(QtCore.QPointF(self.geometry().width() - (len(text)+1)*gfont.fontwt, gfont.fontht + y*gfont.fontht - 1), text +":")
+            paint.drawText(QtCore.QPointF(self.geometry().width() - (len(text)+1)*gfont.fontwt, gfont.fontht + y*gfont.fontht), text +":")
+            if debugging:
+                self.draw_breakpoint(paint, text, gfont.fontht+y*gfont.fontht-9)                     
             y += editor.lines[i].height
             i += 1
             if (y+1)*gfont.fontht >= editor.geometry().height():
@@ -272,13 +282,34 @@ class LineNumbers(QFrame):
 
         paint.end()
 
+    def draw_breakpoint(self, paint, line_no, y_pos): 
+        big_rect = QtCore.QRectF(0, y_pos, 8, 8)
+        small_rect = QtCore.QRectF(2, y_pos+2, 4, 4)
+       
+        paint.setBrush(QColor("blue"))
+        bps = self.parent().breakpoints        
+        move = False
+        if line_no in bps['keep']:
+            paint.setBrush(QColor("blue"))
+            paint.drawEllipse(big_rect)
+            move = True
+        if line_no in bps['del']:
+            paint.setBrush(QColor("yellow")) 
+            if move:                
+                paint.drawEllipse(small_rect)  
+            else:              
+                paint.drawEllipse(big_rect)      
+
     def update(self):
-        gfont = QApplication.instance().gfont
+        gfont = QApplication.instance().gfont        
         editor = self.parent().editor
         import math
         if len(editor.lines) < 10:
             digits = 1
         else:
             digits = int(math.log10(len(editor.lines)))+1
-        self.setMinimumWidth(gfont.fontwt * (digits + 1))
+        breakpoint_space = 0
+        if self.parent().debugging:
+            breakpoint_space = 10
+        self.setMinimumWidth(gfont.fontwt * (digits + 1) + breakpoint_space)
         QFrame.update(self)
