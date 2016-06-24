@@ -60,6 +60,7 @@ class EditorTab(QWidget):
         self.connect(self.editor, SIGNAL("painted()"), self.painted)
         self.connect(self.editor, SIGNAL("keypress(QKeyEvent)"), self.keypress)
         self.connect(self.linenumbers, SIGNAL("breakpoint"), self.toggle_breakpoint)
+        self.connect(self.linenumbers, SIGNAL("breakcondition"), self.set_breakpoint_condition)
 
         self.filename = self.export_path = None
         self.debugging = False
@@ -110,9 +111,12 @@ class EditorTab(QWidget):
             incparser, inclexer = lang.load()
             self.editor.set_mainlanguage(incparser, inclexer, lang.name)
 
-    def toggle_breakpoint(self, isTemp, number):
+    def toggle_breakpoint(self, isTemp, number, from_click):
         # For debugging, breakpoints
-        self.emit(SIGNAL("breakpoint"), isTemp, number)
+        self.emit(SIGNAL("breakpoint"), isTemp, number, from_click)
+
+    def set_breakpoint_condition(self, number):
+        self.emit(SIGNAL("breakcondition"), number)
 
     def is_debugging(self, isDebugging):
         self.debugging = isDebugging;
@@ -226,7 +230,7 @@ class LineNumbers(QFrame):
         line_clicked = self.findLineNumberAt(event.y())
         if line_clicked <= len(editor.lines):            
             event.accept()
-            self.emit(SIGNAL("breakpoint"), False, line_clicked)
+            self.emit(SIGNAL("breakpoint"), False, line_clicked, True)
 
     def contextMenuEvent(self, event):
         # Right click
@@ -242,11 +246,19 @@ class LineNumbers(QFrame):
         menu = QMenu(self)
         bAction = menu.addAction("Toggle breakpoint at "+str(line_clicked))  
         tbAction = menu.addAction("Toggle temp breakpoint at "+str(line_clicked))
+
+        # Only offer the condition action if breakpoint exists?
+        #bcAction = False
+        #if str(line_clicked) in self.parent().breakpoints['keep'] or str(line_clicked) in self.parent().breakpoints['del']:
+        bcAction = menu.addAction("Set breakpoint with condition at "+str(line_clicked))
+
         action = menu.exec_(self.mapToGlobal(event.pos()))      
         if action == bAction:
-            self.emit(SIGNAL("breakpoint"), False, line_clicked)
+            self.emit(SIGNAL("breakpoint"), False, line_clicked, False)
         elif action == tbAction:
-            self.emit(SIGNAL("breakpoint"), True, line_clicked)
+            self.emit(SIGNAL("breakpoint"), True, line_clicked, False)
+        elif action == bcAction:
+            self.emit(SIGNAL("breakcondition"), line_clicked)
 
     def findLineNumberAt(self, y):
         gfont = QApplication.instance().gfont

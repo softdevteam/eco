@@ -70,6 +70,7 @@ Ui_FindDialog, _     = uic.loadUiType('gui/finddialog.ui')
 Ui_LanguageDialog, _ = uic.loadUiType('gui/languagedialog.ui')
 Ui_Settings, _       = uic.loadUiType('gui/settings.ui')
 Ui_Preview, _        = uic.loadUiType('gui/preview.ui')
+Ui_Breakpoint, _     = uic.loadUiType('gui/breakpoint.ui')
 
 def print_var(name, value):
     print("%s: %s" % (name, value))
@@ -484,6 +485,27 @@ class FindDialog(QtGui.QDialog):
         self.ui.leText.setFocus(True)
         self.ui.leText.selectAll()
 
+class BreakpointDialog(QtGui.QDialog):
+    def __init__(self, parent):
+        QtGui.QMainWindow.__init__(self)
+        self.parent = parent
+        QtGui.QDialog.__init__(self)
+        self.ui = Ui_Breakpoint()
+        self.ui.setupUi(self)
+        self.line_number = 0
+
+        self.connect(self.ui.buttonBox, SIGNAL("accepted()"), self.accept)
+        self.connect(self.ui.buttonBox, SIGNAL("rejected()"), self.reject)
+
+    def accept(self):
+        make_temp =  self.ui.bp_type.currentText() == 'Temporary'
+        self.parent.debug_breakpoint(make_temp, self.line_number, False,
+        self.ui.bp_condition.displayText(), str(self.ui.bp_ignore.value()), True)
+        self.hide()        
+
+    def reject(self):
+        self.hide()
+
 class LanguageView(QtGui.QDialog):
     def __init__(self, parent, languages):
         self.parent = parent
@@ -556,6 +578,7 @@ class Window(QtGui.QMainWindow):
         self.stateview = StateView(self)
         self.settingsview = SettingsView(self)
         self.previewdialog = PreviewDialog(self)
+        self.breakpointdialog = BreakpointDialog(self)
 
         self.connect(self.ui.actionImport, SIGNAL("triggered()"), self.importfile)
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
@@ -1037,6 +1060,7 @@ class Window(QtGui.QMainWindow):
             etab.editor.setContextMenuPolicy(Qt.CustomContextMenu)
             etab.editor.customContextMenuRequested.connect(self.contextMenu)
             self.connect(etab, SIGNAL("breakpoint"), self.debug_breakpoint)
+            self.connect(etab, SIGNAL("breakcondition"), self.debug_breakpoint_condition)
             self.toggle_menu(True)
             return True
         return False
@@ -1156,6 +1180,7 @@ class Window(QtGui.QMainWindow):
                 etab.filename = filename
                 lang = etab.editor.get_mainlanguage()
                 self.connect(etab, SIGNAL("breakpoint"), self.debug_breakpoint)
+                self.connect(etab, SIGNAL("breakcondition"), self.debug_breakpoint_condition)
 
                 self.ui.tabWidget.addTab(etab, os.path.basename(str(filename)))
                 self.ui.tabWidget.setCurrentWidget(etab)
@@ -1324,19 +1349,47 @@ class Window(QtGui.QMainWindow):
         # pdb Command
         self.thread_debug.run_command("n")
     
-    def debug_breakpoint(self, isTemp, number):
+    def debug_breakpoint(self, isTemp, number, from_click, condition="", ignore=0, from_dialog=False):
+        # If there is a breakpoint and the user double clicks it (from_click)
+        # then the breakpoint should just be removed, don't make another one
         # pdb Command
         if self.debugging:
-            bp_number = self.thread_debug.get_breakpoints(isTemp, number, False)
+            removed_same_type = False
+            removed_bp = False
+            bp_number = self.thread_debug.get_breakpoints(False, number, False)
+            removed_same_type = (isTemp == False)
+            if not bp_number:
+                bp_number = self.thread_debug.get_breakpoints(True, number, False)  
+                removed_same_type = (isTemp == True)      
             if bp_number:
                 # breakpoint exists, delete it
                 self.thread_debug.run_command("cl " + str(bp_number))
-            else:
+                removed_bp = True
+                output = ""
+            if not ((removed_bp and removed_same_type) or (from_click and removed_bp)) or from_dialog:
                 if isTemp:
-                    self.thread_debug.run_command("tbreak " + str(number))
+                    output=self.thread_debug.run_command("tbreak " + str(number))
                 else:
-                    self.thread_debug.run_command("b " + str(number))
-    
+                    output=self.thread_debug.run_command("b " + str(number))
+            if not output and not (condition or ignore):
+                return None
+
+            bp_index = output.split(" ")[2]
+            try: 
+                int(bp_index)                    
+            except ValueError:
+                return
+            if condition:
+                self.thread_debug.run_command("condition " + bp_index + " " + str(condition))
+            if int(ignore) > 0:
+                self.thread_debug.run_command("ignore " + bp_index + " " + str(ignore))
+
+    def debug_breakpoint_condition(self, number):
+        # Open window to create breakpoint
+        self.breakpointdialog.show()
+        self.breakpointdialog.setWindowTitle("Set Breakpoint on line "+str(number))
+        self.breakpointdialog.line_number = number
+
     def debug_expression(self):
         #pdb Command
         if self.ui.expressionBox.displayText():
@@ -1527,10 +1580,13 @@ class DebugThread(QThread):
             if not headers_skipped:
                 headers_skipped = True
                 continue
-            elif "(Pdb)" in l:
-                continue
             # No parameter for split - split by any whitespace
             words = l.split()
+            # In all the lines needed, the first part is an integer
+            try: 
+                int(words[0])                    
+            except ValueError:
+                continue
             # Breakpoints are numbered from 1 and goes up
             bp_number = words[0]
             is_type = False
