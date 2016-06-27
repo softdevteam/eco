@@ -318,7 +318,6 @@ class SettingsView(QtGui.QMainWindow):
         self.background = settings.value("app_background", "#ffffff").toString()
         self.change_color(self.ui.app_foreground, self.foreground)
         self.change_color(self.ui.app_background, self.background)
-        self.ui.app_highlight_line.setChecked(settings.value("highlight_line", False).toBool())
         # Profiling pane.
         tool_info_family = settings.value("tool-font-family").toString()
         tool_info_size = settings.value("tool-font-size").toInt()[0]
@@ -706,12 +705,10 @@ class Window(QtGui.QMainWindow):
     
     def debug_finished(self):
         self.ui.expressionBox.hide()
-        self.ui.actionContinue.setEnabled(False)
-        self.ui.actionStop.setEnabled(False)
-        self.ui.actionStepInto.setEnabled(False)
-        self.ui.actionStepOver.setEnabled(False)
+        self.debug_toggle_buttons(False)     
         self.debugging = False
         self.getEditorTab().is_debugging(False)
+        self.debug_t.exit()
 
     def draw_overlay(self, tool_data):
         """Send profiler or tool information to the overlay object."""
@@ -914,11 +911,8 @@ class Window(QtGui.QMainWindow):
         self.ui.teConsole.clear()
         self.ui.dockWidget.show()
         self.ui.expressionBox.show()
-        self.ui.actionContinue.setEnabled(True)
-        self.ui.actionStop.setEnabled(True)
-        self.ui.actionStepInto.setEnabled(True)
-        self.ui.actionStepOver.setEnabled(True)
-        self.thread_debug.start()
+        self.debug_t.start()
+        self.emit(self.debugger.signal_start)
         self.debugging = True
         self.getEditorTab().is_debugging(True)
 
@@ -1059,8 +1053,7 @@ class Window(QtGui.QMainWindow):
             etab.editor.setFocus(Qt.OtherFocusReason)
             etab.editor.setContextMenuPolicy(Qt.CustomContextMenu)
             etab.editor.customContextMenuRequested.connect(self.contextMenu)
-            self.connect(etab, SIGNAL("breakpoint"), self.debug_breakpoint)
-            self.connect(etab, SIGNAL("breakcondition"), self.debug_breakpoint_condition)
+            self.set_breakpoint_signals(etab)
             self.toggle_menu(True)
             return True
         return False
@@ -1179,8 +1172,7 @@ class Window(QtGui.QMainWindow):
                 etab.editor.update()
                 etab.filename = filename
                 lang = etab.editor.get_mainlanguage()
-                self.connect(etab, SIGNAL("breakpoint"), self.debug_breakpoint)
-                self.connect(etab, SIGNAL("breakcondition"), self.debug_breakpoint_condition)
+                self.set_breakpoint_signals(etab)
 
                 self.ui.tabWidget.addTab(etab, os.path.basename(str(filename)))
                 self.ui.tabWidget.setCurrentWidget(etab)
@@ -1335,19 +1327,25 @@ class Window(QtGui.QMainWindow):
 
     def debug_continue(self):
         # pdb Command
-        self.thread_debug.run_command("c")
+        self.emit(self.debugger.signal_command, "c")
 
     def debug_stop(self):
         # pdb Command
-        self.thread_debug.run_command("q")
+        self.emit(self.debugger.signal_command, "q")
 
     def debug_step_into(self):
         # pdb Command
-        self.thread_debug.run_command("s")
+        self.emit(self.debugger.signal_command, "s")
 
     def debug_step_over(self):
         # pdb Command
-        self.thread_debug.run_command("n")
+        self.emit(self.debugger.signal_command, "n")
+    
+    def debug_toggle_buttons(self, enable):
+        self.ui.actionContinue.setEnabled(enable)
+        self.ui.actionStop.setEnabled(enable)
+        self.ui.actionStepInto.setEnabled(enable)
+        self.ui.actionStepOver.setEnabled(enable)
     
     def debug_breakpoint(self, isTemp, number, from_click, condition="", ignore=0, from_dialog=False):
         # If there is a breakpoint and the user double clicks it (from_click)
@@ -1356,21 +1354,21 @@ class Window(QtGui.QMainWindow):
         if self.debugging:
             removed_same_type = False
             removed_bp = False
-            bp_number = self.thread_debug.get_breakpoints(False, number, False)
+            bp_number = self.debugger.get_breakpoints(False, number, False)
             removed_same_type = (isTemp == False)
             if not bp_number:
-                bp_number = self.thread_debug.get_breakpoints(True, number, False)  
+                bp_number = self.debugger.get_breakpoints(True, number, False)  
                 removed_same_type = (isTemp == True)      
             if bp_number:
                 # breakpoint exists, delete it
-                self.thread_debug.run_command("cl " + str(bp_number))
+                self.debugger.run_command("cl " + str(bp_number))
                 removed_bp = True
                 output = ""
             if not ((removed_bp and removed_same_type) or (from_click and removed_bp)) or from_dialog:
                 if isTemp:
-                    output=self.thread_debug.run_command("tbreak " + str(number))
+                    output=self.debugger.run_command("tbreak " + str(number))
                 else:
-                    output=self.thread_debug.run_command("b " + str(number))
+                    output=self.debugger.run_command("b " + str(number))
             if not output and not (condition or ignore):
                 return None
 
@@ -1380,9 +1378,9 @@ class Window(QtGui.QMainWindow):
             except ValueError:
                 return
             if condition:
-                self.thread_debug.run_command("condition " + bp_index + " " + str(condition))
+                self.debugger.run_command("condition " + bp_index + " " + str(condition))
             if int(ignore) > 0:
-                self.thread_debug.run_command("ignore " + bp_index + " " + str(ignore))
+                self.debugger.run_command("ignore " + bp_index + " " + str(ignore))
 
     def debug_breakpoint_condition(self, number):
         # Open window to create breakpoint
@@ -1394,7 +1392,7 @@ class Window(QtGui.QMainWindow):
         #pdb Command
         if self.ui.expressionBox.displayText():
             ex_input = self.ui.expressionBox.displayText()
-            self.thread_debug.run_command("p " + str(ex_input))
+            self.debugger.run_command("p " + str(ex_input))
             # Add expression to top of expression "stack" if it's not already there           
             if self.expression_list.count(ex_input) > 0:
                 if not self.expression_list[0] == ex_input:
@@ -1407,6 +1405,10 @@ class Window(QtGui.QMainWindow):
                 self.expression_list.insert(0, ex_input)                         
             self.expression_num = -1
             self.ui.expressionBox.clear()
+
+    def set_breakpoint_signals(self, etab):
+        self.connect(etab, SIGNAL("breakpoint"), self.debug_breakpoint)
+        self.connect(etab, SIGNAL("breakcondition"), self.debug_breakpoint_condition)
 
     def keyPressEvent(self, event):
         if self.debugging:
@@ -1470,18 +1472,24 @@ def main():
     t = SubProcessThread(window, app)
     window.thread = t
     window.thread_prof = ProfileThread(window, app)
-    window.thread_debug = DebugThread(window, app)
-    window.profile_throbber = Throbber(window.ui.tabWidget)
+
+    window.debug_t = QThread()
+    window.debugger = Debugger(window)
+    window.debugger.moveToThread(window.debug_t)
+
+    window.profile_throbber = Throbber(window.ui.tabWidget) 
+    window.connect(window, window.debugger.signal_command, window.debugger.run_command)
+    window.connect(window, window.debugger.signal_start, window.debugger.start_pdb)
+    window.connect(window.debugger, window.debugger.signal_output, window.show_output)
+    window.connect(window.debugger, window.debugger.signal_done, window.debug_finished)
+    window.connect(window.debugger, window.debugger.signal_toggle_buttons, window.debug_toggle_buttons)
+
     window.connect(window.thread, t.signal, window.show_output)
-    window.connect(window.thread_debug, t.signal, window.show_output)
     window.connect(window.thread_prof, window.thread_prof.signal, window.show_output)
     # Connect the profiler (tool) thread to the throbber.
     window.connect(window.thread_prof,
                    window.thread_prof.signal_done,
                    window.profiler_finished)
-    window.connect(window.thread_debug,
-                   window.thread_debug.signal_done,
-                   window.debug_finished)
     # Connect the profiler(tool) thread to the overlay which draws a heatmap
     # or other visualisation.
     window.connect(window.thread_prof,
@@ -1510,20 +1518,23 @@ class SubProcessThread(QThread):
                         line = "  " + line[9:]
                 self.emit(self.signal, line.rstrip())
 
-class DebugThread(QThread):
-    def __init__(self, window, parent):
-        QThread.__init__(self, parent=parent)
+class Debugger(QObject):
+    def __init__(self, window):
+        QObject.__init__(self)
         self.window = window
+        # used from outside debugger
+        self.signal_command = QtCore.SIGNAL("command")
+        self.signal_start = QtCore.SIGNAL("start")
+        # signals that will be emitted from debugger
         self.signal_done = QtCore.SIGNAL("finished")
-        self.signal = QtCore.SIGNAL("output")
-        self.bps = {'keep': [], 'del': []}
+        self.signal_output = QtCore.SIGNAL("output")
+        self.signal_toggle_buttons = QtCore.SIGNAL("disablebuttons")
 
-    def run(self):      
-        # Start pdb  
+    def start_pdb(self):   
+        self.bps = {'keep': [], 'del': []}         
         self.proc = self.window.getEditor().tm.export(debug=True)
         if not self.proc:
-            self.emit(self.signal_done, None)
-            self.emit(self.signal, "Cannot run debugger.")
+            self.emit(self.signal_output, "Cannot run debugger.")
             self.exit()
             return
         self.tn = False
@@ -1533,39 +1544,47 @@ class DebugThread(QThread):
         output = False     
         while not output:
             sleep(0.1)
-            output = self.tn.read_until("(Pdb)")
-        self.emit(self.signal, output)          
+            output = self.tn.read_until("(Pdb)") 
+        self.emit(self.signal_toggle_buttons, True)           
+        self.emit(self.signal_output, output)             
 
     # Run command and wait for response
     def run_command(self, command):
-        self.tn.write(command + "\n")     
+        self.emit(self.signal_toggle_buttons, False)
+        try:
+            self.tn.write(command + "\n")             
+        except AttributeError:
+            return None
         # If user quits then don't wait for (Pdb)
         if (command == "q"):
             self.exit()
             return None
         ot = self.output_debug()
-        self.window.getEditorTab().set_breakpoints(self.get_breakpoints())
+        # If ot is empty then debugging is finished
+        if ot:
+            self.emit(self.signal_toggle_buttons, True)
+            self.window.getEditorTab().set_breakpoints(self.get_breakpoints())
         return ot
 
     def output_debug(self):
         try:
             output = self.tn.read_until("(Pdb)")             
         except EOFError:
-            self.exit()                
+            self.exit() 
+            return None               
         if "(Pdb)" not in output:
             self.exit()
             return None
-        self.emit(self.signal, output) 
+        self.emit(self.signal_output, output) 
         return output
 
     def get_breakpoints(self, temp=False, number=0, get_all=True):
-        # Returns only the type of breakpoint specified (temp or not)
-        self.tn.write("b\n")
+        # Returns only the type of breakpoint specified (temp or not)        
         try:
+            self.tn.write("b\n")
             output = self.tn.read_until("(Pdb)")             
-        except EOFError:
-            self.exit()
-
+        except (EOFError, AttributeError):
+            return None
         type_wanted = 'keep'
         if temp:
             type_wanted = 'del'
@@ -1607,10 +1626,11 @@ class DebugThread(QThread):
         return 0
 
     def exit(self): 
-        if self.tn:     
-            self.tn.close()
-        self.emit(self.signal, "Debug finished.")   
-        self.emit(self.signal_done, None)
+        if self.window.debugging:
+            if self.tn:     
+                self.tn.close()
+            self.emit(self.signal_output, "Debug finished.")  
+            self.emit(self.signal_done)
 
 class ProfileThread(QThread):
     def __init__(self, window, parent):

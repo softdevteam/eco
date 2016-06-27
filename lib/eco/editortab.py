@@ -299,7 +299,9 @@ class LineNumbers(QFrame):
         small_rect = QtCore.QRectF(2, y_pos+2, 4, 4)
        
         paint.setBrush(QColor("blue"))
-        bps = self.parent().breakpoints        
+        bps = self.parent().breakpoints
+        if not bps:
+            return None
         move = False
         if line_no in bps['keep']:
             paint.setBrush(QColor("blue"))

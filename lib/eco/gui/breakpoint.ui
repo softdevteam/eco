@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>423</width>
-    <height>168</height>
+    <height>170</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -68,7 +68,11 @@
     </widget>
    </item>
    <item row="3" column="1">
-    <widget class="QSpinBox" name="bp_ignore"/>
+    <widget class="QSpinBox" name="bp_ignore">
+     <property name="maximum">
+      <number>999999999</number>
+     </property>
+    </widget>
    </item>
    <item row="6" column="1">
     <widget class="QDialogButtonBox" name="buttonBox">
