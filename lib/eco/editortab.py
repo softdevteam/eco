@@ -300,6 +300,7 @@ class LineNumbers(QFrame):
        
         paint.setBrush(QColor("blue"))
         bps = self.parent().breakpoints
+
         if not bps:
             return None
         move = False
