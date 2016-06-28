@@ -343,7 +343,7 @@ class NodeEditor(QFrame):
             if isinstance(node, EOS):
                 lbnode = self.get_languagebox(node)
                 if self.cursor.node is lbnode:
-                    self.draw_cursor(paint, x, 5 + y * self.fontht)
+                    self.draw_cursor(paint, x, 4 + y * self.fontht)
                 if lbnode:
                     color = colors[(lbox-1) % len(colors)]
                     if lbox > 0:
@@ -445,7 +445,7 @@ class NodeEditor(QFrame):
                 if node.image and not node.plain_mode:
                     draw_x = x
                     cursor_pos = 0
-                self.draw_cursor(paint, draw_x + cursor_pos * self.fontwt, 5 + y * self.fontht)
+                self.draw_cursor(paint, draw_x + cursor_pos * self.fontwt, 4 + y * self.fontht)
 
 
             if False and line == self.cursor.y and x/self.fontwt >= self.cursor.x and draw_cursor:
