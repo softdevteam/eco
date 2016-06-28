@@ -274,7 +274,7 @@ class LineNumbers(QFrame):
         paint = QtGui.QPainter()
         paint.begin(self)
         paint.setPen(QColor("grey"))
-        paint.setFont(gfont.font)     
+        paint.setFont(gfont.font)
 
         debugging = self.parent().debugging  
         self.breakpoint_space = 10
@@ -316,7 +316,7 @@ class LineNumbers(QFrame):
                 paint.drawEllipse(big_rect)      
 
     def update(self):
-        gfont = QApplication.instance().gfont        
+        gfont = QApplication.instance().gfont
         editor = self.parent().editor
         import math
         if len(editor.lines) < 10:

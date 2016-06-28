@@ -1232,6 +1232,9 @@ class Window(QtGui.QMainWindow):
         event.ignore()
 
     def quit(self):
+        if self.debugging:
+            if self.debug_t.isRunning():
+                self.debug_t.quit()
         for i in reversed(range(self.ui.tabWidget.count())):
             self.ui.tabWidget.setCurrentIndex(i)
             self.closeTab(i)
