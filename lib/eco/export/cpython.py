@@ -66,7 +66,11 @@ class CPythonExporter(object):
         code = self.tm.export_as_text(f[1])
 
         # These are the lines for remotepdb  
-        pdb_lines = "from remote_pdb import RemotePdb;RemotePdb('localhost', 8210).set_trace();"
+        pdb_lines = """from remote_pdb import RemotePdb
+if hasattr(RemotePdb, 'DefaultConfig'):
+    RemotePdb.DefaultConfig.prompt='(Pdb)'
+    RemotePdb.DefaultConfig.highlight=False
+RemotePdb('localhost', 8210).set_trace();"""
         
         with open(f[1], "w") as f2:
             f2.write("".join(code))   
