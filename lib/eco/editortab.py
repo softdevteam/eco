@@ -63,6 +63,7 @@ class EditorTab(QWidget):
 
     def update_theme(self):
         self.scrollarea.update_theme()
+        self.editor.update()
 
     def changed(self):
         return self.editor.tm.changed
@@ -215,7 +216,7 @@ class LineNumbers(QFrame):
         start = editor.paint_start[0]
         for i in range(start, len(editor.lines)):
             text = str(i+1)
-            paint.drawText(QtCore.QPointF(self.geometry().width() - (len(text)+1)*gfont.fontwt, gfont.fontht + y*gfont.fontht), text +":")
+            paint.drawText(QtCore.QPointF(self.geometry().width() - (len(text)+1)*gfont.fontwt, gfont.fontht + y*gfont.fontht - 1), text +":")
             y += editor.lines[i].height
             i += 1
             if (y+1)*gfont.fontht >= editor.geometry().height():

@@ -308,6 +308,7 @@ class SettingsView(QtGui.QMainWindow):
         self.background = settings.value("app_background", "#ffffff").toString()
         self.change_color(self.ui.app_foreground, self.foreground)
         self.change_color(self.ui.app_background, self.background)
+        self.ui.app_highlight_line.setChecked(settings.value("highlight_line", False).toBool())
         # Profiling pane.
         tool_info_family = settings.value("tool-font-family").toString()
         tool_info_size = settings.value("tool-font-size").toInt()[0]
@@ -349,6 +350,7 @@ class SettingsView(QtGui.QMainWindow):
         settings.setValue("app_custom", self.ui.app_custom.isChecked())
         settings.setValue("app_foreground", self.foreground)
         settings.setValue("app_background", self.background)
+        settings.setValue("highlight_line", self.ui.app_highlight_line.isChecked())
         # Profiling pane.
         settings.setValue("tool-font-family", self.ui.tool_info_fontfamily.currentFont().family())
         settings.setValue("tool-font-size", self.ui.tool_info_fontsize.value())

@@ -127,7 +127,7 @@
          <enum>QFrame::NoFrame</enum>
         </property>
         <property name="currentIndex">
-         <number>6</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="page">
          <layout class="QFormLayout" name="formLayout_15">
@@ -175,7 +175,23 @@
          </layout>
         </widget>
         <widget class="QWidget" name="page_2">
-         <layout class="QVBoxLayout" name="verticalLayout_8" stretch="0,0,1">
+         <layout class="QVBoxLayout" name="verticalLayout_8" stretch="0,0,0,1">
+          <item>
+           <widget class="QGroupBox" name="groupBox_13">
+            <property name="title">
+             <string>General</string>
+            </property>
+            <layout class="QFormLayout" name="formLayout_17">
+             <item row="0" column="0">
+              <widget class="QCheckBox" name="app_highlight_line">
+               <property name="text">
+                <string>Highlight current line</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
           <item>
            <widget class="QGroupBox" name="groupBox_4">
             <property name="title">
@@ -914,7 +930,7 @@
      <x>0</x>
      <y>0</y>
      <width>539</width>
-     <height>26</height>
+     <height>23</height>
     </rect>
    </property>
   </widget>

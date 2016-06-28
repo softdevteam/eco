@@ -87,6 +87,14 @@ class NodeEditor(QFrame):
         # continuously in the background.
         self.run_background_tools = False
 
+    def focusOutEvent(self, event):
+        self.blinktimer.stop()
+        self.show_cursor = True
+        self.update()
+
+    def focusInEvent(self, event):
+        self.blinktimer.start()
+
     def toggle_overlay(self):
         self.hide_overlay() if self.overlay.isVisible() else self.show_overlay()
 
@@ -285,10 +293,14 @@ class NodeEditor(QFrame):
         colors = self.boxcolors
         if settings.value("app_theme", "Light").toString() in ["Dark"]:
             alpha = 100
+            self.highlight_line_color = QColor(250,250,250,20)
         elif settings.value("app_theme", "Light").toString() in ["Gruvbox"]:
             alpha = 100
+            self.highlight_line_color = QColor(250,250,250,20)
         else:
             alpha = 60
+            self.highlight_line_color = QColor(0,0,0,10)
+        self.show_highlight_line = settings.value("highlight_line", False).toBool()
 
         first_node = node
         selected_language = self.tm.mainroot
@@ -343,7 +355,7 @@ class NodeEditor(QFrame):
             if isinstance(node, EOS):
                 lbnode = self.get_languagebox(node)
                 if self.cursor.node is lbnode:
-                    self.draw_cursor(paint, x, 5 + y * self.fontht)
+                    self.draw_cursor(paint, x, 4 + y * self.fontht)
                 if lbnode:
                     color = colors[(lbox-1) % len(colors)]
                     if lbox > 0:
@@ -397,6 +409,7 @@ class NodeEditor(QFrame):
             if node is selection_end.node:
                 draw_selection_end = (x + selection_end.pos * self.fontwt, y, line)
 
+
             # draw node
             dx, dy = editor.paint_node(paint, node, x, y, highlighter)
             x += dx
@@ -435,6 +448,11 @@ class NodeEditor(QFrame):
                 line += 1
                 self.lines[line].height = 1 # reset height
 
+            if self.show_highlight_line:
+                if node.lookup == "<return>" or isinstance(node, BOS):
+                    if self.cursor.line == line:
+                        self.highlight_line(paint, y)
+
             # draw cursor
             if node is self.cursor.node and self.show_cursor:
                 draw_x = max(0, x-dx)
@@ -445,7 +463,7 @@ class NodeEditor(QFrame):
                 if node.image and not node.plain_mode:
                     draw_x = x
                     cursor_pos = 0
-                self.draw_cursor(paint, draw_x + cursor_pos * self.fontwt, 5 + y * self.fontht)
+                self.draw_cursor(paint, draw_x + cursor_pos * self.fontwt, 4 + y * self.fontht)
 
 
             if False and line == self.cursor.y and x/self.fontwt >= self.cursor.x and draw_cursor:
@@ -490,6 +508,10 @@ class NodeEditor(QFrame):
             paint.setFont(self.font)
 
         return x, y, line
+
+    def highlight_line(self, paint, y):
+        width = self.parentWidget().geometry().width()
+        paint.fillRect(QRect(-5, y * self.fontht + 3, width, self.fontht), self.highlight_line_color)
 
     def draw_lbox_hints(self, paint, node, x, y, color):
         if node is self.cursor.node:
