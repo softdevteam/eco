@@ -87,6 +87,14 @@ class NodeEditor(QFrame):
         # continuously in the background.
         self.run_background_tools = False
 
+    def focusOutEvent(self, event):
+        self.blinktimer.stop()
+        self.show_cursor = True
+        self.update()
+
+    def focusInEvent(self, event):
+        self.blinktimer.start()
+
     def toggle_overlay(self):
         self.hide_overlay() if self.overlay.isVisible() else self.show_overlay()
 
