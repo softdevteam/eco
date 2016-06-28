@@ -22,6 +22,7 @@
 from mocks import MockPopen
 from incparser.annotation import Annotation, Heatmap, Footnote, ToolTip
 import copy, os, os.path, subprocess, tempfile
+import sys
 
 class CPythonFuncProfileMsg(Annotation):
     def __init__(self, annotation):
@@ -64,6 +65,18 @@ class CPythonExporter(object):
     def _debug(self):
         f = tempfile.mkstemp(suffix='.py')        
         code = self.tm.export_as_text(f[1])
+
+        # Check if remote pdb installed
+        try:
+            import remote_pdb
+        except ImportError:
+            sys.stderr.write("""Error: can't import the remote_pdb module. Typically this can be installed with:
+          pip install python-remote-pdb
+
+        More detailed install instructions for remote_pdb can be found at:
+          https://pypi.python.org/pypi/remote-pdb
+        """)
+            return None
 
         # These are the lines for remotepdb  
         pdb_lines = """from remote_pdb import RemotePdb

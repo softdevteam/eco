@@ -16,9 +16,11 @@ class Debugger(QObject):
         self.signal_done = QtCore.SIGNAL("finished")
         self.signal_output = QtCore.SIGNAL("output")
         self.signal_toggle_buttons = QtCore.SIGNAL("disablebuttons")
+        self.tn = None
 
     def start_pdb(self):   
-        self.bps = {'keep': [], 'del': []}         
+        self.bps = {'keep': [], 'del': []}      
+        self.line_read_until = '(Pdb)'   
         self.proc = self.window.getEditor().tm.export(debug=True)
         if not self.proc:
             self.emit(self.signal_output, "Cannot run debugger.")
@@ -31,9 +33,9 @@ class Debugger(QObject):
         output = False     
         while not output:
             sleep(0.1)
-            output = self.tn.read_until("(Pdb)") 
+            output = self.tn.read_until(self.line_read_until) 
         self.emit(self.signal_toggle_buttons, True)           
-        self.emit(self.signal_output, output)             
+        self.emit(self.signal_output, output)                    
 
     # Run command and wait for response
     def run_command(self, command):
@@ -55,11 +57,11 @@ class Debugger(QObject):
 
     def output_debug(self):
         try:
-            output = self.tn.read_until("(Pdb)")             
+            output = self.tn.read_until(self.line_read_until)             
         except EOFError:
             self.exit() 
             return None               
-        if "(Pdb)" not in output:
+        if self.line_read_until not in output:
             self.exit()
             return None
         self.emit(self.signal_output, output) 
@@ -69,7 +71,7 @@ class Debugger(QObject):
         # Returns only the type of breakpoint specified (temp or not)        
         try:
             self.tn.write("b\n")
-            output = self.tn.read_until("(Pdb)")             
+            output = self.tn.read_until(self.line_read_until)          
         except (EOFError, AttributeError):
             return None
         type_wanted = 'keep'
@@ -116,5 +118,5 @@ class Debugger(QObject):
         if self.window.debugging:
             if self.tn:     
                 self.tn.close()
-            self.emit(self.signal_output, "Debug finished.")  
+                self.emit(self.signal_output, "Debug finished.")  
             self.emit(self.signal_done)  
