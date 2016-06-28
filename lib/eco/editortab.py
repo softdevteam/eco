@@ -63,6 +63,7 @@ class EditorTab(QWidget):
 
     def update_theme(self):
         self.scrollarea.update_theme()
+        self.editor.update()
 
     def changed(self):
         return self.editor.tm.changed

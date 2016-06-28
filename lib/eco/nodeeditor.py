@@ -293,10 +293,14 @@ class NodeEditor(QFrame):
         colors = self.boxcolors
         if settings.value("app_theme", "Light").toString() in ["Dark"]:
             alpha = 100
+            self.highlight_line_color = QColor(250,250,250,20)
         elif settings.value("app_theme", "Light").toString() in ["Gruvbox"]:
             alpha = 100
+            self.highlight_line_color = QColor(250,250,250,20)
         else:
             alpha = 60
+            self.highlight_line_color = QColor(0,0,0,10)
+        self.show_highlight_line = settings.value("highlight_line", False).toBool()
 
         first_node = node
         selected_language = self.tm.mainroot
@@ -405,6 +409,7 @@ class NodeEditor(QFrame):
             if node is selection_end.node:
                 draw_selection_end = (x + selection_end.pos * self.fontwt, y, line)
 
+
             # draw node
             dx, dy = editor.paint_node(paint, node, x, y, highlighter)
             x += dx
@@ -442,6 +447,11 @@ class NodeEditor(QFrame):
                 y += self.lines[line].height
                 line += 1
                 self.lines[line].height = 1 # reset height
+
+            if self.show_highlight_line:
+                if node.lookup == "<return>" or isinstance(node, BOS):
+                    if self.cursor.line == line:
+                        self.highlight_line(paint, y)
 
             # draw cursor
             if node is self.cursor.node and self.show_cursor:
@@ -498,6 +508,10 @@ class NodeEditor(QFrame):
             paint.setFont(self.font)
 
         return x, y, line
+
+    def highlight_line(self, paint, y):
+        width = self.parentWidget().geometry().width()
+        paint.fillRect(QRect(-5, y * self.fontht + 3, width, self.fontht), self.highlight_line_color)
 
     def draw_lbox_hints(self, paint, node, x, y, color):
         if node is self.cursor.node:
