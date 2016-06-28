@@ -310,6 +310,7 @@ class IncParser(object):
             self.undo.append((c, 'left', c.left))
             self.undo.append((c, 'right', c.right))
             self.undo.append((c, 'log', c.log.copy()))
+            c.mark_version() # XXX with node reuse we only have to do this if the parent changes
 
         new_node = Node(element.action.left.copy(), goto.action, children)
         self.pm.do_incparse_reduce(new_node)

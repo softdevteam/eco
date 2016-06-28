@@ -528,6 +528,44 @@ or_test ::= "1"^^
 
         assert parser.last_status == True
 
+from grammars.grammars import EcoFile
+class Test_General:
+
+    def test_undo_bug(self):
+        # Sometimes grammar changes can change subtrees that haven't been marked
+        # as changed. As a consequence they are not marked with a version and
+        # won't be reverted during an undo. This tests the fix in
+        # incparser:reduce that version marks nodes whose parent has changed
+        # during reparsing.
+        grm = EcoFile("Undotest", "test/undobug1.eco", "Undo")
+        t = TreeManager()
+        parser, lexer = grm.load()
+        t.add_parser(parser, lexer, python.name)
+
+        t.key_normal("a")
+        t.undo_snapshot()
+        t.key_normal("b")
+        t.undo_snapshot()
+        t.key_normal("c")
+        t.undo_snapshot()
+        assert parser.last_status == True
+
+        c = t.cursor.node
+        assert c.symbol.name == "c"
+        cp = c.parent
+
+        t.key_cursors(LEFT)
+        t.key_cursors(LEFT)
+        t.key_normal("x")
+        t.undo_snapshot()
+        assert parser.last_status == True
+        assert c.parent is not cp
+
+        t.key_ctrl_z()
+        assert parser.last_status == True
+
+        assert c.parent is cp
+
 class Test_Helper:
     def reset(self):
         self.parser.reset()
@@ -559,6 +597,8 @@ class Test_Helper:
         while(node.right_sibling() is None):
             node = node.parent
         return node.right_sibling()
+
+class Test_Compare(Test_Helper):
 
     def test_compare(self):
         t = TreeManager()
@@ -2172,6 +2212,44 @@ class Test_Undo(Test_Python):
         while self.treemanager.version > start_version:
             self.treemanager.key_ctrl_z()
         self.text_compare(program)
+
+    def test_undo_random_insertdeleteundo_bug2(self):
+        self.reset()
+
+        prog = """class X:
+    def hello():
+        pass
+        
+    def foo():
+        do
+        something
+        here"""
+        self.treemanager.import_file(prog)
+        assert self.parser.last_status == True
+
+        self.text_compare(prog)
+        start_version = self.treemanager.version
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 1)
+        self.move(RIGHT, 0)
+        self.treemanager.key_normal(' ')
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 1)
+        self.move(RIGHT, 3)
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 6)
+        self.move(RIGHT, 11)
+        self.treemanager.key_normal('x')
+        self.treemanager.undo_snapshot()
+
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.text_compare(prog)
 
     def random_insert_delete_undo(self, program):
         import random
