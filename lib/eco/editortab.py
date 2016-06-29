@@ -112,7 +112,6 @@ class EditorTab(QWidget):
             self.editor.set_mainlanguage(incparser, inclexer, lang.name)
 
     def toggle_breakpoint(self, isTemp, number, from_click):
-        # For debugging, breakpoints
         self.emit(SIGNAL("breakpoint"), isTemp, number, from_click)
 
     def set_breakpoint_condition(self, number):
@@ -233,7 +232,7 @@ class LineNumbers(QFrame):
             self.emit(SIGNAL("breakpoint"), False, line_clicked, True)
 
     def contextMenuEvent(self, event):
-        # Right click
+        """This event is fired when line numbers are right clicked"""
         if not self.parent().debugging:
             return None;
         editor = self.parent().editor
@@ -241,17 +240,11 @@ class LineNumbers(QFrame):
 
         if line_clicked > len(editor.lines):            
            return None;
-
         event.accept()
         menu = QMenu(self)
         bAction = menu.addAction("Toggle breakpoint at "+str(line_clicked))  
-        tbAction = menu.addAction("Toggle temp breakpoint at "+str(line_clicked))
-
-        # Only offer the condition action if breakpoint exists?
-        #bcAction = False
-        #if str(line_clicked) in self.parent().breakpoints['keep'] or str(line_clicked) in self.parent().breakpoints['del']:
+        tbAction = menu.addAction("Toggle temp breakpoint at "+str(line_clicked))    
         bcAction = menu.addAction("Set breakpoint with condition at "+str(line_clicked))
-
         action = menu.exec_(self.mapToGlobal(event.pos()))      
         if action == bAction:
             self.emit(SIGNAL("breakpoint"), False, line_clicked, False)
@@ -299,16 +292,16 @@ class LineNumbers(QFrame):
         small_rect = QtCore.QRectF(2, y_pos+2, 4, 4)
        
         paint.setBrush(QColor("blue"))
-        bps = self.parent().breakpoints
+        breakpoints = self.parent().breakpoints
 
-        if not bps:
+        if not breakpoints:
             return None
         move = False
-        if line_no in bps['keep']:
+        if line_no in breakpoints['keep']:
             paint.setBrush(QColor("blue"))
             paint.drawEllipse(big_rect)
             move = True
-        if line_no in bps['del']:
+        if line_no in breakpoints['del']:
             paint.setBrush(QColor("yellow")) 
             if move:                
                 paint.drawEllipse(small_rect)  

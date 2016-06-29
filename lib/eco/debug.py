@@ -1,39 +1,50 @@
 from time import sleep
 import telnetlib
 
-from PyQt4 import QtCore
-from PyQt4.QtCore import QObject
-
+from PyQt4.QtCore import QObject, SIGNAL
+from fcntl import fcntl, F_GETFL, F_SETFL
+from os import O_NONBLOCK, read
+from socket import error as socket_error
 
 class Debugger(QObject):
     def __init__(self, window):
         QObject.__init__(self)
         self.window = window
-        # used from outside debugger
-        self.signal_command = QtCore.SIGNAL("command")
-        self.signal_start = QtCore.SIGNAL("start")
-        # signals that will be emitted from debugger
-        self.signal_done = QtCore.SIGNAL("finished")
-        self.signal_output = QtCore.SIGNAL("output")
-        self.signal_toggle_buttons = QtCore.SIGNAL("disablebuttons")
-        self.tn = None
+        # incoming signals
+        self.signal_command = SIGNAL("command")
+        self.signal_start = SIGNAL("start")
+        # outcoming signals
+        self.signal_done = SIGNAL("finished")
+        self.signal_output = SIGNAL("output")
+        self.signal_toggle_buttons = SIGNAL("disablebuttons")
+        self.telnet = None
 
     def start_pdb(self):   
-        self.bps = {'keep': [], 'del': []}      
+        self.breakpoints = {'keep': [], 'del': []}      
         self.line_read_until = '(Pdb)'   
-        self.proc = self.window.getEditor().tm.export(debug=True)
-        if not self.proc:
-            self.emit(self.signal_output, "Cannot run debugger.")
+        self.process = self.window.getEditor().tm.export(debug=True)
+        flags = fcntl(self.process.stdout, F_GETFL)
+        fcntl(self.process.stdout, F_SETFL, flags | O_NONBLOCK)       
+        if not self.process:
+            self.emit(self.signal_output, "Cannot run debugger process, cannot debug.")
             self.exit()
             return
-        self.tn = False
-        while not self.tn:
+        self.telnet = None
+        attempt = 0
+        while not self.telnet:
             sleep(0.5)
-            self.tn = telnetlib.Telnet("localhost", 8210)                
+            try:
+                self.telnet = telnetlib.Telnet("localhost", 8210)   
+            except socket_error:
+                if attempt > 3:              
+                    self.emit(self.signal_output, "Telnet connection failed, cannot debug")
+                    self.exit()
+                    return None
+                attempt += 1              
         output = False     
         while not output:
             sleep(0.1)
-            output = self.tn.read_until(self.line_read_until) 
+            output = self.telnet.read_until(self.line_read_until)
         self.emit(self.signal_toggle_buttons, True)           
         self.emit(self.signal_output, output)                    
 
@@ -41,7 +52,7 @@ class Debugger(QObject):
     def run_command(self, command):
         self.emit(self.signal_toggle_buttons, False)
         try:
-            self.tn.write(command + "\n")             
+            self.telnet.write(command + "\n")             
         except AttributeError:
             return None
         # If user quits then don't wait for (Pdb)
@@ -57,21 +68,30 @@ class Debugger(QObject):
 
     def output_debug(self):
         try:
-            output = self.tn.read_until(self.line_read_until)             
-        except EOFError:
+            output = self.telnet.read_until(self.line_read_until)                     
+        except (AttributeError, EOFError):            
             self.exit() 
             return None               
         if self.line_read_until not in output:
             self.exit()
             return None
-        self.emit(self.signal_output, output) 
+        self.print_program_output()
+        self.emit(self.signal_output, output)
         return output
+
+    def print_program_output(self):
+        try:
+            program_output = self.process.stdout.read()
+            self.emit(self.signal_output, program_output.strip())
+        except (OSError, IOError):
+            pass
+        return
 
     def get_breakpoints(self, temp=False, number=0, get_all=True):
         # Returns only the type of breakpoint specified (temp or not)        
         try:
-            self.tn.write("b\n")
-            output = self.tn.read_until(self.line_read_until)          
+            self.telnet.write("b\n")
+            output = self.telnet.read_until(self.line_read_until)          
         except (EOFError, AttributeError):
             return None
         type_wanted = 'keep'
@@ -82,8 +102,8 @@ class Debugger(QObject):
         # This tells you whether or not it's a temporary breakpoint
         lines = output.split('\n')
         headers_skipped = False
-        self.bps['del'] = []
-        self.bps['keep'] = []
+        self.breakpoints['del'] = []
+        self.breakpoints['keep'] = []
         for l in lines:
             if not headers_skipped:
                 headers_skipped = True
@@ -100,7 +120,7 @@ class Debugger(QObject):
             is_type = False
             if get_all:
                 # just add to the list
-                self.bps[words[2]].append(words[5].split(":")[1])
+                self.breakpoints[words[2]].append(words[5].split(":")[1])
             else:            
                 # check if it matches
                 for w in words:                
@@ -111,12 +131,17 @@ class Debugger(QObject):
                         if words[5].split(":")[1] == str(number):
                             return bp_number
         if get_all:
-            return self.bps
+            return self.breakpoints
         return 0
 
-    def exit(self): 
+    def exit(self):
+        self.print_program_output()
+        try:
+            self.process.kill()
+        except OSError:
+            pass
         if self.window.debugging:
-            if self.tn:     
-                self.tn.close()
-                self.emit(self.signal_output, "Debug finished.")  
+            if self.telnet:     
+                self.telnet.close()
+                self.emit(self.signal_output, "Debugging finished.")  
             self.emit(self.signal_done)  

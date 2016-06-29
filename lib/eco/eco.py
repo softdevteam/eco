@@ -914,6 +914,7 @@ class Window(QtGui.QMainWindow):
 
     def debug_subprocess(self):
         if self.debugging:
+            self.debugger.exit()
             self.debug_finished()
         self.ui.teConsole.clear()
         self.ui.dockWidget.show()
@@ -1336,19 +1337,15 @@ class Window(QtGui.QMainWindow):
             self.ui.actionStateGraph.setEnabled(enabled)
 
     def debug_continue(self):
-        # pdb Command
         self.emit(self.debugger.signal_command, "c")
 
     def debug_stop(self):
-        # pdb Command
         self.emit(self.debugger.signal_command, "q")
 
     def debug_step_into(self):
-        # pdb Command
         self.emit(self.debugger.signal_command, "s")
 
     def debug_step_over(self):
-        # pdb Command
         self.emit(self.debugger.signal_command, "n")
     
     def debug_toggle_buttons(self, enable):
@@ -1357,10 +1354,10 @@ class Window(QtGui.QMainWindow):
         self.ui.actionStepInto.setEnabled(enable)
         self.ui.actionStepOver.setEnabled(enable)
     
-    def debug_breakpoint(self, isTemp, number, from_click, condition="", ignore=0, from_dialog=False):
+    def debug_breakpoint(self, isTemp, number, from_click, 
+        condition="", ignore=0, from_dialog=False):
         # If there is a breakpoint and the user double clicks it (from_click)
         # then the breakpoint should just be removed, don't make another one
-        # pdb Command
         if self.debugging:
             removed_same_type = False
             removed_bp = False
@@ -1374,7 +1371,8 @@ class Window(QtGui.QMainWindow):
                 self.debugger.run_command("cl " + str(bp_number))
                 removed_bp = True
                 output = ""
-            if not ((removed_bp and removed_same_type) or (from_click and removed_bp)) or from_dialog:
+            if not ((removed_bp and removed_same_type) or
+            (from_click and removed_bp)) or from_dialog:
                 if isTemp:
                     output=self.debugger.run_command("tbreak " + str(number))
                 else:
@@ -1388,18 +1386,18 @@ class Window(QtGui.QMainWindow):
             except ValueError:
                 return
             if condition:
-                self.debugger.run_command("condition " + bp_index + " " + str(condition))
+                self.debugger.run_command("condition " + bp_index
+                + " " + str(condition))
             if int(ignore) > 0:
                 self.debugger.run_command("ignore " + bp_index + " " + str(ignore))
 
     def debug_breakpoint_condition(self, number):
-        # Open window to create breakpoint
+        """Open window to create breakpoint"""
         self.breakpointdialog.show()
         self.breakpointdialog.setWindowTitle("Set Breakpoint on line "+str(number))
         self.breakpointdialog.line_number = number
 
     def debug_expression(self):
-        #pdb Command
         if self.ui.expressionBox.displayText():
             ex_input = self.ui.expressionBox.displayText()
             self.debugger.run_command("p " + str(ex_input))
@@ -1444,8 +1442,6 @@ class Window(QtGui.QMainWindow):
                 self.expression_num -= 1
         
         self.ui.expressionBox.setText(self.expression_list[self.expression_num])
-            
-        
 
 def main():
     app = QtGui.QApplication(sys.argv)

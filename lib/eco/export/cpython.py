@@ -84,20 +84,21 @@ if hasattr(RemotePdb, 'DefaultConfig'):
     RemotePdb.DefaultConfig.prompt='(Pdb)'
     RemotePdb.DefaultConfig.highlight=False
 RemotePdb('localhost', 8210).set_trace();"""
-        
+
         with open(f[1], "w") as f2:
             f2.write("".join(code))   
 
-        # The pdb lines are passed in as a command line statement to python,
-        # and the actual file is imported in that statement.
-        # Alternatively the pdb lines could be added to the source code, but
-        # that causes other problems with line numbers and breakpoints
+        """ The pdb lines are passed in as a command line statement to python,
+        and the actual file is imported in that statement.
+        Alternatively the pdb lines could be added to the source code, but
+        that causes other problems with line numbers and breakpoints"""
 
         # get only filename
         import_file = f[1].split("/tmp/")[1]
-        import_file = import_file.split(".py")[0]                   
-        return subprocess.Popen(["python2" + " -c \"" + pdb_lines + " import " + import_file + '\"'],
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0, cwd=tempfile.gettempdir(), shell=True)
+        import_file = import_file.split(".py")[0]       
+        shell_command = ['python2', '-u', '-c', pdb_lines + "import " + import_file]
+        return subprocess.Popen(shell_command,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0, cwd=tempfile.gettempdir())
 
     def _profile(self):
         f = tempfile.mkstemp()
