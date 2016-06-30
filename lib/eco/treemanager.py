@@ -117,6 +117,8 @@ class Cursor(object):
         if not node is self.node:
             self.node = node
             self.pos = 0
+            if node.symbol.name == "\r":
+                self.line += 1
         if self.pos < len(self.node.symbol.name):
             self.pos += 1
         else:

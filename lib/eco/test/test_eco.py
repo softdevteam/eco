@@ -2251,6 +2251,29 @@ class Test_Undo(Test_Python):
         self.treemanager.key_ctrl_z()
         self.text_compare(prog)
 
+    def test_undo_random_insertdeleteundo_bug3(self):
+        self.reset()
+
+        self.treemanager.import_file("""class C:
+    x = 5
+""")
+        assert self.parser.last_status == True
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 0)
+        self.move(RIGHT, 1)
+        self.treemanager.key_normal('\r')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 0)
+        self.move(RIGHT, 0)
+        self.treemanager.key_normal('\r')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 0)
+        self.move(RIGHT, 2)
+        self.treemanager.key_delete()
+
+        assert self.parser.last_status == False
+
     def random_insert_delete_undo(self, program):
         import random
         self.reset()
