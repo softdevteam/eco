@@ -68,13 +68,17 @@ class Debugger(QObject):
 
     def output_debug(self):
         try:
-            output = self.telnet.read_until(self.line_read_until)                     
-        except (AttributeError, EOFError):            
+            output = self.telnet.read_until(self.line_read_until)
+        except (AttributeError, EOFError):
             self.exit() 
             return None               
         if self.line_read_until not in output:
             self.exit()
             return None
+        if "--Return--" in output:
+            if self.is_program_finished():
+                self.exit()
+                return None
         self.print_program_output()
         self.emit(self.signal_output, output)
         return output
@@ -86,6 +90,21 @@ class Debugger(QObject):
         except (OSError, IOError):
             pass
         return
+
+    def is_program_finished(self):
+        try:
+            # 'w' is the 'where' command. It tells you where you are in the program
+            self.telnet.write("w\n")  
+            output = self.telnet.read_until(self.line_read_until)
+        except (AttributeError, EOFError):
+            return True
+
+        if output:
+            # Only look at first line of output
+            place = output.split("\n")[0]
+            if "<string>" in place and "None" in place:
+                return True
+        return False
 
     def get_breakpoints(self, temp=False, number=0, get_all=True):
         # Returns only the type of breakpoint specified (temp or not)        

@@ -497,7 +497,6 @@ class BreakpointDialog(QtGui.QDialog):
         self.ui = Ui_Breakpoint()
         self.ui.setupUi(self)
         self.line_number = 0
-
         self.connect(self.ui.buttonBox, SIGNAL("accepted()"), self.accept)
         self.connect(self.ui.buttonBox, SIGNAL("rejected()"), self.reject)
 
