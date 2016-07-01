@@ -58,7 +58,9 @@
       <string>Recent files</string>
      </property>
      <property name="icon">
-      <iconset theme="document-open-recent"/>
+      <iconset theme="document-open-recent">
+       <normaloff/>
+      </iconset>
      </property>
      <addaction name="actionActionDummy"/>
     </widget>
@@ -80,6 +82,7 @@
      <string>Project</string>
     </property>
     <addaction name="actionRun"/>
+    <addaction name="actionDebug"/>
     <addaction name="actionProfile"/>
     <addaction name="actionVisualise_automatically"/>
    </widget>
@@ -187,6 +190,12 @@
    <addaction name="separator"/>
    <addaction name="actionRun"/>
    <addaction name="separator"/>
+   <addaction name="actionDebug"/>
+   <addaction name="actionContinue"/>
+   <addaction name="actionStop"/>
+   <addaction name="separator"/>
+   <addaction name="actionStepInto"/>
+   <addaction name="actionStepOver"/>
   </widget>
   <widget class="QDockWidget" name="dockWidget_2">
    <property name="maximumSize">
@@ -252,6 +261,13 @@
       <widget class="QTextEdit" name="teConsole">
        <property name="readOnly">
         <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="expressionBox">
+       <property name="placeholderText">
+        <string>Type an expression here</string>
        </property>
       </widget>
      </item>
@@ -660,6 +676,82 @@
   <action name="actionActionDummy">
    <property name="text">
     <string>actionDummy</string>
+   </property>
+  </action>
+  <action name="actionDebug">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+      <normaloff>gui/bug.png</normaloff>bug.png</iconset>
+   </property>
+   <property name="text">
+    <string>Run with debugger</string>
+   </property>
+  </action>
+  <action name="actionContinue">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="media-playback-start">
+     <normaloff/>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>Continue</string>
+   </property>
+   <property name="toolTip">
+    <string>Continue</string>
+   </property>
+  </action>
+  <action name="actionStepInto">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="down">
+     <normaloff/>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>Step Into</string>
+   </property>
+   <property name="toolTip">
+    <string>Step Into</string>
+   </property>
+  </action>
+  <action name="actionStepOver">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="go-jump">
+     <normaloff/>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>Step Over</string>
+   </property>
+   <property name="toolTip">
+    <string>Step Over</string>
+   </property>
+  </action>
+  <action name="actionStop">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="player_stop">
+     <normaloff/>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>Stop</string>
+   </property>
+   <property name="toolTip">
+    <string>Stop</string>
    </property>
   </action>
  </widget>

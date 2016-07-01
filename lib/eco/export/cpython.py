@@ -22,6 +22,7 @@
 from mocks import MockPopen
 from incparser.annotation import Annotation, Heatmap, Footnote, ToolTip
 import copy, os, os.path, subprocess, tempfile
+import sys
 
 class CPythonFuncProfileMsg(Annotation):
     def __init__(self, annotation):
@@ -45,11 +46,13 @@ class CPythonExporter(object):
     def __init__(self, tm):
         self.tm = tm
 
-    def export(self, path, run, profile):
+    def export(self, path, run, profile, debug):
         if profile:
             return self._profile()
         elif run:
             return self._run()
+        elif debug:
+            return self._debug()
         else:
             f = tempfile.mkstemp()
             self.tm.export_as_text(f[1])
@@ -59,6 +62,43 @@ class CPythonExporter(object):
         self.tm.export_as_text(f[1])
         return subprocess.Popen(["python2", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
 
+    def _debug(self):
+        f = tempfile.mkstemp(suffix='.py')        
+        code = self.tm.export_as_text(f[1])
+
+        # Check if remote pdb installed
+        try:
+            import remote_pdb
+        except ImportError:
+            sys.stderr.write("""Error: can't import the remote_pdb module. Typically this can be installed with:
+          pip install python-remote-pdb
+
+        More detailed install instructions for remote_pdb can be found at:
+          https://pypi.python.org/pypi/remote-pdb
+        """)
+            return None
+
+        # These are the lines for remotepdb  
+        pdb_lines = """from remote_pdb import RemotePdb
+if hasattr(RemotePdb, 'DefaultConfig'):
+    RemotePdb.DefaultConfig.prompt='(Pdb)'
+    RemotePdb.DefaultConfig.highlight=False
+RemotePdb('localhost', 8210).set_trace();"""
+
+        with open(f[1], "w") as f2:
+            f2.write("".join(code))   
+
+        """ The pdb lines are passed in as a command line statement to python,
+        and the actual file is imported in that statement.
+        Alternatively the pdb lines could be added to the source code, but
+        that causes other problems with line numbers and breakpoints"""
+
+        # get only filename
+        import_file = f[1].split("/tmp/")[1]
+        import_file = import_file.split(".py")[0]       
+        shell_command = ['python2', '-u', '-c', pdb_lines + "import " + import_file]
+        return subprocess.Popen(shell_command,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0, cwd=tempfile.gettempdir())
 
     def _profile(self):
         f = tempfile.mkstemp()

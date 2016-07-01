@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 from __future__ import print_function
-import sys
+import subprocess, sys
 
 try:
     import py
@@ -43,14 +43,29 @@ if not QtGui.QIcon.hasThemeIcon("document-new"):
     # attempt to fall back on generic icon theme
     QtGui.QIcon.setThemeName("gnome")
 
+from grammar_parser.plexer import PriorityLexer
+from incparser.incparser import IncParser
+from inclexer.inclexer import IncrementalLexer
 from viewer import Viewer
-from grammars.grammars import languages, newfile_langs, submenu_langs, lang_dict
+
+from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
+
+from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
+
+from grammars.grammars import languages, newfile_langs, submenu_langs, lang_dict, Language, EcoGrammar
 import os
+import math
+
+import syntaxhighlighter
+import editor
+
+from nodeeditor import NodeEditor
 from editortab import EditorTab
 
 from lspace_ext import view_ecodoc_in_lspace
 
 import logging
+from debug import Debugger
 
 Ui_MainWindow, _     = uic.loadUiType('gui/gui.ui')
 Ui_ParseTree, _      = uic.loadUiType('gui/parsetree.ui')
@@ -61,6 +76,7 @@ Ui_FindDialog, _     = uic.loadUiType('gui/finddialog.ui')
 Ui_LanguageDialog, _ = uic.loadUiType('gui/languagedialog.ui')
 Ui_Settings, _       = uic.loadUiType('gui/settings.ui')
 Ui_Preview, _        = uic.loadUiType('gui/preview.ui')
+Ui_Breakpoint, _     = uic.loadUiType('gui/breakpoint.ui')
 
 def print_var(name, value):
     print("%s: %s" % (name, value))
@@ -308,7 +324,6 @@ class SettingsView(QtGui.QMainWindow):
         self.background = settings.value("app_background", "#ffffff").toString()
         self.change_color(self.ui.app_foreground, self.foreground)
         self.change_color(self.ui.app_background, self.background)
-        self.ui.app_highlight_line.setChecked(settings.value("highlight_line", False).toBool())
         # Profiling pane.
         tool_info_family = settings.value("tool-font-family").toString()
         tool_info_size = settings.value("tool-font-size").toInt()[0]
@@ -345,6 +360,9 @@ class SettingsView(QtGui.QMainWindow):
         settings.setValue("gen_showparsestatus", self.ui.gen_showparsestatus.checkState())
         settings.setValue("font-family", self.ui.app_fontfamily.currentFont().family())
         settings.setValue("font-size", self.ui.app_fontsize.value())
+        settings.setValue("tool-font-family", self.ui.tool_info_fontfamily.currentFont().family())
+        settings.setValue("tool-font-size", self.ui.tool_info_fontsize.value())
+
         settings.setValue("app_theme", self.ui.app_theme.currentText())
         settings.setValue("app_themeindex", self.ui.app_theme.currentIndex())
         settings.setValue("app_custom", self.ui.app_custom.isChecked())
@@ -472,6 +490,26 @@ class FindDialog(QtGui.QDialog):
         self.ui.leText.setFocus(True)
         self.ui.leText.selectAll()
 
+class BreakpointDialog(QtGui.QDialog):
+    def __init__(self, parent):
+        QtGui.QMainWindow.__init__(self)
+        self.parent = parent
+        QtGui.QDialog.__init__(self)
+        self.ui = Ui_Breakpoint()
+        self.ui.setupUi(self)
+        self.line_number = 0
+        self.connect(self.ui.buttonBox, SIGNAL("accepted()"), self.accept)
+        self.connect(self.ui.buttonBox, SIGNAL("rejected()"), self.reject)
+
+    def accept(self):
+        make_temp =  self.ui.bp_type.currentText() == 'Temporary'
+        self.parent.debug_breakpoint(make_temp, self.line_number, False,
+        self.ui.bp_condition.displayText(), str(self.ui.bp_ignore.value()), True)
+        self.hide()        
+
+    def reject(self):
+        self.hide()
+
 class LanguageView(QtGui.QDialog):
     def __init__(self, parent, languages):
         self.parent = parent
@@ -544,6 +582,7 @@ class Window(QtGui.QMainWindow):
         self.stateview = StateView(self)
         self.settingsview = SettingsView(self)
         self.previewdialog = PreviewDialog(self)
+        self.breakpointdialog = BreakpointDialog(self)
 
         self.connect(self.ui.actionImport, SIGNAL("triggered()"), self.importfile)
         self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
@@ -552,6 +591,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionExport, SIGNAL("triggered()"), self.export)
         self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
         self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
+        self.connect(self.ui.actionDebug, SIGNAL("triggered()"), self.debug_subprocess)
         self.connect(self.ui.actionProfile, SIGNAL("triggered()"), self.profile_subprocess)
         self.connect(self.ui.actionVisualise_automatically, SIGNAL("triggered()"), self.run_background_tools)
 
@@ -592,9 +632,16 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
         self.connect(self.ui.actionShow_tool_visualisations, SIGNAL("triggered()"), self.toggle_overlay)
 
-        # Make sure the Project -> Profile menu item only appears for
-        # languages that support it.
+        # Debug buttons
+        self.connect(self.ui.actionContinue, SIGNAL("triggered()"), self.debug_continue)
+        self.connect(self.ui.actionStop, SIGNAL("triggered()"), self.debug_stop)
+        self.connect(self.ui.actionStepInto, SIGNAL("triggered()"), self.debug_step_into)
+        self.connect(self.ui.actionStepOver, SIGNAL("triggered()"), self.debug_step_over)
+
+        # Make sure the Project -> Profile and Project -> Run with Debugger menu items
+        # only appear for languages that support it.
         self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.set_profiler_enabled)
+        self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.set_debugger_enabled)
 
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
@@ -608,6 +655,12 @@ class Window(QtGui.QMainWindow):
         self.finddialog = FindDialog(self)
 
         self.last_dir = None
+
+        self.debugging = False
+        self.expression_list = []
+        self.expression_num = 0
+        # hide debug expression box
+        self.ui.expressionBox.hide()
 
         # apply settings
         settings = QSettings("softdev", "Eco")
@@ -632,6 +685,11 @@ class Window(QtGui.QMainWindow):
         if (ed is not None) and (ed.tm is not None):
             self.ui.actionProfile.setEnabled(ed.tm.can_profile())
 
+    def set_debugger_enabled(self):
+        ed = self.getEditor()
+        if (ed is not None) and (ed.tm is not None):
+            self.ui.actionDebug.setEnabled(ed.tm.can_debug(ed.get_mainlanguage()))
+
     def run_background_tools(self):
         self.ui.actionShow_tool_visualisations.setChecked(True)
         ed_tab = self.getEditor()
@@ -649,6 +707,13 @@ class Window(QtGui.QMainWindow):
             self.profile_subprocess()
         else:
             ed_tab.run_background_tools = False
+    
+    def debug_finished(self):
+        self.ui.expressionBox.hide()
+        self.debug_toggle_buttons(False)     
+        self.debugging = False
+        self.debug_t.exit()
+        self.getEditorTab().is_debugging(False)                
 
     def draw_overlay(self, tool_data):
         """Send profiler or tool information to the overlay object."""
@@ -670,7 +735,6 @@ class Window(QtGui.QMainWindow):
         self.ui.actionShow_tool_visualisations.setChecked(False)
         ed_tab = self.getEditorTab()
         ed_tab.editor.hide_overlay()
-
 
     def consoleContextMenu(self, pos):
         def clear():
@@ -848,6 +912,18 @@ class Window(QtGui.QMainWindow):
         self.ui.teConsole.clear()
         self.thread.start()
 
+    def debug_subprocess(self):
+        if self.debugging:
+            self.debugger.exit()
+            self.debug_finished()
+        self.ui.teConsole.clear()
+        self.ui.dockWidget.show()
+        self.ui.expressionBox.show()
+        self.debug_t.start()
+        self.emit(self.debugger.signal_start)
+        self.debugging = True
+        self.getEditorTab().is_debugging(True)
+
     def profile_subprocess(self):
         self.ui.teConsole.clear()
         self.ui.actionShow_tool_visualisations.setChecked(True)
@@ -969,6 +1045,8 @@ class Window(QtGui.QMainWindow):
                 text = text[:-1]
             # key simulated opening
             self.getEditor().insertTextNoSim(text)
+            #self.btReparse(None)
+            #self.getEditor().update()
 
     def newfile(self):
         # create new nodeeditor
@@ -983,6 +1061,7 @@ class Window(QtGui.QMainWindow):
             etab.editor.setFocus(Qt.OtherFocusReason)
             etab.editor.setContextMenuPolicy(Qt.CustomContextMenu)
             etab.editor.customContextMenuRequested.connect(self.contextMenu)
+            self.set_breakpoint_signals(etab)
             self.toggle_menu(True)
             return True
         return False
@@ -1100,6 +1179,8 @@ class Window(QtGui.QMainWindow):
                 etab.editor.loadFromJson(filename)
                 etab.editor.update()
                 etab.filename = filename
+                lang = etab.editor.get_mainlanguage()
+                self.set_breakpoint_signals(etab)
 
                 self.ui.tabWidget.addTab(etab, os.path.basename(str(filename)))
                 self.ui.tabWidget.setCurrentWidget(etab)
@@ -1142,6 +1223,7 @@ class Window(QtGui.QMainWindow):
                 self.ui.actionStateGraph.setEnabled(True)
             else:
                 self.ui.actionStateGraph.setEnabled(False)
+            lang = ed_tab.editor.get_mainlanguage()
         else:
             self.toggle_menu(False)
         self.btReparse()
@@ -1151,6 +1233,9 @@ class Window(QtGui.QMainWindow):
         event.ignore()
 
     def quit(self):
+        if self.debugging:
+            if self.debug_t.isRunning():
+                self.debug_t.quit()
         for i in reversed(range(self.ui.tabWidget.count())):
             self.ui.tabWidget.setCurrentIndex(i)
             self.closeTab(i)
@@ -1168,12 +1253,15 @@ class Window(QtGui.QMainWindow):
         return self.ui.tabWidget.currentWidget()
 
     def btReparse(self, selected_node=[]):
+        results = []
         self.ui.treeWidget.clear()
         editor = self.getEditor()
         if editor is None:
             return
         nested = {}
         for parser, lexer, lang, _ in editor.tm.parsers:
+            #import cProfile
+            #cProfile.runctx("parser.inc_parse(self.ui.frame.line_indents)", globals(), locals())
             root = parser.previous_version.parent
             lbox_terminal = root.get_magicterminal()
             if lbox_terminal:
@@ -1245,7 +1333,115 @@ class Window(QtGui.QMainWindow):
 
         if enabled == False:
             self.ui.actionProfile.setEnabled(enabled)
+            self.ui.actionDebug.setEnabled(enabled)
             self.ui.actionStateGraph.setEnabled(enabled)
+
+    def debug_continue(self):
+        self.emit(self.debugger.signal_command, "c")
+
+    def debug_stop(self):
+        self.emit(self.debugger.signal_command, "q")
+
+    def debug_step_into(self):
+        self.emit(self.debugger.signal_command, "s")
+
+    def debug_step_over(self):
+        self.emit(self.debugger.signal_command, "n")
+    
+    def debug_toggle_buttons(self, enable):
+        self.ui.actionContinue.setEnabled(enable)
+        self.ui.actionStop.setEnabled(enable)
+        self.ui.actionStepInto.setEnabled(enable)
+        self.ui.actionStepOver.setEnabled(enable)
+    
+    def debug_breakpoint(self, isTemp, number, from_click, 
+        condition="", ignore=0, from_dialog=False):
+        # If there is a breakpoint and the user double clicks it (from_click)
+        # then the breakpoint should just be removed, don't make another one
+        if self.debugging:
+            removed_same_type = False
+            removed_bp = False
+            bp_number = self.debugger.get_breakpoints(False, number, False)
+            removed_same_type = (isTemp == False)
+            if not bp_number:
+                bp_number = self.debugger.get_breakpoints(True, number, False)  
+                removed_same_type = (isTemp == True)      
+            if bp_number:
+                # breakpoint exists, delete it
+                self.debugger.run_command("cl " + str(bp_number))
+                removed_bp = True
+                output = ""
+            if not ((removed_bp and removed_same_type) or
+            (from_click and removed_bp)) or from_dialog:
+                if isTemp:
+                    output=self.debugger.run_command("tbreak " + str(number))
+                else:
+                    output=self.debugger.run_command("b " + str(number))
+            if not output and not (condition or ignore):
+                return None
+
+            bp_index = output.split(" ")[2]
+            try: 
+                int(bp_index)                    
+            except ValueError:
+                return
+            if condition:
+                self.debugger.run_command("condition " + bp_index
+                + " " + str(condition))
+            if int(ignore) > 0:
+                self.debugger.run_command("ignore " + bp_index + " " + str(ignore))
+
+    def debug_breakpoint_condition(self, number):
+        """Open window to create breakpoint"""
+        self.breakpointdialog.show()
+        self.breakpointdialog.setWindowTitle("Set Breakpoint on line "+str(number))
+        self.breakpointdialog.line_number = number
+
+    def debug_expression(self):
+        if self.ui.expressionBox.displayText():
+            ex_input = self.ui.expressionBox.displayText()
+            self.debugger.run_command("p " + str(ex_input))
+            # Add expression to top of expression "stack" if it's not already there           
+            if self.expression_list.count(ex_input) > 0:
+                if not self.expression_list[0] == ex_input:
+                    self.expression_list.remove(ex_input)
+                    self.expression_list.insert(0, ex_input)
+            else:
+                # If 10 or more items are in the list, remove the oldest entry 
+                if len(self.expression_list) >= 10:
+                    self.expression_list.pop()  
+                self.expression_list.insert(0, ex_input)                         
+            self.expression_num = -1
+            self.ui.expressionBox.clear()
+
+    def set_breakpoint_signals(self, etab):
+        self.connect(etab, SIGNAL("breakpoint"), self.debug_breakpoint)
+        self.connect(etab, SIGNAL("breakcondition"), self.debug_breakpoint_condition)
+
+    def keyPressEvent(self, event):
+        if self.debugging:
+            if event.key() == QtCore.Qt.Key_Return or event.key() == QtCore.Qt.Key_Enter:
+                self.debug_expression()
+            elif event.key() == QtCore.Qt.Key_Down:
+                # Next most recent expression
+                self.change_expression(False)
+            elif event.key() == QtCore.Qt.Key_Up:
+                # Previous expression
+                self.change_expression(True)
+
+    def change_expression(self, previous):
+        if len(self.expression_list) == 0:
+            return None
+
+        # Go through list of used expressions and show next or previous one in the input box
+        if previous:
+           if self.expression_num+1 < len(self.expression_list):
+               self.expression_num += 1          
+        else:
+           if self.expression_num-1 >= 0:
+                self.expression_num -= 1
+        
+        self.ui.expressionBox.setText(self.expression_list[self.expression_num])
 
 def main():
     app = QtGui.QApplication(sys.argv)
@@ -1282,7 +1478,18 @@ def main():
     t = SubProcessThread(window, app)
     window.thread = t
     window.thread_prof = ProfileThread(window, app)
-    window.profile_throbber = Throbber(window.ui.tabWidget)
+
+    window.debug_t = QThread()
+    window.debugger = Debugger(window)
+    window.debugger.moveToThread(window.debug_t)
+
+    window.profile_throbber = Throbber(window.ui.tabWidget) 
+    window.connect(window, window.debugger.signal_command, window.debugger.run_command)
+    window.connect(window, window.debugger.signal_start, window.debugger.start_pdb)
+    window.connect(window.debugger, window.debugger.signal_output, window.show_output)
+    window.connect(window.debugger, window.debugger.signal_done, window.debug_finished)
+    window.connect(window.debugger, window.debugger.signal_toggle_buttons, window.debug_toggle_buttons)
+
     window.connect(window.thread, t.signal, window.show_output)
     window.connect(window.thread_prof, window.thread_prof.signal, window.show_output)
     # Connect the profiler (tool) thread to the throbber.
@@ -1300,7 +1507,6 @@ def main():
     t.wait()
     sys.exit(app.exec_())
 
-
 class SubProcessThread(QThread):
     def __init__(self, window, parent):
         QThread.__init__(self, parent=parent)
@@ -1316,8 +1522,7 @@ class SubProcessThread(QThread):
                 if lang == "PHP + Python":
                     if line.startswith("  <?php{ "):
                         line = "  " + line[9:]
-                self.emit(self.signal, line.rstrip())
-
+                self.emit(self.signal, line.rstrip())          
 
 class ProfileThread(QThread):
     def __init__(self, window, parent):

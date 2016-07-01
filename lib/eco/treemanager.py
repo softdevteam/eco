@@ -341,6 +341,9 @@ class TreeManager(object):
             "Ruby + SimpleLanguage" : True,
             "Ruby + JavaScript" : True,
         }
+        self.langs_with_debugger = {
+            "Python 2.7.5"
+        }
         self.input_log = []
 
     def can_profile(self):
@@ -348,6 +351,9 @@ class TreeManager(object):
         if lang_name in self.langs_with_profiler:
             return self.langs_with_profiler[lang_name]
         return False
+
+    def can_debug(self, main_lang):
+        return main_lang in self.langs_with_debugger
 
     def log_input(self, method, *args):
         self.input_log.append("self.%s(%s)" % (method, ", ".join(args)))
@@ -1557,7 +1563,7 @@ class TreeManager(object):
             print("Grammar Error: could not determine grammar type")
             return
 
-    def export(self, path=None, run=False, profile=False, source=None):
+    def export(self, path=None, run=False, profile=False, source=None, debug=False):
         for p, _, _, _ in self.parsers:
             if p.last_status == False:
                 print("Cannot export a syntactically incorrect grammar")
@@ -1574,7 +1580,7 @@ class TreeManager(object):
         elif lang == "PHP + Python" or lang == "PHP":
             return self.export_php_python(path, run, source=source)
         elif lang == "Python 2.7.5":
-            return CPythonExporter(self).export(path, run, profile)
+            return CPythonExporter(self).export(path=path, run=run, profile=profile, debug=debug)
         elif lang == "SimpleLanguage":
             return SimpleLanguageExporter(self).export(path=path, run=run)
         elif lang == "Ruby":

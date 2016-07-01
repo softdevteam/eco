@@ -993,5 +993,5 @@ class NodeEditor(QFrame):
         self.tm.load_file(language_boxes)
         self.reset()
 
-    def export(self, run=False, profile=False, source=None):
-        return self.tm.export(None, run, profile, source=source)
+    def export(self, run=False, profile=False, source=None, debug=False):
+        return self.tm.export(None, run, profile, source=source, debug=debug)
