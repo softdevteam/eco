@@ -65,6 +65,7 @@ from editortab import EditorTab
 from lspace_ext import view_ecodoc_in_lspace
 
 import logging
+from debug import Debugger
 
 Ui_MainWindow, _     = uic.loadUiType('gui/gui.ui')
 Ui_ParseTree, _      = uic.loadUiType('gui/parsetree.ui')
