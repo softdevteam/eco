@@ -241,8 +241,6 @@ class JRubyExporter(object):
                                      next(tempfile._get_candidate_names()) + ".txt")
         logging.debug("Placing callgraph trace in", log_file_name)
 
-        # Run this command:
-        #  $ jruby -X+T -Xtruffle.callgraph=true -Xtruffle.callgraph.write=test.txt -Xtruffle.dispatch.cache=2 FILE
         settings = QSettings("softdev", "Eco")
         jruby_bin = str(settings.value("env_jruby", "").toString())
         directory = str(settings.value("env_jruby_load", "").toString())
@@ -260,6 +258,7 @@ class JRubyExporter(object):
         settings = QSettings("softdev", "Eco")
         graalvm_bin = str(settings.value("env_graalvm", "").toString())
         subprocess.call(cmd, env={"JAVACMD":graalvm_bin})
+
         return callgraph_processor.annotate_tree(src_file_name, log_file_name)
 
 
@@ -393,22 +392,6 @@ class JRubyCallgraphProcessor(object):
                     continue
                 def_msg += "\n%s has %d versions" % (method.name, num_versions)
                 num_calls = 0
-                # Annotate method definitions.
-                if method.is_mega:
-                    dmsg = ("Method %s is megamorphic. %s has %g version(s) and %g callsite version(s) and is called %g time(s)" %
-                            (method.name,
-                             method.name,
-                             len(method.versions),
-                             len(method.callsites),
-                             num_calls))
-                else:
-                    dmsg = ("Method %s has %g version(s) and %g callsite version(s) and is called %g time(s)" %
-                            (method.name,
-                             len(method.versions),
-                             len(method.callsites),
-                             num_calls))
-                self._annotate_text(method.source.line_start, method.name,
-                                    dmsg, JRubyMorphismMsg)
                 # Find and annotate method calls.
                 for version in method.versions:
                     if len(version.called_from) == 0:
