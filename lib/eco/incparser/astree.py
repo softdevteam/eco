@@ -262,6 +262,17 @@ class Node(object):
                 return
             version -= 1
 
+    def get_attr(self, attr, version):
+        if version is None:
+            return self.__getattribute__(attr)
+        version = int(version)
+        while version >= 0:
+            try:
+                return self.log[(attr, version)]
+            except KeyError:
+                version -= 1
+        raise AttributeError("Attribute %s for version %s not found." % (attr, version))
+
     def remove_child(self, child):
         for i in xrange(len(self.children)):
             if self.children[i] is child:
