@@ -847,7 +847,7 @@ class TreeManager(object):
     def load_parsers(self):
         self.parsers = list(self.saved_parsers[self.version])
 
-    def save(self):
+    def save(self, postparse=False):
         self.save_lines()
         self.save_parsers()
         self.cursor.save(self.version)
@@ -865,7 +865,10 @@ class TreeManager(object):
                 if isinstance(node, EOS):
                     node.save(self.version)
                     break
-                if node.has_changes():
+                if node.has_changes() or node.new:
+                    if postparse:
+                        node.changed = False
+                        node.nested_changes = False
                     node.save(self.version)
                     if len(node.children) > 0:
                         node = node.children[0]
@@ -1715,11 +1718,6 @@ class TreeManager(object):
         lexer = self.get_lexer(root)
         return lexer.relex(node)
 
-    def savestate(self):
-        self.savenextparse = True
-        if self.last_saved_version < self.version:
-            self.reparse(self.get_bos(), True)
-
     def reparse(self, node, changed=True):
         if self.version < self.get_max_version():
             # we changed stuff after one or more undos
@@ -1727,10 +1725,19 @@ class TreeManager(object):
             self.clean_versions(self.version)
             self.last_saved_version = self.version
         if changed:
+            self.save_current_version() # save current changes
             root = node.get_root()
             parser = self.get_parser(root)
+            self.previous_version = self.version
+            parser.prev_version = self.version
             parser.inc_parse()
-        self.save_current_version()
+            self.save_current_version(postparse=True) # save post parse tree
+            if parser.last_status == True:
+                self.reference_version = self.version
+        else:
+            # save changes without reparse (e.g. when a value has changed but
+            # the type remains the same)
+            self.save_current_version(postparse=True)
         TreeManager.version = self.version
 
     def undo_snapshot(self):
@@ -1740,10 +1747,10 @@ class TreeManager(object):
             return
         self.undo_snapshots.append(self.version)
 
-    def save_current_version(self):
+    def save_current_version(self, postparse=False):
         self.log_input("save_current_version")
         self.version += 1
-        self.save()
+        self.save(postparse=postparse)
         TreeManager.version = self.version
 
     def full_reparse(self):

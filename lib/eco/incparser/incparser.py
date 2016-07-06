@@ -89,7 +89,6 @@ class IncParser(object):
         self.stack = []
         self.ast_stack = []
         self.all_changes = []
-        self.undo = []
         self.last_shift_state = 0
         self.validating = False
         self.last_status = False
@@ -148,7 +147,6 @@ class IncParser(object):
         self.validating = False
         self.error_node = None
         self.stack = []
-        self.undo = []
         self.current_state = 0
         self.stack.append(Node(FinishSymbol(), 0, []))
         bos = self.previous_version.parent.children[0]
@@ -163,9 +161,6 @@ class IncParser(object):
             logging.debug("\x1b[35mProcessing\x1b[0m %s %s %s %s", la, la.changed, id(la), la.indent)
             self.loopcount += 1
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
-                if la.changed:
-                    assert False # with prelexing you should never end up here!
-                else:
                     lookup_symbol = self.get_lookup(la)
                     result = self.parse_terminal(la, lookup_symbol)
                     if result == "Accept":
@@ -178,9 +173,8 @@ class IncParser(object):
                         la = result
 
             else: # Nonterminal
-                if la.changed or reparse:
+                if la.has_changes() or reparse or la.has_errors():
                     #la.changed = False # as all nonterminals that have changed are being rebuild, there is no need to change this flag (this also solves problems with comments)
-                    self.undo.append((la, 'changed', True))
                     la = self.left_breakdown(la)
                 else:
                     if USE_OPT:
@@ -238,6 +232,8 @@ class IncParser(object):
             #XXX change parse so that stack is [bos, startsymbol, eos]
             bos = self.previous_version.parent.children[0]
             eos = self.previous_version.parent.children[-1]
+            bos.changed = False
+            eos.changed = False
             self.previous_version.parent.set_children([bos, self.stack[1], eos])
             logging.debug("loopcount: %s", self.loopcount)
             logging.debug ("\x1b[32mAccept\x1b[0m")
@@ -259,7 +255,12 @@ class IncParser(object):
                 logging.debug("After breakdown: %s", self.stack[-1])
                 self.validating = False
             else:
-                return self.do_undo(la)
+                # XXX for now we always isolate the root
+                self.error_node = la
+                logging.debug ("\x1b[31mError\x1b[0m: %s %s %s", la, la.prev_term, la.next_term)
+                logging.debug("loopcount: %s", self.loopcount)
+                self.isolate(self.previous_version.parent)
+                return "Error"
 
     def get_lookup(self, la):
         if la.lookup != "":
@@ -271,14 +272,15 @@ class IncParser(object):
             lookup_symbol = Terminal(lookup_symbol.name)
         return lookup_symbol
 
-    def do_undo(self, la):
-        while len(self.undo) > 0:
-            node, attribute, value = self.undo.pop(-1)
-            setattr(node, attribute, value)
-        self.error_node = la
-        logging.debug ("\x1b[31mError\x1b[0m: %s %s %s", la, la.prev_term, la.next_term)
-        logging.debug("loopcount: %s", self.loopcount)
-        return "Error"
+    def isolate(self, node):
+        if node.has_changes():# or node.has_errors():
+            node.load(self.prev_version)
+            if node.nested_changes:
+                node.nested_errors = True
+            if node.changed:
+                node.local_error = True
+            for c in node.children:
+                self.isolate(c)
 
     def reduce(self, element):
         # Reduces elements from the stack to a Nonterminal subtree.  special:
@@ -306,11 +308,13 @@ class IncParser(object):
 
         # save childrens parents state
         for c in children:
-            self.undo.append((c, 'parent', c.parent))
-            self.undo.append((c, 'left', c.left))
-            self.undo.append((c, 'right', c.right))
-            self.undo.append((c, 'log', c.log.copy()))
-            c.mark_version() # XXX with node reuse we only have to do this if the parent changes
+            c.local_error = False
+            c.nested_errors = False
+            if not c.new:
+                # just marking changed is not enough. If we encounter an error
+                # during reduction the path from the root down to this node is
+                # incomplete and thus can't be reverted/isolate properly
+                c.mark_changed()
 
         new_node = Node(element.action.left.copy(), goto.action, children)
         self.pm.do_incparse_reduce(new_node)
@@ -475,7 +479,6 @@ class IncParser(object):
         self.stack = []
         self.ast_stack = []
         self.all_changes = []
-        self.undo = []
         self.last_shift_state = 0
         self.validating = False
         self.last_status = False

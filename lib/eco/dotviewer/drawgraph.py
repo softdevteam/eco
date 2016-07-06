@@ -15,9 +15,14 @@ COLOR = {
     'black': (0,0,0),
     'white': (255,255,255),
     'red': (255,0,0),
+    'firebrick': (205,50,50),
     'green': (0,255,0),
+    'limegreen': (50,255,50),
+    'mediumseagreen': (60,179,113),
+    'darkgreen': (50,255,50),
     'blue': (0,0,255),
     'yellow': (255,255,0),
+    'orange': (255,165,0),
     }
 re_nonword=re.compile(r'([^0-9a-zA-Z_.]+)')
 re_linewidth=re.compile(r'setlinewidth\((\d+(\.\d*)?|\.\d+)\)')
@@ -499,6 +504,19 @@ class GraphRenderer:
             def cmd():
                 pygame.draw.rect(self.screen, fgcolor, rect, 1)
             commands.append(cmd)
+            if node.name in self.highlightwords:
+                realnode = self.highlightwords[node.name]
+                try:
+                    v = int(realnode.get_attr("version", self.graphlayout.pgviewer.version))
+                except AttributeError:
+                    v = int(realnode.version)
+                font = self.getfont(10)
+                img = TextSnippet(self, str(v), (0,0,0), bgcolor, font=font)
+                w,h = img.get_size()
+                def cmd(img=img, y=hmax, w=w):
+                    img.draw(x + boxwidth - w, ytop-h)
+                commands.append(cmd)
+            
         elif node.shape == 'ellipse':
             rect = (x-1, y-1, boxwidth+2, boxheight+2)
             def cmd():

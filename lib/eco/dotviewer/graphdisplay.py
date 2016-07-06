@@ -473,6 +473,11 @@ class GraphDisplay(Display):
                     self.add_status_text(text, realnode, "lookup")
                     self.add_status_text(text, realnode, "prev_term")
                     self.add_status_text(text, realnode, "next_term")
+                    self.add_status_text(text, realnode, "left")
+                    self.add_status_text(text, realnode, "right")
+                elif isinstance(realnode.symbol, Nonterminal):
+                    self.add_status_text(text, realnode, "changed")
+                    self.add_status_text(text, realnode, "nested_changes")
                 self.add_status_text(text, realnode, "indent")
                 text = "; ".join(text)
             else:
@@ -512,6 +517,8 @@ class GraphDisplay(Display):
             if info.lookup == "<ws>":
                 return "ws(%s)" % len(info.symbol.name)
             if info.lookup == "<return>":
+                return repr(info.symbol.name)
+            if isinstance(info.symbol.name, str):
                 return repr(info.symbol.name)
             return info.symbol.name
         return str(info)
@@ -720,6 +727,7 @@ class GraphDisplay(Display):
         raise StopIteration
 
     def redraw_now(self):
+        self.viewer.highlightwords = self.layout.links
         self.viewer.render()
         if self.statusbarinfo:
             self.drawstatusbar()

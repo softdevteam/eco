@@ -527,7 +527,7 @@ class IncrementalLexerCF(object):
                 node.mark_changed()
                 any_changes = True
             else:
-                node.mark_version()
+                node.mark_changed()
             # we need to invalidate the newline if we changed whitespace or
             # logical nodes that come after it
             if node.lookup == "<ws>" or node.lookup != t.name:

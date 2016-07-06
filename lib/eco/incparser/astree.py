@@ -189,38 +189,24 @@ class Node(object):
                     matching.append(annotation)
         return matching
 
-    def save_ns(self, setchildren=False):
-        from treemanager import TreeManager
-        self.log[("ns", TreeManager.version)] = True
-
     def mark_changed(self):
+        if self.changed or self.nested_changes:
+            # this has already been marked
+            self.changed = True
+            return
         node = self
+        self.changed = True
         while True:
-            node.save_ns()
-            node.version = node.version + 0.000001
             if not node.parent:
                 # if language box changed we need to update the version numbers
-                # in the parent parser as well
+                # in the parent parser as well XXX WHY?
                 if node.get_magicterminal():
                     node.get_magicterminal().mark_version()
                 break
-            if node.parent.changed is True and node.parent.has_changes() is True:
+            if node.parent.has_changes():
                 break
             node = node.parent
-            node.changed = True
-
-    def mark_version(self):
-        node = self
-        while True:
-            node.save_ns()
-            node.version = node.version + 0.000001
-            if not node.parent:
-                if node.get_magicterminal():
-                    node.get_magicterminal().mark_version()
-                break
-            if node.parent.has_changes() is True:
-                break
-            node = node.parent
+            node.nested_changes = True
 
     def set_children(self, children):
         self.children = children
@@ -231,12 +217,15 @@ class Node(object):
             if last is not None:
                 last.right = c
             last = c
-            c.save_ns(True)
         if last is not None:
             last.right = None # last child has no right sibling
             #XXX need to save this?
 
     def save(self, version):
+        # XXX version set, e.g. set(0,1,5,6,9) that contains all versions in
+        # which this node has been saved. this way we can easily check if a
+        # the node has changes in that version and quickly get the closest
+        # versions to it if not
         self.log[("children", version)] = list(self.children)
         self.log[("parent", version)] = self.parent
         self.log[("left", version)] = self.left
@@ -245,6 +234,14 @@ class Node(object):
         self.log[("prev_term", version)] = self.prev_term
         self.log[("deleted", version)] = self.deleted
         self.log[("indent", version)] = self.indent
+        self.log[("changed", version)] = self.changed
+        self.log[("nested_changes", version)] = self.nested_changes
+        self.log[("nested_errors", version)] = self.nested_errors
+        self.log[("local_error", version)] = self.local_error
+        self.log[("version", version)] = version
+        if self.new:
+            self.log[("new", version)] = True
+            self.new = False
         self.version = version
 
     def load(self, version):
@@ -258,6 +255,10 @@ class Node(object):
                 self.prev_term = self.log[("prev_term", version)]
                 self.deleted = self.log[("deleted", version)]
                 self.indent = self.log[("indent", version)]
+                self.changed = self.log[("changed", version)]
+                self.nested_changes = self.log[("nested_changes", version)]
+                self.local_error = self.log[("local_error", version)]
+                self.nested_errors = self.log[("nested_errors", version)]
                 self.version = version
                 return
             version -= 1
@@ -278,23 +279,19 @@ class Node(object):
             if self.children[i] is child:
                 removed_child = self.children.pop(i)
                 removed_child.deleted = True
-                removed_child.save_ns()
                 # update siblings
                 if removed_child.left:
                     removed_child.left.right = removed_child.right
-                    removed_child.left.save_ns()
+                    removed_child.left.changed = True
                 if removed_child.right:
                     removed_child.right.left = removed_child.left
-                    removed_child.right.save_ns()
+                    removed_child.right.changed = True
                 # update terminal pointers
                 child.prev_term.next_term = child.next_term
-                child.prev_term.save_ns()
-                child.prev_term.mark_version()
+                child.prev_term.mark_changed()
                 child.next_term.prev_term = child.prev_term
-                child.next_term.save_ns()
-                child.next_term.mark_version()
+                child.next_term.mark_changed()
                 self.mark_changed()
-                self.changed = True
                 return
 
     def insert_after(self, node):
@@ -305,21 +302,21 @@ class Node(object):
         for c in self.children:
             if c is node:
                 self.children.insert(i+1, newnode)
+                self.mark_changed()
                 newnode.parent = self
                 newnode.mark_changed()
                 # update siblings
                 newnode.left = c
                 newnode.right = c.right
                 c.right = newnode
-                c.save_ns()
+                c.changed = True
                 if newnode.right:
                     newnode.right.left = newnode
-                    newnode.right.save_ns()
+                    newnode.right.changed = True
                 # update terminal pointers
                 newnode.prev_term = node
                 node.next_term.prev_term = newnode
-                node.next_term.save_ns()
-                node.next_term.mark_version()
+                node.next_term.mark_changed()
                 newnode.next_term = node.next_term
                 node.next_term = newnode
                 newnode.magic_parent = node.magic_parent
@@ -444,11 +441,15 @@ uppercase = set(list(string.ascii_uppercase))
 digits = set(list(string.digits))
 
 class TextNode(Node):
-    __slots__ = ["log", "version", "position", "changed", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookup", "parent_lbox", "magic_backpointer", "indent"]
+    __slots__ = ["log", "version", "position", "changed", "local_error", "nested_errors", "nested_changes", "new", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookup", "parent_lbox", "magic_backpointer", "indent"]
     def __init__(self, symbol, state=-1, children=[], pos=-1, lookahead=0):
         Node.__init__(self, symbol, state, children)
         self.position = 0
         self.changed = False
+        self.new = True
+        self.nested_changes = False
+        self.local_error = False
+        self.nested_errors = False
         self.deleted = False
         self.image = None
         self.image_src = None
@@ -505,14 +506,21 @@ class TextNode(Node):
     def change_text(self, text):
         _cls = self.symbol.__class__
         self.symbol = _cls(text)
-        self.mark_version()
+        self.mark_changed()
 
     def save(self, version):
         Node.save(self, version)
         self.log[("symbol.name", version)] = self.symbol.name
+        self.log[("lookup", version)] = self.lookup
 
     def load(self, version):
         Node.load(self, version)
+        while version >= 0:
+            if ("parent", version) in self.log:
+                self.lookup = self.log[("lookup", version)]
+                return
+            version -= 1
+
         if not isinstance(self.symbol, Terminal):
             return
         text = self.get_text(version)
@@ -521,11 +529,14 @@ class TextNode(Node):
         else:
             pass
 
-    def has_changes(self, version=None):
-        if version is None:
-            from treemanager import TreeManager
-            version = TreeManager.version
-        return self.log.has_key(("ns", version))
+    def is_new(self, version):
+        return ("new", version) in self.log
+
+    def has_changes(self):
+        return self.changed or self.nested_changes
+
+    def has_errors(self):
+        return self.nested_errors or self.local_error
 
     def get_text(self, version):
         while True:

@@ -2638,3 +2638,25 @@ y = 13""":
         self.treemanager.key_normal("#")
         assert self.parser.last_status == True
         
+class Test_ChangeReporting(Test_Helper):
+
+    def setup_class(cls):
+        parser, lexer = calc.load()
+        cls.lexer = lexer
+        cls.parser = parser
+        cls.parser.init_ast()
+        cls.ast = cls.parser.previous_version
+        cls.treemanager = TreeManager()
+        cls.treemanager.add_parser(cls.parser, cls.lexer, calc.name)
+        cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+    def test_right_sibling_bug(self):
+        for k in "1+2+3":
+            self.treemanager.key_normal(k)
+
+        self.move(LEFT, 3)
+        self.treemanager.key_normal("+")
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal("+")
+        self.move(LEFT, 1)
+        self.treemanager.key_normal("4")

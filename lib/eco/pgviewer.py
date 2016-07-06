@@ -105,11 +105,32 @@ class PGViewer(object):
         dotnode = pydot.Node("\"%s\"" % id(node), label='"%s"' % label, shape="box")
 
         try:
-            changed = node.get_attr("changed", self.version)
+            if node.get_attr("nested_errors", self.version):
+                dotnode.set('color','firebrick')
         except AttributeError:
-            changed = node.changed
-        if changed:
-            dotnode.set('color','green')
+            pass
+
+        try:
+            if node.get_attr("local_error", self.version):
+                dotnode.set('color','red')
+        except AttributeError:
+            pass
+
+        try:
+            if node.get_attr("nested_changes", self.version):
+                dotnode.set('color','mediumseagreen')
+        except AttributeError:
+            pass
+
+        try:
+            if node.get_attr("changed", self.version):
+                dotnode.set('color','limegreen')
+        except AttributeError:
+            pass
+
+
+        if node.is_new(self.version):
+            dotnode.set('color','orange')
 
         graph.add_node(dotnode)
 
