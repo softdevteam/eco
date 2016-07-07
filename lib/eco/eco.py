@@ -842,6 +842,7 @@ class Window(QtGui.QMainWindow):
         parser.add_option("-l", "--log", default="WARNING", help="Log level: INFO, WARNING, ERROR, DEBUG [default: %default]")
         parser.add_option("-e", "--export", action="store_true", default=False, help="Fast export files. Usage: --export [SOURCE] [DESTINATION]")
         parser.add_option("-f", "--fullexport", action="store_true", default=False, help="Export files. Usage: --fullexport [SOURCE] [DESTINATION]")
+        parser.add_option("-g", "--grammar", action="store_true", default=None, help="Load external grammar. Usage: --grammar [GRAMMARFILE]")
         (options, args) = parser.parse_args()
         if options.preload:
             self.preload()
@@ -853,6 +854,9 @@ class Window(QtGui.QMainWindow):
             source = args[0]
             dest = args[1]
             self.cli_export(source, dest, True)
+        if options.grammar:
+            self.load_external_grammar(args[0])
+            return
         if len(args) > 0:
             for f in args:
                 self.openfile(QString(f))
@@ -1082,6 +1086,20 @@ class Window(QtGui.QMainWindow):
             self.toggle_menu(True)
             return True
         return False
+
+    def load_external_grammar(self, filename):
+        from grammars.grammars import EcoFile, lang_dict
+        etab = EditorTab()
+        lang = "ExternalGrammar"
+        tmpgrm = EcoFile(lang, filename, "")
+        lang_dict[lang] = tmpgrm
+        etab.set_language(tmpgrm, False)
+        self.ui.tabWidget.addTab(etab, "[No name]")
+        self.ui.tabWidget.setCurrentWidget(etab)
+        etab.editor.setFocus(Qt.OtherFocusReason)
+        etab.editor.setContextMenuPolicy(Qt.CustomContextMenu)
+        etab.editor.customContextMenuRequested.connect(self.contextMenu)
+        self.toggle_menu(True)
 
     def savefile(self):
         ed = self.getEditorTab()
