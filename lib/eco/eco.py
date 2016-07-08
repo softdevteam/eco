@@ -470,7 +470,7 @@ class PreviewDialog(QtGui.QDialog):
             self.ui.textEdit.setText(text)
         elif index == "Default":
             text = self.tm.export("/dev/null")
-            if text is None or text is False:
+            if not text:
                 text = ""
                 self.show_export_fail_message()
             self.ui.textEdit.setText(text)
@@ -893,7 +893,7 @@ class Window(QtGui.QMainWindow):
         else:
             self.tm.load_file(language_boxes)
             ex = self.tm.export(dest, source=source)
-            if not ex:
+            if ex == False:
                 self.show_export_fail_message()
         QApplication.quit()
         sys.exit(1)
@@ -1168,7 +1168,7 @@ class Window(QtGui.QMainWindow):
             ed.export_path = QFileDialog.getSaveFileName()
         if ed.export_path:
             ex = self.getEditor().tm.export(ed.export_path, source=ed.filename)
-        if not ex:
+        if ex == False:
             self.show_export_fail_message()
 
     def exportAs(self):
@@ -1180,7 +1180,7 @@ class Window(QtGui.QMainWindow):
             self.save_last_dir(str(path))
             ed.export_path = path
             ex = self.getEditor().tm.export(path, source=ed.filename)
-        if not ex:
+        if ex == False:
             self.show_export_fail_message()
 
     def show_export_fail_message(self):
