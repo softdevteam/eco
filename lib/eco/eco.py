@@ -470,8 +470,9 @@ class PreviewDialog(QtGui.QDialog):
             self.ui.textEdit.setText(text)
         elif index == "Default":
             text = self.tm.export("/dev/null")
-            if text is None:
+            if text is None or text is False:
                 text = ""
+                self.show_export_fail_message()
             self.ui.textEdit.setText(text)
 
 class FindDialog(QtGui.QDialog):
@@ -891,7 +892,9 @@ class Window(QtGui.QMainWindow):
             self.tm.fast_export(language_boxes, dest, source=source)
         else:
             self.tm.load_file(language_boxes)
-            self.tm.export(dest, source=source)
+            ex=self.tm.export(dest, source=source)
+            if not ex:
+                self.show_export_fail_message()
         QApplication.quit()
         sys.exit(1)
 
@@ -1164,7 +1167,9 @@ class Window(QtGui.QMainWindow):
         if not ed.export_path:
             ed.export_path = QFileDialog.getSaveFileName()
         if ed.export_path:
-            self.getEditor().tm.export(ed.export_path, source=ed.filename)
+            ex=self.getEditor().tm.export(ed.export_path, source=ed.filename)
+        if not ex:
+            self.show_export_fail_message()
 
     def exportAs(self):
         ed = self.getEditorTab()
@@ -1174,7 +1179,12 @@ class Window(QtGui.QMainWindow):
         if path:
             self.save_last_dir(str(path))
             ed.export_path = path
-            self.getEditor().tm.export(path, source=ed.filename)
+            ex=self.getEditor().tm.export(path, source=ed.filename)
+        if not ex:
+            self.show_export_fail_message()
+
+    def show_export_fail_message(self):
+        QMessageBox.about(self, "Error", "Eco cannot execute/export this program because it is syntactically invalid.")
 
     def get_last_dir(self):
         settings = QSettings("softdev", "Eco")
@@ -1530,7 +1540,9 @@ def main():
     window.connect(window.debugger, window.debugger.signal_output, window.show_output)
     window.connect(window.debugger, window.debugger.signal_done, window.debug_finished)
     window.connect(window.debugger, window.debugger.signal_toggle_buttons, window.debug_toggle_buttons)
+    window.connect(window.debugger, window.debugger.signal_execute_fail, window.show_export_fail_message)
 
+    window.connect(window.thread, t.signal_execute_fail, window.show_export_fail_message)
     window.connect(window.thread, t.signal, window.show_output)
     window.connect(window.thread_prof, window.thread_prof.signal, window.show_output)
     # Connect the profiler (tool) thread to the throbber.
@@ -1553,6 +1565,7 @@ class SubProcessThread(QThread):
         QThread.__init__(self, parent=parent)
         self.window = window
         self.signal = QtCore.SIGNAL("output")
+        self.signal_execute_fail = QtCore.SIGNAL("executefail")
 
     def run(self):
         ed = self.window.getEditorTab()
@@ -1563,7 +1576,9 @@ class SubProcessThread(QThread):
                 if lang == "PHP + Python":
                     if line.startswith("  <?php{ "):
                         line = "  " + line[9:]
-                self.emit(self.signal, line.rstrip())          
+                self.emit(self.signal, line.rstrip())
+        else:
+            self.emit(self.signal_execute_fail)
 
 class ProfileThread(QThread):
     def __init__(self, window, parent):
@@ -1572,6 +1587,7 @@ class ProfileThread(QThread):
         self.signal_done = QtCore.SIGNAL("finished")
         self.signal = QtCore.SIGNAL("output")
         self.signal_overlay = QtCore.SIGNAL("profile_overlay")
+        self.signal_execute_fail = QtCore.SIGNAL("executefail")
 
     def run(self):
         ed = self.window.getEditorTab()
@@ -1584,6 +1600,7 @@ class ProfileThread(QThread):
             self.emit(self.signal_overlay, self.window.getEditor().tm.profile_data)
         else:
             self.emit(self.signal_overlay, None)
+            self.emit(self.signal_execute_fail)
         self.emit(self.signal_done, None)
 
 
