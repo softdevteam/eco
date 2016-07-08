@@ -13,23 +13,22 @@ class Debugger(QObject):
         # incoming signals
         self.signal_command = SIGNAL("command")
         self.signal_start = SIGNAL("start")
-        # outgoing signals
+        # outcoming signals
         self.signal_done = SIGNAL("finished")
         self.signal_output = SIGNAL("output")
         self.signal_toggle_buttons = SIGNAL("disablebuttons")
-        self.signal_execute_fail = SIGNAL("executefail")
         self.telnet = None
 
     def start_pdb(self):   
         self.breakpoints = {'keep': [], 'del': []}      
         self.line_read_until = '(Pdb)'   
         self.process = self.window.getEditor().tm.export(debug=True)
+        flags = fcntl(self.process.stdout, F_GETFL)
+        fcntl(self.process.stdout, F_SETFL, flags | O_NONBLOCK)       
         if not self.process:
-            self.emit(self.signal_execute_fail)
+            self.emit(self.signal_output, "Cannot run debugger process, cannot debug.")
             self.exit()
             return
-        flags = fcntl(self.process.stdout, F_GETFL)
-        fcntl(self.process.stdout, F_SETFL, flags | O_NONBLOCK)
         self.telnet = None
         attempt = 0
         while not self.telnet:
@@ -86,9 +85,8 @@ class Debugger(QObject):
 
     def print_program_output(self):
         try:
-            if self.process:
-                program_output = self.process.stdout.read()
-                self.emit(self.signal_output, program_output.strip())
+            program_output = self.process.stdout.read()
+            self.emit(self.signal_output, program_output.strip())
         except (OSError, IOError):
             pass
         return
@@ -158,8 +156,7 @@ class Debugger(QObject):
     def exit(self):
         self.print_program_output()
         try:
-            if self.process:
-                self.process.kill()
+            self.process.kill()
         except OSError:
             pass
         if self.window.debugging:
