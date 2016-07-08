@@ -892,7 +892,7 @@ class Window(QtGui.QMainWindow):
             self.tm.fast_export(language_boxes, dest, source=source)
         else:
             self.tm.load_file(language_boxes)
-            ex=self.tm.export(dest, source=source)
+            ex = self.tm.export(dest, source=source)
             if not ex:
                 self.show_export_fail_message()
         QApplication.quit()
@@ -1167,7 +1167,7 @@ class Window(QtGui.QMainWindow):
         if not ed.export_path:
             ed.export_path = QFileDialog.getSaveFileName()
         if ed.export_path:
-            ex=self.getEditor().tm.export(ed.export_path, source=ed.filename)
+            ex = self.getEditor().tm.export(ed.export_path, source=ed.filename)
         if not ex:
             self.show_export_fail_message()
 
@@ -1179,7 +1179,7 @@ class Window(QtGui.QMainWindow):
         if path:
             self.save_last_dir(str(path))
             ed.export_path = path
-            ex=self.getEditor().tm.export(path, source=ed.filename)
+            ex = self.getEditor().tm.export(path, source=ed.filename)
         if not ex:
             self.show_export_fail_message()
 
