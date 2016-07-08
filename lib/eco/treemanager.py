@@ -1567,7 +1567,7 @@ class TreeManager(object):
         for p, _, _, _ in self.parsers:
             if p.last_status == False:
                 print("Cannot export a syntactically incorrect grammar")
-                return
+                return False
 
         if str(path).endswith(".aterms"):
             return self.export_aterms(path)
@@ -1575,8 +1575,10 @@ class TreeManager(object):
         lang = self.parsers[0][2]
         if lang == "Python + Prolog":
             self.export_unipycation(path)
+            return True
         elif lang == "HTML + Python + SQL":
             self.export_html_python_sql(path)
+            return True
         elif lang == "PHP + Python" or lang == "PHP":
             return self.export_php_python(path, run, source=source)
         elif lang == "Python 2.7.5":
