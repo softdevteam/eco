@@ -198,10 +198,6 @@ class Node(object):
         self.changed = True
         while True:
             if not node.parent:
-                # if language box changed we need to update the version numbers
-                # in the parent parser as well XXX WHY?
-                if node.get_magicterminal():
-                    node.get_magicterminal().mark_version()
                 break
             if node.parent.has_changes():
                 break
@@ -263,6 +259,12 @@ class Node(object):
                 return
             version -= 1
 
+    def delete_version(self, version):
+        for attr in ["parent", "children", "left", "right", "next_term", "prev_term", "deleted", "indent",\
+                "changed", "nested_changes", "local_error", "nested_errors", "symbol.name", "lookup", "version"]:
+            if (attr, version) in self.log:
+                self.log.pop((attr, version))
+
     def get_attr(self, attr, version):
         if version is None:
             return self.__getattribute__(attr)
@@ -277,20 +279,13 @@ class Node(object):
     def remove_child(self, child):
         for i in xrange(len(self.children)):
             if self.children[i] is child:
-                removed_child = self.children.pop(i)
+                removed_child = child
                 removed_child.deleted = True
-                # update siblings
-                if removed_child.left:
-                    removed_child.left.right = removed_child.right
-                    removed_child.left.changed = True
-                if removed_child.right:
-                    removed_child.right.left = removed_child.left
-                    removed_child.right.changed = True
-                # update terminal pointers
                 child.prev_term.next_term = child.next_term
                 child.prev_term.mark_changed()
                 child.next_term.prev_term = child.prev_term
                 child.next_term.mark_changed()
+                child.mark_changed()
                 self.mark_changed()
                 return
 
@@ -518,7 +513,7 @@ class TextNode(Node):
         while version >= 0:
             if ("parent", version) in self.log:
                 self.lookup = self.log[("lookup", version)]
-                return
+                break
             version -= 1
 
         if not isinstance(self.symbol, Terminal):
@@ -532,6 +527,13 @@ class TextNode(Node):
     def is_new(self, version):
         return ("new", version) in self.log
 
+    def has_unsaved_changes(self):
+        if self.changed != self.log[("changed", self.version)]:
+            return True
+        if self.nested_changes != self.log[("nested_changes", self.version)]:
+            return True
+        return False
+
     def has_changes(self):
         return self.changed or self.nested_changes
 
@@ -539,14 +541,11 @@ class TextNode(Node):
         return self.nested_errors or self.local_error
 
     def get_text(self, version):
-        while True:
-            try:
+        while version >= 0:
+            if ("symbol.name", version) in self.log:
                 return self.log[("symbol.name", version)]
-            except KeyError:
-                version -= 1
-                if version == -1:
-                    return None
-                continue
+            version -= 1
+        return self.symbol.name
 
     def insert(self, char, pos):
         l = list(self.symbol.name)

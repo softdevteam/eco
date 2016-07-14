@@ -220,6 +220,12 @@ class IncParser(object):
 
     def parse_terminal(self, la, lookup_symbol):
         element = None
+        if la.deleted:
+            # Nodes are no longer removed from the tree. Instead "deleted" nodes
+            # are skipped during parsing so they won't end up in the next parse
+            # tree. This allows to revert deleted nodes on undo.
+            la = self.pop_lookahead(la)
+            return la
         if isinstance(la, EOS):
             element = self.syntaxtable.lookup(self.current_state, Terminal("<eos>"))
             if isinstance(element, Shift):

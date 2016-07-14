@@ -414,13 +414,17 @@ class IncrementalLexerCF(object):
     def relex_import(self, startnode, version = 0):
         success = self.lex(startnode.symbol.name)
         bos = startnode.prev_term # bos
-        startnode.parent.remove_child(startnode)
         parent = bos.parent
         eos = parent.children.pop()
         last_node = bos
         for match in success:
-            node = TextNode(Terminal(match[0]))
-            node.version = version
+            if match is success[0]:
+                # reuse old node for fist node to mimic the behaviour of a
+                # normal relex
+                node = startnode
+                node.symbol.name = match[0]
+            else:
+                node = TextNode(Terminal(match[0]))
             node.lookup = match[1]
             parent.children.append(node)
             last_node.next_term = node
@@ -429,11 +433,15 @@ class IncrementalLexerCF(object):
             node.prev_term = last_node
             node.parent = parent
             last_node = node
+            node.mark_changed()
         parent.children.append(eos)
         last_node.right = eos # link to eos
         last_node.next_term = eos
         eos.left = last_node
         eos.prev_term = last_node
+        bos.mark_changed()
+        eos.mark_changed()
+        parent.mark_changed()
 
 
     def split_endcomment(self, node):
@@ -478,6 +486,9 @@ class IncrementalLexerCF(object):
         current_node = node
         next_token = self.lexer.get_token_iter(StringWrapper(node))
         while True:
+            if current_node.deleted:
+                current_node = current_node.next_term
+                continue
             token = next_token()
             if token.source == "":
                 read_nodes.append(current_node)

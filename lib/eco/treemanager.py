@@ -36,6 +36,17 @@ from utils import arrow_keys, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT
 
 import math
 
+def debug_trace():
+  '''Set a tracepoint in the Python debugger that works with Qt'''
+  from PyQt4.QtCore import pyqtRemoveInputHook
+
+  # Or for Qt5
+  #from PyQt5.QtCore import pyqtRemoveInputHook
+
+  from pdb import set_trace
+  pyqtRemoveInputHook()
+  set_trace()
+
 class FontManager(object):
     def __init__(self):
         self.fontht = 0
@@ -319,13 +330,14 @@ class TreeManager(object):
         self.edit_rightnode = False # changes which node to select when inbetween two nodes
         self.changed = False
         self.last_search = ""
-        self.version = 1
+        self.version = self.global_version = 1
         TreeManager.version = 1
         self.last_saved_version = 1
         self.savenextparse = False
         self.saved_lines = {}
         self.saved_parsers = {}
         self.undo_snapshots = []
+        self.min_version = 1
 
         self.tool_data_is_dirty = False
 
@@ -686,10 +698,9 @@ class TreeManager(object):
             undo_amount = self.undo_snapshots[i+1] - self.undo_snapshots[i]
         except ValueError:
             undo_amount = self.undo_snapshots[0] - self.version
-        for i in range(undo_amount):
+        for u in range(undo_amount):
             self.version += 1
-            TreeManager.version = self.version
-            self.recover_version("redo")
+            self.recover_version("redo", self.version - 1)
             self.cursor.load(self.version, self.lines)
 
     def get_max_version(self):
@@ -703,7 +714,8 @@ class TreeManager(object):
         self.log_input("key_ctrl_z")
         if len(self.undo_snapshots) == 0 and self.get_max_version() > 1:
             self.undo_snapshots.append(self.version)
-        if not self.undo_snapshots:
+        if not self.undo_snapshots or self.version == self.min_version:
+            # min_version is needed so we can't undo importing/loading files
             return
         if self.undo_snapshots[-1] != self.get_max_version() and self.version == self.get_max_version():
             # if there are unsaved changes, save before undo so we can redo them again
@@ -716,52 +728,40 @@ class TreeManager(object):
             undo_amount = self.version - 1
         else:
             undo_amount = self.undo_snapshots[i] - self.undo_snapshots[i-1]
-        for i in range(undo_amount):
+        for u in range(undo_amount):
             self.version -= 1
-            TreeManager.version = self.version
-            self.recover_version("undo")
+            self.recover_version("undo", self.version + 1)
             self.cursor.load(self.version, self.lines)
 
-    def recover_version(self, direction):
+    def recover_version(self, direction, _from):
         self.load_lines()
         self.load_parsers()
         for l in self.parsers:
             parser = l[0]
             parser.load_status(self.version)
             root = parser.previous_version.parent
-            #root = self.cursor.node.get_root()#get_bos().parent
-            root.load(self.version)
-            bos = root.children[0]
-            bos.load(self.version)
-            eos = root.children[-1]
-            eos.load(self.version)
-            node = self.pop_lookahead(bos)
-            while True:
-                if isinstance(node, EOS):
-                    break
-                prev_version = node.version
-                if direction == "undo":
-                    # recover old version if changes were made in that version
-                    if not node.has_changes(self.version):
-                        node = self.pop_lookahead(node)
-                        continue
-                elif direction == "redo":
-                    # recover newer version of node.version is smaller
-                    # however, if after reloading the version stays the same
-                    # we don't have to update the whole subtree
-                    if node.version < self.version:
-                        node.load(self.version)
-                        if node.version == prev_version:
-                            node = self.pop_lookahead(node)
-                            continue
-                node.load(self.version)
-                # continue with children
-                if len(node.children) > 0:
-                    node = node.children[0]
-                    continue
-                else:
-                    # skip subtree and continue otherwise
-                    node = self.pop_lookahead(node)
+            if direction == "undo":
+                self.undo(root)
+            elif direction == "redo":
+                self.redo(root, _from)
+
+    def undo(self, node):
+        if node.version <= self.version and not node.has_unsaved_changes():
+            # node is already at this or an even earlier version and has no
+            # unsaved changes
+            return
+        for c in node.children:
+            self.undo(c)
+        if not node.is_new(node.version):
+            node.load(self.version)
+            for c in node.children:
+                self.undo(c)
+
+    def redo(self, node, _from):
+        node.load(self.version)
+        if node.version > _from:
+            for c in node.children:
+                self.redo(c, _from)
 
     def pop_lookahead(self, la):
         while(la.right_sibling() is None):
@@ -1358,7 +1358,7 @@ class TreeManager(object):
 
         self.cursor.fix()
         self.cursor.line += text.count("\r")
-        self.changed = True
+        self.changed = True #XXX needed?
 
     def cutSelection(self):
         self.log_input("cutSelection")
@@ -1488,15 +1488,7 @@ class TreeManager(object):
 
     def import_file(self, text):
         self.log_input("import_file", repr(text))
-        TreeManager.version = 0
-        self.version = 0
-        # init
-        self.cursor.node = self.get_bos()
-        self.cursor.pos = 0
-        self.cursor.line = 0
-        for p in self.parsers[1:]:
-            del p
-        # convert linebreaks
+        self.version = self.global_version = 0
         text = text.replace("\r\n","\r")
         text = text.replace("\n","\r")
         parser = self.parsers[0][0]
@@ -1505,11 +1497,12 @@ class TreeManager(object):
         bos = parser.previous_version.parent.children[0]
         new = TextNode(Terminal(text))
         bos.insert_after(new)
-        lexer.relex_import(new, self.version+1)
+        lexer.relex_import(new, self.version)
         self.rescan_linebreaks(0)
-        self.reparse(bos)
-        self.undo_snapshot()
         self.changed = True
+        self.reparse(bos)
+        self.undo_snapshots = [self.version]
+        self.min_version = self.version
         return
 
     def fast_export(self, language_boxes, path, source=None):
@@ -1546,7 +1539,7 @@ class TreeManager(object):
         self.rescan_linebreaks(0)
 
         self.savenextparse = True
-        self.version = 1
+        self.version = self.global_version = 1
         self.last_saved_version = 1
         self.full_reparse()
         self.save()
@@ -1719,11 +1712,20 @@ class TreeManager(object):
         return lexer.relex(node)
 
     def reparse(self, node, changed=True):
-        if self.version < self.get_max_version():
+        if self.version < self.global_version:
             # we changed stuff after one or more undos
             # later versions are void -> delete
-            self.clean_versions(self.version)
-            self.last_saved_version = self.version
+            #self.clean_versions(self.version)
+            #self.last_saved_version = self.version
+            for l in self.parsers:
+                root = l[0].previous_version.parent
+                for v in range(self.version+1, self.global_version+1):
+                    self.delete_version(v, root)
+                    try:
+                        self.undo_snapshots.remove(v)
+                    except ValueError:
+                        pass
+            self.global_version = self.version
         if changed:
             self.save_current_version() # save current changes
             root = node.get_root()
@@ -1740,6 +1742,13 @@ class TreeManager(object):
             self.save_current_version(postparse=True)
         TreeManager.version = self.version
 
+    def delete_version(self, version, node):
+        if ("parent", version) in node.log:
+            children = node.log["children", version]
+            node.delete_version(version)
+            for c in children:
+                self.delete_version(version, c)
+
     def undo_snapshot(self):
         if self.undo_snapshots and self.undo_snapshots[-1] == self.version:
             # Snapshot already taken (this can happen in fuzzy tests where
@@ -1749,7 +1758,8 @@ class TreeManager(object):
 
     def save_current_version(self, postparse=False):
         self.log_input("save_current_version")
-        self.version += 1
+        self.global_version += 1
+        self.version = self.global_version
         self.save(postparse=postparse)
         TreeManager.version = self.version
 

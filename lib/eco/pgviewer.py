@@ -128,6 +128,12 @@ class PGViewer(object):
         except AttributeError:
             pass
 
+        try:
+            if node.get_attr("deleted", self.version):
+                dotnode.set('color','gray')
+        except AttributeError:
+            pass
+
 
         if node.is_new(self.version):
             dotnode.set('color','orange')

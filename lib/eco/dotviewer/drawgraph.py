@@ -23,6 +23,7 @@ COLOR = {
     'blue': (0,0,255),
     'yellow': (255,255,0),
     'orange': (255,165,0),
+    'gray': (90,90,90),
     }
 re_nonword=re.compile(r'([^0-9a-zA-Z_.]+)')
 re_linewidth=re.compile(r'setlinewidth\((\d+(\.\d*)?|\.\d+)\)')
@@ -510,11 +511,24 @@ class GraphRenderer:
                     v = int(realnode.get_attr("version", self.graphlayout.pgviewer.version))
                 except AttributeError:
                     v = int(realnode.version)
+                try:
+                    changed = int(realnode.get_attr("changed", self.graphlayout.pgviewer.version))
+                    nested_changes = int(realnode.get_attr("nested_changes", self.graphlayout.pgviewer.version))
+                except AttributeError:
+                    changed = realnode.changed
+                    nested_changes = realnode.nested_changes
+                changed_str = ""
+                if nested_changes:
+                    changed_str += "N"
+                if changed:
+                    changed_str += "C"
                 font = self.getfont(10)
                 img = TextSnippet(self, str(v), (0,0,0), bgcolor, font=font)
+                img2 = TextSnippet(self, changed_str, (0,0,0), bgcolor, font=font)
                 w,h = img.get_size()
                 def cmd(img=img, y=hmax, w=w):
                     img.draw(x + boxwidth - w, ytop-h)
+                    img2.draw(x + boxwidth - w, ycenter)
                 commands.append(cmd)
             
         elif node.shape == 'ellipse':

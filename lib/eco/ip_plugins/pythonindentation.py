@@ -121,6 +121,7 @@ class PythonIndent(object):
                     continue
                 else:
                     ne.symbol.name = e.symbol.name
+                    ne.deleted = False # when reusing nodes, erase deleted flag
                     ne.mark_changed()
                     continue
             except StopIteration:
