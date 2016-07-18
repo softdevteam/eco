@@ -43,6 +43,18 @@ class ToolTip(Hint):
     pass
 
 
+class Eval(Hint):
+    """Annotations displayed when the HUD eval() strings button is down.
+    """
+    pass
+
+
+class Types(Hint):
+    """Annotations displayed when the HUD types button is down.
+    """
+    pass
+
+
 class Annotation(object):
     """An Annotation is a piece of information related to a node.
     Annotations are used to instrument the AST with runtime information about
@@ -60,6 +72,15 @@ class Annotation(object):
     @annotation.setter
     def annotation(self, annotation):
         self._annotation = annotation
+
+    @abc.abstractmethod
+    def has_hint(self, klass):
+        """Returns True if annotation contains the given hint, else False.
+        Eco will use these hints to determine how annotations of this type
+        will be visualised in the editor.
+        """
+        msg = "has_hint(klass) must be implemented in subclasses of Annotation."
+        raise NotImplementedError(msg)
 
     @abc.abstractmethod
     def get_hints(self):
