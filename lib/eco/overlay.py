@@ -107,9 +107,9 @@ class Overlay(QWidget):
     def paintEvent(self, event):
         """Paint the visualisation of current tool data.
         """
-        if self._heatmap_data:
+        if self._heatmap_data and self.node_editor.hud_heat_map:
             self._paint_heatmap(event)
-        if self._railroad_data:
+        if self._railroad_data and self.node_editor.hud_callgraph:
             self._paint_railroad(event)
 
     def _paint_railroad(self, event):

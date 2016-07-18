@@ -25,7 +25,7 @@ import os.path
 import tempfile
 import subprocess
 
-from incparser.annotation import Annotation, ToolTip, Railroad
+from incparser.annotation import Annotation, Footnote, ToolTip, Railroad, Eval, Types
 
 from incparser.astree import EOS
 from grammar_parser.gparser import MagicTerminal, IndentationTerminal
@@ -33,13 +33,18 @@ from grammar_parser.gparser import MagicTerminal, IndentationTerminal
 from PyQt4.QtCore import QSettings
 
 
-class JRubyMorphismLine(Annotation):
+class JRubyCallGraph(Annotation):
     """Annotation for JRuby callgraph railroad diagrams.
     """
 
     def __init__(self, annotation):
         self._hints = [Railroad()]
-        super(JRubyMorphismLine, self).__init__(annotation)
+        super(JRubyCallGraph, self).__init__(annotation)
+
+    def has_hint(self, klass):
+        if klass == Railroad:
+            return True
+        return False
 
     def get_hints(self):
         return self._hints
@@ -52,6 +57,45 @@ class JRubyMorphismMsg(Annotation):
     def __init__(self, annotation):
         self._hints = [ToolTip()]
         super(JRubyMorphismMsg, self).__init__(annotation)
+
+    def has_hint(self, klass):
+        if klass == ToolTip:
+            return True
+        return False
+
+    def get_hints(self):
+        return self._hints
+
+
+class JRubyArgumentTypes(Annotation):
+    """Annotation for JRuby type information.
+    """
+
+    def __init__(self, annotation):
+        self._hints = [Footnote(), Types()]
+        super(JRubyArgumentTypes, self).__init__(annotation)
+
+    def has_hint(self, klass):
+        if klass == Footnote or klass == Types:
+            return True
+        return False
+
+    def get_hints(self):
+        return self._hints
+
+
+class JRubyEvalStrings(Annotation):
+    """Annotation for JRuby type information.
+    """
+
+    def __init__(self, annotation):
+        self._hints = [Footnote(), Eval()]
+        super(JRubyEvalStrings, self).__init__(annotation)
+
+    def has_hint(self, klass):
+        if klass == Footnote or klass == Eval:
+            return True
+        return False
 
     def get_hints(self):
         return self._hints
@@ -89,8 +133,8 @@ class Method(object):
     def is_hidden(self):
         return (self.source.file == "run_jruby_root" or
                 self.source.file == "context" or
-                self.name == "Truffle::Primitive#run_jruby_root" or
-                self.name == "Truffle::Primitive#context")
+                self.name == "Truffle::Boot#run_jruby_root" or
+                self.name == "Truffle::Boot#context")
 
     def reachable(self):
         return self.callsites
@@ -107,16 +151,24 @@ class MethodVersion(object):
         self.method = method
         self.callsite_versions = []
         self.called_from = []
+        self.eval_code = []
+        self.arg_types = {}
 
     def reachable(self):
         # called_from isn't reachable
         return [self.method] + self.callsite_versions
 
     def __str__(self):
-        return ("Method Version: %s id=%g called_from=[ %s ]" %
+        types = 'Arguments had types:' if len(self.arg_types) > 0 else ''
+        for name in self.arg_types:
+            types += '%s : %s\n' % (name, ', '.join(self.arg_types[name]))
+        evals = ''
+        if len(self.eval_code) > 0:
+            evals = 'Evaluated from:' + '\n\t'.join(self.eval_code)
+        return ('Method Version: %s id=%g called_from=[ %s ] %s' %
                 (self.method.name, self.id,
-                 " ".join([str(cs) for cs in self.called_from])))
-
+                 ', '.join([str(cs) for cs in self.called_from]),
+                 types, evals))
 
 class CallSite(object):
     """JRuby callsite (needed by callgraph profiler).
@@ -177,11 +229,11 @@ class JRubyExporter(object):
 
     def __init__(self, tm):
         self.tm = tm  # TreeManager object.
-        self.sl_functions = dict()
-        self._sl_output = list()
-        self._wrappers = list()
-        self._output = list()
-        self._sl_functions = list()
+        self.sl_functions = {}
+        self._sl_output = []
+        self._wrappers = []
+        self._output = []
+        self._sl_functions = []
 
     def export(self, path=None, run=False, profile=False):
         if run:
@@ -249,8 +301,8 @@ class JRubyExporter(object):
         else:
             load_path = ""
         pic_size = str(settings.value("graalvm_pic_size", "").toString())
-        cmd = [jruby_bin, "-X+T", "-Xtruffle.callgraph=true",
-               load_path,
+        cmd = [jruby_bin, "-X+T", "-J-Djvmci.Compiler=graal",
+               "-Xtruffle.callgraph=true", load_path,
                "-Xtruffle.callgraph.write=" + log_file_name,
                "-Xtruffle.dispatch.cache=" + pic_size,
                src_file_name]
@@ -277,7 +329,7 @@ class JRubyCallgraphProcessor(object):
         while True:
             if isinstance(node, EOS):
                 break
-            for klass in (JRubyMorphismLine, JRubyMorphismMsg):
+            for klass in (JRubyCallGraph, JRubyMorphismMsg, JRubyArgumentTypes):
                 node.remove_annotations_by_class(klass)
             node = node.next_term
 
@@ -303,6 +355,15 @@ class JRubyCallgraphProcessor(object):
                     method_version = MethodVersion(tokens[2], method)
                     objects[method_version.id] = method_version
                     method.versions.append(method_version)
+                elif tokens[0] == "local":
+                    method_version = objects[int(tokens[1])]
+                    if tokens[2] not in method_version.arg_types:
+                        method_version.arg_types[tokens[2]] = []
+                    method_version.arg_types[tokens[2]].append(tokens[3])
+                elif tokens[0] == "eval":
+                    method_version = objects[int(tokens[1])]
+                    eval_code = ' '.join(tokens[2:])
+                    method_version.eval_code.append(eval_code)
                 elif tokens[0] == "callsite":
                     method = objects[int(tokens[1])]
                     callsite = CallSite(tokens[2], method, tokens[3])
@@ -324,8 +385,6 @@ class JRubyCallgraphProcessor(object):
                     else:
                         # We just store the method id here for now as we may not have seen all methods yet
                         callsite_version.calls.append(int(tokens[2]))
-                elif tokens[0] == "local":
-                    pass
                 else:
                     logging.debug("Cannot parse the following:", line)
                     return
@@ -347,6 +406,11 @@ class JRubyCallgraphProcessor(object):
                         called.called_from.append(callsite_version)
                         new_calls.append(called)
                 callsite_version.calls = new_calls
+            # Resolve eval() strings.
+            if isinstance(obj, MethodVersion) and obj.method.name == 'eval':
+                version = obj
+                for caller in version.called_from:
+                    caller.method_version.eval_code = version.eval_code
 
         # Find which objects were actually used
         reachable_objects = set()
@@ -391,9 +455,18 @@ class JRubyCallgraphProcessor(object):
                       method.source.line_start < 0):
                     continue
                 def_msg += "\n%s has %d versions" % (method.name, num_versions)
+                def_arg_types = {}  # str -> set (string)
+                def_eval_strings = []
                 num_calls = 0
                 # Find and annotate method calls.
                 for version in method.versions:
+                    for key in version.arg_types:
+                        if key in def_arg_types:
+                            def_arg_types[key].update(version.arg_types[key])
+                        else:
+                            def_arg_types[key] = set(version.arg_types[key])
+                    for eval_code in version.eval_code:
+                        def_eval_strings.append('eval "%s"' % eval_code)
                     if len(version.called_from) == 0:
                         continue
                     for caller in version.called_from:
@@ -412,30 +485,40 @@ class JRubyCallgraphProcessor(object):
                             call_msg = ("Call to %s defined on line %d." %
                                         (method.name, def_lineno))
                         call_msg += "\n(line numbers may be inaccurate in polyglot programs)"
-                        self._annotate_text(call_lineno,
-                                            call_filename,
-                                            method.name,
-                                            call_msg,
+                        self._annotate_text(call_lineno, call_filename,
+                                            method.name, call_msg,
                                             JRubyMorphismMsg)
-                        self._annotate_text(call_lineno,
-                                            call_filename,
+                        self._annotate_text(call_lineno, call_filename,
                                             method.name,
                                             { method.name : method.is_mega },
-                                            JRubyMorphismLine)
+                                            JRubyCallGraph)
                         num_calls += 1
                 # We can't visualise definitions which are never called.
                 if num_calls > 0:
                     def_msg += " and is called %d times." % num_calls
-                    self._annotate_text(def_lineno,
-                                        def_filename,
-                                        method.name,
-                                        def_msg,
+                    self._annotate_text(def_lineno, def_filename,
+                                        method.name, def_msg,
                                         JRubyMorphismMsg)
-                    self._annotate_text(def_lineno,
-                                        def_filename,
+                    self._annotate_text(def_lineno, def_filename,
                                         method.name,
                                         { method.name : method.is_mega },
-                                        JRubyMorphismLine)
+                                        JRubyCallGraph)
+                    # Eval strings interpreted at runtime.
+                    if def_eval_strings:
+                        self._annotate_text(def_lineno, def_filename,
+                                            method.name, ("%s" %
+                                                 ", ".join(def_eval_strings)),
+                                            JRubyEvalStrings)
+                    # Argument types used at runtime
+                    def_types_list = []
+                    for name in sorted(def_arg_types.keys()):
+                        types = ", ".join(def_arg_types[name])
+                        def_types_list.append("%s in {%s}" % (name, types))
+                    if def_arg_types:
+                        self._annotate_text(def_lineno, def_filename,
+                                            method.name,
+                                            ", ".join(def_types_list),
+                                            JRubyArgumentTypes)
 
     def _annotate_text(self, lineno, filename, text, annotation, klass):
         """Annotate a node on a given line with a given symbol name.

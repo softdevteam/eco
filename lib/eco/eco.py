@@ -506,7 +506,7 @@ class BreakpointDialog(QtGui.QDialog):
         make_temp =  self.ui.bp_type.currentText() == 'Temporary'
         self.parent.debug_breakpoint(make_temp, self.line_number, False,
         self.ui.bp_condition.displayText(), str(self.ui.bp_ignore.value()), True)
-        self.hide()        
+        self.hide()
 
     def reject(self):
         self.hide()
@@ -653,6 +653,14 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.teConsole, SIGNAL("customContextMenuRequested(QPoint)"), self.consoleContextMenu)
         self.ui.teConsole.setContextMenuPolicy(Qt.CustomContextMenu)
 
+        # Set up HUD radio buttons.
+        self.ui.hud_off_button.setChecked(True)
+        self.connect(self.ui.hud_callgraph_button, SIGNAL("clicked()"), self.hud_callgraph_toggle)
+        self.connect(self.ui.hud_eval_button, SIGNAL("clicked()"), self.hud_eval_toggle)
+        self.connect(self.ui.hud_types_button, SIGNAL("clicked()"), self.hud_types_toggle)
+        self.connect(self.ui.hud_heat_map_button, SIGNAL("clicked()"), self.hud_heat_map_toggle)
+        self.connect(self.ui.hud_off_button, SIGNAL("clicked()"), self.hud_off_toggle)
+
         self.viewer = Viewer("pydot")
         self.pgviewer = None
 
@@ -684,6 +692,36 @@ class Window(QtGui.QMainWindow):
             iconsize = dpi / 96 * 16
             self.ui.toolBar.setIconSize(QtCore.QSize(iconsize, iconsize))
 
+    def hud_callgraph_toggle(self):
+        ed = self.getEditor()
+        if ed is not None:
+            ed.hud_show_callgraph()
+            ed.update()
+
+    def hud_eval_toggle(self):
+        ed = self.getEditor()
+        if ed is not None:
+            ed.hud_show_eval()
+            ed.update()
+
+    def hud_types_toggle(self):
+        ed = self.getEditor()
+        if ed is not None:
+            ed.hud_show_types()
+            ed.update()
+
+    def hud_heat_map_toggle(self):
+        ed = self.getEditor()
+        if ed is not None:
+            ed.hud_show_heat_map()
+            ed.update()
+
+    def hud_off_toggle(self):
+        ed = self.getEditor()
+        if ed is not None:
+            ed.hud_off()
+            ed.update()
+
     def set_profiler_enabled(self):
         ed = self.getEditor()
         if (ed is not None) and (ed.tm is not None):
@@ -711,13 +749,13 @@ class Window(QtGui.QMainWindow):
             self.profile_subprocess()
         else:
             ed_tab.run_background_tools = False
-    
+
     def debug_finished(self):
         self.ui.expressionBox.hide()
-        self.debug_toggle_buttons(False)     
+        self.debug_toggle_buttons(False)
         self.debugging = False
         self.debug_t.exit()
-        self.getEditorTab().is_debugging(False)                
+        self.getEditorTab().is_debugging(False)
 
     def draw_overlay(self, tool_data):
         """Send profiler or tool information to the overlay object."""
@@ -1398,13 +1436,13 @@ class Window(QtGui.QMainWindow):
 
     def debug_step_over(self):
         self.emit(self.debugger.signal_command, "n")
-    
+
     def debug_toggle_buttons(self, enable):
         self.ui.actionContinue.setEnabled(enable)
         self.ui.actionStop.setEnabled(enable)
         self.ui.actionStepInto.setEnabled(enable)
         self.ui.actionStepOver.setEnabled(enable)
-    
+
     def debug_breakpoint(self, isTemp, number, from_click, 
         condition="", ignore=0, from_dialog=False):
         # If there is a breakpoint and the user double clicks it (from_click)
@@ -1415,8 +1453,8 @@ class Window(QtGui.QMainWindow):
             bp_number = self.debugger.get_breakpoints(False, number, False)
             removed_same_type = (isTemp == False)
             if not bp_number:
-                bp_number = self.debugger.get_breakpoints(True, number, False)  
-                removed_same_type = (isTemp == True)      
+                bp_number = self.debugger.get_breakpoints(True, number, False)
+                removed_same_type = (isTemp == True)
             if bp_number:
                 # breakpoint exists, delete it
                 self.debugger.run_command("cl " + str(bp_number))
@@ -1432,8 +1470,8 @@ class Window(QtGui.QMainWindow):
                 return None
 
             bp_index = output.split(" ")[2]
-            try: 
-                int(bp_index)                    
+            try:
+                int(bp_index)
             except ValueError:
                 return
             if condition:
@@ -1452,16 +1490,16 @@ class Window(QtGui.QMainWindow):
         if self.ui.expressionBox.displayText():
             ex_input = self.ui.expressionBox.displayText()
             self.debugger.run_command("p " + str(ex_input))
-            # Add expression to top of expression "stack" if it's not already there           
+            # Add expression to top of expression "stack" if it's not already there
             if self.expression_list.count(ex_input) > 0:
                 if not self.expression_list[0] == ex_input:
                     self.expression_list.remove(ex_input)
                     self.expression_list.insert(0, ex_input)
             else:
-                # If 10 or more items are in the list, remove the oldest entry 
+                # If 10 or more items are in the list, remove the oldest entry
                 if len(self.expression_list) >= 10:
-                    self.expression_list.pop()  
-                self.expression_list.insert(0, ex_input)                         
+                    self.expression_list.pop()
+                self.expression_list.insert(0, ex_input)
             self.expression_num = -1
             self.ui.expressionBox.clear()
 
@@ -1487,11 +1525,11 @@ class Window(QtGui.QMainWindow):
         # Go through list of used expressions and show next or previous one in the input box
         if previous:
            if self.expression_num+1 < len(self.expression_list):
-               self.expression_num += 1          
+               self.expression_num += 1
         else:
            if self.expression_num-1 >= 0:
                 self.expression_num -= 1
-        
+
         self.ui.expressionBox.setText(self.expression_list[self.expression_num])
 
 def main():
@@ -1534,7 +1572,7 @@ def main():
     window.debugger = Debugger(window)
     window.debugger.moveToThread(window.debug_t)
 
-    window.profile_throbber = Throbber(window.ui.tabWidget) 
+    window.profile_throbber = Throbber(window.ui.tabWidget)
     window.connect(window, window.debugger.signal_command, window.debugger.run_command)
     window.connect(window, window.debugger.signal_start, window.debugger.start_pdb)
     window.connect(window.debugger, window.debugger.signal_output, window.show_output)

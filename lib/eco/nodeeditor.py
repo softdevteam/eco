@@ -35,7 +35,7 @@ from incparser.astree import BOS, EOS
 from jsonmanager import JsonManager
 from utils import KeyPress
 from overlay import Overlay
-from incparser.annotation import Footnote, Heatmap, Railroad, ToolTip
+from incparser.annotation import Eval, Footnote, Heatmap, Railroad, ToolTip, Types
 
 import syntaxhighlighter
 import editor
@@ -86,6 +86,42 @@ class NodeEditor(QFrame):
         # Set True if Eco should be running profiler and other tools,
         # continuously in the background.
         self.run_background_tools = False
+
+        # Show / don't show HUD visualisations.
+        self.hud_callgraph = False
+        self.hud_eval = False
+        self.hud_heat_map = False
+        self.hud_types = False
+
+    def hud_show_callgraph(self):
+        self.hud_callgraph = True
+        self.hud_eval = False
+        self.hud_heat_map = False
+        self.hud_types = False
+
+    def hud_show_eval(self):
+        self.hud_callgraph = False
+        self.hud_eval = True
+        self.hud_heat_map = False
+        self.hud_types = False
+
+    def hud_show_types(self):
+        self.hud_callgraph = False
+        self.hud_eval = False
+        self.hud_heat_map = False
+        self.hud_types = True
+
+    def hud_show_heat_map(self):
+        self.hud_callgraph = False
+        self.hud_eval = False
+        self.hud_heat_map = True
+        self.hud_types = False
+
+    def hud_off(self):
+        self.hud_callgraph = False
+        self.hud_eval = False
+        self.hud_heat_map = False
+        self.hud_types = False
 
     def focusOutEvent(self, event):
         self.blinktimer.stop()
@@ -422,8 +458,17 @@ class NodeEditor(QFrame):
             if self.show_tool_visualisations:
                 # Draw footnotes.
                 infofont = QApplication.instance().tool_info_font
-                annotes = [annote.annotation for annote in node.get_annotations_with_hint(Footnote)]
-                footnote = " ".join(annotes)
+                annotes = []
+                annotes_ = node.get_annotations_with_hint(Footnote)
+                if self.hud_eval:
+                    for annote in annotes_:
+                        if annote.has_hint(Eval):
+                            annotes.append(annote)
+                elif self.hud_types:
+                    for annote in annotes_:
+                        if annote.has_hint(Types):
+                            annotes.append(annote)
+                footnote = " ".join([annote.annotation for annote in annotes])
                 if footnote.strip() != "":
                     if not self.tm.tool_data_is_dirty:
                         infofont.font.setBold(True)
