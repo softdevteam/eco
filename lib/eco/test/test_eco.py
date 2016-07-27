@@ -2442,7 +2442,7 @@ class Test_Undo_LBoxes(Test_Helper):
         self.treemanager.key_ctrl_z()
 
     def test_simple2(self):
-        pytest.skip("For some reason copy.deepcopy now has an internal error")
+        pytest.skip("For some reason copy.deepcopy errors on this test with the new history service.")
         self.versions = []
         self.reset()
         self.versions.append(self.treemanager.export_as_text())
