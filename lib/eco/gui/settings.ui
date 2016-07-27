@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>539</width>
-    <height>403</height>
+    <height>435</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -127,7 +127,7 @@
          <enum>QFrame::NoFrame</enum>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="page">
          <layout class="QFormLayout" name="formLayout_15">
@@ -166,6 +166,13 @@
                </property>
                <property name="checked">
                 <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QCheckBox" name="gen_showhud">
+               <property name="text">
+                <string>Show HUD</string>
                </property>
               </widget>
              </item>

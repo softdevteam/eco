@@ -46,7 +46,7 @@
      <x>0</x>
      <y>0</y>
      <width>1069</width>
-     <height>26</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -206,51 +206,13 @@
     </size>
    </property>
    <property name="windowTitle">
-    <string>Parsing and HUD</string>
+    <string>Parsing</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>2</number>
    </attribute>
    <widget class="QWidget" name="dockWidgetContents_2">
     <layout class="QVBoxLayout" name="verticalLayout_2">
-     <item>
-      <widget class="QRadioButton" name="hud_off_button">
-       <property name="text">
-        <string>No HUD</string>
-       </property>
-       <property name="checked">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QRadioButton" name="hud_callgraph_button">
-       <property name="text">
-        <string>Callgraph</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QRadioButton" name="hud_types_button">
-       <property name="text">
-        <string>Types</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QRadioButton" name="hud_eval_button">
-       <property name="text">
-        <string>eval() strings</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QRadioButton" name="hud_heat_map_button">
-       <property name="text">
-        <string>Heat map</string>
-       </property>
-      </widget>
-     </item>
      <item>
       <widget class="QTreeWidget" name="treeWidget">
        <property name="alternatingRowColors">
@@ -313,6 +275,56 @@
       <widget class="QLineEdit" name="expressionBox">
        <property name="placeholderText">
         <string>Type an expression here</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="dockWidget_3">
+   <property name="windowTitle">
+    <string>HUD</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_3">
+    <layout class="QVBoxLayout" name="verticalLayout_3">
+     <item>
+      <widget class="QRadioButton" name="hud_off_button">
+       <property name="text">
+        <string>No HUD</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="hud_callgraph_button">
+       <property name="text">
+        <string>Callgraph</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="hud_types_button">
+       <property name="text">
+        <string>Types</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="hud_eval_button">
+       <property name="text">
+        <string>eval() strings</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="hud_heat_map_button">
+       <property name="text">
+        <string>Heat map</string>
        </property>
       </widget>
      </item>
