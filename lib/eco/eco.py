@@ -313,6 +313,7 @@ class SettingsView(QtGui.QMainWindow):
         # General pane.
         self.ui.gen_showconsole.setCheckState(settings.value("gen_showconsole", 0).toInt()[0])
         self.ui.gen_showparsestatus.setCheckState(settings.value("gen_showparsestatus", 2).toInt()[0])
+        self.ui.gen_showhud.setCheckState(settings.value("gen_showhud", 0).toInt()[0])
         # Appearance pane.
         family = settings.value("font-family").toString()
         size = settings.value("font-size").toInt()[0]
@@ -358,6 +359,7 @@ class SettingsView(QtGui.QMainWindow):
         # General pane.
         settings.setValue("gen_showconsole", self.ui.gen_showconsole.checkState())
         settings.setValue("gen_showparsestatus", self.ui.gen_showparsestatus.checkState())
+        settings.setValue("gen_showhud", self.ui.gen_showhud.checkState())
         settings.setValue("font-family", self.ui.app_fontfamily.currentFont().family())
         settings.setValue("font-size", self.ui.app_fontsize.value())
         settings.setValue("tool-font-family", self.ui.tool_info_fontfamily.currentFont().family())
@@ -646,8 +648,9 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.set_profiler_enabled)
         self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.set_debugger_enabled)
 
-        self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
+        self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
+        self.ui.menuWindow.addAction(self.ui.dockWidget_3.toggleViewAction())
 
         self.ui.teConsole.setFont(QApplication.instance().gfont.font)
         self.connect(self.ui.teConsole, SIGNAL("customContextMenuRequested(QPoint)"), self.consoleContextMenu)
@@ -680,6 +683,8 @@ class Window(QtGui.QMainWindow):
             self.ui.dockWidget.hide()
         if not settings.value("gen_showparsestatus", True).toBool():
             self.ui.dockWidget_2.hide()
+        if not settings.value("gen_showhud", False).toBool():
+            self.ui.dockWidget_3.hide()
 
         # hardcoded key bindings for OS X
         if sys.platform == "darwin":
