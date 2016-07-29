@@ -468,6 +468,7 @@ class GraphDisplay(Display):
             if node.name in self.layout.links:
                 realnode = self.layout.links[node.name]
                 text = ["v%s " % self.layout.pgviewer.version]
+                text.append(str(id(realnode)))
                 if isinstance(realnode.symbol, Terminal):
                     self.add_status_text(text, realnode, "ns")
                     self.add_status_text(text, realnode, "lookup")

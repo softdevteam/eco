@@ -124,6 +124,7 @@ class JsonManager(object):
             cnode.left = last_child
             if last_child:
                 last_child.right = cnode
+            cnode.save(0)
             children.append(cnode)
             last_child = cnode
         node.children = children

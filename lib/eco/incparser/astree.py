@@ -317,8 +317,11 @@ class Node(object):
                 newnode.magic_parent = node.magic_parent
                 return
             i += 1
+        assert False
 
-    def right_sibling(self):
+    def right_sibling(self, version=None):
+        if version:
+            return self.get_attr("right", version)
         return self.right
 
     def old_right_sibling(self):

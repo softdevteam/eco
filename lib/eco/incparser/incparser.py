@@ -103,6 +103,8 @@ class IncParser(object):
         self.pm.do_incparse_init()
 
         self.previous_version = None
+        self.prev_version = 0
+
         logging.debug("Incremental parser done")
 
     def from_dict(self, rules, startsymbol, lr_type, whitespaces, pickle_id, precedences):
@@ -142,15 +144,17 @@ class IncParser(object):
     def reparse(self):
         self.inc_parse([], True)
 
-    def inc_parse(self, line_indents=[], reparse=False):
+    def inc_parse(self, line_indents=[], needs_reparse=False):
         logging.debug("============ NEW INCREMENTAL PARSE ================= ")
         self.validating = False
         self.error_node = None
+        self.reused_nodes = set()
         self.stack = []
         self.current_state = 0
         self.stack.append(Node(FinishSymbol(), 0, []))
         bos = self.previous_version.parent.children[0]
         self.loopcount = 0
+        self.needs_reparse = needs_reparse
 
         USE_OPT = True
 
@@ -173,7 +177,7 @@ class IncParser(object):
                         la = result
 
             else: # Nonterminal
-                if la.has_changes() or reparse or la.has_errors():
+                if la.has_changes() or needs_reparse or la.has_errors():
                     #la.changed = False # as all nonterminals that have changed are being rebuild, there is no need to change this flag (this also solves problems with comments)
                     la = self.left_breakdown(la)
                 else:
@@ -238,6 +242,8 @@ class IncParser(object):
             #XXX change parse so that stack is [bos, startsymbol, eos]
             bos = self.previous_version.parent.children[0]
             eos = self.previous_version.parent.children[-1]
+            self.pm.do_accept(bos, eos)
+
             bos.changed = False
             eos.changed = False
             self.previous_version.parent.set_children([bos, self.stack[1], eos])
@@ -321,8 +327,17 @@ class IncParser(object):
                 # during reduction the path from the root down to this node is
                 # incomplete and thus can't be reverted/isolate properly
                 c.mark_changed()
+            self.pm.do_reduce_process_child(c)
 
-        new_node = Node(element.action.left.copy(), goto.action, children)
+        reuse_parent = self.ambig_reuse_check(element.action.left, children)
+        if not self.needs_reparse and reuse_parent:
+            new_node = reuse_parent
+            new_node.changed = False
+            new_node.set_children(children)
+            new_node.state = goto.action # XXX need to save state using hisotry service
+            new_node.mark_changed()
+        else:
+            new_node = Node(element.action.left.copy(), goto.action, children)
         self.pm.do_incparse_reduce(new_node)
         logging.debug("   Add %s to stack and goto state %s", new_node.symbol, new_node.state)
         self.stack.append(new_node)
@@ -334,6 +349,16 @@ class IncParser(object):
         else:
             # johnstone annotations
             self.add_alternate_version(new_node, element.action)
+
+    def ambig_reuse_check(self, prod, children):
+        if children:
+            for c in children:
+                if c.parent and not c.new: # not a new node
+                    old_parent = c.get_attr('parent', self.prev_version)
+                    if old_parent.symbol == prod and old_parent not in self.reused_nodes:
+                        self.reused_nodes.add(old_parent)
+                        return old_parent
+        return None
 
     def interpret_annotation(self, node, production):
         annotation = production.annotation
@@ -389,7 +414,6 @@ class IncParser(object):
         while(isinstance(node.symbol, Nonterminal)):
             for c in node.children:
                 self.shift(c, rb=True)
-                c = c.right
             node = self.stack.pop()
             # after undoing an optimistic shift (through pop) we need to revert
             # back to the state before the shift (which can be found on the top
@@ -422,11 +446,14 @@ class IncParser(object):
         self.pm.do_incparse_shift(la, rb)
 
     def pop_lookahead(self, la):
-        org = la
-        while(la.right_sibling() is None):
-            la = la.parent
-        logging.debug("pop_lookahead(%s): %s", org.symbol, la.right_sibling().symbol)
-        return la.right_sibling()
+        while(self.right_sibling(la) is None):
+            la = la.get_attr("parent", self.prev_version)
+        return self.right_sibling(la)
+
+    def right_sibling(self, node):
+        if self.indentation_based:
+            return self.pm.do_right_sibling(node)
+        return node.right_sibling(self.prev_version)
 
     def shiftable(self, la):
         if self.syntaxtable.lookup(self.current_state, la.symbol):

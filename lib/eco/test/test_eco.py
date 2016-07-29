@@ -960,6 +960,76 @@ class Test_Indentation(Test_Python):
                 self.treemanager.key_normal(" ")
         assert self.parser.last_status == True
 
+    def test_indentation_stresstest_bug(self):
+        self.reset()
+        self.treemanager.import_file(programs.connect4)
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 7)
+        self.move(RIGHT, 7)
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 5)
+        self.move(RIGHT, 8)
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+
+        # undo
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 5)
+        self.treemanager.key_normal(" ")
+        self.treemanager.key_normal(" ")
+        self.treemanager.key_normal(" ")
+        self.treemanager.key_normal(" ")
+        self.treemanager.key_normal(" ")
+        self.treemanager.key_normal(" ")
+        self.treemanager.key_normal(" ")
+        self.treemanager.key_normal(" ")
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 7)
+        # shouldn't cause AttributeError: 'NoneType' object has no attribute 'relex'
+        self.treemanager.key_normal(" ")
+
+    def test_indentation_stresstest_bug2_indentation(self):
+        self.reset()
+        s = """class Connect4(object):
+    UI_DEPTH = 5
+
+    def __init__(self):
+        x
+        y
+
+        z"""
+        self.treemanager.import_file(s)
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 5)
+        self.move(RIGHT, 7)
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 1)
+        self.treemanager.key_normal(' ')
+        self.treemanager.key_normal(' ')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 3)
+        self.treemanager.key_normal(' ')
+        self.treemanager.key_normal(' ')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 5)
+        self.treemanager.key_normal(' ')
+
     def test_single_statement(self):
         self.reset()
         assert self.parser.last_status == True
