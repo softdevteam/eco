@@ -234,6 +234,8 @@ class Node(object):
         self.log[("nested_changes", version)] = self.nested_changes
         self.log[("nested_errors", version)] = self.nested_errors
         self.log[("local_error", version)] = self.local_error
+        self.log[("textlen", version)] = self.textlen
+        self.log[("isolated", version)] = self.isolated
         self.log[("version", version)] = version
         if self.new:
             self.log[("new", version)] = True
@@ -255,6 +257,8 @@ class Node(object):
                 self.nested_changes = self.log[("nested_changes", version)]
                 self.local_error = self.log[("local_error", version)]
                 self.nested_errors = self.log[("nested_errors", version)]
+                self.textlen = self.log[("textlen", version)]
+                self.isolated = self.log[("isolated", version)]
                 self.version = version
                 return
             version -= 1
@@ -439,7 +443,7 @@ uppercase = set(list(string.ascii_uppercase))
 digits = set(list(string.digits))
 
 class TextNode(Node):
-    __slots__ = ["log", "version", "position", "changed", "local_error", "nested_errors", "nested_changes", "new", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookup", "parent_lbox", "magic_backpointer", "indent"]
+    __slots__ = ["log", "version", "position", "changed", "isolated", "textlen", "local_error", "nested_errors", "nested_changes", "new", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookup", "parent_lbox", "magic_backpointer", "indent"]
     def __init__(self, symbol, state=-1, children=[], pos=-1, lookahead=0):
         Node.__init__(self, symbol, state, children)
         self.position = 0
@@ -458,6 +462,8 @@ class TextNode(Node):
         self.log = {}
         self.version = 0
         self.indent = None
+        self.textlen = -1
+        self.isolated = False
 
     def get_magicterminal(self):
         try:
@@ -530,6 +536,26 @@ class TextNode(Node):
     def is_new(self, version):
         return ("new", version) in self.log
 
+    def refresh_textlen(self):
+        self.textlen = -1
+        self.textlength(forced = True)
+
+    def textlength(self, version = None, forced = False):
+        if isinstance(self.symbol, FinishSymbol):
+            return 0
+        if isinstance(self.symbol, Terminal):
+            return len(self.symbol.name)
+        if isinstance(self.symbol, Nonterminal):
+            if forced or self.get_attr("textlen", version) == -1 or self.has_changes(version):
+                l = 0
+                for c in self.get_attr("children", version):
+                    l += c.textlength(version = version)
+                if not version:
+                    self.textlen = l
+                else:
+                    return l
+            return self.textlen
+
     def has_unsaved_changes(self):
         if self.changed != self.log[("changed", self.version)]:
             return True
@@ -537,7 +563,9 @@ class TextNode(Node):
             return True
         return False
 
-    def has_changes(self):
+    def has_changes(self, version = None):
+        if version:
+            return self.get_attr("changed", version) or self.get_attr("nested_changes", version)
         return self.changed or self.nested_changes
 
     def has_errors(self):

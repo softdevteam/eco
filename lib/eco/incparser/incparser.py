@@ -34,6 +34,7 @@ from stategraph import StateGraph
 from constants import LR0, LALR
 from astree import AST, TextNode, BOS, EOS
 from ip_plugins.plugin import PluginManager
+from error_recovery import RecoveryManager
 
 import logging
 
@@ -151,10 +152,14 @@ class IncParser(object):
         self.reused_nodes = set()
         self.stack = []
         self.current_state = 0
-        self.stack.append(Node(FinishSymbol(), 0, []))
         bos = self.previous_version.parent.children[0]
+        eos = self.previous_version.parent.children[-1]
+        self.stack.append(eos)
+        eos.state = 0
         self.loopcount = 0
         self.needs_reparse = needs_reparse
+        self.error_nodes = []
+        self.rm = RecoveryManager(self.prev_version, self.previous_version.parent, self.stack, self.syntaxtable)
 
         USE_OPT = True
 
@@ -168,8 +173,13 @@ class IncParser(object):
                     lookup_symbol = self.get_lookup(la)
                     result = self.parse_terminal(la, lookup_symbol)
                     if result == "Accept":
-                        self.last_status = True
-                        return True
+                        # With error recovery we can end up in the accepting
+                        # state despite errors occuring during the parse.
+                        if len(self.error_nodes) == 0:
+                            self.last_status = True
+                            return True
+                        self.last_status = False
+                        return False
                     elif result == "Error":
                         self.last_status = False
                         return False
@@ -191,6 +201,11 @@ class IncParser(object):
                             la.state = follow_id #XXX this fixed goto error (I should think about storing the states on the stack instead of inside the elements)
                             self.current_state = follow_id
                             logging.debug("USE_OPT: set state to %s", self.current_state)
+                            if la.isolated:
+                                # When skipping previously isolated subtrees,
+                                # traverse their children to find the error
+                                # nodes and report them back to the editor.
+                                self.find_nested_error(la)
                             la = self.pop_lookahead(la)
                             self.validating = True
                             continue
@@ -267,8 +282,17 @@ class IncParser(object):
                 logging.debug("After breakdown: %s", self.stack[-1])
                 self.validating = False
             else:
-                # XXX for now we always isolate the root
+                self.error_nodes.append(la)
                 self.error_node = la
+                if self.rm.recover(la):
+                    # recovered, continue parsing
+                    self.current_state = self.rm.new_state
+                    self.isolate(self.rm.iso_node)
+                    self.pm.do_incparse_optshift(self.rm.iso_node)
+                    self.stack.append(self.rm.iso_node)
+                    logging.debug("Recovered. Continue after %s", self.rm.iso_node)
+                    return self.pop_lookahead(self.rm.iso_node)
+                # Couldn't find a subtree to recover. Recovering the whole tree.
                 logging.debug ("\x1b[31mError\x1b[0m: %s %s %s", la, la.prev_term, la.next_term)
                 logging.debug("loopcount: %s", self.loopcount)
                 self.isolate(self.previous_version.parent)
@@ -333,11 +357,13 @@ class IncParser(object):
         if not self.needs_reparse and reuse_parent:
             new_node = reuse_parent
             new_node.changed = False
+            new_node.isolated = False
             new_node.set_children(children)
             new_node.state = goto.action # XXX need to save state using hisotry service
             new_node.mark_changed()
         else:
             new_node = Node(element.action.left.copy(), goto.action, children)
+        new_node.refresh_textlen()
         self.pm.do_incparse_reduce(new_node)
         logging.debug("   Add %s to stack and goto state %s", new_node.symbol, new_node.state)
         self.stack.append(new_node)
@@ -412,6 +438,21 @@ class IncParser(object):
         self.current_state = self.stack[-1].state
         logging.debug("right breakdown(%s): set state to %s", node.symbol.name, self.current_state)
         while(isinstance(node.symbol, Nonterminal)):
+            # This bit of code is necessary to avoid a bug that occurs with the
+            # default Wagner implementation if we isolate a subtree and
+            # optimistically shift an empty Nonterminal, and then run into an
+            # error. The verifying parts of the incremental parser then try to
+            # undo wrong optimistic shifts by breaking them down to their most
+            # right terminal. Since the optimistic shift happened on an empty
+            # Nonterminal, the algorithm tries to break down the isolated
+            # subtree to the left of it. Since this subtree contains an error in
+            # form of an unshiftable terminal, the algorithm fails and throws an
+            # exception. The following code fixes this by ignoring already
+            # isolated subtrees.
+            if node.isolated:
+                self.stack.append(node)
+                self.current_state = node.state
+                return
             for c in node.children:
                 self.shift(c, rb=True)
             node = self.stack.pop()
@@ -532,3 +573,15 @@ class IncParser(object):
     def save_status(self, version):
         self.status_by_version[version] = self.last_status
         self.errornode_by_version[version] = self.error_node
+
+    def find_nested_error(self, node):
+        """Given an isolated node, finds the first local error node contained in
+        it."""
+        for c in node.children:
+            if c.nested_errors:
+                if self.find_nested_error(c):
+                    return c
+            if c.local_error:
+                self.error_nodes.append(c)
+                return c
+        return None

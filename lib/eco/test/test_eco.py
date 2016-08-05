@@ -23,8 +23,8 @@ from grammars.grammars import calc, java, python, Language, sql, pythonprolog, l
 from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
-from incparser.astree import BOS, EOS
-from grammar_parser.gparser import MagicTerminal
+from incparser.astree import BOS, EOS, TextNode
+from grammar_parser.gparser import MagicTerminal, Terminal
 from utils import KEY_UP as UP, KEY_DOWN as DOWN, KEY_LEFT as LEFT, KEY_RIGHT as RIGHT
 
 from PyQt4 import QtCore
@@ -2716,3 +2716,243 @@ class Test_ChangeReporting(Test_Helper):
         self.treemanager.key_normal("+")
         self.move(LEFT, 1)
         self.treemanager.key_normal("4")
+
+class Test_ErrorRecovery(Test_Helper):
+
+    def setup_class(cls):
+        parser, lexer = calc.load()
+        cls.lexer = lexer
+        cls.parser = parser
+        cls.parser.init_ast()
+        one = TextNode(Terminal("1"))
+        one.lookup = "INT"
+        cls.parser.previous_version.parent.children[0].insert_after(one)
+        cls.ast = cls.parser.previous_version
+        cls.treemanager = TreeManager()
+        cls.treemanager.add_parser(cls.parser, cls.lexer, calc.name)
+        cls.treemanager.set_font_test(7, 17)
+
+    def test_simple(self):
+        self.treemanager.import_file("1*1+2+3*4+2")
+        assert self.parser.last_status == True
+
+        self.treemanager.key_end()
+        self.move(LEFT, 3)
+        self.treemanager.key_normal("+")
+
+        assert self.parser.last_status == False
+
+    def test_empty(self):
+        self.reset()
+        assert self.parser.last_status == False
+
+    def test_slow_input(self):
+        self.reset()
+        assert self.parser.last_status == False
+        self.treemanager.key_normal("1")
+        self.treemanager.key_normal("+")
+        assert self.parser.last_status == False
+        self.treemanager.key_normal("2")
+        assert self.parser.last_status == True
+
+    def test_simple2(self):
+        self.reset()
+        self.treemanager.import_file("1+2")
+        assert self.parser.last_status == True
+
+        self.treemanager.key_end()
+        self.move(LEFT, 1)
+        self.treemanager.key_normal("*")
+
+        assert self.parser.last_status == False
+
+    def test_simple3(self):
+        self.reset()
+        self.treemanager.import_file("1+2")
+        assert self.parser.last_status == True
+
+        self.treemanager.key_end()
+        self.move(LEFT, 2)
+        self.treemanager.key_normal("*")
+
+        assert self.parser.last_status == False
+
+    def test_double_error(self):
+        self.reset()
+        assert self.parser.last_status == False
+        self.treemanager.import_file("1*1+2+3*4+2")
+        assert self.parser.last_status == True
+
+        self.treemanager.key_end()
+        self.move(LEFT, 3)
+        self.treemanager.key_normal("+")
+        self.move(LEFT, 5)
+        self.treemanager.key_normal("*")
+
+        assert self.parser.last_status == False
+
+        assert len(self.parser.error_nodes) == 2
+
+    def test_triple_error(self):
+        self.reset()
+        assert self.parser.last_status == False
+        self.treemanager.import_file("1*1+2+3*4+2")
+        assert self.parser.last_status == True
+
+        self.treemanager.key_end()
+        self.move(LEFT, 3)
+        self.treemanager.key_normal("+")
+        assert len(self.parser.error_nodes) == 1
+        self.move(LEFT, 5)
+        self.treemanager.key_normal("*")
+        assert len(self.parser.error_nodes) == 2
+        self.move(LEFT, 3)
+        self.treemanager.key_normal("+")
+        assert len(self.parser.error_nodes) == 3
+
+        assert self.parser.last_status == False
+
+    def test_error_in_isotree(self):
+        self.reset()
+        self.treemanager.import_file("1+2*3")
+        self.treemanager.key_end()
+        self.move(LEFT, 1)
+        self.treemanager.key_normal("+")
+        assert len(self.parser.error_nodes) == 1
+
+        self.move(LEFT, 3)
+        self.treemanager.key_normal("*")
+        assert len(self.parser.error_nodes) == 2
+
+    def test_temp(self):
+        self.reset()
+        self.treemanager.import_file("1+2*3")
+        self.treemanager.key_end()
+        self.move(LEFT, 4)
+        self.treemanager.key_normal("*")
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal("+")
+
+    def test_changes_in_isotree(self):
+        self.reset()
+        self.treemanager.import_file("1+2*3")
+        self.treemanager.key_home()
+        self.move(RIGHT, 1)
+        self.treemanager.key_normal("*")
+        assert self.parser.last_status == False
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == True
+        self.move(RIGHT, 3)
+        self.treemanager.key_normal("+")
+        assert self.parser.last_status == False
+
+    def test_nested_errors(self):
+        self.reset()
+        self.treemanager.key_normal("1")
+        self.treemanager.key_normal("+")
+        self.treemanager.key_normal("2")
+        self.move(LEFT, 2)
+        self.treemanager.key_normal("*")
+        assert self.parser.last_status == False
+        self.move(RIGHT, 1)
+        self.treemanager.key_normal("+")
+        assert self.parser.last_status == False
+        self.move(LEFT, 1)
+        self.treemanager.key_normal("2")
+        assert self.parser.last_status == False
+        self.move(LEFT, 1)
+        self.treemanager.key_backspace()
+        assert self.parser.last_status == True
+
+class Test_ErrorRecoveryPython(Test_Python):
+    def test_delete(self):
+        self.reset()
+        self.treemanager.import_file("class X:\n    pass")
+        for i in range(18):
+            self.treemanager.key_delete()
+
+    def test_foo(self):
+        self.reset()
+        self.treemanager.import_file("class X:\n    def x():\n        x = 1")
+
+        self.move(DOWN, 2)
+        self.treemanager.key_end()
+        self.treemanager.key_backspace()
+        self.treemanager.key_normal("]")
+        self.treemanager.key_normal("e")
+
+class Test_ErrorRecoveryJava(Test_Java):
+    def test_delete(self):
+        self.reset()
+        self.treemanager.import_file("class X{\n    int x;\n}")
+        for i in range(36):
+            self.treemanager.key_delete()
+
+    def test_foo(self):
+        self.reset()
+        self.treemanager.import_file("class X{\n    public void main()(){\n        int x = 1;\n}\n}")
+
+        self.move(DOWN, 2)
+        self.treemanager.key_end()
+        self.move(LEFT, 1)
+        self.treemanager.key_backspace()
+        self.treemanager.key_normal("]")
+        self.treemanager.key_normal("e")
+
+from grammars.grammars import EcoFile
+class Test_ErrorRecoveryRightbreakdown:
+    def test_simple(self):
+        # With the default Wagner implementation this test breaks upon
+        # attempting a rightbreak on a subtree that has been isolated.
+        # The Wagner thesis doesn't mention anything related to this, which
+        # either means they didn't run into this or they are doing something
+        # behind the scenes that they don't talk about.
+        # My solution is simply to cancel the rightbreakdown procedure when it sees
+        # an isolated subtree.
+        grm = EcoFile("Errortest", "test/errortest.eco", "Error")
+        t = TreeManager()
+        parser, lexer = grm.load()
+        t.add_parser(parser, lexer, python.name)
+
+        t.key_normal("a")
+        t.key_normal("b")
+        t.key_normal("w")
+        t.key_normal("s")
+
+        assert parser.last_status == True
+
+        t.key_cursors(LEFT)
+        t.key_cursors(LEFT)
+        t.key_cursors(LEFT)
+
+        t.key_normal("c")
+        t.key_delete()
+
+        assert parser.last_status == False
+
+class Test_ErrorRecoverySurroundingContext:
+    def test_simple(self):
+        # This test checks the correct behaviour for skipping already isolated
+        # subtrees. Before we can skip an isolated subtree, we need to make sure
+        # that it's surrounding context hasn't changed. The surrounding context
+        # of an isolated subtree is it's next terminal. So if the left-most
+        # subtree to the right of the isolated subtree has changes, we need to
+        # reevalute the isolated subtree and cannot skip it.
+        grm = EcoFile("ErrortestSur", "test/errorsurroundingcontext.eco", "ErrorSurround")
+        t = TreeManager()
+        parser, lexer = grm.load()
+        t.add_parser(parser, lexer, python.name)
+
+        t.key_normal("a")
+        t.key_normal("c")
+        t.key_cursors(LEFT)
+        t.key_normal("b")
+        t.key_cursors(RIGHT)
+        t.key_normal("d")
+
+        assert parser.last_status == True
+        t.key_home()
+        t.key_cursors(RIGHT)
+        assert t.cursor.node.symbol.name == "ab"
+        # without checking surrounding context this would be 'left'
+        assert t.cursor.node.parent.symbol.name == "left2"
