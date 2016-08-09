@@ -32,7 +32,7 @@ class RecoveryManager(object):
             return False
 
         # Get the character offset of the top node on the stack
-        error_offset = self.stack_offset(len(self.stack) - 1)
+        error_offset = self.stack_offset(len(self.stack))
 
         node = self.stack[-1]
         while not isinstance(node, EOS):
@@ -101,10 +101,7 @@ class RecoveryManager(object):
         # Reaching this point means we found a candidate for isolation. Now we
         # need to check if we can continue parsing if we isolate this subtree
 
-        cut_point = self.find_cut_point(left_offset)
-        # This method should be redundant as it is the reverse of
-        # `stack_offset(cut)`. Just use `cut` instead.
-        assert cut_point == cut
+        cut_point = cut
 
         # Check if the isolation candidate can be shifted at the point to which
         # we need to cut down the stack.
@@ -134,8 +131,8 @@ class RecoveryManager(object):
             self.stack[:] = self.stack[:cut_point+1]
             self.new_state = element.action
             self.iso_node = node
-            self.iso_node.isolated = True
             self.iso_node.state = self.new_state
+            print("   Found valid isolation node ", node, id(node))
             logging.debug("   Found valid isolation node %s (%s)", node, id(node))
             return True
 
@@ -179,9 +176,9 @@ class RecoveryManager(object):
         offset = 0
         i = 0
         for n in self.stack:
+            offset += n.textlength()
             if i == cut:
                 break
-            offset += n.textlength()
             i += 1
         return offset
 

@@ -134,6 +134,11 @@ class PGViewer(object):
         except AttributeError:
             pass
 
+        try:
+            if node.get_attr("isolated", self.version):
+                dotnode.set('color','purple')
+        except AttributeError:
+            pass
 
         if node.is_new(self.version):
             dotnode.set('color','orange')

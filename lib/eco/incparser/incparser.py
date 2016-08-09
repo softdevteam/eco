@@ -288,6 +288,7 @@ class IncParser(object):
                     # recovered, continue parsing
                     self.current_state = self.rm.new_state
                     self.isolate(self.rm.iso_node)
+                    self.rm.iso_node.isolated = True
                     self.pm.do_incparse_optshift(self.rm.iso_node)
                     self.stack.append(self.rm.iso_node)
                     logging.debug("Recovered. Continue after %s", self.rm.iso_node)

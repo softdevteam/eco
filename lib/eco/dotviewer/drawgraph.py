@@ -24,6 +24,7 @@ COLOR = {
     'yellow': (255,255,0),
     'orange': (255,165,0),
     'gray': (90,90,90),
+    'purple': (165,105,189),
     }
 re_nonword=re.compile(r'([^0-9a-zA-Z_.]+)')
 re_linewidth=re.compile(r'setlinewidth\((\d+(\.\d*)?|\.\d+)\)')
