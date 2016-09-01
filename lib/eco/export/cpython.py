@@ -63,7 +63,7 @@ class CPythonExporter(object):
         return subprocess.Popen(["python2", f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
 
     def _debug(self):
-        f = tempfile.mkstemp(suffix='.py')        
+        f = tempfile.mkstemp(suffix='.py')
         code = self.tm.export_as_text(f[1])
 
         # Check if remote pdb installed
@@ -78,7 +78,7 @@ class CPythonExporter(object):
         """)
             return None
 
-        # These are the lines for remotepdb  
+        # These are the lines for remotepdb
         pdb_lines = """from remote_pdb import RemotePdb
 if hasattr(RemotePdb, 'DefaultConfig'):
     RemotePdb.DefaultConfig.prompt='(Pdb)'
@@ -86,7 +86,7 @@ if hasattr(RemotePdb, 'DefaultConfig'):
 RemotePdb('localhost', 8210).set_trace();"""
 
         with open(f[1], "w") as f2:
-            f2.write("".join(code))   
+            f2.write("".join(code))
 
         """ The pdb lines are passed in as a command line statement to python,
         and the actual file is imported in that statement.
@@ -95,7 +95,7 @@ RemotePdb('localhost', 8210).set_trace();"""
 
         # get only filename
         import_file = f[1].split("/tmp/")[1]
-        import_file = import_file.split(".py")[0]       
+        import_file = import_file.split(".py")[0]
         shell_command = ['python2', '-u', '-c', pdb_lines + "import " + import_file]
         return subprocess.Popen(shell_command,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0, cwd=tempfile.gettempdir())
@@ -146,7 +146,10 @@ RemotePdb('localhost', 8210).set_trace();"""
                     node = node.next_term
                 node.remove_annotations_by_class(CPythonFuncProfileMsg)
                 node.add_annotation(CPythonFuncProfileMsg(msg))
-                ncalls_dict[node] = float(ncalls)
+                if '/' in ncalls:
+                    ncalls_dict[node] = float(ncalls.split('/')[0])
+                else:
+                    ncalls_dict[node] = float(ncalls)
 
         # Normalise profiler information.
         vals = ncalls_dict.values()
