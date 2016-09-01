@@ -77,15 +77,8 @@ class NodeEditor(QFrame):
         # Semi-transparent overlay.
         # Used to display heat-map visualisation of profiler info, etc.
         self.overlay = Overlay(self)
-        # Start hidden, make (in)visible with self.toggle_overlay().
-        self.overlay.hide()
-
-        # Set to True if the user wants to see tool visualisations.
-        self.show_tool_visualisations = True
-
-        # Set True if Eco should be running profiler and other tools,
-        # continuously in the background.
-        self.run_background_tools = False
+        # Always show the overlay, users hide visualisations with the HUD.
+        self.overlay.show()
 
         # Show / don't show HUD visualisations.
         self.hud_callgraph = False
@@ -130,18 +123,6 @@ class NodeEditor(QFrame):
 
     def focusInEvent(self, event):
         self.blinktimer.start()
-
-    def toggle_overlay(self):
-        self.hide_overlay() if self.overlay.isVisible() else self.show_overlay()
-
-    def show_overlay(self):
-        self.overlay.show()
-
-    def hide_overlay(self):
-        self.overlay.hide()
-
-    def is_overlay_visible(self):
-        return self.overlay.isVisible()
 
     def resizeEvent(self, event):
         self.overlay.resize(event.size())
@@ -209,7 +190,8 @@ class NodeEditor(QFrame):
                 QToolTip.showText(event.globalPos(), msg)
                 return True
             # Draw annotations if there are any.
-            elif self.show_tool_visualisations:
+            elif (self.hud_callgraph or self.hud_eval or self.hud_types
+                  or self.hud_heat_map):
                 annotes = [annote.annotation for annote in node.get_annotations_with_hint(ToolTip)]
                 msg = "\n".join(annotes)
                 if msg.strip() != "":
@@ -455,8 +437,8 @@ class NodeEditor(QFrame):
             annotes = [annote.annotation for annote in node.get_annotations_with_hint(Heatmap)]
             for annote in annotes:
                 self.overlay.add_heatmap_datum(line + 1, annote)
-            if self.show_tool_visualisations:
-                # Draw footnotes.
+            if self.hud_eval or self.hud_types:
+                # If the user requested them, draw footnotes.
                 infofont = QApplication.instance().tool_info_font
                 annotes = []
                 annotes_ = node.get_annotations_with_hint(Footnote)
