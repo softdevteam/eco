@@ -3,7 +3,7 @@ import telnetlib
 
 from PyQt4.QtCore import QObject, SIGNAL
 from fcntl import fcntl, F_GETFL, F_SETFL
-from os import O_NONBLOCK, read
+from os import O_NONBLOCK
 from socket import error as socket_error
 
 class Debugger(QObject):
@@ -20,9 +20,9 @@ class Debugger(QObject):
         self.signal_execute_fail = SIGNAL("executefail")
         self.telnet = None
 
-    def start_pdb(self):   
-        self.breakpoints = {'keep': [], 'del': []}      
-        self.line_read_until = '(Pdb)'   
+    def start_pdb(self):
+        self.breakpoints = {'keep': [], 'del': []}
+        self.line_read_until = '(Pdb)'
         self.process = self.window.getEditor().tm.export(debug=True)
         if not self.process:
             self.emit(self.signal_execute_fail)
@@ -35,25 +35,25 @@ class Debugger(QObject):
         while not self.telnet:
             sleep(0.5)
             try:
-                self.telnet = telnetlib.Telnet("localhost", 8210)   
+                self.telnet = telnetlib.Telnet("localhost", 8210)
             except socket_error:
-                if attempt > 3:              
+                if attempt > 3:
                     self.emit(self.signal_output, "Telnet connection failed, cannot debug")
                     self.exit()
                     return None
-                attempt += 1              
-        output = False     
+                attempt += 1
+        output = False
         while not output:
             sleep(0.1)
             output = self.telnet.read_until(self.line_read_until)
-        self.emit(self.signal_toggle_buttons, True)           
-        self.emit(self.signal_output, output)                    
+        self.emit(self.signal_toggle_buttons, True)
+        self.emit(self.signal_output, output)
 
     # Run command and wait for response
     def run_command(self, command):
         self.emit(self.signal_toggle_buttons, False)
         try:
-            self.telnet.write(command + "\n")             
+            self.telnet.write(command + "\n")
         except AttributeError:
             return None
         # If user quits then don't wait for (Pdb)
@@ -71,8 +71,8 @@ class Debugger(QObject):
         try:
             output = self.telnet.read_until(self.line_read_until)
         except (AttributeError, EOFError):
-            self.exit() 
-            return None               
+            self.exit()
+            return None
         if self.line_read_until not in output:
             self.exit()
             return None
@@ -96,7 +96,7 @@ class Debugger(QObject):
     def is_program_finished(self):
         try:
             # 'w' is the 'where' command. It tells you where you are in the program
-            self.telnet.write("w\n")  
+            self.telnet.write("w\n")
             output = self.telnet.read_until(self.line_read_until)
         except (AttributeError, EOFError):
             return True
@@ -109,10 +109,10 @@ class Debugger(QObject):
         return False
 
     def get_breakpoints(self, temp=False, number=0, get_all=True):
-        # Returns only the type of breakpoint specified (temp or not)        
+        # Returns only the type of breakpoint specified (temp or not)
         try:
             self.telnet.write("b\n")
-            output = self.telnet.read_until(self.line_read_until)          
+            output = self.telnet.read_until(self.line_read_until)
         except (EOFError, AttributeError):
             return None
         type_wanted = 'keep'
@@ -132,8 +132,8 @@ class Debugger(QObject):
             # No parameter for split - split by any whitespace
             words = l.split()
             # In all the lines needed, the first part is an integer
-            try: 
-                int(words[0])                    
+            try:
+                int(words[0])
             except ValueError:
                 continue
             # Breakpoints are numbered from 1 and goes up
@@ -142,9 +142,9 @@ class Debugger(QObject):
             if get_all:
                 # just add to the list
                 self.breakpoints[words[2]].append(words[5].split(":")[1])
-            else:            
+            else:
                 # check if it matches
-                for w in words:                
+                for w in words:
                     if w == type_wanted:
                         is_type = True
                     if is_type:
@@ -163,7 +163,7 @@ class Debugger(QObject):
         except OSError:
             pass
         if self.window.debugging:
-            if self.telnet:     
+            if self.telnet:
                 self.telnet.close()
-                self.emit(self.signal_output, "Debugging finished.")  
-            self.emit(self.signal_done)  
+                self.emit(self.signal_output, "Debugging finished.")
+            self.emit(self.signal_done)

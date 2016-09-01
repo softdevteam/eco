@@ -1448,7 +1448,7 @@ class Window(QtGui.QMainWindow):
         self.ui.actionStepInto.setEnabled(enable)
         self.ui.actionStepOver.setEnabled(enable)
 
-    def debug_breakpoint(self, isTemp, number, from_click, 
+    def debug_breakpoint(self, isTemp, number, from_click,
         condition="", ignore=0, from_dialog=False):
         # If there is a breakpoint and the user double clicks it (from_click)
         # then the breakpoint should just be removed, don't make another one
