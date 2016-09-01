@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 from grammar_parser.plexer import PriorityLexer
-from grammar_parser.gparser import MagicTerminal, Terminal, IndentationTerminal
+from grammar_parser.gparser import MagicTerminal, Terminal, IndentationTerminal, MultiTerminal
 from incparser.astree import BOS, EOS, TextNode, ImageNode
 from PyQt4.QtGui import QImage
 import re, os
@@ -451,6 +451,7 @@ class IncrementalLexerCF(object):
         self.merge_back(read_nodes, generated_tokens)
 
     def relex(self, node):
+        print("relex", node)
         # find farthest node that has lookahead into node
         # start munching tokens and spit out nodes
         #     if generated node already exists => stop
@@ -476,37 +477,360 @@ class IncrementalLexerCF(object):
         pos = 0  # read tokens
         read = 0 # generated tokens
         current_node = node
-        next_token = self.lexer.get_token_iter(StringWrapper(node))
+        sw = StringWrapper(node, startnode)
+        next_token = self.lexer.get_token_iter(sw)
+
+        combos = []
+        last_read = None
+
+        tokenslength = 0
+        readlength = 0
+        toks = []
+        read = []
+        pairs = []
+
+        i = 0
         while True:
-            token = next_token()
-            if token.source == "":
-                read_nodes.append(current_node)
-                break
-            read += len(token.source)
-            # special case when inserting a newline into a string, the lexer
-            # creates a single token. We need to make sure that that newline
-            # gets lexed into its own token
-            if len(token.source) > 1 and token.source.find("\r") >= 0:
-                l = token.source.split("\r")
-                for e in l:
-                    t = self.lexer.tokenize(e)
-                    generated_tokens.extend(t)
-                    if e is not l[-1]:
-                        newline = self.lexer.tokenize("\r")
-                        generated_tokens.extend(newline)
-            else:
-                generated_tokens.append(token)
-            while read > pos + len(current_node.symbol.name):
-                pos += len(current_node.symbol.name)
-                read_nodes.append(current_node)
-                current_node = current_node.next_term
-                if current_node is startnode:
-                    past_startnode = True
-            if past_startnode and read == pos + len(current_node.symbol.name):
-                read_nodes.append(current_node)
+            try:
+                token = next_token()
+                if token[0] is None:
+                    break
+                toks.append(token[:3])
+                tokenslength += len(token[0])
+                for r in token[3]:
+                    if not read or r is not read[-1]: # skip partially read from previous tokens
+                        read.append(r)
+                        readlength += len(getname(r))
+                if tokenslength == readlength:
+                    # if all gen tokens match they read tokens we have a pair
+                    pairs.append((toks, read))
+                    toks = []
+                    read = []
+                    tokenslength = 0
+                    readlength = 0
+            except StopIteration:
                 break
 
-        return self.merge_back(read_nodes, generated_tokens)
+        for tokens, read in pairs:
+            self.merge_pair(tokens, read)
+        return True
+            
+        if not generated_tokens:
+            return False
+
+        cur_node = sw.node
+        if sw.last_node is None:
+            return False
+
+        read_nodes = []
+        while cur_node is not sw.last_node:
+            read_nodes.append(cur_node)
+            cur_node = cur_node.next_term
+        read_nodes.append(sw.last_node)
+
+        print("read_nodes", read_nodes)
+        print("gen  nodes", generated_tokens)
+
+        return self.update_parsetree(read_nodes, generated_tokens)
+
+        #return self.merge_back(read_nodes, generated_tokens)
+
+    def iter_gen(self, tokens):
+        for t in tokens:
+            if len(t[0]) > 1 and re.search("[\r\x80]", t[0]):
+                yield ("new mt", t[1], t[2]), True
+                for x in re.split("([\r\x80])", t[0]):
+                    yield (x, t[1], t[2]), True
+                yield ("finish mt", None, None), False
+            else:
+                yield t, False
+        while True:
+            yield None, False
+
+    def iter_read(self, nodes):
+        for n in nodes:
+            if isinstance(n.symbol, MultiTerminal):
+                # since we are removing elements from the original list during
+                # iteration we need to create a copy to no skip anything
+                for x in list(n.symbol.name):
+                    yield x, n
+            else:
+                yield n, None
+        while True:
+            yield None, None
+
+    def remove_check(self, node):
+        if isinstance(node.parent, MultiTerminal):
+            if len(node.parent.name) == 0:
+                node.parent.pnode.remove()
+
+    def merge_pair(self, tokens, read):
+        print("merge_pair", tokens, read)
+        lastread = read[0].prev_term
+
+        it_gen = self.iter_gen(tokens)
+        it_read = self.iter_read(read)
+
+        gen, multimode = it_gen.next()
+        read, rparent = it_read.next()
+        if multimode:
+            read_before_multi = read
+        else:
+            read_before_multi = None
+
+        totalr = 0
+        totalg = 0
+
+        print("last read", lastread, read)
+        multilist = []
+
+        current_mt = None
+
+        while True:
+            if gen is None and read is None:
+                print("both none done")
+                break
+            print("totalr", totalr)
+            print("totalg", totalg)
+            print("read", read)
+            print("gen", gen, multimode)
+
+            if gen is None:
+                lengen = 0
+            elif gen[0] == "new mt":
+                # check for existing mt in read
+                # or create new mt
+                # remote then insert
+                # gen = it_gen.next()
+                # set current MT
+                # continue
+                if read.ismultichild():
+                    current_mt = read.parent.pnode
+                else:
+                    current_mt = TextNode(MultiTerminal([]))
+                    lastread.insert_after(current_mt)
+                current_mt.lookup = gen[1]
+                current_mt.lookahead = gen[2]
+                gen, multimode = it_gen.next()
+                continue
+            elif gen[0] == "finish mt":
+                lastread = current_mt
+                gen, multimode = it_gen.next()
+                continue
+            else:
+                lengen = len(gen[0])
+
+            if totalr >= totalg + lengen:                       # INSERT NEW
+                print("insert")
+                # 1+2 -> 1,+,2 (overwrite with 1, insert +,2)
+                new = TextNode(Terminal(gen[0]))
+                new.lookup = gen[1]
+                new.lookahead = gen[2]
+                lastread.insert_after(new)
+                lastread = new
+                totalg += lengen
+                gen, multimode = it_gen.next()
+            elif totalr + getlength(read) <= totalg:            # DELETE OLD
+                print("delete")
+                # ab, c -> abc (overwrite with abc, delete c)
+                read.remove()
+                self.remove_check(read)
+                totalr += getlength(read)
+                read, rparent = it_read.next()
+            else:                                               # UPDATE
+                print("update", read, gen)
+                totalr += getlength(read)
+                totalg += lengen
+                if not isinstance(read.symbol, MagicTerminal):
+                    read.symbol.name = gen[0]
+                    read.lookup = gen[1]
+                    read.lookahead = gen[2]
+                else:
+                    read.lookup = gen[1]
+                # normal -> normal
+                # multi  -> normal
+                # normal -> multi
+                # multi  -> same multi
+                # multi  -> new multi
+                if not current_mt:
+                    if read.ismultichild():
+                        # multi -> normal
+                        read.remove()
+                        lastread.insert_after(read)
+                    else:
+                        # normal -> normal
+                        pass
+                else:
+                    if read.ismultichild() and current_mt is read.parent.pnode:
+                        pass # multi -> same multi
+                    else:
+                        # normal/multi -> new multi
+                        read.remove()
+                        if current_mt.isempty():
+                            current_mt.symbol.name.append(read)
+                            read.parent = current_mt.symbol
+                        else:
+                            lastread.insert_after(read)
+                lastread = read
+                read, rparent = it_read.next()
+                gen, multimode = it_gen.next()
+
+            if multimode and not read_before_multi:
+                read_before_multi = read # needed to insert MT at right position
+            if multimode is False and multilist:
+                print("finished multiterm", multilist)
+                print("insert somewhere", read_before_multi, rparent)
+                mt = TextNode(MultiTerminal(multilist))
+                mt.lookup = multilist[0].lookup
+                read_before_multi.prev_term.insert_after(mt)
+                read_before_multi = None
+                multilist = []
+                lastread = mt
+        return
+
+        re.search()
+
+        it = iter(read)
+        last = None
+        for t in tokens: #[12,+,3]
+            print("t", t)
+            try:
+                r = it.next() #[1,2,+3]
+
+                if re.search("[\r\x80]", t[0]):
+                    if isinstance(r.symbol, MultiTerminal):
+                        # overwrite a multiterminal with a new multiterminal
+                        # try to reuse as much of the old mt as possible to
+                        # avoid creating loads of new textnodes when we edit a
+                        # comment containing returns or lboxes
+                        print("update multi with multi")
+                        rit = iter(r.symbol.name)
+                        result = []
+                        for x in re.split("([\r\x80])", t[0]):
+                            try:
+                                tmp = rit.next()
+                                if isinstance(tmp.symbol, MagicTerminal):
+                                    if x == "\x80":
+                                        result.append(tmp)
+                                    else:
+                                        result.append(TextNode(Terminal(x)))
+                                        continue
+                                else:
+                                    print("update", tmp, x)
+                                    tmp.symbol.name = x
+                                    result.append(tmp)
+                            except StopIteration:
+                                result.append(TextNode(Terminal(x)))
+
+                        r.symbol.name = result
+                        print("result", result)
+
+                    else:
+                        # overwrite normal terminals with multiterminal
+                        # XXX try to reuse nodes if they are just wrapped into a MT
+                        print("update normal with multi")
+                        result = []
+                        for x in re.split("([\r\x80])", t[0]):
+                            if isinstance(r.symbol, MagicTerminal):
+                                if x == "\x80":
+                                    result.append(r)
+                                    r.remove()
+                                    r = it.next()
+                                else:
+                                    # insert
+                                    result.append(TextNode(Terminal(x)))
+                            else:
+                                # insert
+                                result.append(TextNode(Terminal(x)))
+                        mt = MultiTerminal(result)
+                        print("created mt", mt)
+                        r.symbol = mt
+                        r.lookup = t[1]
+                        r.lookahead = t[2]
+
+                elif isinstance(r.symbol, MagicTerminal):
+                    # insert
+                    n = TextNode(Terminal(t[0]))
+                    last.insert_after(n)
+                else:
+                    # update
+                    print("update")
+                    r.symbol.name = t[0]
+                    r.lookup = t[1]
+                    r.lookahead = t[2]
+
+            except StopIteration:
+                # no more reads, start inserting
+                new = TextNode(Terminal(t[0]))
+                new.lookup = t[1]
+                new.lookahead = t[2]
+                last.insert_after(new)
+                last = new
+                continue
+
+            last = r
+
+        # clean up all remaining reads
+        while True:
+            try:
+                r = it.next()
+                r.remove()
+            except StopIteration:
+                break
+        return
+
+        if len(tokens) < len(read):
+            it = iter(tokens)
+            for r in read:
+                try:
+                    t = it.next()
+                    r.symbol.name = t[0]
+                    r.lookup = t[1]
+                    r.lookahead = t[2]
+                except StopIteration:
+                    # no more generated tokens, delete the rest
+                    r.remove()
+        elif len(tokens) > len(read):
+            it = iter(read)
+            last = read[-1]
+            for t in tokens:
+                try:
+                    r = it.next()
+                    r.symbol.name = t[0]
+                    r.lookup = t[1]
+                    r.lookahead = t[2]
+                except StopIteration:
+                    # no more gen, insert the rest
+                    new = TextNode(Terminal(t[0]))
+                    new.lookup = t[1]
+                    new.lookahead = t[2]
+                    last.insert_after(new)
+                    last = new
+        elif len(tokens) == len(read):
+            it = iter(read)
+            for t in tokens:
+                try:
+                    r = it.next()
+                    r.symbol.name = t[0]
+                    r.lookup = t[1]
+                    r.lookahead = t[2]
+                except StopIteration:
+                    assert False
+
+    def update_or_insert(self, token, it):
+
+        pass
+    def update_parsetree(self, read_nodes, generated_tokens):
+        print("update parse tree")
+        it = iter(generated_tokens)
+        for x in read_nodes:
+            g = it.next()
+            # reuse old node in parse tree
+            if x.lookup == g[1]:
+                x.symbol.name = g[0]
+            else:
+                x.remove()
+
 
     def merge_back(self, read_nodes, generated_tokens):
 
@@ -521,33 +845,27 @@ class IncrementalLexerCF(object):
                 last_node.insert_after(node)
                 any_changes = True
             last_node = node
-            node.symbol.name = t.source
             node.indent = None
-            if node.lookup != t.name:
+            if not isinstance(node.symbol, MagicTerminal):
+                if isinstance(t[0], MultiTerminal) or isinstance(node.symbol, MultiTerminal) or isinstance(t[0], MagicTerminal):
+                    node.symbol = t[0]
+                else:
+                    node.symbol.name = t[0].name
+                if node.lookup != t[1]:
+                    node.mark_changed()
+                    any_changes = True
+                else:
+                    node.mark_version()
+            else:
+                node.symbol = t[0]
                 node.mark_changed()
                 any_changes = True
-            else:
-                node.mark_version()
-            # we need to invalidate the newline if we changed whitespace or
-            # logical nodes that come after it
-            if node.lookup == "<ws>" or node.lookup != t.name:
-                prev = node.prev_term
-                while isinstance(prev.symbol, IndentationTerminal):
-                    prev = prev.prev_term
-                if prev.lookup == "<return>":
-                    prev.mark_changed()
-                    any_changes = True
-                elif isinstance(prev, BOS):
-                    # if there is no return, re-indentation won't be triggered
-                    # in the incremental parser so we have to mark the next
-                    # terminal. possibly only use case: bos <ws> pass DEDENT eos
-                    node.next_term.mark_changed()
-            # XXX this should become neccessary with incparse optimisations turned on
-            if node.lookup == "\\" and node.next_term.lookup == "<return>":
-                node.next_term.mark_changed()
-                any_changes = True
-            node.lookup = t.name
-            node.lookahead = t.lookahead
+            node.lookup = t[1]
+            node.lookahead = t[0].lookahead
+            if isinstance(node.symbol, MultiTerminal):
+                node.symbol.link_children(node)
+            if isinstance(node.symbol, MagicTerminal):
+                node.symbol.ast.magic_backpointer = node
         # delete left over nodes
         while True:
             try:
@@ -579,9 +897,11 @@ class StringWrapper(object):
     # XXX This is just a temprary solution. To do this right we have to alter
     # the lexer to work on (node, index)-tuples
 
-    def __init__(self, startnode):
+    def __init__(self, startnode, relexnode):
         self.node = startnode
+        self.relexnode = relexnode
         self.length = sys.maxint
+        self.last_node = None
 
     def __len__(self):
         return self.length
@@ -593,8 +913,8 @@ class StringWrapper(object):
             node = node.next_term
         if isinstance(node, EOS):
             raise IndexError
-        while index > len(node.symbol.name) - 1:
-            index -= len(node.symbol.name)
+        while index > len(getname(node)) - 1:
+            index -= len(getname(node))
             node = node.next_term
             if node is None:
                 raise IndexError
@@ -602,24 +922,29 @@ class StringWrapper(object):
                 node = node.next_term
             if isinstance(node, EOS):
                 raise IndexError
-        if node.next_term and (isinstance(node.next_term, EOS) or isinstance(node.next_term.symbol, IndentationTerminal) or node.next_term.symbol.name == "\r" or isinstance(node.next_term.symbol, MagicTerminal)):
-            self.length = startindex + len(node.symbol.name[index:])
-        return node.symbol.name[index]
+        if node.next_term and (isinstance(node.next_term, EOS) or isinstance(node.next_term.symbol, IndentationTerminal) or node.next_term.symbol.name == "\r"):# or isinstance(node.next_term.symbol, MagicTerminal)):
+            self.length = startindex + len(getname(node)[index:])
+        return getname(node)[index]
 
     def __getslice__(self, start, stop):
+        #XXX get rid of slice in lexer.py
         if stop <= start:
             return ""
 
-        name = self.node.symbol.name
+        name = getname(self.node)
         if start < len(name) and stop < len(name):
+            self.nodes = [self.node]
             return name[start: stop]
 
         text = []
+        self.nodes = []
         node = self.node
         i = 0
         while i < stop:
-            text.append(node.symbol.name)
-            i += len(node.symbol.name)
+            text.append(getname(node))
+            i += len(getname(node))
+            if i > start:
+                self.nodes.append(node)
             node = node.next_term
             if isinstance(node, EOS):
                 break
@@ -627,7 +952,100 @@ class StringWrapper(object):
                 break
             if node.symbol.name == "\r":
                 break
-            if isinstance(node.symbol, MagicTerminal):
-                break
+            #if isinstance(node.symbol, MagicTerminal):
+            #    break
 
         return "".join(text)[start:stop]
+
+    def make_token(self, start, end, tokentype):
+        node = self.node
+        i = 0
+        text = []
+        lboxes = []
+        past_relexnode = False
+        read = []
+        skip = 0
+
+        if end == -1:
+            end = sys.maxint
+
+        while i < end:
+            if node is self.relexnode:
+                past_relexnode = True
+            if isinstance(node, EOS):
+                break
+            name = getname(node)
+            i += len(name)
+            if i <= start:
+                skip = i
+                node = node.next_term
+                continue
+
+            text.append(name)
+            read.append(node)
+            if isinstance(node.symbol, MagicTerminal):
+                lboxes.append(node.symbol)
+            if isinstance(node.symbol, MultiTerminal):
+                for e in node.symbol.name:
+                    if isinstance(e.symbol, MagicTerminal):
+                        lboxes.append(e.symbol)
+            node = node.next_term
+
+        self.last_node = node.prev_term
+
+        tokenname = "".join(text)[(start-skip):(end-skip)]
+        print("new tokenname", tokenname)
+        print("read", read)
+        return (tokenname, read)
+        tsplit = re.split("([\r\x80])", tokenname)
+
+        tsplit = [x for x in tsplit if x != ''] # clear empty strings
+
+        if len(tsplit) > 1:
+            # replace lboxes
+            newsplit = []
+            for t in tsplit:
+                if t == "\x80":
+                    lb = lboxes.pop(0)
+                    newsplit.append(lb)
+                    continue
+                newsplit.append(t)
+            return newsplit
+        else:
+            if tsplit[0] == "\x80":
+                # XXX should we stop here? not if \x80 comes from a former
+                # multitoken, but is split up now -> test
+                return lboxes[0]
+            t = "".join(tsplit)
+            if self.last_node.symbol == t and self.last_node.lookup == tokentype:
+                if past_relexnode:
+                    self.last_node = self.last_node.prev_term
+                    return None
+            return t
+
+def getname(node):
+    if isinstance(node.symbol, MagicTerminal):
+        return "\x80"
+    if isinstance(node.symbol, MultiTerminal):
+        l = []
+        for x in node.symbol.name:
+            if isinstance(x.symbol, MagicTerminal):
+                l.append("\x80")
+            else:
+                l.append(x.symbol.name)
+        return "".join(l)
+    return node.symbol.name
+
+def getlength(node):
+    if isinstance(node, TextNode):
+        return len(getname(node))
+    return len(node)
+
+def lbox_finder(nodes):
+    for n in nodes:
+        if isinstance(n.symbol, MagicTerminal):
+            yield n.symbol
+        if isinstance(n.symbol.name, list): # multinode -> continue inside
+            for m in n.symbol.name:
+                if isinstance(m, MagicTerminal):
+                    yield m

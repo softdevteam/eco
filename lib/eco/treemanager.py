@@ -21,8 +21,9 @@
 
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
+from cflexer.lexer import LexingError
 from incparser.astree import TextNode, BOS, EOS
-from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal
+from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, MultiTerminal
 from PyQt4.QtGui import QApplication
 from PyQt4.QtCore import QSettings
 from grammars.grammars import lang_dict, Language, EcoFile
@@ -83,6 +84,13 @@ class Cursor(object):
         return Cursor(self.node, self.pos, self.line, self.lines)
 
     def fix(self):
+        if type(self.node.parent.symbol) is MultiTerminal:
+            # relexing a multiterminal currently replaces all TextNode wrappers
+            # within that MultiTerminal. We need to reset the cursor to update
+            # to the new TextNodes
+            x = self.get_x()
+            self.move_to_x(x)
+            return
         while self.node.deleted:
             self.pos = 0
             self.left()
@@ -91,6 +99,7 @@ class Cursor(object):
             self.node = self.find_next_visible(self.node)
 
     def left(self):
+        print(self.node)
         node = self.node
         if not self.is_visible(node):
             node = self.find_previous_visible(self.node)
@@ -109,6 +118,7 @@ class Cursor(object):
             self.pos = len(node.symbol.name)
 
     def right(self):
+        print(self.node)
         node = self.node
         if not self.is_visible(node):
             node = self.find_next_visible(self.node)
@@ -162,38 +172,44 @@ class Cursor(object):
 
     def find_next_visible(self, node):
         if self.is_visible(node) or isinstance(node.symbol, MagicTerminal):
-            node = node.next_term
+            node = node.next_terminal()
         while not self.is_visible(node):
             if isinstance(node, EOS):
                 root = node.get_root()
                 lbox = root.get_magicterminal()
                 if lbox:
-                    node = lbox.next_term
+                    node = lbox.next_terminal()
                     continue
                 else:
                     return node
             elif isinstance(node.symbol, MagicTerminal):
                 node = node.symbol.ast.children[0]
                 continue
-            node = node.next_term
+            elif isinstance(node.symbol, MultiTerminal):
+                node = node.symbol.name[0]
+                continue
+            node = node.next_terminal()
         return node
 
     def find_previous_visible(self, node):
         if self.is_visible(node):
-            node = node.prev_term
+            node = node.prev_terminal() # XXX check for multiterm
         while not self.is_visible(node):
             if isinstance(node, BOS):
                 root = node.get_root()
                 lbox = root.get_magicterminal()
                 if lbox:
-                    node = lbox.prev_term
+                    node = lbox.prev_terminal() #XXX check for multiterm
                     continue
                 else:
                     return node
             elif isinstance(node.symbol, MagicTerminal):
                 node = node.symbol.ast.children[-1]
                 continue
-            node = node.prev_term
+            elif isinstance(node.symbol, MultiTerminal):
+                node = node.symbol.name[-1]
+                continue
+            node = node.prev_terminal()
         return node
 
     def is_visible(self, node):
@@ -204,6 +220,8 @@ class Cursor(object):
         if isinstance(node, EOS):
             return False
         if isinstance(node.symbol, MagicTerminal):
+            return False
+        if isinstance(node.symbol, MultiTerminal):
             return False
         return True
 
@@ -1164,6 +1182,8 @@ class TreeManager(object):
         newnode.parent_lbox = root
         if not self.cursor.inside():
             node.insert_after(newnode)
+            print("insert lbox after")
+            self.relex(newnode)
         else:
             node = node
             internal_position = self.cursor.pos
@@ -1176,7 +1196,7 @@ class TreeManager(object):
             newnode.insert_after(node2)
 
             self.relex(node)
-            self.relex(node2)
+            #self.relex(node2)
         self.edit_rightnode = True # writes next char into magic ast
         self.cursor.node = newnode.symbol.ast.children[0]
         self.cursor.pos = 0
@@ -1440,6 +1460,7 @@ class TreeManager(object):
             self.cursor.x = x
 
     def rescan_linebreaks(self, y):
+        return
         """ Scan all nodes between this return node and the next lines return
         node. All other return nodes you find that are not the next lines
         return node are new and must be inserted into self.lines """
@@ -1450,20 +1471,25 @@ class TreeManager(object):
         except IndexError:
             next = self.get_eos()
 
-        current = current.next_term
+        current = current.next_terminal()
         while current is not next:
+            print("current", current, next)
             if current.symbol.name == "\r":
                 y += 1
                 self.lines.insert(y, Line(current))
             if isinstance(current.symbol, MagicTerminal):
                 current = current.symbol.ast.children[0]
+            elif isinstance(current.symbol, MultiTerminal):
+                current = current.symbol.name[0]
             elif isinstance(current, EOS):
                 root = current.get_root()
                 lbox = root.get_magicterminal()
                 if lbox:
-                    current = lbox.next_term
+                    current = lbox.next_terminal()
+                else:
+                    assert False
             else:
-                current = current.next_term
+                current = current.next_terminal()
 
     def delete_linebreak(self, y, node):
         deleted = self.lines[y+1].node
@@ -1707,13 +1733,20 @@ class TreeManager(object):
     def relex(self, node):
         if node is None:
             return
+        if type(node.parent.symbol) is MultiTerminal:
+            return self.relex(node.parent)
         if isinstance(node, BOS) or isinstance(node, EOS):
             return
-        if isinstance(node.symbol, MagicTerminal):
-            return
+       #if isinstance(node.symbol, MagicTerminal):
+       #    return
         root = node.get_root()
         lexer = self.get_lexer(root)
-        return lexer.relex(node)
+        try:
+            return lexer.relex(node)
+        except LexingError:
+            # XXX do something here to let the user know a lexing error has
+            # occured
+            return False
 
     def savestate(self):
         self.savenextparse = True
