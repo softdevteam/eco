@@ -84,7 +84,6 @@
     <addaction name="actionRun"/>
     <addaction name="actionDebug"/>
     <addaction name="actionProfile"/>
-    <addaction name="actionVisualise_automatically"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -99,7 +98,6 @@
     <addaction name="actionShow_language_boxes"/>
     <addaction name="actionShow_namebinding"/>
     <addaction name="actionShow_indentation"/>
-    <addaction name="actionShow_tool_visualisations"/>
     <addaction name="actionShow_lspaceview"/>
    </widget>
    <widget class="QMenu" name="menuInfo">
