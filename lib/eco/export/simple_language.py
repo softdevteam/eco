@@ -23,25 +23,6 @@ import tempfile
 import subprocess
 
 from PyQt4.QtCore import QSettings
-from incparser.annotation import Annotation, ToolTip, Heatmap
-
-
-class SLCoverageCounterMsg(Annotation):
-    def __init__(self, annotation):
-        self._hints = [ToolTip()]
-        super(SLCoverageCounterMsg, self).__init__(annotation)
-
-    def get_hints(self):
-        return self._hints
-
-
-class SLCoverageCounterVal(Annotation):
-    def __init__(self, annotation):
-        self._hints = [Heatmap()]
-        super(SLCoverageCounterVal, self).__init__(annotation)
-
-    def get_hints(self):
-        return self._hints
 
 
 class SimpleLanguageExporter(object):
