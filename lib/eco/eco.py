@@ -1260,6 +1260,16 @@ class Window(QtGui.QMainWindow):
             else:
                 self.ui.actionStateGraph.setEnabled(False)
             lang = ed_tab.editor.get_mainlanguage()
+            if ed_tab.editor.hud_callgraph:
+                self.ui.hud_callgraph_button.setChecked(True)
+            elif ed_tab.editor.hud_eval:
+                self.ui.hud_eval_button.setChecked(True)
+            elif ed_tab.editor.hud_types:
+                self.ui.hud_types_button.setChecked(True)
+            elif ed_tab.editor.hud_heat_map:
+                self.ui.hud_heat_map_button.setChecked(True)
+            else:
+                self.ui.hud_off_button.setChecked(True)
         else:
             self.toggle_menu(False)
         self.btReparse()
