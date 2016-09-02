@@ -27,14 +27,14 @@ try:
     has_mipy = True
 except ImportError:
     has_mipy = False
-from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
-from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
+from incparser.astree import TextNode, EOS  #BOS, ImageNode, FinishSymbol
+from grammar_parser.gparser import IndentationTerminal # BOS, MagicTerminal, Nonterminal
 from PyQt4 import QtCore
 from PyQt4.QtGui import QPen, QColor, QImage, QApplication
 
 import math, os
 
-class Editor(object):
+class Renderer(object):
 
     def __init__(self, fontwt, fontht, fontd):
         self.fontwt = fontwt
@@ -66,7 +66,7 @@ class Editor(object):
 
         paint.setFont(f)
 
-class NormalEditor(Editor):
+class NormalRenderer(Renderer):
     def paint_node(self, paint, node, x, y, highlighter):
         dx, dy = (0, 0)
         if node.symbol.name == "\r" or isinstance(node, EOS):
@@ -98,7 +98,7 @@ class NormalEditor(Editor):
     def doubleClick(self):
         pass # select/unselect
 
-class ImageEditor(NormalEditor):
+class ImageRenderer(NormalRenderer):
 
     def paint_node(self, paint, node, x, y, highlighter):
         self.update_image(node)
@@ -108,7 +108,7 @@ class ImageEditor(NormalEditor):
             dx = int(math.ceil(node.image.width() * 1.0 / self.fontwt) * self.fontwt)
             dy = int(math.ceil(node.image.height() * 1.0 / self.fontht))
         else:
-            dx, dy = NormalEditor.paint_node(self, paint, node, x, y, highlighter)
+            dx, dy = NormalRenderer.paint_node(self, paint, node, x, y, highlighter)
         return dx, dy
 
     def get_filename(self, node):
@@ -128,27 +128,27 @@ class ImageEditor(NormalEditor):
     def doubleClick(self):
         pass # switch between display modes
 
-class ChemicalEditor(ImageEditor):
+class ChemicalRenderer(ImageRenderer):
     def get_filename(self, node):
         return "chemicals/" + node.symbol.name + ".png"
 
 if not has_mipy:
-    class IPythonEditor(NormalEditor):
+    class IPythonRenderer(NormalRenderer):
         pass
 else:
-    class IPythonEditor(NormalEditor):
+    class IPythonRenderer(NormalRenderer):
         proc = kernel.IPythonKernelProcess()
 
         def paint_node(self, paint, node, x, y, highlighter):
             lbox = node.get_root().get_magicterminal()
             if lbox.plain_mode:
-                return NormalEditor.paint_node(self, paint, node, x, y, highlighter)
+                return NormalRenderer.paint_node(self, paint, node, x, y, highlighter)
             else:
-                dx, dy = NormalEditor.paint_node(self, paint, node, x, y, highlighter)
+                dx, dy = NormalRenderer.paint_node(self, paint, node, x, y, highlighter)
                 if isinstance(node.next_term, EOS):
                     content = self.get_content(lbox)
                     try:
-                        krn = IPythonEditor.proc.connection
+                        krn = IPythonRenderer.proc.connection
 
                         if krn is not None:
                             listener = IPythonExecuteListener()
@@ -184,11 +184,11 @@ else:
         def on_error(self, ename, value, traceback):
             raise Exception(ename)
 
-def get_editor(parent, fontwt, fontht, fontd):
+def get_renderer(parent, fontwt, fontht, fontd):
     if parent == "Chemicals":
-        return ChemicalEditor(fontwt, fontht, fontd)
+        return ChemicalRenderer(fontwt, fontht, fontd)
     if parent == "Image":
-        return ImageEditor(fontwt, fontht, fontd)
+        return ImageRenderer(fontwt, fontht, fontd)
     if parent == "IPython":
-        return IPythonEditor(fontwt, fontht, fontd)
-    return NormalEditor(fontwt, fontht, fontd)
+        return IPythonRenderer(fontwt, fontht, fontd)
+    return NormalRenderer(fontwt, fontht, fontd)
