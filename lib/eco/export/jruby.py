@@ -25,7 +25,8 @@ import os.path
 import tempfile
 import subprocess
 
-from incparser.annotation import Annotation, Footnote, ToolTip, Railroad, Eval, Types
+from incparser.annotation import Annotation, Footnote, ToolTip, Railroad
+from incparser.annotation import HUDEval, HUDTypes, HUDCallgraph, HUDHeatmap
 
 from incparser.astree import EOS
 from grammar_parser.gparser import MagicTerminal, IndentationTerminal
@@ -55,11 +56,11 @@ class JRubyMorphismMsg(Annotation):
     """
 
     def __init__(self, annotation):
-        self._hints = [ToolTip()]
+        self._hints = [ToolTip(), HUDCallgraph()]
         super(JRubyMorphismMsg, self).__init__(annotation)
 
     def has_hint(self, klass):
-        if klass == ToolTip:
+        if klass in (ToolTip, HUDCallgraph):
             return True
         return False
 
@@ -72,11 +73,11 @@ class JRubyArgumentTypes(Annotation):
     """
 
     def __init__(self, annotation):
-        self._hints = [Footnote(), Types()]
+        self._hints = [Footnote(), HUDTypes()]
         super(JRubyArgumentTypes, self).__init__(annotation)
 
     def has_hint(self, klass):
-        if klass == Footnote or klass == Types:
+        if klass in (Footnote, HUDTypes):
             return True
         return False
 
@@ -89,11 +90,11 @@ class JRubyEvalStrings(Annotation):
     """
 
     def __init__(self, annotation):
-        self._hints = [Footnote(), Eval()]
+        self._hints = [Footnote(), HUDEval()]
         super(JRubyEvalStrings, self).__init__(annotation)
 
     def has_hint(self, klass):
-        if klass == Footnote or klass == Eval:
+        if klass in (Footnote, HUDEval):
             return True
         return False
 

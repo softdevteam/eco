@@ -20,23 +20,33 @@
 # IN THE SOFTWARE.
 
 from mocks import MockPopen
-from incparser.annotation import Annotation, Heatmap, Footnote, ToolTip
+from incparser.annotation import Annotation, Heatmap, Footnote, ToolTip, HUDHeatmap
 import copy, os, os.path, subprocess, tempfile
 import sys
 
 class CPythonFuncProfileMsg(Annotation):
     def __init__(self, annotation):
-        self._hints = [ToolTip(), Footnote()]
+        self._hints = [ToolTip(), Footnote(), HUDHeatmap()]
         super(CPythonFuncProfileMsg, self).__init__(annotation)
 
     def get_hints(self):
         return self._hints
 
+    def has_hint(self, klass):
+        if klass in (Footnote, ToolTip, HUDHeatmap):
+            return True
+        return False
+
 
 class CPythonFuncProfileVal(Annotation):
     def __init__(self, annotation):
-        self._hints = [Heatmap()]
+        self._hints = [Heatmap(), HUDHeatmap()]
         super(CPythonFuncProfileVal, self).__init__(annotation)
+
+    def has_hint(self, klass):
+        if klass in (Heatmap, HUDHeatmap):
+            return True
+        return False
 
     def get_hints(self):
         return self._hints

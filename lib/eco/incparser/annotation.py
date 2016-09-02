@@ -43,17 +43,28 @@ class ToolTip(Hint):
     pass
 
 
-class Eval(Hint):
+class HUDEval(Hint):
     """Annotations displayed when the HUD eval() strings button is down.
     """
     pass
 
 
-class Types(Hint):
+class HUDTypes(Hint):
     """Annotations displayed when the HUD types button is down.
     """
     pass
 
+
+class HUDHeatmap(Hint):
+    """Annotations displayed when the HUD heatmap button is down.
+    """
+    pass
+
+
+class HUDCallgraph(Hint):
+    """Annotations displayed when the HUD call graph button is down.
+    """
+    pass
 
 class Annotation(object):
     """An Annotation is a piece of information related to a node.
