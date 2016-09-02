@@ -656,11 +656,15 @@ class Window(QtGui.QMainWindow):
 
         # Set up HUD radio buttons.
         self.ui.hud_off_button.setChecked(True)
+        self.connect(self.ui.hud_off_button, SIGNAL("clicked()"), self.hud_off_toggle)
         self.connect(self.ui.hud_callgraph_button, SIGNAL("clicked()"), self.hud_callgraph_toggle)
         self.connect(self.ui.hud_eval_button, SIGNAL("clicked()"), self.hud_eval_toggle)
         self.connect(self.ui.hud_types_button, SIGNAL("clicked()"), self.hud_types_toggle)
         self.connect(self.ui.hud_heat_map_button, SIGNAL("clicked()"), self.hud_heat_map_toggle)
-        self.connect(self.ui.hud_off_button, SIGNAL("clicked()"), self.hud_off_toggle)
+        self.ui.hud_callgraph_button.setDisabled(True)
+        self.ui.hud_eval_button.setDisabled(True)
+        self.ui.hud_types_button.setDisabled(True)
+        self.ui.hud_heat_map_button.setDisabled(True)
 
         self.viewer = Viewer("pydot")
         self.pgviewer = None
@@ -1252,6 +1256,26 @@ class Window(QtGui.QMainWindow):
         elif(ret == QMessageBox.Discard):
             self.ui.tabWidget.removeTab(index)
 
+    def enable_hud_buttons(self, language):
+        """Enable the correct HUD buttons for the current language.
+        Never disables the hud_off button.
+        """
+        if language == "Python 2.7.5":
+            self.ui.hud_callgraph_button.setDisabled(True)
+            self.ui.hud_eval_button.setDisabled(True)
+            self.ui.hud_types_button.setDisabled(True)
+            self.ui.hud_heat_map_button.setDisabled(False)
+        elif language.startswith("Ruby"):  # Includes JRuby + SL, etc.
+            self.ui.hud_callgraph_button.setDisabled(False)
+            self.ui.hud_eval_button.setDisabled(False)
+            self.ui.hud_types_button.setDisabled(False)
+            self.ui.hud_heat_map_button.setDisabled(False)
+        else:
+            self.ui.hud_callgraph_button.setDisabled(True)
+            self.ui.hud_eval_button.setDisabled(True)
+            self.ui.hud_types_button.setDisabled(True)
+            self.ui.hud_heat_map_button.setDisabled(True)
+
     def tabChanged(self, index):
         ed_tab = self.getEditorTab()
         if ed_tab is not None:
@@ -1259,7 +1283,8 @@ class Window(QtGui.QMainWindow):
                 self.ui.actionStateGraph.setEnabled(True)
             else:
                 self.ui.actionStateGraph.setEnabled(False)
-            lang = ed_tab.editor.get_mainlanguage()
+            language = ed_tab.editor.get_mainlanguage()
+            self.enable_hud_buttons(language)
             if ed_tab.editor.hud_callgraph:
                 self.ui.hud_callgraph_button.setChecked(True)
             elif ed_tab.editor.hud_eval:

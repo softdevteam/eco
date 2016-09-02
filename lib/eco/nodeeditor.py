@@ -35,7 +35,8 @@ from incparser.astree import BOS, EOS
 from jsonmanager import JsonManager
 from utils import KeyPress
 from overlay import Overlay
-from incparser.annotation import Eval, Footnote, Heatmap, Railroad, ToolTip, Types
+from incparser.annotation import Footnote, Heatmap, Railroad, ToolTip
+from incparser.annotation import HUDEval, HUDTypes, HUDCallgraph, HUDHeatmap
 
 import syntaxhighlighter
 import editor
@@ -189,11 +190,29 @@ class NodeEditor(QFrame):
             if msg:
                 QToolTip.showText(event.globalPos(), msg)
                 return True
-            # Draw annotations if there are any.
-            elif (self.hud_callgraph or self.hud_eval or self.hud_types
-                  or self.hud_heat_map):
-                annotes = [annote.annotation for annote in node.get_annotations_with_hint(ToolTip)]
-                msg = "\n".join(annotes)
+            # Draw tooltips if there are any. Tooltips can appear with any HUD
+            # visualisation.
+            elif (self.hud_callgraph or self.hud_eval or self.hud_types or
+                  self.hud_heat_map):
+                strings = []
+                annotes = node.get_annotations_with_hint(ToolTip)
+                if self.hud_callgraph:
+                    for annote in annotes:
+                        if annote.has_hint(HUDCallgraph):
+                            strings.append(annote.annotation)
+                elif self.hud_eval:
+                    for annote in annotes:
+                        if annote.has_hint(HUDEval):
+                            strings.append(annote.annotation)
+                elif self.hud_types:
+                    for annote in annotes:
+                        if annote.has_hint(HUDTypes):
+                            strings.append(annote.annotation)
+                elif self.hud_heat_map:
+                    for annote in annotes:
+                        if annote.has_hint(HUDHeatmap):
+                            strings.append(annote.annotation)
+                msg = "\n".join(strings)
                 if msg.strip() != "":
                     if self.tm.tool_data_is_dirty:
                         msg += "\n[Warning: Information may be out of date.]"
@@ -435,20 +454,21 @@ class NodeEditor(QFrame):
 
             # Draw footnotes and add heatmap data to overlay.
             annotes = [annote.annotation for annote in node.get_annotations_with_hint(Heatmap)]
+            # Heatmap data can always be sent to the overlay, it won't be
+            # rendered unless the user selects the Heatmap HUD radio button.
             for annote in annotes:
                 self.overlay.add_heatmap_datum(line + 1, annote)
             if self.hud_eval or self.hud_types:
-                # If the user requested them, draw footnotes.
                 infofont = QApplication.instance().tool_info_font
                 annotes = []
                 annotes_ = node.get_annotations_with_hint(Footnote)
                 if self.hud_eval:
                     for annote in annotes_:
-                        if annote.has_hint(Eval):
+                        if annote.has_hint(HUDEval):
                             annotes.append(annote)
                 elif self.hud_types:
                     for annote in annotes_:
-                        if annote.has_hint(Types):
+                        if annote.has_hint(HUDTypes):
                             annotes.append(annote)
                 footnote = " ".join([annote.annotation for annote in annotes])
                 if footnote.strip() != "":
