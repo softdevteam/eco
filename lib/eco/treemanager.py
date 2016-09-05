@@ -346,6 +346,11 @@ class TreeManager(object):
         }
         self.input_log = []
 
+        # Mapping between filenames and treemanagers. This gives exporters
+        # which annotate the parse tree access to treemanagers for "other"
+        # files.
+        self.file_mapping = None
+
     def can_profile(self):
         lang_name = self.parsers[0][2]
         if lang_name in self.langs_with_profiler:

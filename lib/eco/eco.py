@@ -1087,6 +1087,7 @@ class Window(QtGui.QMainWindow):
             #self.btReparse(None)
             #self.getEditor().update()
             self._open_files[filename] = self.getEditor().tm
+            self.getEditor().tm.file_mapping = self._open_files
 
     def newfile(self):
         # create new nodeeditor
@@ -1144,6 +1145,7 @@ class Window(QtGui.QMainWindow):
             self.getEditor().saveToJson(filename)
             self.getEditorTab().filename = filename
             self._open_files[filename] = self.getEditor().tm
+            self.getEditor().tm.file_mapping = self._open_files
 
     def delete_swap(self):
         if self.getEditorTab().filename is None:
@@ -1240,6 +1242,7 @@ class Window(QtGui.QMainWindow):
                 self.ui.tabWidget.setCurrentWidget(etab)
                 etab.editor.setFocus(Qt.OtherFocusReason)
                 self._open_files[filename] = etab.editor.tm
+                self.getEditor().tm.file_mapping = self._open_files
             else: # import
                 if self.newfile():
                     self.importfile(filename)
