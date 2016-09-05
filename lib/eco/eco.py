@@ -57,7 +57,6 @@ import os
 import math
 
 import syntaxhighlighter
-import editor
 
 from nodeeditor import NodeEditor
 from editortab import EditorTab

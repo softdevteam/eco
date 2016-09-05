@@ -39,7 +39,7 @@ from incparser.annotation import Footnote, Heatmap, Railroad, ToolTip
 from incparser.annotation import HUDEval, HUDTypes, HUDCallgraph, HUDHeatmap
 
 import syntaxhighlighter
-import editor
+import renderers
 
 import logging
 
@@ -350,7 +350,7 @@ class NodeEditor(QFrame):
         draw_selection_start = (0,0,0)
         draw_selection_end = (0,0,0)
         start_lbox = self.get_languagebox(node)
-        editor = self.get_editor(node)
+        renderer = self.get_renderer(node)
 
         self.selected_lbox = self.tm.get_languagebox(self.tm.cursor.node)
         #XXX get initial x for langbox
@@ -384,7 +384,7 @@ class NodeEditor(QFrame):
                     draw_lbox = False
                 node = lbnode.children[0]
                 highlighter = self.get_highlighter(node)
-                editor = self.get_editor(node)
+                renderer = self.get_renderer(node)
                 error_node = self.tm.get_parser(lbnode).error_node
                 error_node = self.fix_errornode(error_node)
                 continue
@@ -399,7 +399,7 @@ class NodeEditor(QFrame):
                         lbox -= 1
                     node = lbnode.next_term
                     highlighter = self.get_highlighter(node)
-                    editor = self.get_editor(node)
+                    renderer = self.get_renderer(node)
                     if self.selected_lbox is lbnode:
                         # draw bracket
                         self.draw_lbox_bracket(paint, ']', node, x, y, color)
@@ -427,7 +427,7 @@ class NodeEditor(QFrame):
                     color.setAlpha(alpha)
                 if draw_lbox and draw_all_boxes: # we are drawing the currently selected language box
                     color.setAlpha(20)
-                editor.update_image(node)
+                renderer.update_image(node)
                 if node.symbol.name != "\r" and not isinstance(node.symbol, IndentationTerminal):
                     if not node.image or node.plain_mode:
                         if isinstance(node, BOS) and isinstance(node.next_term, EOS):
@@ -448,7 +448,7 @@ class NodeEditor(QFrame):
 
 
             # draw node
-            dx, dy = editor.paint_node(paint, node, x, y, highlighter)
+            dx, dy = renderer.paint_node(paint, node, x, y, highlighter)
             x += dx
             self.lines[line].height = max(self.lines[line].height, dy)
 
@@ -687,10 +687,10 @@ class NodeEditor(QFrame):
         lbox = root.get_magicterminal()
         return lbox
 
-    def get_editor(self, node):
+    def get_renderer(self, node):
         root = node.get_root()
         base = lang_dict[self.tm.get_language(root)].base
-        return editor.get_editor(base, self.fontwt, self.fontht, self.fontd)
+        return renderers.get_renderer(base, self.fontwt, self.fontht, self.fontd)
 
     def focusNextPrevChild(self, b):
         # don't switch to next widget on TAB
