@@ -666,6 +666,10 @@ class Window(QtGui.QMainWindow):
         self.ui.hud_types_button.setDisabled(True)
         self.ui.hud_heat_map_button.setDisabled(True)
 
+        # A list of currently open files and filenames. This is used by the
+        # callgraph HUD visualisation (and therefore the JRuby exporter).
+        self._open_files = []
+
         self.viewer = Viewer("pydot")
         self.pgviewer = None
 
@@ -1082,6 +1086,7 @@ class Window(QtGui.QMainWindow):
             self.getEditor().insertTextNoSim(text)
             #self.btReparse(None)
             #self.getEditor().update()
+            self._open_files.append(filename)
 
     def newfile(self):
         # create new nodeeditor
@@ -1092,6 +1097,8 @@ class Window(QtGui.QMainWindow):
             lang = lview.getLanguage()
             etab.set_language(lang, lview.getWhitespace())
             self.ui.tabWidget.addTab(etab, "[No name]")
+            # We don't add "[No name]" to the open file list, instead we
+            # wait for the user to save-as.
             self.ui.tabWidget.setCurrentWidget(etab)
             etab.editor.setFocus(Qt.OtherFocusReason)
             etab.editor.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -1136,6 +1143,7 @@ class Window(QtGui.QMainWindow):
             self.add_to_recent_files(str(filename))
             self.getEditor().saveToJson(filename)
             self.getEditorTab().filename = filename
+        self._open_files.append(filename)
 
     def delete_swap(self):
         if self.getEditorTab().filename is None:
@@ -1231,6 +1239,7 @@ class Window(QtGui.QMainWindow):
                 self.ui.tabWidget.addTab(etab, os.path.basename(str(filename)))
                 self.ui.tabWidget.setCurrentWidget(etab)
                 etab.editor.setFocus(Qt.OtherFocusReason)
+                self._open_files.append(filename)
             else: # import
                 if self.newfile():
                     self.importfile(filename)
@@ -1239,6 +1248,8 @@ class Window(QtGui.QMainWindow):
 
     def closeTab(self, index):
         etab = self.ui.tabWidget.widget(index)
+        if etab.filename:
+            self._open_files.remove(etab.filename)
         if not etab.changed():
             self.delete_swap()
             self.ui.tabWidget.removeTab(index)
@@ -1252,6 +1263,9 @@ class Window(QtGui.QMainWindow):
         self.delete_swap()
         if(ret == QMessageBox.Save):
             self.savefile()
+            if etab.filename:  # In case the file was not previously named.
+                if etab.filename in self._open_files:
+                    self._open_files.remove(etab.filename)
             self.ui.tabWidget.removeTab(index)
         elif(ret == QMessageBox.Discard):
             self.ui.tabWidget.removeTab(index)
@@ -1316,6 +1330,7 @@ class Window(QtGui.QMainWindow):
             QApplication.quit()
 
     def getEditor(self):
+        """Returns a nodeeditor.NodeEditor object."""
         etab = self.ui.tabWidget.currentWidget()
         if etab:
             return etab.editor
@@ -1323,6 +1338,7 @@ class Window(QtGui.QMainWindow):
             return None
 
     def getEditorTab(self):
+        """Returns a editortab.EditorTab object."""
         return self.ui.tabWidget.currentWidget()
 
     def btReparse(self, selected_node=[]):
