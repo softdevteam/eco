@@ -666,9 +666,9 @@ class Window(QtGui.QMainWindow):
         self.ui.hud_types_button.setDisabled(True)
         self.ui.hud_heat_map_button.setDisabled(True)
 
-        # A list of currently open files and filenames. This is used by the
-        # callgraph HUD visualisation (and therefore the JRuby exporter).
-        self._open_files = []
+        # open filenames -> treemanager objects. This is used by the callgraph
+        # HUD visualisation (and therefore the JRuby exporter).
+        self._open_files = {}
 
         self.viewer = Viewer("pydot")
         self.pgviewer = None
@@ -1086,7 +1086,7 @@ class Window(QtGui.QMainWindow):
             self.getEditor().insertTextNoSim(text)
             #self.btReparse(None)
             #self.getEditor().update()
-            self._open_files.append(filename)
+            self._open_files[filename] = self.getEditor().tm
 
     def newfile(self):
         # create new nodeeditor
@@ -1143,7 +1143,7 @@ class Window(QtGui.QMainWindow):
             self.add_to_recent_files(str(filename))
             self.getEditor().saveToJson(filename)
             self.getEditorTab().filename = filename
-        self._open_files.append(filename)
+            self._open_files[filename] = self.getEditor().tm
 
     def delete_swap(self):
         if self.getEditorTab().filename is None:
@@ -1239,7 +1239,7 @@ class Window(QtGui.QMainWindow):
                 self.ui.tabWidget.addTab(etab, os.path.basename(str(filename)))
                 self.ui.tabWidget.setCurrentWidget(etab)
                 etab.editor.setFocus(Qt.OtherFocusReason)
-                self._open_files.append(filename)
+                self._open_files[filename] = etab.editor.tm
             else: # import
                 if self.newfile():
                     self.importfile(filename)
@@ -1249,7 +1249,7 @@ class Window(QtGui.QMainWindow):
     def closeTab(self, index):
         etab = self.ui.tabWidget.widget(index)
         if etab.filename:
-            self._open_files.remove(etab.filename)
+            del self._open_files[etab.filename]
         if not etab.changed():
             self.delete_swap()
             self.ui.tabWidget.removeTab(index)
@@ -1265,7 +1265,7 @@ class Window(QtGui.QMainWindow):
             self.savefile()
             if etab.filename:  # In case the file was not previously named.
                 if etab.filename in self._open_files:
-                    self._open_files.remove(etab.filename)
+                    del self._open_files[etab.filename]
             self.ui.tabWidget.removeTab(index)
         elif(ret == QMessageBox.Discard):
             self.ui.tabWidget.removeTab(index)
