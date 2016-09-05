@@ -12,5 +12,10 @@ addons:
 install:
     - "pip install py"
 
-script: cd lib/eco; py.test test/test_eco.py --runslow
-
+script:
+- if [ "${TRAVIS_PULL_REQUEST}" == "false" ] && [ "${TRAVIS_BRANCH}" == "master" ] ;
+  then
+     cd lib/eco; py.test test/test_eco.py --runslow ;
+   else
+     cd lib/eco; py.test test/test_eco.py ;
+  fi
