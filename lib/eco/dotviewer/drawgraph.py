@@ -72,7 +72,7 @@ class GraphLayout:
     def get_display(self):
         from graphdisplay import GraphDisplay
         self.gdisplay = GraphDisplay(self)
-        return self.gdisplay      
+        return self.gdisplay
 
     def send(self, command, *args):
         self.pgviewer.send(command, *args)
@@ -91,9 +91,9 @@ class GraphLayout:
 # async interaction helpers
 
 def display_async_quit():
-    pygame.event.post(pygame.event.Event(QUIT))        
+    pygame.event.post(pygame.event.Event(QUIT))
 
-def display_async_cmd(**kwds):                
+def display_async_cmd(**kwds):
     pygame.event.post(pygame.event.Event(USEREVENT, **kwds))
 
 EventQueue = []
@@ -132,7 +132,7 @@ class Node:
 
 class Edge:
     label = None
-    
+
     def __init__(self, nodes, tail, head, cnt, *rest):
         self.tail = nodes[forceunicode(tail)]
         self.head = nodes[forceunicode(head)]
@@ -259,7 +259,7 @@ class GraphRenderer:
     SCALEMIN = 3
     SCALEMAX = 100
     FONTCACHE = {}
-    
+
     def __init__(self, screen, graphlayout, scale=75):
         self.graphlayout = graphlayout
         self.setscale(scale)
@@ -312,7 +312,7 @@ class GraphRenderer:
                 filename = pygame.font.get_default_font()
             font = self.FONTCACHE[size] = pygame.font.Font(filename, size)
             return font
-    
+
     def setoffset(self, offsetx, offsety):
         "Set the (x,y) origin of the rectangle where the graph will be rendered."
         self.ofsx = offsetx - self.margin
@@ -646,7 +646,7 @@ class GraphRenderer:
 
 
 class TextSnippet:
-    
+
     def __init__(self, renderer, text, fgcolor, bgcolor=None, font=None):
         self.renderer = renderer
         self.imgs = []

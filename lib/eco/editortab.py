@@ -50,7 +50,7 @@ class EditorTab(QWidget):
         self.scrollarea.update_theme()
 
         self.linenumbers = LineNumbers(self)
-        self.linenumbers.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)      
+        self.linenumbers.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
 
         boxlayout.addWidget(self.linenumbers)
         boxlayout.addWidget(self.scrollarea)
@@ -221,13 +221,13 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
         self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() - step)
 
 class LineNumbers(QFrame):
-    def mouseDoubleClickEvent(self, event): 
+    def mouseDoubleClickEvent(self, event):
         if not self.parent().debugging:
-            return None;  
+            return None;
         # Check which number is clicked
         editor = self.parent().editor
         line_clicked = self.findLineNumberAt(event.y())
-        if line_clicked <= len(editor.lines):            
+        if line_clicked <= len(editor.lines):
             event.accept()
             self.emit(SIGNAL("breakpoint"), False, line_clicked, True)
 
@@ -238,14 +238,14 @@ class LineNumbers(QFrame):
         editor = self.parent().editor
         line_clicked = self.findLineNumberAt(event.y())
 
-        if line_clicked > len(editor.lines):            
+        if line_clicked > len(editor.lines):
            return None;
         event.accept()
         menu = QMenu(self)
-        bAction = menu.addAction("Toggle breakpoint at "+str(line_clicked))  
-        tbAction = menu.addAction("Toggle temp breakpoint at "+str(line_clicked))    
+        bAction = menu.addAction("Toggle breakpoint at "+str(line_clicked))
+        tbAction = menu.addAction("Toggle temp breakpoint at "+str(line_clicked))
         bcAction = menu.addAction("Set breakpoint with condition at "+str(line_clicked))
-        action = menu.exec_(self.mapToGlobal(event.pos()))      
+        action = menu.exec_(self.mapToGlobal(event.pos()))
         if action == bAction:
             self.emit(SIGNAL("breakpoint"), False, line_clicked, False)
         elif action == tbAction:
@@ -269,7 +269,7 @@ class LineNumbers(QFrame):
         paint.setPen(QColor("grey"))
         paint.setFont(gfont.font)
 
-        debugging = self.parent().debugging  
+        debugging = self.parent().debugging
         self.breakpoint_space = 10
 
         editor = self.parent().editor
@@ -279,7 +279,7 @@ class LineNumbers(QFrame):
             text = str(i+1)
             paint.drawText(QtCore.QPointF(self.geometry().width() - (len(text)+1)*gfont.fontwt, gfont.fontht + y*gfont.fontht), text +":")
             if debugging:
-                self.draw_breakpoint(paint, text, gfont.fontht+y*gfont.fontht-9)                     
+                self.draw_breakpoint(paint, text, gfont.fontht+y*gfont.fontht-9)
             y += editor.lines[i].height
             i += 1
             if (y+1)*gfont.fontht >= editor.geometry().height():
@@ -287,10 +287,10 @@ class LineNumbers(QFrame):
 
         paint.end()
 
-    def draw_breakpoint(self, paint, line_no, y_pos): 
+    def draw_breakpoint(self, paint, line_no, y_pos):
         big_rect = QtCore.QRectF(0, y_pos, 8, 8)
         small_rect = QtCore.QRectF(2, y_pos+2, 4, 4)
-       
+
         paint.setBrush(QColor("blue"))
         breakpoints = self.parent().breakpoints
 
@@ -302,11 +302,11 @@ class LineNumbers(QFrame):
             paint.drawEllipse(big_rect)
             move = True
         if line_no in breakpoints['del']:
-            paint.setBrush(QColor("yellow")) 
-            if move:                
-                paint.drawEllipse(small_rect)  
-            else:              
-                paint.drawEllipse(big_rect)      
+            paint.setBrush(QColor("yellow"))
+            if move:
+                paint.drawEllipse(small_rect)
+            else:
+                paint.drawEllipse(big_rect)
 
     def update(self):
         gfont = QApplication.instance().gfont
