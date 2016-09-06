@@ -26,7 +26,7 @@ class Symbol(Node):
 
     def getsourcepos(self):
         return self.token.source_pos
-    
+
     def __repr__(self):
         return "Symbol(%r, %r)" % (self.symbol, self.additional_info)
 

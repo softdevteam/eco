@@ -41,7 +41,7 @@ class PHP(helper.Generic):
         if name == "<Python + PHP>":
             python = Python(self.source, self.lineno)
             buf = python.pp(node)
-            
+
             if self.in_class():
                 classname = self.get_classname()
                 self.embed.append((classname, buf, self.lineno))
