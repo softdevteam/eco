@@ -315,6 +315,11 @@ class Node(object):
         else:
             self.parent.remove_child(self)
 
+    def insert_at_beginning(self, node):
+        if isinstance(self.symbol, MultiTerminal):
+            self.symbol.name.insert(0, node)
+            node.parent = self.symbol
+
     def replace(self, node):
         # XXX non optimal version
         self.insert_after(node)
