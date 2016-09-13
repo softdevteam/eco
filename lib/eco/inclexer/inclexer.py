@@ -568,8 +568,11 @@ class IncrementalLexerCF(object):
             yield None, None
 
     def remove_check(self, node):
+        print("remove checl")
         if isinstance(node.parent, MultiTerminal):
+            print("   parent is multi")
             if len(node.parent.name) == 0:
+                print("   remove parent")
                 node.parent.pnode.remove()
 
     def merge_pair(self, tokens, read):
@@ -591,6 +594,7 @@ class IncrementalLexerCF(object):
 
         print("last read", lastread, read)
         multilist = []
+        reused = set()
 
         current_mt = None
 
@@ -598,6 +602,7 @@ class IncrementalLexerCF(object):
             if gen is None and read is None:
                 print("both none done")
                 break
+            print("")
             print("totalr", totalr)
             print("totalg", totalg)
             print("read", read)
@@ -612,9 +617,11 @@ class IncrementalLexerCF(object):
                 # gen = it_gen.next()
                 # set current MT
                 # continue
-                if read.ismultichild():
+                if read.ismultichild() and not read.parent.pnode in reused:
                     current_mt = read.parent.pnode
+                    print("reuse")
                 else:
+                    print("create")
                     current_mt = TextNode(MultiTerminal([]))
                     lastread.insert_after(current_mt)
                 current_mt.lookup = gen[1]
@@ -622,8 +629,10 @@ class IncrementalLexerCF(object):
                 gen, multimode = it_gen.next()
                 continue
             elif gen[0] == "finish mt":
+                reused.add(current_mt)
                 lastread = current_mt
                 gen, multimode = it_gen.next()
+                current_mt = None
                 continue
             else:
                 lengen = len(gen[0])
@@ -634,7 +643,10 @@ class IncrementalLexerCF(object):
                 new = TextNode(Terminal(gen[0]))
                 new.lookup = gen[1]
                 new.lookahead = gen[2]
-                lastread.insert_after(new)
+                if current_mt and not lastread.ismultichild():
+                    current_mt.insert_at_beginning(new)
+                else:
+                    lastread.insert_after(new)
                 lastread = new
                 totalg += lengen
                 gen, multimode = it_gen.next()
@@ -663,7 +675,9 @@ class IncrementalLexerCF(object):
                 if not current_mt:
                     if read.ismultichild():
                         # multi -> normal
+                        print("remove from multi")
                         read.remove()
+                        self.remove_check(read)
                         lastread.insert_after(read)
                     else:
                         # normal -> normal
@@ -674,6 +688,8 @@ class IncrementalLexerCF(object):
                     else:
                         # normal/multi -> new multi
                         read.remove()
+                        self.remove_check(read)
+                        print("insert into multi", lastread)
                         if current_mt.isempty():
                             current_mt.symbol.name.append(read)
                             read.parent = current_mt.symbol
@@ -930,7 +946,7 @@ class StringWrapper(object):
                 node = node.next_term
             if isinstance(node, EOS):
                 raise IndexError
-        if node.next_term and (isinstance(node.next_term, EOS) or isinstance(node.next_term.symbol, IndentationTerminal) or node.next_term.symbol.name == "\r"):# or isinstance(node.next_term.symbol, MagicTerminal)):
+        if node.next_term and (isinstance(node.next_term, EOS) or isinstance(node.next_term.symbol, IndentationTerminal)):# or node.next_term.symbol.name == "\r"):# or isinstance(node.next_term.symbol, MagicTerminal)):
             self.length = startindex + len(getname(node)[index:])
         return getname(node)[index]
 
@@ -958,8 +974,8 @@ class StringWrapper(object):
                 break
             if isinstance(node.symbol, IndentationTerminal):
                 break
-            if node.symbol.name == "\r":
-                break
+           #if node.symbol.name == "\r":
+           #    break
             #if isinstance(node.symbol, MagicTerminal):
             #    break
 
