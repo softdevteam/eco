@@ -20,8 +20,8 @@
 # IN THE SOFTWARE.
 
 from grammar_parser.plexer import PriorityLexer
-from grammar_parser.gparser import MagicTerminal, Terminal, IndentationTerminal, MultiTerminal
-from incparser.astree import BOS, EOS, TextNode, ImageNode
+from grammar_parser.gparser import MagicTerminal, Terminal, IndentationTerminal
+from incparser.astree import BOS, EOS, TextNode, ImageNode, MultiTextNode
 from PyQt4.QtGui import QImage
 import re, os
 
@@ -528,10 +528,10 @@ class IncrementalLexerCF(object):
 
     def iter_read(self, nodes):
         for n in nodes:
-            if isinstance(n.symbol, MultiTerminal):
+            if isinstance(n, MultiTextNode):
                 # since we are removing elements from the original list during
                 # iteration we need to create a copy to not skip anything
-                for x in list(n.symbol.name):
+                for x in list(n.children):
                     yield x
             else:
                 yield n
@@ -539,9 +539,9 @@ class IncrementalLexerCF(object):
             yield None
 
     def remove_check(self, node):
-        if isinstance(node.parent, MultiTerminal):
-            if len(node.parent.name) == 0:
-                node.parent.pnode.remove()
+        if isinstance(node.parent, MultiTextNode):
+            if len(node.parent.children) == 0:
+                node.parent.remove()
 
     def merge_pair(self, tokens, read):
         lastread = read[0].prev_term
@@ -567,10 +567,10 @@ class IncrementalLexerCF(object):
             if gen is None:
                 lengen = 0
             elif gen[0] == "new mt":
-                if read.ismultichild() and not read.parent.pnode in reused:
-                    current_mt = read.parent.pnode # reuse
+                if read.ismultichild() and not read.parent in reused:
+                    current_mt = read.parent # reuse
                 else:
-                    current_mt = TextNode(MultiTerminal([])) # create new
+                    current_mt = MultiTextNode() # create new
                     lastread.insert_after(current_mt)
                 current_mt.lookup = gen[1]
                 current_mt.lookahead = gen[2]
@@ -625,7 +625,7 @@ class IncrementalLexerCF(object):
                         self.remove_check(read)
                         lastread.insert_after(read)
                 else:
-                    if not read.ismultichild() or current_mt is not read.parent.pnode:
+                    if not read.ismultichild() or current_mt is not read.parent:
                         # Read node has been moved from a normal node into a
                         # multinode or from one multinode into another
                         # multinode. Remove from old locations and insert into
@@ -633,8 +633,7 @@ class IncrementalLexerCF(object):
                         read.remove()
                         self.remove_check(read)
                         if current_mt.isempty():
-                            current_mt.symbol.name.append(read)
-                            read.parent = current_mt.symbol
+                            current_mt.set_children([read])
                         else:
                             lastread.insert_after(read)
                 lastread = read
@@ -655,7 +654,7 @@ class IncrementalLexerCF(object):
             last_node = node
             node.indent = None
             if not isinstance(node.symbol, MagicTerminal):
-                if isinstance(t[0], MultiTerminal) or isinstance(node.symbol, MultiTerminal) or isinstance(t[0], MagicTerminal):
+                if isinstance(t[0], MagicTerminal):
                     node.symbol = t[0]
                 else:
                     node.symbol.name = t[0].name
@@ -670,8 +669,6 @@ class IncrementalLexerCF(object):
                 any_changes = True
             node.lookup = t[1]
             node.lookahead = t[0].lookahead
-            if isinstance(node.symbol, MultiTerminal):
-                node.symbol.link_children(node)
             if isinstance(node.symbol, MagicTerminal):
                 node.symbol.ast.magic_backpointer = node
         # delete left over nodes
@@ -793,8 +790,8 @@ class StringWrapper(object):
             read.append(node)
             if isinstance(node.symbol, MagicTerminal):
                 lboxes.append(node.symbol)
-            if isinstance(node.symbol, MultiTerminal):
-                for e in node.symbol.name:
+            if isinstance(node, MultiTextNode):
+                for e in node.children:
                     if isinstance(e.symbol, MagicTerminal):
                         lboxes.append(e.symbol)
             node = node.next_term
@@ -802,41 +799,14 @@ class StringWrapper(object):
         self.last_node = node.prev_term
 
         tokenname = "".join(text)[(start-skip):(end-skip)]
-        print("new tokenname", tokenname)
-        print("read", read)
         return (tokenname, read)
-        tsplit = re.split("([\r\x80])", tokenname)
-
-        tsplit = [x for x in tsplit if x != ''] # clear empty strings
-
-        if len(tsplit) > 1:
-            # replace lboxes
-            newsplit = []
-            for t in tsplit:
-                if t == "\x80":
-                    lb = lboxes.pop(0)
-                    newsplit.append(lb)
-                    continue
-                newsplit.append(t)
-            return newsplit
-        else:
-            if tsplit[0] == "\x80":
-                # XXX should we stop here? not if \x80 comes from a former
-                # multitoken, but is split up now -> test
-                return lboxes[0]
-            t = "".join(tsplit)
-            if self.last_node.symbol == t and self.last_node.lookup == tokentype:
-                if past_relexnode:
-                    self.last_node = self.last_node.prev_term
-                    return None
-            return t
 
 def getname(node):
     if isinstance(node.symbol, MagicTerminal):
         return "\x80"
-    if isinstance(node.symbol, MultiTerminal):
+    if isinstance(node, MultiTextNode):
         l = []
-        for x in node.symbol.name:
+        for x in node.children:
             if isinstance(x.symbol, MagicTerminal):
                 l.append("\x80")
             else:
@@ -848,12 +818,3 @@ def getlength(node):
     if isinstance(node, TextNode):
         return len(getname(node))
     return len(node)
-
-def lbox_finder(nodes):
-    for n in nodes:
-        if isinstance(n.symbol, MagicTerminal):
-            yield n.symbol
-        if isinstance(n.symbol.name, list): # multinode -> continue inside
-            for m in n.symbol.name:
-                if isinstance(m, MagicTerminal):
-                    yield m

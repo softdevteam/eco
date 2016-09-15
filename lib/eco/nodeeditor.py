@@ -29,7 +29,7 @@ BODY_FONT_SIZE = 9
 
 from treemanager import TreeManager
 from grammars.grammars import submenu_langs as languages, lang_dict
-from grammar_parser.gparser import MagicTerminal, IndentationTerminal, MultiTerminal
+from grammar_parser.gparser import MagicTerminal, IndentationTerminal
 from grammar_parser.bootstrap import ListNode, AstNode
 from incparser.astree import BOS, EOS
 from jsonmanager import JsonManager

@@ -22,8 +22,8 @@
 from inclexer.inclexer import IncrementalLexer, StringWrapper
 from incparser.astree import AST
 from grammars.grammars import calc
-from incparser.astree import TextNode, BOS, EOS
-from grammar_parser.gparser import Terminal, Nonterminal, MagicTerminal, MultiTerminal
+from incparser.astree import TextNode, BOS, EOS, MultiTextNode
+from grammar_parser.gparser import Terminal, Nonterminal, MagicTerminal
 
 class Test_IncrementalLexer:
 
@@ -36,8 +36,10 @@ class Test_IncrementalLexer:
     def relex(self, node):
         self.lexer.relex(node)
 
-def make_multiterm(l):
-    return MultiTerminal([TextNode(x) for x in l])
+def mk_multitextnode(l):
+    mt = MultiTextNode()
+    mt.set_children([TextNode(x) for x in l])
+    return mt
 
 class Test_CalcLexer(Test_IncrementalLexer):
 
@@ -408,9 +410,8 @@ class Test_CalcLexer(Test_IncrementalLexer):
         bos.insert_after(text)
         lexer.relex(text)
         assert bos.next_term.lookup == "str"
-        assert bos.next_term.symbol == MultiTerminal([TextNode(Terminal("\"abc")), TextNode(Terminal("\r")), TextNode(Terminal("def\""))])
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("def\"")])
-        assert bos.next_term.symbol.name[0] is text
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("def\"")])
+        assert bos.next_term.children[0] is text
         assert bos.next_term.next_term is eos
 
     def test_normal_to_multi_and_normal(self):
@@ -426,12 +427,12 @@ class Test_CalcLexer(Test_IncrementalLexer):
         bos.insert_after(text)
         lexer.relex(text)
         assert bos.next_term.lookup == "str"
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("def\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("def\"")])
 
-        bos.next_term.symbol.name[2].symbol.name = "de\"f"
+        bos.next_term.children[2].symbol.name = "de\"f"
         lexer.relex(bos.next_term)
 
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("de\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("de\"")])
         assert bos.next_term.next_term == TextNode(Terminal("f"))
 
     def test_normal_to_normal_and_multi(self):
@@ -448,13 +449,13 @@ class Test_CalcLexer(Test_IncrementalLexer):
         bos.insert_after(text)
         lexer.relex(text)
         assert bos.next_term.lookup == "str"
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("def\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("def\"")])
 
-        bos.next_term.symbol.name[0].symbol.name = "ab\"c"
+        bos.next_term.children[0].symbol.name = "ab\"c"
         lexer.relex(bos.next_term)
 
         assert bos.next_term == TextNode(Terminal("ab"))
-        assert bos.next_term.next_term.symbol == make_multiterm([Terminal("\"c"), Terminal("\r"), Terminal("def\"")])
+        assert bos.next_term.next_term == mk_multitextnode([Terminal("\"c"), Terminal("\r"), Terminal("def\"")])
 
     def test_multitoken_multi_to_normal(self):
         lexer = IncrementalLexer("""
@@ -465,7 +466,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         ast.init()
         bos = ast.parent.children[0]
         eos = ast.parent.children[1]
-        text = TextNode(make_multiterm([Terminal("\"abc"), Terminal("def\"")]))
+        text = mk_multitextnode([Terminal("\"abc"), Terminal("def\"")])
         bos.insert_after(text)
         lexer.relex(text)
         assert bos.next_term.lookup == "str"
@@ -481,11 +482,11 @@ class Test_CalcLexer(Test_IncrementalLexer):
         ast.init()
         bos = ast.parent.children[0]
         eos = ast.parent.children[1]
-        text = TextNode(make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("a"), Terminal("def\"")]))
+        text = mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("a"), Terminal("def\"")])
         bos.insert_after(text)
         lexer.relex(text)
         assert bos.next_term.lookup == "str"
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("adef\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("adef\"")])
         assert bos.next_term is text
         assert bos.next_term.next_term is eos
 
@@ -498,11 +499,11 @@ class Test_CalcLexer(Test_IncrementalLexer):
         ast.init()
         bos = ast.parent.children[0]
         eos = ast.parent.children[1]
-        text = TextNode(make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("de\"f")]))
+        text = mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("de\"f")])
         bos.insert_after(text)
         lexer.relex(text)
         assert bos.next_term.lookup == "str"
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("de\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("de\"")])
         assert bos.next_term is text
         assert bos.next_term.next_term.symbol.name == "f"
         assert bos.next_term.next_term.next_term is eos
@@ -517,12 +518,12 @@ class Test_CalcLexer(Test_IncrementalLexer):
         ast.init()
         bos = ast.parent.children[0]
         eos = ast.parent.children[1]
-        text = TextNode(make_multiterm([Terminal("ab\"c"), Terminal("\r"), Terminal("def\"")]))
+        text = mk_multitextnode([Terminal("ab\"c"), Terminal("\r"), Terminal("def\"")])
         bos.insert_after(text)
         lexer.relex(text)
         assert bos.next_term.symbol.name == "ab"
         assert bos.next_term.next_term.lookup == "str"
-        assert bos.next_term.next_term.symbol == make_multiterm([Terminal("\"c"), Terminal("\r"), Terminal("def\"")])
+        assert bos.next_term.next_term == mk_multitextnode([Terminal("\"c"), Terminal("\r"), Terminal("def\"")])
         assert bos.next_term.next_term is text
         assert bos.next_term.next_term.next_term is eos
 
@@ -537,14 +538,14 @@ class Test_CalcLexer(Test_IncrementalLexer):
         bos = ast.parent.children[0]
         eos = ast.parent.children[1]
         n1 = TextNode(Terminal("ab"))
-        n2 = TextNode(make_multiterm([Terminal("cd\"e"), Terminal("\r"), Terminal("fg\"")]))
+        n2 = mk_multitextnode([Terminal("cd\"e"), Terminal("\r"), Terminal("fg\"")])
         bos.insert_after(n1)
         n1.insert_after(n2)
         lexer.relex(n1)
         assert bos.next_term.symbol.name == "abcd"
         assert bos.next_term is n1
         assert bos.next_term.next_term.lookup == "str"
-        assert bos.next_term.next_term.symbol == make_multiterm([Terminal("\"e"), Terminal("\r"), Terminal("fg\"")])
+        assert bos.next_term.next_term == mk_multitextnode([Terminal("\"e"), Terminal("\r"), Terminal("fg\"")])
         assert bos.next_term.next_term is n2
         assert bos.next_term.next_term.next_term is eos
 
@@ -559,11 +560,11 @@ class Test_CalcLexer(Test_IncrementalLexer):
         bos = ast.parent.children[0]
         eos = ast.parent.children[1]
         n1 = TextNode(Terminal("\"abc"))
-        n2 = TextNode(make_multiterm([Terminal("def"), Terminal("\r"), Terminal("gh\"")]))
+        n2 = mk_multitextnode([Terminal("def"), Terminal("\r"), Terminal("gh\"")])
         bos.insert_after(n1)
         n1.insert_after(n2)
         lexer.relex(n1)
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abcdef"), Terminal("\r"), Terminal("gh\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abcdef"), Terminal("\r"), Terminal("gh\"")])
         assert bos.next_term.next_term is eos
 
     def test_normal_and_multi_to_multi2(self):
@@ -578,12 +579,12 @@ class Test_CalcLexer(Test_IncrementalLexer):
         eos = ast.parent.children[1]
         n1 = TextNode(Terminal("\"abc"))
         n2 = TextNode(Terminal("\r"))
-        n3 = TextNode(make_multiterm([Terminal("def"), Terminal("\r"), Terminal("gh\"")]))
+        n3 = mk_multitextnode([Terminal("def"), Terminal("\r"), Terminal("gh\"")])
         bos.insert_after(n1)
         n1.insert_after(n2)
         n2.insert_after(n3)
         lexer.relex(n1)
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("def"), Terminal("\r"), Terminal("gh\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("def"), Terminal("\r"), Terminal("gh\"")])
         assert bos.next_term.next_term is eos
 
     def test_normal_and_multi_to_multi3(self):
@@ -597,11 +598,11 @@ class Test_CalcLexer(Test_IncrementalLexer):
         bos = ast.parent.children[0]
         eos = ast.parent.children[1]
         n1 = TextNode(Terminal("\"abc\r"))
-        n2 = TextNode(make_multiterm([Terminal("def"), Terminal("\r"), Terminal("gh\"")]))
+        n2 = mk_multitextnode([Terminal("def"), Terminal("\r"), Terminal("gh\"")])
         bos.insert_after(n1)
         n1.insert_after(n2)
         lexer.relex(n1)
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("def"), Terminal("\r"), Terminal("gh\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("def"), Terminal("\r"), Terminal("gh\"")])
         assert bos.next_term.next_term is eos
 
     def test_normal_and_multi_to_multi4(self):
@@ -614,12 +615,12 @@ class Test_CalcLexer(Test_IncrementalLexer):
         ast.init()
         bos = ast.parent.children[0]
         eos = ast.parent.children[1]
-        n1 = TextNode(make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("def")]))
+        n1 = mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("def")])
         n2 = TextNode(Terminal("gh\""))
         bos.insert_after(n1)
         n1.insert_after(n2)
         lexer.relex(n1)
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("defgh\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("defgh\"")])
         assert bos.next_term.next_term is eos
 
     def test_multix2_to_multi(self):
@@ -632,12 +633,12 @@ class Test_CalcLexer(Test_IncrementalLexer):
         ast.init()
         bos = ast.parent.children[0]
         eos = ast.parent.children[1]
-        n1 = TextNode(make_multiterm([Terminal("\"ab"), Terminal("\r"), Terminal("cd")]))
-        n2 = TextNode(make_multiterm([Terminal("ef"), Terminal("\r"), Terminal("gh\"")]))
+        n1 = mk_multitextnode([Terminal("\"ab"), Terminal("\r"), Terminal("cd")])
+        n2 = mk_multitextnode([Terminal("ef"), Terminal("\r"), Terminal("gh\"")])
         bos.insert_after(n1)
         n1.insert_after(n2)
         lexer.relex(n1)
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"ab"), Terminal("\r"), Terminal("cdef"), Terminal("\r"), Terminal("gh\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"ab"), Terminal("\r"), Terminal("cdef"), Terminal("\r"), Terminal("gh\"")])
         assert bos.next_term.next_term is eos
 
     def test_multi_to_multix2(self):
@@ -650,11 +651,11 @@ class Test_CalcLexer(Test_IncrementalLexer):
         ast.init()
         bos = ast.parent.children[0]
         eos = ast.parent.children[1]
-        n1 = TextNode(make_multiterm([Terminal("\"ab"), Terminal("\r"), Terminal("cd\"\"ef"), Terminal("\r"), Terminal("gh\"")]))
+        n1 = mk_multitextnode([Terminal("\"ab"), Terminal("\r"), Terminal("cd\"\"ef"), Terminal("\r"), Terminal("gXh\"")])
         bos.insert_after(n1)
         lexer.relex(n1)
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"ab"), Terminal("\r"), Terminal("cd\"")])
-        assert bos.next_term.next_term.symbol == make_multiterm([Terminal("\"ef"), Terminal("\r"), Terminal("gh\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"ab"), Terminal("\r"), Terminal("cd\"")])
+        assert bos.next_term.next_term == mk_multitextnode([Terminal("\"ef"), Terminal("\r"), Terminal("gXh\"")])
         assert bos.next_term.next_term.next_term is eos
 
     def test_multi_to_multi_normal_multi(self):
@@ -667,12 +668,12 @@ class Test_CalcLexer(Test_IncrementalLexer):
         ast.init()
         bos = ast.parent.children[0]
         eos = ast.parent.children[1]
-        n1 = TextNode(make_multiterm([Terminal("\"ab"), Terminal("\r"), Terminal("cd\"xy\"ef"), Terminal("\r"), Terminal("gh\"")]))
+        n1 = mk_multitextnode([Terminal("\"ab"), Terminal("\r"), Terminal("cd\"xy\"ef"), Terminal("\r"), Terminal("gaaaah\"")])
         bos.insert_after(n1)
         lexer.relex(n1)
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"ab"), Terminal("\r"), Terminal("cd\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"ab"), Terminal("\r"), Terminal("cd\"")])
         assert bos.next_term.next_term.symbol == Terminal("xy")
-        assert bos.next_term.next_term.next_term.symbol == make_multiterm([Terminal("\"ef"), Terminal("\r"), Terminal("gh\"")])
+        assert bos.next_term.next_term.next_term == mk_multitextnode([Terminal("\"ef"), Terminal("\r"), Terminal("gaaaah\"")])
         assert bos.next_term.next_term.next_term.next_term is eos
 
     def test_multitoken_reuse1(self):
@@ -688,24 +689,24 @@ class Test_CalcLexer(Test_IncrementalLexer):
         bos.insert_after(text)
         lexer.relex(text)
         assert bos.next_term.lookup == "str"
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("def\"")])
-        assert bos.next_term.symbol.name[0] is text
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("def\"")])
+        assert bos.next_term.children[0] is text
 
-        bos.next_term.symbol.name[2].symbol.name = "de\rf\"" # insert another newline
-        child0 = bos.next_term.symbol.name[0]
-        child1 = bos.next_term.symbol.name[1]
-        child2 = bos.next_term.symbol.name[2]
+        bos.next_term.children[2].symbol.name = "de\rf\"" # insert another newline
+        child0 = bos.next_term.children[0]
+        child1 = bos.next_term.children[1]
+        child2 = bos.next_term.children[2]
 
         mt = bos.next_term
 
         lexer.relex(bos.next_term)
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("de"), Terminal("\r"), Terminal("f\"")])
-        # test if nodes within a MultiTerminal are reused
-        assert bos.next_term.symbol.name[0] is child0
-        assert bos.next_term.symbol.name[1] is child1
-        assert bos.next_term.symbol.name[2] is child2
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("de"), Terminal("\r"), Terminal("f\"")])
+        # test if nodes within a MultiTextNode are reused
+        assert bos.next_term.children[0] is child0
+        assert bos.next_term.children[1] is child1
+        assert bos.next_term.children[2] is child2
 
-        assert bos.next_term is mt # reused the TextNode which contains the MultiTerminal
+        assert bos.next_term is mt # reused the MultiTextNode
 
     def test_multitoken_reuse2(self):
         lexer = IncrementalLexer("""
@@ -720,19 +721,18 @@ class Test_CalcLexer(Test_IncrementalLexer):
         bos.insert_after(text)
         lexer.relex(text)
         assert bos.next_term.lookup == "str"
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("def\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("def\"")])
 
-        bos.next_term.symbol.name[0].symbol.name = "\"ab\rc" # insert another newline
-        child0 = bos.next_term.symbol.name[0]
-        child1 = bos.next_term.symbol.name[1]
-        child2 = bos.next_term.symbol.name[2]
+        bos.next_term.children[0].symbol.name = "\"ab\rc" # insert another newline
+        child0 = bos.next_term.children[0]
+        child1 = bos.next_term.children[1]
+        child2 = bos.next_term.children[2]
 
         lexer.relex(bos.next_term)
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"ab"), Terminal("\r"), Terminal("c"), Terminal("\r"), Terminal("def\"")])
-        # test if nodes within a MultiTerminal are reused
-        assert bos.next_term.symbol.name[0] is child0
-        assert bos.next_term.symbol.name[3] is child1
-        assert bos.next_term.symbol.name[4] is child2
+        assert bos.next_term == mk_multitextnode([Terminal("\"ab"), Terminal("\r"), Terminal("c"), Terminal("\r"), Terminal("def\"")])
+        assert bos.next_term.children[0] is child0
+        assert bos.next_term.children[3] is child1
+        assert bos.next_term.children[4] is child2
 
     def test_multitoken_relex_merge(self):
         lexer = IncrementalLexer("""
@@ -747,19 +747,18 @@ class Test_CalcLexer(Test_IncrementalLexer):
         bos.insert_after(text)
         lexer.relex(text)
         assert bos.next_term.lookup == "str"
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("de"), Terminal("\r"), Terminal("f\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("de"), Terminal("\r"), Terminal("f\"")])
 
-        bos.next_term.symbol.name.pop(3) # remove a newline
-        child0 = bos.next_term.symbol.name[0]
-        child1 = bos.next_term.symbol.name[1]
-        child2 = bos.next_term.symbol.name[2]
+        bos.next_term.children.pop(3) # remove a newline
+        child0 = bos.next_term.children[0]
+        child1 = bos.next_term.children[1]
+        child2 = bos.next_term.children[2]
 
         lexer.relex(bos.next_term)
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), Terminal("\r"), Terminal("def\"")])
-        # test if nodes within a MultiTerminal are reused
-        assert bos.next_term.symbol.name[0] is child0
-        assert bos.next_term.symbol.name[1] is child1
-        assert bos.next_term.symbol.name[2] is child2
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("def\"")])
+        assert bos.next_term.children[0] is child0
+        assert bos.next_term.children[1] is child1
+        assert bos.next_term.children[2] is child2
 
     def test_multitoken_real_lbox(self):
         lexer = IncrementalLexer("""
@@ -778,7 +777,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         lbox.insert_after(text2)
         lexer.relex(text1)
         assert bos.next_term.lookup == "str"
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("def\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("def\"")])
 
     def test_multitoken_real_lbox_multiple(self):
         lexer = IncrementalLexer("""
@@ -801,7 +800,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         n4.insert_after(n5)
         lexer.relex(n1)
         assert bos.next_term.lookup == "str"
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("def"), MagicTerminal("<Calc>"), Terminal("ghi\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("def"), MagicTerminal("<Calc>"), Terminal("ghi\"")])
 
     def test_multitoken_real_lbox_cut_off_string(self):
         lexer = IncrementalLexer("""
@@ -820,7 +819,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         lbox.insert_after(text2)
         lexer.relex(text1)
         assert bos.next_term.lookup == "str"
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("d\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("d\"")])
         assert bos.next_term.next_term.symbol.name == "ef\""
 
     def test_multitoken_real_lbox_relex(self):
@@ -840,12 +839,12 @@ class Test_CalcLexer(Test_IncrementalLexer):
         lbox.insert_after(text2)
         lexer.relex(text1)
         assert bos.next_term.lookup == "str"
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("def\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("def\"")])
 
-        bos.next_term.symbol.name[0].symbol.name = "\"ab\rc"
+        bos.next_term.children[0].symbol.name = "\"ab\rc"
         lexer.relex(bos.next_term)
 
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"ab"), Terminal("\r"), Terminal("c"), MagicTerminal("<SQL>"), Terminal("def\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"ab"), Terminal("\r"), Terminal("c"), MagicTerminal("<SQL>"), Terminal("def\"")])
 
     def test_multitoken_real_lbox_relex_cut_off_string(self):
         lexer = IncrementalLexer("""
@@ -864,13 +863,13 @@ class Test_CalcLexer(Test_IncrementalLexer):
         lbox.insert_after(text2)
         lexer.relex(text1)
         assert bos.next_term.lookup == "str"
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("def\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("def\"")])
         assert bos.next_term.lookahead == 0
 
-        bos.next_term.symbol.name[2].symbol.name = "d\"ef\""
+        bos.next_term.children[2].symbol.name = "d\"ef\""
         lexer.relex(bos.next_term)
 
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("d\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("d\"")])
         assert bos.next_term.next_term.symbol.name == "ef\""
 
     def test_lexer_returns_nodes(self):
@@ -890,7 +889,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         lbox.insert_after(text2)
         lexer.relex(text1)
         assert bos.next_term.lookup == "str"
-        assert bos.next_term.symbol == make_multiterm([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("def\"")])
+        assert bos.next_term == mk_multitextnode([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("def\"")])
         assert bos.next_term.lookahead == 0
 
     def test_multitoken_relex_to_normal(self):
@@ -904,7 +903,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         ast.init()
         bos = ast.parent.children[0]
         eos = ast.parent.children[1]
-        text1 = TextNode(make_multiterm([Terminal("123"), MagicTerminal("<SQL>")]))
+        text1 = mk_multitextnode([Terminal("123"), MagicTerminal("<SQL>")])
         bos.insert_after(text1)
         lexer.relex(text1)
         assert bos.next_term.lookup == "INT"

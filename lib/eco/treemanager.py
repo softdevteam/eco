@@ -23,7 +23,7 @@ from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
 from cflexer.lexer import LexingError
 from incparser.astree import TextNode, BOS, EOS
-from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, MultiTerminal
+from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal
 from PyQt4.QtGui import QApplication
 from PyQt4.QtCore import QSettings
 from grammars.grammars import lang_dict, Language, EcoFile
@@ -84,10 +84,11 @@ class Cursor(object):
         return Cursor(self.node, self.pos, self.line, self.lines)
 
     def fix(self):
-        if type(self.node.parent.symbol) is MultiTerminal:
+        if type(self.node.parent) is MultiTextNode:
             # relexing a multiterminal currently replaces all TextNode wrappers
             # within that MultiTerminal. We need to reset the cursor to update
             # to the new TextNodes
+            # XXX still needed
             x = self.get_x()
             self.move_to_x(x)
             return
@@ -99,7 +100,6 @@ class Cursor(object):
             self.node = self.find_next_visible(self.node)
 
     def left(self):
-        print(self.node)
         node = self.node
         if not self.is_visible(node):
             node = self.find_previous_visible(self.node)
@@ -118,7 +118,6 @@ class Cursor(object):
             self.pos = len(node.symbol.name)
 
     def right(self):
-        print(self.node)
         node = self.node
         if not self.is_visible(node):
             node = self.find_next_visible(self.node)
@@ -185,8 +184,8 @@ class Cursor(object):
             elif isinstance(node.symbol, MagicTerminal):
                 node = node.symbol.ast.children[0]
                 continue
-            elif isinstance(node.symbol, MultiTerminal):
-                node = node.symbol.name[0]
+            elif isinstance(node, MultiTextNode):
+                node = node.children[0]
                 continue
             node = node.next_terminal()
         return node
@@ -206,8 +205,8 @@ class Cursor(object):
             elif isinstance(node.symbol, MagicTerminal):
                 node = node.symbol.ast.children[-1]
                 continue
-            elif isinstance(node.symbol, MultiTerminal):
-                node = node.symbol.name[-1]
+            elif isinstance(node.symbol, MultiTextNode):
+                node = node.children[-1]
                 continue
             node = node.prev_terminal()
         return node
@@ -221,7 +220,7 @@ class Cursor(object):
             return False
         if isinstance(node.symbol, MagicTerminal):
             return False
-        if isinstance(node.symbol, MultiTerminal):
+        if isinstance(node.symbol, MultiTextNode):
             return False
         return True
 
@@ -1182,7 +1181,6 @@ class TreeManager(object):
         newnode.parent_lbox = root
         if not self.cursor.inside():
             node.insert_after(newnode)
-            print("insert lbox after")
             self.relex(newnode)
         else:
             node = node
@@ -1473,14 +1471,13 @@ class TreeManager(object):
 
         current = current.next_terminal()
         while current is not next:
-            print("current", current, next)
             if current.symbol.name == "\r":
                 y += 1
                 self.lines.insert(y, Line(current))
             if isinstance(current.symbol, MagicTerminal):
                 current = current.symbol.ast.children[0]
-            elif isinstance(current.symbol, MultiTerminal):
-                current = current.symbol.name[0]
+            elif isinstance(current, MultiTextNode):
+                current = current.children[0]
             elif isinstance(current, EOS):
                 root = current.get_root()
                 lbox = root.get_magicterminal()
@@ -1733,7 +1730,7 @@ class TreeManager(object):
     def relex(self, node):
         if node is None:
             return
-        if type(node.parent.symbol) is MultiTerminal:
+        if type(node.parent) is MultiTextNode:
             return self.relex(node.parent)
         if isinstance(node, BOS) or isinstance(node, EOS):
             return
