@@ -504,7 +504,7 @@ class IncrementalLexerCF(object):
                     # Abort relexing if we relexed a node to itself AFTER we
                     # passed `startnode`. This way we avoid relexing nodes that
                     # don't need to be relexed.
-                    if past_startnode:
+                    if past_startnode and read[-1] is not startnode:
                         if len(read) == len(toks) and len(read) == 1:
                             if read[0].symbol.name == toks[0][0] and read[0].lookup == toks[0][1]:
                                 break
