@@ -551,6 +551,8 @@ class IncrementalLexerCF(object):
         if isinstance(node.parent, MultiTextNode):
             if len(node.parent.children) == 0:
                 node.parent.remove()
+            else:
+                node.parent.update_children()
 
     def merge_pair(self, tokens, read):
         lastread = read[0].prev_term

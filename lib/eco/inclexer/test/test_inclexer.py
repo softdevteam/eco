@@ -900,6 +900,36 @@ class Test_CalcLexer(Test_IncrementalLexer):
         assert bos.next_term == mk_multitextnode([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("d\"")])
         assert bos.next_term.next_term.symbol.name == "ef\""
 
+    def test_bug_two_newlines_delete_one(self):
+        lexer = IncrementalLexer("""
+"\"[a-z\r\x80]*\"":str
+"[0-1]+":INT
+"\+":plus
+        """)
+
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        eos = ast.parent.children[1]
+        text1 = TextNode(Terminal("1+\"abc\""))
+        bos.insert_after(text1)
+        lexer.relex(text1)
+        assert bos.next_term == TextNode(Terminal("1"))
+        assert bos.next_term.next_term == TextNode(Terminal("+"))
+        assert bos.next_term.next_term.next_term == TextNode(Terminal("\"abc\""))
+
+        s = bos.next_term.next_term.next_term
+        s.symbol.name = "\"a\rb\rc\""
+
+        lexer.relex(s)
+        assert bos.next_term.next_term.next_term == mk_multitextnode([Terminal("\"a"), Terminal("\r"), Terminal("b"), Terminal("\r"), Terminal("c\"")])
+
+        bos.next_term.next_term.next_term.children[3].symbol.name = ""
+        assert bos.next_term.next_term.next_term == mk_multitextnode([Terminal("\"a"), Terminal("\r"), Terminal("b"), Terminal(""), Terminal("c\"")])
+
+        lexer.relex(bos.next_term.next_term.next_term)
+        assert bos.next_term.next_term.next_term == mk_multitextnode([Terminal("\"a"), Terminal("\r"), Terminal("bc\"")])
+
     def test_lexer_returns_nodes(self):
         lexer = IncrementalLexer("""
 "\"[a-z\r\x80]*\"":str
