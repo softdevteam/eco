@@ -31,7 +31,7 @@ from treemanager import TreeManager
 from grammars.grammars import submenu_langs as languages, lang_dict
 from grammar_parser.gparser import MagicTerminal, IndentationTerminal
 from grammar_parser.bootstrap import ListNode, AstNode
-from incparser.astree import BOS, EOS
+from incparser.astree import BOS, EOS, MultiTextNode
 from jsonmanager import JsonManager
 from utils import KeyPress
 from overlay import Overlay
@@ -392,6 +392,11 @@ class NodeEditor(QFrame):
         draw_cursor = True
         show_namebinding = self.getWindow().show_namebinding()
         while y < max_y:
+
+            # handle MultiTextNodes
+            if isinstance(node, MultiTextNode):
+                node = node.children[0]
+                continue
 
             # if we found a language box, continue drawing inside of it
             if isinstance(node.symbol, MagicTerminal):
