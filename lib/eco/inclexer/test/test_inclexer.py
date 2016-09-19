@@ -706,6 +706,20 @@ class Test_CalcLexer(Test_IncrementalLexer):
         assert bos.next_term.children[1] is child1
         assert bos.next_term.children[2] is child2
 
+        child3 = bos.next_term.children[3]
+        child4 = bos.next_term.children[4]
+
+        assert child0.prev_term is None
+        assert child0.next_term is child1
+        assert child1.prev_term is child0
+        assert child1.next_term is child2
+        assert child2.prev_term is child1
+        assert child2.next_term is child3
+        assert child3.prev_term is child2
+        assert child3.next_term is child4
+        assert child4.prev_term is child3
+        assert child4.next_term is None
+
         assert bos.next_term is mt # reused the MultiTextNode
 
     def test_multitoken_reuse2(self):
@@ -724,15 +738,29 @@ class Test_CalcLexer(Test_IncrementalLexer):
         assert bos.next_term == mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("def\"")])
 
         bos.next_term.children[0].symbol.name = "\"ab\rc" # insert another newline
-        child0 = bos.next_term.children[0]
-        child1 = bos.next_term.children[1]
-        child2 = bos.next_term.children[2]
+        child_abc = bos.next_term.children[0]
+        child_r1 = bos.next_term.children[1]
+        child_def = bos.next_term.children[2]
 
         lexer.relex(bos.next_term)
         assert bos.next_term == mk_multitextnode([Terminal("\"ab"), Terminal("\r"), Terminal("c"), Terminal("\r"), Terminal("def\"")])
-        assert bos.next_term.children[0] is child0
-        assert bos.next_term.children[3] is child1
-        assert bos.next_term.children[4] is child2
+        assert bos.next_term.children[0] is child_abc
+        assert bos.next_term.children[3] is child_r1
+        assert bos.next_term.children[4] is child_def
+
+        child_r2 = bos.next_term.children[1]
+        child_c = bos.next_term.children[2]
+
+        assert child_abc.prev_term is None
+        assert child_abc.next_term is child_r2
+        assert child_r2.prev_term is child_abc
+        assert child_r2.next_term is child_c
+        assert child_c.prev_term is child_r2
+        assert child_c.next_term is child_r1
+        assert child_r1.prev_term is child_c
+        assert child_r1.next_term is child_def
+        assert child_def.prev_term is child_r1
+        assert child_def.next_term is None
 
     def test_multitoken_relex_merge(self):
         lexer = IncrementalLexer("""
