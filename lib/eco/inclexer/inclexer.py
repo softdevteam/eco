@@ -492,8 +492,8 @@ class IncrementalLexerCF(object):
         while True:
             try:
                 token = next_token()
-                if token[0] is None:
-                    break
+                if token[3][0] is startnode:
+                    past_startnode = True
                 toks.append(token[:3])
                 tokenslength += len(token[0])
                 for r in token[3]:
@@ -501,6 +501,14 @@ class IncrementalLexerCF(object):
                         read.append(r)
                         readlength += len(getname(r))
                 if tokenslength == readlength:
+                    # Abort relexing if we relexed a node to itself AFTER we
+                    # passed `startnode`. This way we avoid relexing nodes that
+                    # don't need to be relexed.
+                    if past_startnode:
+                        if len(read) == len(toks) and len(read) == 1:
+                            if read[0].symbol.name == toks[0][0] and read[0].lookup == toks[0][1]:
+                                break
+
                     # if new generated tokens match the read tokens, we have a pair
                     pairs.append((toks, read))
                     toks = []
@@ -515,10 +523,11 @@ class IncrementalLexerCF(object):
         return True
 
     def iter_gen(self, tokens):
+        r = re.compile("([\r\x80])")
         for t in tokens:
-            if len(t[0]) > 1 and re.search("[\r\x80]", t[0]):
+            if len(t[0]) > 1 and r.search(t[0]):
                 yield ("new mt", t[1], t[2])
-                for x in re.split("([\r\x80])", t[0]):
+                for x in r.split(t[0]):
                     yield (x, t[1], t[2])
                 yield ("finish mt", None, None)
             else:
@@ -721,8 +730,9 @@ class StringWrapper(object):
             node = node.next_term
         if isinstance(node, EOS):
             raise IndexError
-        while index > len(getname(node)) - 1:
-            index -= len(getname(node))
+        currentname = getname(node)
+        while index > len(currentname) - 1:
+            index -= len(currentname)
             node = node.next_term
             if node is None:
                 raise IndexError
@@ -730,9 +740,10 @@ class StringWrapper(object):
                 node = node.next_term
             if isinstance(node, EOS):
                 raise IndexError
+            currentname = getname(node)
         if node.next_term and (isinstance(node.next_term, EOS) or isinstance(node.next_term.symbol, IndentationTerminal)):# or node.next_term.symbol.name == "\r"):# or isinstance(node.next_term.symbol, MagicTerminal)):
-            self.length = startindex + len(getname(node)[index:])
-        return getname(node)[index]
+            self.length = startindex + len(currentname[index:])
+        return currentname[index]
 
     def __getslice__(self, start, stop):
         #XXX get rid of slice in lexer.py
@@ -749,8 +760,9 @@ class StringWrapper(object):
         node = self.node
         i = 0
         while i < stop:
-            text.append(getname(node))
-            i += len(getname(node))
+            name = getname(node)
+            text.append(name)
+            i += len(name)
             if i > start:
                 self.nodes.append(node)
             node = node.next_term
@@ -769,7 +781,6 @@ class StringWrapper(object):
         node = self.node
         i = 0
         text = []
-        lboxes = []
         past_relexnode = False
         read = []
         skip = 0
@@ -791,12 +802,6 @@ class StringWrapper(object):
 
             text.append(name)
             read.append(node)
-            if isinstance(node.symbol, MagicTerminal):
-                lboxes.append(node.symbol)
-            if isinstance(node, MultiTextNode):
-                for e in node.children:
-                    if isinstance(e.symbol, MagicTerminal):
-                        lboxes.append(e.symbol)
             node = node.next_term
 
         self.last_node = node.prev_term
@@ -805,12 +810,12 @@ class StringWrapper(object):
         return (tokenname, read)
 
 def getname(node):
-    if isinstance(node.symbol, MagicTerminal):
+    if type(node.symbol) is MagicTerminal:
         return "\x80"
-    if isinstance(node, MultiTextNode):
+    if type(node) is MultiTextNode:
         l = []
         for x in node.children:
-            if isinstance(x.symbol, MagicTerminal):
+            if type(x.symbol) is MagicTerminal:
                 l.append("\x80")
             else:
                 l.append(x.symbol.name)
