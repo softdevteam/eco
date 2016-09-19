@@ -1734,6 +1734,7 @@ class TreeManager(object):
         except LexingError:
             # XXX do something here to let the user know a lexing error has
             # occured
+            print "LEXING ERROR"
             return False
 
     def savestate(self):
