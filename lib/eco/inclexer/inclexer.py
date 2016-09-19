@@ -580,6 +580,7 @@ class IncrementalLexerCF(object):
                 reused.add(current_mt)
                 lastread = current_mt
                 gen = it_gen.next()
+                current_mt.update_children()
                 current_mt = None
                 continue
             else:
@@ -622,6 +623,7 @@ class IncrementalLexerCF(object):
                         # been updated to a normal node. Remove it from the
                         # multinode.
                         read.remove()
+                        read.deleted = False
                         self.remove_check(read)
                         lastread.insert_after(read)
                 else:
@@ -631,6 +633,7 @@ class IncrementalLexerCF(object):
                         # multinode. Remove from old locations and insert into
                         # new location.
                         read.remove()
+                        read.deleted = False
                         self.remove_check(read)
                         if current_mt.isempty():
                             current_mt.set_children([read])

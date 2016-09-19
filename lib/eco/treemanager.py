@@ -22,7 +22,7 @@
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
 from cflexer.lexer import LexingError
-from incparser.astree import TextNode, BOS, EOS
+from incparser.astree import TextNode, BOS, EOS, MultiTextNode
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal
 from PyQt4.QtGui import QApplication
 from PyQt4.QtCore import QSettings
@@ -84,14 +84,6 @@ class Cursor(object):
         return Cursor(self.node, self.pos, self.line, self.lines)
 
     def fix(self):
-        if type(self.node.parent) is MultiTextNode:
-            # relexing a multiterminal currently replaces all TextNode wrappers
-            # within that MultiTerminal. We need to reset the cursor to update
-            # to the new TextNodes
-            # XXX still needed
-            x = self.get_x()
-            self.move_to_x(x)
-            return
         while self.node.deleted:
             self.pos = 0
             self.left()
@@ -192,23 +184,23 @@ class Cursor(object):
 
     def find_previous_visible(self, node):
         if self.is_visible(node):
-            node = node.prev_terminal() # XXX check for multiterm
+            node = node.previous_terminal() # XXX check for multiterm
         while not self.is_visible(node):
             if isinstance(node, BOS):
                 root = node.get_root()
                 lbox = root.get_magicterminal()
                 if lbox:
-                    node = lbox.prev_terminal() #XXX check for multiterm
+                    node = lbox.previous_terminal() #XXX check for multiterm
                     continue
                 else:
                     return node
             elif isinstance(node.symbol, MagicTerminal):
                 node = node.symbol.ast.children[-1]
                 continue
-            elif isinstance(node.symbol, MultiTextNode):
+            elif isinstance(node, MultiTextNode):
                 node = node.children[-1]
                 continue
-            node = node.prev_terminal()
+            node = node.previous_terminal()
         return node
 
     def is_visible(self, node):
@@ -245,7 +237,7 @@ class Cursor(object):
             self.node = self.find_previous_visible(self.lines[self.line+1].node)
         else:
             while not isinstance(self.node, EOS):
-                self.node = self.node.next_term
+                self.node = self.node.next_terminal()
             self.node = self.find_previous_visible(self.node)
         self.pos = len(self.node.symbol.name)
 
@@ -1458,7 +1450,6 @@ class TreeManager(object):
             self.cursor.x = x
 
     def rescan_linebreaks(self, y):
-        return
         """ Scan all nodes between this return node and the next lines return
         node. All other return nodes you find that are not the next lines
         return node are new and must be inserted into self.lines """

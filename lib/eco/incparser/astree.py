@@ -375,6 +375,8 @@ class Node(object):
         if not n:
             if type(self.parent) is MultiTextNode:
                 return self.parent.next_term
+        if type(n) is MultiTextNode:
+            return n.children[0]
         if skip_indent:
             while n is not None and isinstance(n.symbol, IndentationTerminal):
                 n = n.next_term
@@ -401,6 +403,11 @@ class Node(object):
 
     def previous_terminal(self, skip_indent = False):
         n = self.prev_term
+        if not n:
+            if type(self.parent) is MultiTextNode:
+                return self.parent.prev_term
+        if type(n) is MultiTextNode:
+            return n.children[-1]
         if skip_indent:
             while n is not None and isinstance(n.symbol, IndentationTerminal):
                 n = n.prev_term
@@ -475,12 +482,6 @@ class TextNode(Node):
         self.log = {}
         self.version = 0
         self.indent = None
-
-    def prev_terminal(self):
-        if self.prev_term:
-            return self.prev_term
-        if type(self.parent) is MultiTextNode:
-            return self.parent.prev_term
 
     def get_magicterminal(self):
         try:
@@ -588,6 +589,20 @@ class MultiTextNode(TextNode):
     def insert_at_beginning(self, node):
         self.children.insert(0, node)
         node.parent = self
+
+    def update_children(self):
+        for i in xrange(len(self.children)):
+            c = self.children[i]
+            if i == 0:
+                c.left = None
+                c.prev_term = None
+            else:
+                c.left = c.prev_term = self.children[i-1]
+            if i < len(self.children) - 1:
+                c.right = c.next_term = self.children[i+1]
+            else:
+                c.right = None
+                c.next_term = None
 
     def insert_after_node(self, node, newnode):
         for i in xrange(len(self.children)):
