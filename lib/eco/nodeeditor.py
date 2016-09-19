@@ -393,11 +393,6 @@ class NodeEditor(QFrame):
         show_namebinding = self.getWindow().show_namebinding()
         while y < max_y:
 
-            # handle MultiTextNodes
-            if isinstance(node, MultiTextNode):
-                node = node.children[0]
-                continue
-
             # if we found a language box, continue drawing inside of it
             if isinstance(node.symbol, MagicTerminal):
                 lbox += 1
