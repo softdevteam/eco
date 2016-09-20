@@ -793,6 +793,8 @@ class StringWrapper(object):
         while i < end:
             if node is self.relexnode:
                 past_relexnode = True
+            if isinstance(node.symbol, IndentationTerminal):
+                break
             if isinstance(node, EOS):
                 break
             name = getname(node)
