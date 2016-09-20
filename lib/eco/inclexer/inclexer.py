@@ -518,9 +518,11 @@ class IncrementalLexerCF(object):
             except StopIteration:
                 break
 
+        changed = False
         for tokens, read in pairs:
-            self.merge_pair(tokens, read)
-        return True
+            if self.merge_pair(tokens, read):
+                changed = True
+        return changed
 
     def iter_gen(self, tokens):
         r = re.compile("([\r\x80])")
@@ -566,10 +568,9 @@ class IncrementalLexerCF(object):
         totalr = 0
         totalg = 0
 
-        multilist = []
         reused = set()
-
         current_mt = None
+        changed = False
 
         while True:
             if gen is None and read is None:
@@ -583,6 +584,9 @@ class IncrementalLexerCF(object):
                 else:
                     current_mt = MultiTextNode() # create new
                     lastread.insert_after(current_mt)
+                    changed = True
+                if current_mt.lookup != gen[1]:
+                    changed = True
                 current_mt.lookup = gen[1]
                 current_mt.lookahead = gen[2]
                 gen = it_gen.next()
@@ -598,6 +602,7 @@ class IncrementalLexerCF(object):
                 lengen = len(gen[0])
 
             if totalr >= totalg + lengen:
+                changed = True
                 # One node has been split into multiple nodes. Insert all
                 # remaining nodes until the lengths add up again.
                 new = TextNode(Terminal(gen[0]))
@@ -611,6 +616,7 @@ class IncrementalLexerCF(object):
                 totalg += lengen
                 gen = it_gen.next()
             elif totalr + getlength(read) <= totalg:
+                changed = True
                 # Multiple nodes have been combined into less nodes. Delete old
                 # nodes until the lengths add up again.
                 read.remove()
@@ -622,6 +628,8 @@ class IncrementalLexerCF(object):
                 # of multinodes if needed.
                 totalr += getlength(read)
                 totalg += lengen
+                if read.lookup != gen[1]:
+                    changed = True
                 if not isinstance(read.symbol, MagicTerminal):
                     read.symbol.name = gen[0]
                     read.lookup = gen[1]
@@ -637,6 +645,7 @@ class IncrementalLexerCF(object):
                         read.deleted = False
                         self.remove_check(read)
                         lastread.insert_after(read)
+                        changed = True
                 else:
                     if not read.ismultichild() or current_mt is not read.parent:
                         # Read node has been moved from a normal node into a
@@ -650,9 +659,12 @@ class IncrementalLexerCF(object):
                             current_mt.set_children([read])
                         else:
                             lastread.insert_after(read)
+                        changed = True
                 lastread = read
                 read = it_read.next()
                 gen = it_gen.next()
+
+        return changed
 
     def merge_back(self, read_nodes, generated_tokens):
         any_changes = False
