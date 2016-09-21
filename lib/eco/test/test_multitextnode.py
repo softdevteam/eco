@@ -1,4 +1,4 @@
-from grammars.grammars import calc
+from grammars.grammars import calc, python
 from treemanager import TreeManager
 from utils import KEY_UP as UP, KEY_DOWN as DOWN, KEY_LEFT as LEFT, KEY_RIGHT as RIGHT
 from grammars.grammars import EcoFile
@@ -116,3 +116,38 @@ class Test_MultiTextNode:
         assert bos.next_term.next_term.next_term.children[2].next_term is None
 
         assert self.parser.last_status == True
+
+class Test_MultiTextNodePython:
+
+    def setup_class(cls):
+        parser, lexer = python.load()
+        cls.lexer = lexer
+        cls.parser = parser
+        cls.parser.init_ast()
+        cls.ast = cls.parser.previous_version
+        cls.treemanager = TreeManager()
+        cls.treemanager.add_parser(cls.parser, cls.lexer, python.name)
+
+        cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+    def reset(self):
+        self.parser.reset()
+        self.treemanager = TreeManager()
+        self.treemanager.add_parser(self.parser, self.lexer, calc.name)
+        self.treemanager.set_font_test(7, 17)
+
+    def test_simple(self):
+        self.reset()
+        inputstring = "x = \"\"\"abcdef\"\"\""
+        for c in inputstring:
+            self.treemanager.key_normal(c)
+
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+
+        print "DO THE PRESS NOW!!!"
+        self.treemanager.key_normal("\r")

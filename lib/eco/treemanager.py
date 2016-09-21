@@ -27,6 +27,7 @@ from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal
 from PyQt4.QtGui import QApplication
 from PyQt4.QtCore import QSettings
 from grammars.grammars import lang_dict, Language, EcoFile
+from indentmanager import IndentationManager
 from export import HTMLPythonSQL, PHPPython, ATerms
 from export.jruby import JRubyExporter
 from export.jruby_simple_language import JRubySimpleLanguageExporter
@@ -392,25 +393,33 @@ class TreeManager(object):
                 self.parsers.remove(p)
 
     def get_parser(self, root):
-        for parser, lexer, lang, _ in self.parsers:
+        for parser, lexer, lang, _, im in self.parsers:
             if parser.previous_version.parent is root:
                 return parser
 
     def get_lexer(self, root):
-        for parser, lexer, lang, _ in self.parsers:
+        for parser, lexer, lang, _, im in self.parsers:
             if parser.previous_version.parent is root:
                 return lexer
 
     def get_language(self, root):
-        for parser, lexer, lang, _ in self.parsers:
+        for parser, lexer, lang, _, im in self.parsers:
             if parser.previous_version.parent is root:
                 return lang
+
+    def get_indentmanager(self, root):
+        for parser, lexer, lang, _, im in self.parsers:
+            if parser.previous_version.parent is root:
+                return im
 
     def add_parser(self, parser, lexer, language):
         analyser = self.load_analyser(language)
         if lexer.is_indentation_based():
+            im = IndentationManager(parser.previous_version.parent)
             parser.indentation_based = True
-        self.parsers.append((parser, lexer, language, analyser))
+        else:
+            im = None
+        self.parsers.append((parser, lexer, language, analyser, im))
         parser.inc_parse()
         if len(self.parsers) == 1:
             self.lines.append(Line(parser.previous_version.parent.children[0]))
@@ -1283,8 +1292,20 @@ class TreeManager(object):
 
     def post_keypress(self, text):
         self.tool_data_is_dirty = True
+        lines_before = len(self.lines)
         self.rescan_linebreaks(self.cursor.line)
+
+        # repair indentations
+        new_lines = len(self.lines) - lines_before
+        node = self.cursor.node
         changed = False
+        if type(node.parent) is not MultiTextNode:
+            root = node.get_root()
+            im = self.get_indentmanager(root)
+            if im:
+                for i in range(new_lines+1):
+                    changed |= im.repair(node)
+                    node = im.next_line(node)
 
         if text != "" and text[0] == "\r":
             self.cursor.line += 1
