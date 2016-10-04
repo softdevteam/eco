@@ -1299,13 +1299,15 @@ class TreeManager(object):
         new_lines = len(self.lines) - lines_before
         node = self.cursor.node
         changed = False
-        if type(node.parent) is not MultiTextNode:
-            root = node.get_root()
-            im = self.get_indentmanager(root)
-            if im:
+        root = node.get_root()
+        im = self.get_indentmanager(root)
+        if im:
+            if type(node.parent) is not MultiTextNode:
                 for i in range(new_lines+1):
                     changed |= im.repair(node)
                     node = im.next_line(node)
+            else:
+                changed |= im.repair(node.parent)
 
         if text != "" and text[0] == "\r":
             self.cursor.line += 1
@@ -1539,6 +1541,9 @@ class TreeManager(object):
         bos.insert_after(new)
         lexer.relex_import(new, self.version+1)
         self.rescan_linebreaks(0)
+        im = self.parsers[0][4]
+        if im:
+            im.repair_full()
         self.reparse(bos)
         self.undo_snapshot()
         self.changed = True

@@ -999,3 +999,26 @@ class Test_CalcLexer(Test_IncrementalLexer):
         string = bos.next_term.next_term.next_term
         string.symbol.name = "\"abc\""
         lexer.relex(string)
+
+    def test_relex_altered_string(self):
+        lexer = IncrementalLexer("""
+"#[a-z\r\x80]*":comment
+"[0-9]+":INT
+"\+":PLUS
+"\x80":LBOX
+        """)
+
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        eos = ast.parent.children[1]
+        text1 = TextNode(Terminal("1+"))
+        text2 = TextNode(Terminal("#abc"))
+        text3 = TextNode(MagicTerminal("<SQL>"))
+        bos.insert_after(text1)
+        text1.insert_after(text2)
+        text2.insert_after(text3)
+        lexer.relex(text1)
+        assert bos.next_term.symbol == Terminal("1")
+        assert bos.next_term.next_term.symbol == Terminal("+")
+        assert bos.next_term.next_term.next_term == mk_multitextnode([Terminal("#abc"), MagicTerminal("<SQL>")])

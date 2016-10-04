@@ -530,7 +530,10 @@ class IncrementalLexerCF(object):
             if len(t[0]) > 1 and r.search(t[0]):
                 yield ("new mt", t[1], t[2])
                 for x in r.split(t[0]):
-                    yield (x, t[1], t[2])
+                    if x != "":
+                        # if the lbox is at the end of the line, split produces
+                        # an empty string at the end
+                        yield (x, t[1], t[2])
                 yield ("finish mt", None, None)
             else:
                 yield t
@@ -557,6 +560,9 @@ class IncrementalLexerCF(object):
                 node.parent.update_children()
 
     def merge_pair(self, tokens, read):
+        if len(tokens) == 1 and tokens[0][0] == "\x81":
+            return False
+
         lastread = read[0].prev_term
 
         it_gen = self.iter_gen(tokens)
@@ -573,6 +579,10 @@ class IncrementalLexerCF(object):
         changed = False
 
         while True:
+            while read is not None and isinstance(read.symbol, IndentationTerminal):
+                read.remove()
+                read = it_read.next()
+                totalr += 1
             if gen is None and read is None:
                 break
 
@@ -631,7 +641,7 @@ class IncrementalLexerCF(object):
                 if read.lookup != gen[1]:
                     changed = True
                 if not isinstance(read.symbol, MagicTerminal):
-                    read.symbol.name = gen[0]
+                    read.symbol.name = gen[0].replace("\x81", "")
                     read.lookup = gen[1]
                     read.lookahead = gen[2]
                 else:
@@ -741,7 +751,7 @@ class StringWrapper(object):
         startindex = index
         node = self.node
         if isinstance(node.symbol, IndentationTerminal):
-            node = node.next_term
+            raise IndexError
         if isinstance(node, EOS):
             raise IndexError
         currentname = getname(node)
@@ -750,12 +760,10 @@ class StringWrapper(object):
             node = node.next_term
             if node is None:
                 raise IndexError
-            if isinstance(node.symbol, IndentationTerminal):
-                node = node.next_term
             if isinstance(node, EOS):
                 raise IndexError
             currentname = getname(node)
-        if node.next_term and (isinstance(node.next_term, EOS) or isinstance(node.next_term.symbol, IndentationTerminal)):# or node.next_term.symbol.name == "\r"):# or isinstance(node.next_term.symbol, MagicTerminal)):
+        if node.next_term and isinstance(node.next_term, EOS):
             self.length = startindex + len(currentname[index:])
         return currentname[index]
 
@@ -782,12 +790,6 @@ class StringWrapper(object):
             node = node.next_term
             if isinstance(node, EOS):
                 break
-            if isinstance(node.symbol, IndentationTerminal):
-                break
-           #if node.symbol.name == "\r":
-           #    break
-            #if isinstance(node.symbol, MagicTerminal):
-            #    break
 
         return "".join(text)[start:stop]
 
@@ -805,8 +807,8 @@ class StringWrapper(object):
         while i < end:
             if node is self.relexnode:
                 past_relexnode = True
-            if isinstance(node.symbol, IndentationTerminal):
-                break
+           #if isinstance(node.symbol, IndentationTerminal):
+           #    break
             if isinstance(node, EOS):
                 break
             name = getname(node)
@@ -828,6 +830,8 @@ class StringWrapper(object):
 def getname(node):
     if type(node.symbol) is MagicTerminal:
         return "\x80"
+    if type(node.symbol) is IndentationTerminal:
+        return "\x81"
     if type(node) is MultiTextNode:
         l = []
         for x in node.children:
