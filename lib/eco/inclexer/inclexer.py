@@ -435,21 +435,6 @@ class IncrementalLexerCF(object):
         eos.left = last_node
         eos.prev_term = last_node
 
-
-    def split_endcomment(self, node):
-        read_nodes = [node]
-        generated_tokens = []
-        l = node.symbol.name.split("*/", 1)
-        t1 = self.lexer.tokenize(l[0])
-        generated_tokens.extend(t1)
-        t2 = self.lexer.tokenize("*/")
-        generated_tokens.extend(t2)
-        if l[1] != "":
-            t3 = self.lexer.tokenize(l[1])
-            generated_tokens.extend(t3)
-
-        self.merge_back(read_nodes, generated_tokens)
-
     def relex(self, node):
         # find farthest node that has lookahead into node
         # start munching tokens and spit out nodes
@@ -675,47 +660,6 @@ class IncrementalLexerCF(object):
                 gen = it_gen.next()
 
         return changed
-
-    def merge_back(self, read_nodes, generated_tokens):
-        any_changes = False
-        # insert new nodes into tree
-        it = iter(read_nodes)
-        for t in generated_tokens:
-            try:
-                node = it.next()
-            except StopIteration:
-                node = TextNode(Terminal(""))
-                last_node.insert_after(node)
-                any_changes = True
-            last_node = node
-            node.indent = None
-            if not isinstance(node.symbol, MagicTerminal):
-                if isinstance(t[0], MagicTerminal):
-                    node.symbol = t[0]
-                else:
-                    node.symbol.name = t[0].name
-                if node.lookup != t[1]:
-                    node.mark_changed()
-                    any_changes = True
-                else:
-                    node.mark_version()
-            else:
-                node.symbol = t[0]
-                node.mark_changed()
-                any_changes = True
-            node.lookup = t[1]
-            node.lookahead = t[0].lookahead
-            if isinstance(node.symbol, MagicTerminal):
-                node.symbol.ast.magic_backpointer = node
-        # delete left over nodes
-        while True:
-            try:
-                node = it.next()
-                node.parent.remove_child(node)
-                any_changes = True
-            except StopIteration:
-                break
-        return any_changes
 
     def find_preceeding_nodes(self, node):
         chars = 0
