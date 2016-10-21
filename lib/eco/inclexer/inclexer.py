@@ -24,6 +24,8 @@ from grammar_parser.gparser import MagicTerminal, Terminal, IndentationTerminal
 from incparser.astree import BOS, EOS, TextNode, ImageNode, MultiTextNode
 from PyQt4.QtGui import QImage
 import re, os
+from cflexer.lexer import LexingError
+from indentmanager import println
 
 class IncrementalLexer(object):
     # XXX needs to be replaced by a lexing automaton to avoid unnecessary
@@ -443,9 +445,11 @@ class IncrementalLexerCF(object):
 
         # find node to start relaxing
         startnode = node
-        nodes = self.find_preceeding_nodes(node)
-        if nodes:
-            node = nodes[0]
+        node = self.find_preceeding_node(node)
+
+        while isinstance(node.symbol, IndentationTerminal):
+            node = node.next_term
+
         if node is startnode:
             past_startnode = True
         else:
@@ -472,11 +476,13 @@ class IncrementalLexerCF(object):
         toks = []
         read = []
         pairs = []
+        lookaheads = []
 
         i = 0
         while True:
             try:
                 token = next_token()
+                lookaheads.append(token[2])
                 if token[3][0] is startnode:
                     past_startnode = True
                 toks.append(token[:3])
@@ -484,7 +490,8 @@ class IncrementalLexerCF(object):
                 for r in token[3]:
                     if not read or r is not read[-1]: # skip already read nodes from previous tokens
                         read.append(r)
-                        readlength += len(getname(r))
+                        if not isinstance(r.symbol, IndentationTerminal):
+                            readlength += len(getname(r))
                 if tokenslength == readlength:
                     # Abort relexing if we relexed a node to itself AFTER we
                     # passed `startnode`. This way we avoid relexing nodes that
@@ -502,11 +509,51 @@ class IncrementalLexerCF(object):
                     readlength = 0
             except StopIteration:
                 break
+            except LexingError as e:
+                #print "lexing error", e
+                if type(startnode) is MultiTextNode:
+                    startnode.lookup = ""
+                    startnode.mark_changed()
+                # we started relexing earlier so if lexing fails
+                # we need to mark the earlier node (not the actual startnode)
+                # XXX later we need to mark this as an ERROR instead
+                if not isinstance(current_node, BOS):
+                    current_node.changed = True
+                    current_node.mark_changed()
+                    current_node.lookup = ""
+
+                if startnode.symbol.name != "\r":
+                    # since lexing failed we need to extract the newline nodes
+                    # at the very least
+                    l = re.split("(\r)", startnode.symbol.name)
+                    startnode.symbol.name = l[0]
+                    for n in l[1:]:
+                        if n:
+                            newnode = TextNode(Terminal(n))
+                            startnode.insert_after(newnode)
+                            startnode = newnode
+                raise e
 
         changed = False
         for tokens, read in pairs:
             if self.merge_pair(tokens, read):
                 changed = True
+
+        # update lookbacks
+        textlen = len(getname(node))
+        for la in lookaheads:
+            textlen = 0
+            n = node
+            lb = 0
+            while textlen < la:
+                n = n.next_term
+                if isinstance(n, EOS):
+                    break
+                lb += 1
+                n.lookback = lb
+                textlen += len(getname(n))
+            node = node.next_term
+
         return changed
 
     def iter_gen(self, tokens):
@@ -567,7 +614,6 @@ class IncrementalLexerCF(object):
             while read is not None and isinstance(read.symbol, IndentationTerminal):
                 read.remove()
                 read = it_read.next()
-                totalr += 1
             if gen is None and read is None:
                 break
 
@@ -624,7 +670,10 @@ class IncrementalLexerCF(object):
                 totalr += getlength(read)
                 totalg += lengen
                 if read.lookup != gen[1]:
+                    read.mark_changed()
                     changed = True
+                else:
+                    read.mark_version()
                 if not isinstance(read.symbol, MagicTerminal):
                     read.symbol.name = gen[0].replace("\x81", "")
                     read.lookup = gen[1]
@@ -661,19 +710,10 @@ class IncrementalLexerCF(object):
 
         return changed
 
-    def find_preceeding_nodes(self, node):
-        chars = 0
-        nodes = []
-        if node.symbol.name == "\r": # if at line beginning there are no previous nodes to consider
-            return nodes
-        while True:
+    def find_preceeding_node(self, node):
+        for i in range(node.lookback):
             node = node.prev_term
-            if node.lookahead and node.lookahead > chars:
-                nodes.insert(0, node)
-                chars += len(node.symbol.name)
-            else:
-                break
-        return nodes
+        return node
 
 IncrementalLexer = IncrementalLexerCF
 import sys
@@ -694,20 +734,29 @@ class StringWrapper(object):
     def __getitem__(self, index):
         startindex = index
         node = self.node
-        if isinstance(node.symbol, IndentationTerminal):
-            raise IndexError
         if isinstance(node, EOS):
             raise IndexError
         currentname = getname(node)
+        l = 0
         while index > len(currentname) - 1:
             index -= len(currentname)
+            l += len(currentname)
             node = node.next_term
             if node is None:
                 raise IndexError
+            while isinstance(node.symbol, IndentationTerminal):
+                node = node.next_term
             if isinstance(node, EOS):
+                # tried to access index out of bounds. Set text length so next
+                # call to find_next_token can finish or throw LexingError
+                self.length = startindex - index
                 raise IndexError
             currentname = getname(node)
-        if node.next_term and isinstance(node.next_term, EOS):
+        # found index without problem, check if we reached the end of file
+        node = node.next_term
+        while isinstance(node.symbol, IndentationTerminal):
+            node = node.next_term
+        if isinstance(node, EOS):
             self.length = startindex + len(currentname[index:])
         return currentname[index]
 
@@ -732,6 +781,8 @@ class StringWrapper(object):
             if i > start:
                 self.nodes.append(node)
             node = node.next_term
+            while isinstance(node.symbol, IndentationTerminal):
+                node = node.next_term
             if isinstance(node, EOS):
                 break
 
@@ -751,8 +802,10 @@ class StringWrapper(object):
         while i < end:
             if node is self.relexnode:
                 past_relexnode = True
-           #if isinstance(node.symbol, IndentationTerminal):
-           #    break
+            if isinstance(node.symbol, IndentationTerminal):
+                read.append(node)
+                node = node.next_term
+                continue
             if isinstance(node, EOS):
                 break
             name = getname(node)

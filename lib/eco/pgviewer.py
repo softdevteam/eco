@@ -179,3 +179,6 @@ def splitline(line, re_word = re.compile(r'[^\s"]\S*|["]["]|["].*?[^\\]["]')):
             word = word[1:-1]
         result.append(word)
     return result
+
+def debug(treemanager):
+    PGViewer(treemanager.get_mainparser().previous_version.parent, treemanager.version).run()

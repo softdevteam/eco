@@ -157,7 +157,7 @@ class IncParser(object):
             logging.debug("\x1b[35mProcessing\x1b[0m %s %s %s %s", la, la.changed, id(la), la.indent)
             self.loopcount += 1
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
-                if la.changed:
+                if la.changed and False: #XXX not needed once we introduce errors
                     assert False # with prelexing you should never end up here!
                 else:
                     lookup_symbol = self.get_lookup(la)

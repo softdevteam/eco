@@ -245,6 +245,8 @@ class Node(object):
         self.log[("prev_term", version)] = self.prev_term
         self.log[("deleted", version)] = self.deleted
         self.log[("indent", version)] = self.indent
+        # XXX save local_error: None, parse, lex
+        # XXX save lookback
         self.version = version
 
     def load(self, version):
@@ -465,7 +467,7 @@ uppercase = set(list(string.ascii_uppercase))
 digits = set(list(string.digits))
 
 class TextNode(Node):
-    __slots__ = ["log", "version", "position", "changed", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookup", "parent_lbox", "magic_backpointer", "indent"]
+    __slots__ = ["log", "version", "position", "changed", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookback", "lookup", "parent_lbox", "magic_backpointer", "indent"]
     def __init__(self, symbol, state=-1, children=None, pos=-1, lookahead=0):
         if children is None:
             children = []
@@ -482,6 +484,7 @@ class TextNode(Node):
         self.log = {}
         self.version = 0
         self.indent = None
+        self.lookback = 0
 
     def get_magicterminal(self):
         try:
@@ -529,6 +532,15 @@ class TextNode(Node):
         _cls = self.symbol.__class__
         self.symbol = _cls(text)
         self.mark_version()
+        self.changed = True
+        self.mark_changed()
+   #    # since <ws> nodes are skipped during drawing, resetting the type of a
+   #    # node, enables drawing of <ws> nodes that had text added to them and
+   #    # haven't been relexed yet (due to LexingErrors)
+   #    if type(self.parent) is MultiTextNode:
+   #        self.parent.lookup = ""
+   #    else:
+   #        self.lookup = ""
 
     def save(self, version):
         Node.save(self, version)

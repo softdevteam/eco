@@ -23,7 +23,7 @@ from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
 from cflexer.lexer import LexingError
 from incparser.astree import TextNode, BOS, EOS, MultiTextNode
-from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal
+from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from PyQt4.QtGui import QApplication
 from PyQt4.QtCore import QSettings
 from grammars.grammars import lang_dict, Language, EcoFile
@@ -916,6 +916,9 @@ class TreeManager(object):
 
         edited_node = self.cursor.node
 
+        if text == "\n":
+            text = "\r"
+
         if text == "\r":
             # if previous line is a language box, don't use its indentation
             y = self.cursor.line
@@ -1006,13 +1009,11 @@ class TreeManager(object):
 
         if self.hasSelection():
             self.deleteSelection()
-            self.reparse(self.cursor.node, True)
             return
 
         if self.cursor.inside(): # cursor inside a node
             internal_position = self.cursor.pos
             self.last_delchar = node.backspace(internal_position)
-            need_reparse = self.relex(node)
             repairnode = node
         else: # between two nodes
             need_reparse = False
@@ -1041,15 +1042,15 @@ class TreeManager(object):
             # if node is empty, delete it and repair previous/next node
             if node.symbol.name == "" and not isinstance(node, BOS):
                 repairnode = self.cursor.find_previous_visible(node)
+                repairnode.changed = True
+                repairnode.mark_changed()
 
                 if not self.clean_empty_lbox(node):
                     # normal node is empty -> remove it from AST
                     node.parent.remove_child(node)
                     need_reparse = True
 
-            if repairnode is not None and not isinstance(repairnode, BOS):
-                need_reparse |= self.relex(repairnode)
-
+        need_reparse = self.relex(repairnode)
         need_reparse |= self.post_keypress("")
         self.cursor.fix()
         self.reparse(repairnode, need_reparse)
@@ -1300,18 +1301,37 @@ class TreeManager(object):
         node = self.cursor.node
         changed = False
         root = node.get_root()
-        im = self.get_indentmanager(root)
-        if im:
-            if type(node.parent) is not MultiTextNode:
-                for i in range(new_lines+1):
-                    changed |= im.repair(node)
-                    node = im.next_line(node)
-            else:
-                changed |= im.repair(node.parent)
+        changed = self.repair_indentations()
 
         if text != "" and text[0] == "\r":
             self.cursor.line += 1
         return changed
+
+    def repair_indentations(self):
+        node = self.cursor.node
+        root = node.get_root()
+        im = self.get_indentmanager(root)
+        changed = False
+        if im:
+            # traverse parsetree for changes
+            # for every node that has changes, find it's newline and run
+            # im.repair if it hasn't already been repaired
+            node = root.children[0]
+            while type(node) is not EOS:
+                if node.changed and isinstance(node.symbol, Nonterminal):
+                    changed = True
+                    node = node.children[0]
+                    continue
+                elif node.symbol.name == "\r" or type(node) is BOS:
+                    im.repair(node)
+                node = self.next_node(node)
+        return changed
+
+    def next_node(self, node):
+        while(node.right_sibling() is None):
+            node = node.parent
+        return node.right_sibling()
+
 
     def copySelection(self):
         self.log_input("copySelection")
@@ -1435,6 +1455,7 @@ class TreeManager(object):
                 continue
             repair_node = repair_node.next_term
             break
+        repair_node.changed = True
         self.relex(repair_node)
         cur_start = min(self.selection_start, self.selection_end)
         cur_end = max(self.selection_start, self.selection_end)
@@ -1446,6 +1467,7 @@ class TreeManager(object):
         self.selection_start = self.cursor.copy()
         self.selection_end = self.cursor.copy()
         self.changed = True
+        self.repair_indentations()
         self.reparse(nodes[-1])
 
     def delete_if_empty(self, node):
@@ -1539,7 +1561,8 @@ class TreeManager(object):
         bos = parser.previous_version.parent.children[0]
         new = TextNode(Terminal(text))
         bos.insert_after(new)
-        lexer.relex_import(new, self.version+1)
+        new.changed = True
+        self.relex(new)
         self.rescan_linebreaks(0)
         im = self.parsers[0][4]
         if im:
@@ -1745,23 +1768,42 @@ class TreeManager(object):
             return text
 
     def relex(self, node):
+        # traverse changes in tree to find terminals that need relexing
         if node is None:
             return
-        if type(node.parent) is MultiTextNode:
-            return self.relex(node.parent)
-        if isinstance(node, BOS) or isinstance(node, EOS):
-            return
-       #if isinstance(node.symbol, MagicTerminal):
-       #    return
+
+        changes = False
+        node = node.get_root().children[0]
+        while True:
+            if isinstance(node, EOS):
+                break
+            if type(node.symbol) is IndentationTerminal:
+                node = self.pop_lookahead(node)
+                continue
+            if node.changed: #XXX once we merge error recovery this should be nested/local_errors
+                if type(node.symbol) is Nonterminal:
+                    if node.children:
+                        node = node.children[0]
+                        continue
+                else:
+                    node.changed = False
+                    try:
+                        changes |= self.relex_node(node)
+                    except LexingError:
+                        break # stop relexing (slowdown reasons if we have lots of errors) and do something
+                        # XXX we don't want to do that. see comment in relex_node
+            if type(node.parent) is MultiTextNode:
+                node = self.pop_lookahead(node.parent)
+            else:
+                node = self.pop_lookahead(node)
+        return changes
+
+    def relex_node(self, node):
+        # XXX start from top, only relex former lexingerror nodes
+        # if there are changes within their lookahead
         root = node.get_root()
         lexer = self.get_lexer(root)
-        try:
-            return lexer.relex(node)
-        except LexingError:
-            # XXX do something here to let the user know a lexing error has
-            # occured
-            print "LEXING ERROR"
-            return False
+        return lexer.relex(node)
 
     def savestate(self):
         self.savenextparse = True

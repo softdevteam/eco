@@ -170,6 +170,7 @@ class AbstractLexingDFARunner(deterministic.DFARunner):
                 assert stop >= 0
                 if start == stop:
                     source = self.text[start:]
+                    raise LexingError("Could not successfully parse %s" % source)
                     result = self.make_token(start, -1, self.last_matched_state, lookahead = i - stop)
                     self.last_matched_index = start + len(source)
                     return result
