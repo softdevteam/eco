@@ -25,7 +25,6 @@ from incparser.astree import BOS, EOS, TextNode, ImageNode, MultiTextNode
 from PyQt4.QtGui import QImage
 import re, os
 from cflexer.lexer import LexingError
-from indentmanager import println
 
 class IncrementalLexer(object):
     # XXX needs to be replaced by a lexing automaton to avoid unnecessary
