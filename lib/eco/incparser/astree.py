@@ -534,13 +534,12 @@ class TextNode(Node):
         self.mark_version()
         self.changed = True
         self.mark_changed()
-   #    # since <ws> nodes are skipped during drawing, resetting the type of a
-   #    # node, enables drawing of <ws> nodes that had text added to them and
-   #    # haven't been relexed yet (due to LexingErrors)
-   #    if type(self.parent) is MultiTextNode:
-   #        self.parent.lookup = ""
-   #    else:
-   #        self.lookup = ""
+        # Remove their lookup values to make sure the parser fails if these
+        # can't be relexed properly
+        if type(self.parent) is MultiTextNode:
+            self.parent.lookup = ""
+        else:
+            self.lookup = ""
 
     def save(self, version):
         Node.save(self, version)
@@ -596,7 +595,7 @@ class TextNode(Node):
 
 class MultiTextNode(TextNode):
     def __init__(self):
-        TextNode.__init__(self, Terminal("multinode"))
+        TextNode.__init__(self, Terminal("<Multinode>"))
 
     def insert_at_beginning(self, node):
         self.children.insert(0, node)

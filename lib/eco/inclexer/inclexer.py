@@ -476,6 +476,7 @@ class IncrementalLexerCF(object):
         read = []
         pairs = []
         lookaheads = []
+        error = None
 
         i = 0
         while True:
@@ -509,37 +510,54 @@ class IncrementalLexerCF(object):
             except StopIteration:
                 break
             except LexingError as e:
-                #print "lexing error", e
-                if type(startnode) is MultiTextNode:
-                    startnode.lookup = ""
-                    startnode.mark_changed()
-                # we started relexing earlier so if lexing fails
-                # we need to mark the earlier node (not the actual startnode)
-                # XXX later we need to mark this as an ERROR instead
-                if not isinstance(current_node, BOS):
-                    current_node.changed = True
-                    current_node.mark_changed()
-                    current_node.lookup = ""
+                if read and type(read[-1]) is MultiTextNode:
+                    pairs = []
+                    startnode.changed = True
+                    raise e
+                # Lexer failed to repair everything. See if it managed to lex
+                # parts of the changes (toks contains tokens) and if so
+                # integrate them into the parse tree. The partly lexed tokens
+                # will have bigger lookaheads than usual as the depend on the
+                # text parts that couldn't be relexed.
+                # Might involve splitting up a node resulting in leftover text
+                # that couldn't be lexed as this point. Put that text into a new
+                # node and also separate any newlines contained within.
+                error = e
+                if toks:
+                    print "get leftover"
+                    leftover = readlength - tokenslength
+                    if leftover > 0:
+                        name = read[-1].symbol.name[-leftover:]
+                        l = re.split("(\r)", name)
+                        for e in l:
+                            toks.append((e, "<E>", 1))
+                    pairs.append((toks, read))
+                    print "toks", toks
+                else:
+                    # There are no part matches so remark the startnode as error
+                    startnode.changed = True
+                break
 
-                if startnode.symbol.name != "\r":
-                    # since lexing failed we need to extract the newline nodes
-                    # at the very least
-                    l = re.split("(\r)", startnode.symbol.name)
-                    startnode.symbol.name = l[0]
-                    for n in l[1:]:
-                        if n:
-                            newnode = TextNode(Terminal(n))
-                            startnode.insert_after(newnode)
-                            startnode = newnode
-                raise e
+        if not pairs:
+            # If there is nothing to merge either re-raise the LexingError if
+            # there was one or return False (=no changes)
+            if error:
+                raise error
+            else:
+                return False
 
         changed = False
+        node_before_changes = None # remember where we started relexing
         for tokens, read in pairs:
+            # merge new tokens into the parse tree
+            if not node_before_changes:
+                node_before_changes = read[0].prev_term
             if self.merge_pair(tokens, read):
                 changed = True
 
-        # update lookbacks
+        # update lookback counts using lookaheads
         textlen = len(getname(node))
+        node = node_before_changes.next_term
         for la in lookaheads:
             textlen = 0
             n = node
@@ -553,6 +571,8 @@ class IncrementalLexerCF(object):
                 textlen += len(getname(n))
             node = node.next_term
 
+        if error:
+            raise error
         return changed
 
     def iter_gen(self, tokens):
@@ -647,6 +667,10 @@ class IncrementalLexerCF(object):
                 # remaining nodes until the lengths add up again.
                 new = TextNode(Terminal(gen[0]))
                 new.lookup = gen[1]
+                if new.lookup == "<E>":
+                    # If this token comes from the leftovers of a LexingError,
+                    # mark it appropriately
+                    new.changed = True  # XXX with error recovery, mark as error
                 new.lookahead = gen[2]
                 if current_mt and not lastread.ismultichild():
                     current_mt.insert_at_beginning(new)
@@ -802,7 +826,9 @@ class StringWrapper(object):
             if node is self.relexnode:
                 past_relexnode = True
             if isinstance(node.symbol, IndentationTerminal):
-                read.append(node)
+                if i > start:
+                    # only add if it is relevant
+                    read.append(node)
                 node = node.next_term
                 continue
             if isinstance(node, EOS):

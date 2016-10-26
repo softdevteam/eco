@@ -1177,7 +1177,38 @@ def z():
     pass"""
         self.treemanager.import_file(inputstring)
         assert self.parser.last_status == True
-        
+
+class Test_Relexing(Test_Python):
+
+    def test_dont_stop_relexing_after_first_error(self):
+        self.reset()
+        inputstring = """def x():
+    1
+
+def y():
+    2"""
+        for c in inputstring:
+            self.treemanager.key_normal(c)
+
+        # create 1st lexing error
+        self.treemanager.cursor_movement(UP)
+        self.treemanager.cursor_movement(UP)
+        self.treemanager.cursor_movement(UP)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("*")
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+
+        # create 2nd lexing error
+        self.treemanager.cursor_movement(DOWN)
+        self.treemanager.cursor_movement(DOWN)
+        self.treemanager.cursor_movement(DOWN)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("+")
+        self.treemanager.key_normal("3")
+
+        assert self.treemanager.cursor.node.symbol.name == "3"
 
 class Test_NestedLboxWithIndentation():
     def setup_class(cls):
@@ -2368,6 +2399,39 @@ class Test_Undo(Test_Python):
             self.treemanager.key_shift_ctrl_z()
 
         self.text_compare(broken)
+
+    def test_undo_random_insertdeleteundo_bug6(self):
+        self.reset()
+        program = """class X:
+    def x():
+        pass
+
+    def y():
+        pass2"""
+        self.treemanager.import_file(program)
+        assert self.parser.last_status == True
+        start_version = self.treemanager.version
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 4)
+        self.treemanager.key_normal('$')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal('a')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 1)
+        self.move(RIGHT, 1)
+        self.treemanager.key_normal('0')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 1)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 1)
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal('2')
 
     def random_insert_delete_undo(self, program):
         import random

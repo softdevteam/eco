@@ -224,7 +224,6 @@ class Test_MultiTextNodePython:
         self.treemanager.cursor_movement(DOWN)
         self.treemanager.cursor_movement(DOWN)
         self.treemanager.key_end()
-        print "BEFORE BACKSPACE\n\n\n"
         self.treemanager.key_backspace()
 
         assert self.parser.last_status == False
@@ -281,10 +280,10 @@ y = 2"""
 
         assert bos.next_term.symbol.name == "x"
         assert bos.next_term.next_term.symbol.name == "="
-        assert bos.next_term.next_term.next_term.symbol.name == '""'
-        assert bos.next_term.next_term.next_term.next_term.symbol.name == '"ab"'
-        assert bos.next_term.next_term.next_term.next_term.next_term.symbol.name == '""c"'
-        assert bos.next_term.next_term.next_term.next_term.next_term.next_term.symbol.name == '""'
+        assert bos.next_term.next_term.next_term.symbol.name == '"""ab"""'
+        assert bos.next_term.next_term.next_term.next_term.symbol.name == 'c'
+        assert bos.next_term.next_term.next_term.next_term.next_term.symbol.name == '""'
+        assert bos.next_term.next_term.next_term.next_term.next_term.next_term.symbol.name == '"'
 
         self.treemanager.key_end()
         self.treemanager.key_backspace()
