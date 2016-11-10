@@ -727,7 +727,7 @@ class IncrementalLexerCF(object):
                     self.relexed.add(read)
                     changed = True
                 else:
-                    read.mark_version()
+                    read.mark_changed()
                 if not isinstance(read.symbol, MagicTerminal):
                     read.symbol.name = gen[0].replace("\x81", "")
                     read.lookup = gen[1]
