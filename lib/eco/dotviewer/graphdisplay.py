@@ -481,6 +481,7 @@ class GraphDisplay(Display):
                     self.add_status_text(text, realnode, "nested_changes")
                 self.add_status_text(text, realnode, "indent")
                 self.add_status_text(text, realnode, "parent")
+                self.add_status_text(text, realnode, "state")
                 text = "; ".join(text)
             else:
                 text = "No info"

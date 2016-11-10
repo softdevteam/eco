@@ -132,6 +132,8 @@ class RecoveryManager(object):
             self.new_state = element.action
             self.iso_node = node
             self.iso_node.state = self.new_state
+            self.iso_offset = last_offset
+            self.error_offset = error_offset
             print("   Found valid isolation node ", node, id(node))
             logging.debug("   Found valid isolation node %s (%s)", node, id(node))
             return True

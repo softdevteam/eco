@@ -2815,6 +2815,18 @@ class Test_ErrorRecovery(Test_Helper):
     def test_error_in_isotree(self):
         self.reset()
         self.treemanager.import_file("1+2*3")
+        self.treemanager.key_home()
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal("*")
+        assert len(self.parser.error_nodes) == 1
+
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal("+")
+        assert len(self.parser.error_nodes) == 2
+
+    def test_error_in_isotree_reverse(self):
+        self.reset()
+        self.treemanager.import_file("1+2*3")
         self.treemanager.key_end()
         self.move(LEFT, 1)
         self.treemanager.key_normal("+")
@@ -2823,6 +2835,54 @@ class Test_ErrorRecovery(Test_Helper):
         self.move(LEFT, 3)
         self.treemanager.key_normal("*")
         assert len(self.parser.error_nodes) == 2
+
+    def test_testing_ooc1(self):
+        # Testing out-of-context analysis where the analysis fails and the result
+        # can not be integrated into the tree
+        self.reset()
+        self.treemanager.import_file("1+2")
+        self.treemanager.key_end()
+        self.move(LEFT, 1)
+        self.treemanager.key_normal("*")
+        self.treemanager.key_end()
+        self.treemanager.key_normal("+")
+        self.treemanager.key_normal("3")
+
+    def test_testing_ooc2(self):
+        # Testing out-of-context analysis where the analysis succeeds and the result
+        # is being integrated into the tree
+        self.reset()
+        self.treemanager.import_file("1+2")
+        self.treemanager.key_end()
+        self.move(LEFT, 1)
+        self.treemanager.key_normal("*")
+        self.treemanager.key_end()
+        self.treemanager.key_normal("*")
+        assert self.treemanager.cursor.node.symbol.name == "*"
+        self.treemanager.key_normal("3")
+        assert self.treemanager.cursor.node.symbol.name == "3"
+        assert self.treemanager.cursor.node.left == None # if ooc fails, this would be '*'
+
+    def test_typing_after_successfull_ooc(self):
+        self.reset()
+        self.treemanager.import_file("1+2")
+        self.treemanager.key_end()
+        self.move(LEFT, 1)
+        self.treemanager.key_normal("*")
+        self.treemanager.key_end()
+        self.treemanager.key_normal("*")
+        self.treemanager.key_normal("3")
+        assert self.parser.last_status == False
+        assert self.parser.error_node is not None
+
+        # continue after successful out-of-context analysis and integration
+        self.treemanager.key_normal("+")
+        assert self.parser.last_status == False
+        assert self.parser.error_node is not None
+
+        self.treemanager.key_normal("3")
+        assert self.parser.last_status == False
+        assert self.parser.error_node is not None
 
     def test_temp(self):
         self.reset()
