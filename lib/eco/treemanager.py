@@ -21,11 +21,13 @@
 
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
-from incparser.astree import TextNode, BOS, EOS
-from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal
+from cflexer.lexer import LexingError
+from incparser.astree import TextNode, BOS, EOS, MultiTextNode
+from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from PyQt4.QtGui import QApplication
 from PyQt4.QtCore import QSettings
 from grammars.grammars import lang_dict, Language, EcoFile
+from indentmanager import IndentationManager
 from export import HTMLPythonSQL, PHPPython, ATerms
 from export.jruby import JRubyExporter
 from export.jruby_simple_language import JRubySimpleLanguageExporter
@@ -173,38 +175,44 @@ class Cursor(object):
 
     def find_next_visible(self, node):
         if self.is_visible(node) or isinstance(node.symbol, MagicTerminal):
-            node = node.next_term
+            node = node.next_terminal()
         while not self.is_visible(node):
             if isinstance(node, EOS):
                 root = node.get_root()
                 lbox = root.get_magicterminal()
                 if lbox:
-                    node = lbox.next_term
+                    node = lbox.next_terminal()
                     continue
                 else:
                     return node
             elif isinstance(node.symbol, MagicTerminal):
                 node = node.symbol.ast.children[0]
                 continue
-            node = node.next_term
+            elif isinstance(node, MultiTextNode):
+                node = node.children[0]
+                continue
+            node = node.next_terminal()
         return node
 
     def find_previous_visible(self, node):
         if self.is_visible(node):
-            node = node.prev_term
+            node = node.previous_terminal() # XXX check for multiterm
         while not self.is_visible(node):
             if isinstance(node, BOS):
                 root = node.get_root()
                 lbox = root.get_magicterminal()
                 if lbox:
-                    node = lbox.prev_term
+                    node = lbox.previous_terminal() #XXX check for multiterm
                     continue
                 else:
                     return node
             elif isinstance(node.symbol, MagicTerminal):
                 node = node.symbol.ast.children[-1]
                 continue
-            node = node.prev_term
+            elif isinstance(node, MultiTextNode):
+                node = node.children[-1]
+                continue
+            node = node.previous_terminal()
         return node
 
     def is_visible(self, node):
@@ -215,6 +223,8 @@ class Cursor(object):
         if isinstance(node, EOS):
             return False
         if isinstance(node.symbol, MagicTerminal):
+            return False
+        if isinstance(node.symbol, MultiTextNode):
             return False
         return True
 
@@ -239,7 +249,7 @@ class Cursor(object):
             self.node = self.find_previous_visible(self.lines[self.line+1].node)
         else:
             while not isinstance(self.node, EOS):
-                self.node = self.node.next_term
+                self.node = self.node.next_terminal()
             self.node = self.find_previous_visible(self.node)
         self.pos = len(self.node.symbol.name)
 
@@ -395,25 +405,33 @@ class TreeManager(object):
                 self.parsers.remove(p)
 
     def get_parser(self, root):
-        for parser, lexer, lang, _ in self.parsers:
+        for parser, lexer, lang, _, im in self.parsers:
             if parser.previous_version.parent is root:
                 return parser
 
     def get_lexer(self, root):
-        for parser, lexer, lang, _ in self.parsers:
+        for parser, lexer, lang, _, im in self.parsers:
             if parser.previous_version.parent is root:
                 return lexer
 
     def get_language(self, root):
-        for parser, lexer, lang, _ in self.parsers:
+        for parser, lexer, lang, _, im in self.parsers:
             if parser.previous_version.parent is root:
                 return lang
+
+    def get_indentmanager(self, root):
+        for parser, lexer, lang, _, im in self.parsers:
+            if parser.previous_version.parent is root:
+                return im
 
     def add_parser(self, parser, lexer, language):
         analyser = self.load_analyser(language)
         if lexer.is_indentation_based():
+            im = IndentationManager(parser.previous_version.parent)
             parser.indentation_based = True
-        self.parsers.append((parser, lexer, language, analyser))
+        else:
+            im = None
+        self.parsers.append((parser, lexer, language, analyser, im))
         parser.inc_parse()
         if len(self.parsers) == 1:
             self.lines.append(Line(parser.previous_version.parent.children[0]))
@@ -901,6 +919,9 @@ class TreeManager(object):
 
         edited_node = self.cursor.node
 
+        if text == "\n":
+            text = "\r"
+
         if text == "\r":
             # if previous line is a language box, don't use its indentation
             y = self.cursor.line
@@ -991,13 +1012,11 @@ class TreeManager(object):
 
         if self.hasSelection():
             self.deleteSelection()
-            self.reparse(self.cursor.node, True)
             return
 
         if self.cursor.inside(): # cursor inside a node
             internal_position = self.cursor.pos
             self.last_delchar = node.backspace(internal_position)
-            need_reparse = self.relex(node)
             repairnode = node
         else: # between two nodes
             need_reparse = False
@@ -1026,15 +1045,15 @@ class TreeManager(object):
             # if node is empty, delete it and repair previous/next node
             if node.symbol.name == "" and not isinstance(node, BOS):
                 repairnode = self.cursor.find_previous_visible(node)
+                repairnode.changed = True
+                repairnode.mark_changed()
 
                 if not self.clean_empty_lbox(node):
                     # normal node is empty -> remove it from AST
                     node.parent.remove_child(node)
                     need_reparse = True
 
-            if repairnode is not None and not isinstance(repairnode, BOS):
-                need_reparse |= self.relex(repairnode)
-
+        need_reparse = self.relex(repairnode)
         need_reparse |= self.post_keypress("")
         self.cursor.fix()
         self.reparse(repairnode, need_reparse)
@@ -1167,6 +1186,7 @@ class TreeManager(object):
         newnode.parent_lbox = root
         if not self.cursor.inside():
             node.insert_after(newnode)
+            self.relex(newnode)
         else:
             node = node
             internal_position = self.cursor.pos
@@ -1179,7 +1199,7 @@ class TreeManager(object):
             newnode.insert_after(node2)
 
             self.relex(node)
-            self.relex(node2)
+            #self.relex(node2)
         self.edit_rightnode = True # writes next char into magic ast
         self.cursor.node = newnode.symbol.ast.children[0]
         self.cursor.pos = 0
@@ -1276,12 +1296,45 @@ class TreeManager(object):
 
     def post_keypress(self, text):
         self.tool_data_is_dirty = True
+        lines_before = len(self.lines)
         self.rescan_linebreaks(self.cursor.line)
+
+        # repair indentations
+        new_lines = len(self.lines) - lines_before
+        node = self.cursor.node
         changed = False
+        root = node.get_root()
+        changed = self.repair_indentations()
 
         if text != "" and text[0] == "\r":
             self.cursor.line += 1
         return changed
+
+    def repair_indentations(self):
+        node = self.cursor.node
+        root = node.get_root()
+        im = self.get_indentmanager(root)
+        changed = False
+        if im:
+            # traverse parsetree for changes
+            # for every node that has changes, find it's newline and run
+            # im.repair if it hasn't already been repaired
+            node = root.children[0]
+            while type(node) is not EOS:
+                if node.changed and isinstance(node.symbol, Nonterminal):
+                    changed = True
+                    node = node.children[0]
+                    continue
+                elif node.symbol.name == "\r" or type(node) is BOS:
+                    im.repair(node)
+                node = self.next_node(node)
+        return changed
+
+    def next_node(self, node):
+        while(node.right_sibling() is None):
+            node = node.parent
+        return node.right_sibling()
+
 
     def copySelection(self):
         self.log_input("copySelection")
@@ -1405,6 +1458,7 @@ class TreeManager(object):
                 continue
             repair_node = repair_node.next_term
             break
+        repair_node.changed = True
         self.relex(repair_node)
         cur_start = min(self.selection_start, self.selection_end)
         cur_end = max(self.selection_start, self.selection_end)
@@ -1416,6 +1470,7 @@ class TreeManager(object):
         self.selection_start = self.cursor.copy()
         self.selection_end = self.cursor.copy()
         self.changed = True
+        self.repair_indentations()
         self.reparse(nodes[-1])
 
     def delete_if_empty(self, node):
@@ -1453,20 +1508,24 @@ class TreeManager(object):
         except IndexError:
             next = self.get_eos()
 
-        current = current.next_term
+        current = current.next_terminal()
         while current is not next:
             if current.symbol.name == "\r":
                 y += 1
                 self.lines.insert(y, Line(current))
             if isinstance(current.symbol, MagicTerminal):
                 current = current.symbol.ast.children[0]
+            elif isinstance(current, MultiTextNode):
+                current = current.children[0]
             elif isinstance(current, EOS):
                 root = current.get_root()
                 lbox = root.get_magicterminal()
                 if lbox:
-                    current = lbox.next_term
+                    current = lbox.next_terminal()
+                else:
+                    assert False
             else:
-                current = current.next_term
+                current = current.next_terminal()
 
     def delete_linebreak(self, y, node):
         deleted = self.lines[y+1].node
@@ -1497,8 +1556,14 @@ class TreeManager(object):
         bos = parser.previous_version.parent.children[0]
         new = TextNode(Terminal(text))
         bos.insert_after(new)
-        lexer.relex_import(new, self.version)
+        new.changed = True
+        self.relex(new)
         self.rescan_linebreaks(0)
+        im = self.parsers[0][4]
+        if im:
+            im.repair_full()
+        self.reparse(bos)
+        self.undo_snapshot()
         self.changed = True
         self.reparse(bos)
         self.undo_snapshots = [self.version]
@@ -1702,11 +1767,20 @@ class TreeManager(object):
 
     def relex(self, node):
         if node is None:
-            return
+            return False
         if isinstance(node, BOS) or isinstance(node, EOS):
-            return
+            return False
         if isinstance(node.symbol, MagicTerminal):
-            return
+            return False
+        try:
+            return self.relex_node(node)
+        except LexingError:
+            #XXX show LexingError message somwhere in the UI
+            return True
+
+    def relex_node(self, node):
+        # XXX start from top, only relex former lexingerror nodes
+        # if there are changes within their lookahead
         root = node.get_root()
         lexer = self.get_lexer(root)
         return lexer.relex(node)

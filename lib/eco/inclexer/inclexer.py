@@ -21,9 +21,10 @@
 
 from grammar_parser.plexer import PriorityLexer
 from grammar_parser.gparser import MagicTerminal, Terminal, IndentationTerminal
-from incparser.astree import BOS, EOS, TextNode, ImageNode
+from incparser.astree import BOS, EOS, TextNode, ImageNode, MultiTextNode
 from PyQt4.QtGui import QImage
 import re, os
+from cflexer.lexer import LexingError
 
 class IncrementalLexer(object):
     # XXX needs to be replaced by a lexing automaton to avoid unnecessary
@@ -361,6 +362,7 @@ from cflexer.lexer import Lexer
 class IncrementalLexerCF(object):
     def __init__(self, rules=None, language=""):
         self.indentation_based = False
+        self.relexed = set()
         if rules:
             if rules.startswith("%"):
                 config_line = rules.splitlines()[0]     # get first line
@@ -443,32 +445,26 @@ class IncrementalLexerCF(object):
         eos.mark_changed()
         parent.mark_changed()
 
-
-    def split_endcomment(self, node):
-        read_nodes = [node]
-        generated_tokens = []
-        l = node.symbol.name.split("*/", 1)
-        t1 = self.lexer.tokenize(l[0])
-        generated_tokens.extend(t1)
-        t2 = self.lexer.tokenize("*/")
-        generated_tokens.extend(t2)
-        if l[1] != "":
-            t3 = self.lexer.tokenize(l[1])
-            generated_tokens.extend(t3)
-
-        self.merge_back(read_nodes, generated_tokens)
-
     def relex(self, node):
         # find farthest node that has lookahead into node
         # start munching tokens and spit out nodes
         #     if generated node already exists => stop
         #     (only if we passed edited node)
 
+        self.relexed = set()
+
+        if type(node.parent) is MultiTextNode:
+            # When changing a node within a MultiNode we need to relex the
+            # MultiNode
+            node = node.parent
+
         # find node to start relaxing
         startnode = node
-        nodes = self.find_preceeding_nodes(node)
-        if nodes:
-            node = nodes[0]
+        node = self.find_preceeding_node(node)
+
+        while isinstance(node.symbol, IndentationTerminal):
+            node = node.next_term
+
         if node is startnode:
             past_startnode = True
         else:
@@ -484,104 +480,295 @@ class IncrementalLexerCF(object):
         pos = 0  # read tokens
         read = 0 # generated tokens
         current_node = node
-        next_token = self.lexer.get_token_iter(StringWrapper(node))
+        sw = StringWrapper(node, startnode)
+        next_token = self.lexer.get_token_iter(sw)
+
+        combos = []
+        last_read = None
+
+        tokenslength = 0
+        readlength = 0
+        toks = []
+        read = []
+        pairs = []
+        lookaheads = []
+        error = None
+
+        i = 0
         while True:
-            if current_node.deleted:
-                current_node = current_node.next_term
-                continue
-            token = next_token()
-            if token.source == "":
-                read_nodes.append(current_node)
-                break
-            read += len(token.source)
-            # special case when inserting a newline into a string, the lexer
-            # creates a single token. We need to make sure that that newline
-            # gets lexed into its own token
-            if len(token.source) > 1 and token.source.find("\r") >= 0:
-                l = token.source.split("\r")
-                for e in l:
-                    t = self.lexer.tokenize(e)
-                    generated_tokens.extend(t)
-                    if e is not l[-1]:
-                        newline = self.lexer.tokenize("\r")
-                        generated_tokens.extend(newline)
-            else:
-                generated_tokens.append(token)
-            while read > pos + len(current_node.symbol.name):
-                pos += len(current_node.symbol.name)
-                read_nodes.append(current_node)
-                current_node = current_node.next_term
-                if current_node is startnode:
+            try:
+                token = next_token()
+                lookaheads.append(token[2])
+                if token[3][0] is startnode:
                     past_startnode = True
-            if past_startnode and read == pos + len(current_node.symbol.name):
-                read_nodes.append(current_node)
+                toks.append(token[:3])
+                tokenslength += len(token[0])
+                for r in token[3]:
+                    if not read or r is not read[-1]: # skip already read nodes from previous tokens
+                        read.append(r)
+                        if not isinstance(r.symbol, IndentationTerminal):
+                            readlength += len(getname(r))
+                if tokenslength == readlength:
+                    # Abort relexing if we relexed a node to itself AFTER we
+                    # passed `startnode`. This way we avoid relexing nodes that
+                    # don't need to be relexed.
+                    if past_startnode and read[-1] is not startnode:
+                        if len(read) == len(toks) and len(read) == 1:
+                            if read[0].symbol.name == toks[0][0] and read[0].lookup == toks[0][1]:
+                                break
+
+                    # if new generated tokens match the read tokens, we have a pair
+                    pairs.append((toks, read))
+                    toks = []
+                    read = []
+                    tokenslength = 0
+                    readlength = 0
+            except StopIteration:
+                break
+            except LexingError as e:
+                if read and type(read[-1]) is MultiTextNode:
+                    pairs = []
+                    startnode.changed = True
+                    raise e
+                # Lexer failed to repair everything. See if it managed to lex
+                # parts of the changes (toks contains tokens) and if so
+                # integrate them into the parse tree. The partly lexed tokens
+                # will have bigger lookaheads than usual as the depend on the
+                # text parts that couldn't be relexed.
+                # Might involve splitting up a node resulting in leftover text
+                # that couldn't be lexed as this point. Put that text into a new
+                # node and also separate any newlines contained within.
+                error = e
+                if toks:
+                    leftover = readlength - tokenslength
+                    if leftover > 0:
+                        name = read[-1].symbol.name[-leftover:]
+                        l = re.split("(\r)", name)
+                        for e in l:
+                            toks.append((e, "<E>", 1))
+                    pairs.append((toks, read))
+                else:
+                    # There are no part matches so remark the startnode as error
+                    startnode.changed = True
                 break
 
-        return self.merge_back(read_nodes, generated_tokens)
-
-    def merge_back(self, read_nodes, generated_tokens):
-
-        any_changes = False
-        # insert new nodes into tree
-        it = iter(read_nodes)
-        for t in generated_tokens:
-            try:
-                node = it.next()
-            except StopIteration:
-                node = TextNode(Terminal(""))
-                last_node.insert_after(node)
-                any_changes = True
-            last_node = node
-            node.symbol.name = t.source
-            node.indent = None
-            if node.lookup != t.name:
-                node.mark_changed()
-                any_changes = True
+        if not pairs:
+            # If there is nothing to merge either re-raise the LexingError if
+            # there was one or return False (=no changes)
+            if error:
+                raise error
             else:
-                node.mark_changed()
-            # we need to invalidate the newline if we changed whitespace or
-            # logical nodes that come after it
-            if node.lookup == "<ws>" or node.lookup != t.name:
-                prev = node.prev_term
-                while isinstance(prev.symbol, IndentationTerminal):
-                    prev = prev.prev_term
-                if prev.lookup == "<return>":
-                    prev.mark_changed()
-                    any_changes = True
-                elif isinstance(prev, BOS):
-                    # if there is no return, re-indentation won't be triggered
-                    # in the incremental parser so we have to mark the next
-                    # terminal. possibly only use case: bos <ws> pass DEDENT eos
-                    node.next_term.mark_changed()
-            # XXX this should become neccessary with incparse optimisations turned on
-            if node.lookup == "\\" and node.next_term.lookup == "<return>":
-                node.next_term.mark_changed()
-                any_changes = True
-            node.lookup = t.name
-            node.lookahead = t.lookahead
-        # delete left over nodes
-        while True:
-            try:
-                node = it.next()
-                node.parent.remove_child(node)
-                any_changes = True
-            except StopIteration:
-                break
-        return any_changes
+                return False
 
-    def find_preceeding_nodes(self, node):
-        chars = 0
-        nodes = []
-        if node.symbol.name == "\r": # if at line beginning there are no previous nodes to consider
-            return nodes
+        changed = False
+        node_before_changes = None # remember where we started relexing
+        for tokens, read in pairs:
+            # merge new tokens into the parse tree
+            if not node_before_changes:
+                node_before_changes = read[0].prev_term
+            if self.merge_pair(tokens, read):
+                changed = True
+
+        # update lookback counts using lookaheads
+        self.update_lookback(node_before_changes.next_term)
+
+        if error:
+            raise error
+        return changed
+
+    def update_lookback(self, node):
+        # XXX Use lookback to determine how far back we need to initiate
+        # the update procedure
+        la_list = []
+        n = node
         while True:
+            # compute lookback (removes old lookbacks)
+            la_list = [(name, la, cnt) for name, la, cnt in la_list if la > 0]
+            newlookback = max(la_list, key=lambda item:item[2])[2] if la_list else 0
+            if not self.was_relexed(n) and n.lookback == newlookback:
+                break
+            n.lookback = newlookback
+
+            # advance
+            offset = getlength(n)
+            la_list = [(name, la - offset, cnt+1) for name, la, cnt in la_list]
+
+            # add
+            la_list.append((n.symbol.name, n.lookahead, 1))
+
+            n = n.next_term
+            if isinstance(n, EOS):
+                break
+
+    def was_relexed(self, node):
+        return node in self.relexed
+
+    def iter_gen(self, tokens):
+        r = re.compile("([\r\x80])")
+        for t in tokens:
+            if len(t[0]) > 1 and r.search(t[0]):
+                yield ("new mt", t[1], t[2])
+                for x in r.split(t[0]):
+                    if x != "":
+                        # if the lbox is at the end of the line, split produces
+                        # an empty string at the end
+                        yield (x, t[1], t[2])
+                yield ("finish mt", None, None)
+            else:
+                yield t
+        while True:
+            yield None
+
+    def iter_read(self, nodes):
+        for n in nodes:
+            if isinstance(n, MultiTextNode):
+                # since we are removing elements from the original list during
+                # iteration we need to create a copy to not skip anything
+                for x in list(n.children):
+                    yield x
+            else:
+                yield n
+        while True:
+            yield None
+
+    def remove_check(self, node):
+        if isinstance(node.parent, MultiTextNode):
+            if len(node.parent.children) == 0:
+                node.parent.remove()
+            else:
+                node.parent.update_children()
+
+    def merge_pair(self, tokens, read):
+        if len(tokens) == 1 and tokens[0][0] == "\x81":
+            return False
+
+        lastread = read[0].prev_term
+
+        it_gen = self.iter_gen(tokens)
+        it_read = self.iter_read(read)
+
+        gen = it_gen.next()
+        read = it_read.next()
+
+        totalr = 0
+        totalg = 0
+
+        reused = set()
+        current_mt = None
+        changed = False
+
+        while True:
+            while read is not None and isinstance(read.symbol, IndentationTerminal):
+                read.remove()
+                read = it_read.next()
+            if gen is None and read is None:
+                break
+
+            if gen is None:
+                lengen = 0
+            elif gen[0] == "new mt":
+                if read.ismultichild() and not read.parent in reused:
+                    current_mt = read.parent # reuse
+                else:
+                    current_mt = MultiTextNode() # create new
+                    lastread.insert_after(current_mt)
+                    changed = True
+                if current_mt.lookup != gen[1]:
+                    changed = True
+                current_mt.lookup = gen[1]
+                current_mt.lookahead = gen[2]
+                self.relexed.add(current_mt)
+                gen = it_gen.next()
+                continue
+            elif gen[0] == "finish mt":
+                reused.add(current_mt)
+                lastread = current_mt
+                gen = it_gen.next()
+                current_mt.update_children()
+                current_mt = None
+                continue
+            else:
+                lengen = len(gen[0])
+
+            if totalr >= totalg + lengen:
+                changed = True
+                # One node has been split into multiple nodes. Insert all
+                # remaining nodes until the lengths add up again.
+                new = TextNode(Terminal(gen[0]))
+                self.relexed.add(new)
+                new.lookup = gen[1]
+                if new.lookup == "<E>":
+                    # If this token comes from the leftovers of a LexingError,
+                    # mark it appropriately
+                    new.changed = True  # XXX with error recovery, mark as error
+                new.lookahead = gen[2]
+                if current_mt and not lastread.ismultichild():
+                    current_mt.insert_at_beginning(new)
+                else:
+                    lastread.insert_after(new)
+                lastread = new
+                totalg += lengen
+                gen = it_gen.next()
+            elif totalr + getlength(read) <= totalg:
+                changed = True
+                # Multiple nodes have been combined into less nodes. Delete old
+                # nodes until the lengths add up again.
+                read.remove()
+                self.remove_check(read)
+                totalr += getlength(read)
+                read = it_read.next()
+            else:
+                # Overwrite old nodes with updated values. Move nodes in or out
+                # of multinodes if needed.
+                totalr += getlength(read)
+                totalg += lengen
+                if read.lookup != gen[1]:
+                    read.mark_changed()
+                    self.relexed.add(read)
+                    changed = True
+                else:
+                    read.mark_version()
+                if not isinstance(read.symbol, MagicTerminal):
+                    read.symbol.name = gen[0].replace("\x81", "")
+                    read.lookup = gen[1]
+                    read.lookahead = gen[2]
+                    self.relexed.add(read)
+                else:
+                    read.lookup = gen[1]
+                if not current_mt:
+                    if read.ismultichild():
+                        # Read node was previously part of a multinode but has
+                        # been updated to a normal node. Remove it from the
+                        # multinode.
+                        read.remove()
+                        read.deleted = False
+                        self.remove_check(read)
+                        lastread.insert_after(read)
+                        changed = True
+                else:
+                    if not read.ismultichild() or current_mt is not read.parent:
+                        # Read node has been moved from a normal node into a
+                        # multinode or from one multinode into another
+                        # multinode. Remove from old locations and insert into
+                        # new location.
+                        read.remove()
+                        read.deleted = False
+                        self.remove_check(read)
+                        if current_mt.isempty():
+                            current_mt.set_children([read])
+                        else:
+                            lastread.insert_after(read)
+                        changed = True
+                lastread = read
+                read = it_read.next()
+                gen = it_gen.next()
+
+        return changed
+
+    def find_preceeding_node(self, node):
+        for i in range(node.lookback):
             node = node.prev_term
-            if node.lookahead and node.lookahead > chars:
-                nodes.insert(0, node)
-                chars += len(node.symbol.name)
-            else:
-                break
-        return nodes
+        return node
 
 IncrementalLexer = IncrementalLexerCF
 import sys
@@ -590,9 +777,11 @@ class StringWrapper(object):
     # XXX This is just a temprary solution. To do this right we have to alter
     # the lexer to work on (node, index)-tuples
 
-    def __init__(self, startnode):
+    def __init__(self, startnode, relexnode):
         self.node = startnode
+        self.relexnode = relexnode
         self.length = sys.maxint
+        self.last_node = None
 
     def __len__(self):
         return self.length
@@ -600,45 +789,114 @@ class StringWrapper(object):
     def __getitem__(self, index):
         startindex = index
         node = self.node
-        if isinstance(node.symbol, IndentationTerminal):
-            node = node.next_term
         if isinstance(node, EOS):
             raise IndexError
-        while index > len(node.symbol.name) - 1:
-            index -= len(node.symbol.name)
+        currentname = getname(node)
+        l = 0
+        while index > len(currentname) - 1:
+            index -= len(currentname)
+            l += len(currentname)
             node = node.next_term
             if node is None:
                 raise IndexError
-            if isinstance(node.symbol, IndentationTerminal):
+            while isinstance(node.symbol, IndentationTerminal):
                 node = node.next_term
             if isinstance(node, EOS):
+                # tried to access index out of bounds. Set text length so next
+                # call to find_next_token can finish or throw LexingError
+                self.length = startindex - index
                 raise IndexError
-        if node.next_term and (isinstance(node.next_term, EOS) or isinstance(node.next_term.symbol, IndentationTerminal) or node.next_term.symbol.name == "\r" or isinstance(node.next_term.symbol, MagicTerminal)):
-            self.length = startindex + len(node.symbol.name[index:])
-        return node.symbol.name[index]
+            currentname = getname(node)
+        # found index without problem, check if we reached the end of file
+        node = node.next_term
+        while isinstance(node.symbol, IndentationTerminal):
+            node = node.next_term
+        if isinstance(node, EOS):
+            self.length = startindex + len(currentname[index:])
+        return currentname[index]
 
     def __getslice__(self, start, stop):
+        #XXX get rid of slice in lexer.py
         if stop <= start:
             return ""
 
-        name = self.node.symbol.name
+        name = getname(self.node)
         if start < len(name) and stop < len(name):
+            self.nodes = [self.node]
             return name[start: stop]
 
         text = []
+        self.nodes = []
         node = self.node
         i = 0
         while i < stop:
-            text.append(node.symbol.name)
-            i += len(node.symbol.name)
+            name = getname(node)
+            text.append(name)
+            i += len(name)
+            if i > start:
+                self.nodes.append(node)
             node = node.next_term
+            while isinstance(node.symbol, IndentationTerminal):
+                node = node.next_term
             if isinstance(node, EOS):
-                break
-            if isinstance(node.symbol, IndentationTerminal):
-                break
-            if node.symbol.name == "\r":
-                break
-            if isinstance(node.symbol, MagicTerminal):
                 break
 
         return "".join(text)[start:stop]
+
+    def make_token(self, start, end, tokentype):
+        node = self.node
+        i = 0
+        text = []
+        past_relexnode = False
+        read = []
+        skip = 0
+
+        if end == -1:
+            end = sys.maxint
+
+        while i < end:
+            if node is self.relexnode:
+                past_relexnode = True
+            if isinstance(node.symbol, IndentationTerminal):
+                if i > start:
+                    # only add if it is relevant
+                    read.append(node)
+                node = node.next_term
+                continue
+            if isinstance(node, EOS):
+                break
+            name = getname(node)
+            i += len(name)
+            if i <= start:
+                skip = i
+                node = node.next_term
+                continue
+
+            text.append(name)
+            read.append(node)
+            node = node.next_term
+
+        self.last_node = node.prev_term
+
+        tokenname = "".join(text)[(start-skip):(end-skip)]
+        return (tokenname, read)
+
+def getname(node):
+    if type(node.symbol) is MagicTerminal:
+        return "\x80"
+    if type(node.symbol) is IndentationTerminal:
+        return "\x81"
+    if type(node) is MultiTextNode:
+        l = []
+        for x in node.children:
+            if type(x.symbol) is MagicTerminal:
+                l.append("\x80")
+            else:
+                l.append(x.symbol.name)
+        return "".join(l)
+    return node.symbol.name
+
+def getlength(node):
+    if isinstance(node, TextNode):
+        return len(getname(node))
+    return len(node)

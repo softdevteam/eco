@@ -1247,7 +1247,38 @@ def z():
     pass"""
         self.treemanager.import_file(inputstring)
         assert self.parser.last_status == True
-        
+
+class Test_Relexing(Test_Python):
+
+    def test_dont_stop_relexing_after_first_error(self):
+        self.reset()
+        inputstring = """def x():
+    1
+
+def y():
+    2"""
+        for c in inputstring:
+            self.treemanager.key_normal(c)
+
+        # create 1st lexing error
+        self.treemanager.cursor_movement(UP)
+        self.treemanager.cursor_movement(UP)
+        self.treemanager.cursor_movement(UP)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("*")
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+
+        # create 2nd lexing error
+        self.treemanager.cursor_movement(DOWN)
+        self.treemanager.cursor_movement(DOWN)
+        self.treemanager.cursor_movement(DOWN)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("+")
+        self.treemanager.key_normal("3")
+
+        assert self.treemanager.cursor.node.symbol.name == "3"
 
 class Test_NestedLboxWithIndentation():
     def setup_class(cls):
@@ -2330,6 +2361,134 @@ class Test_Undo(Test_Python):
 
         assert self.parser.last_status == False
 
+    def test_undo_random_insertdeleteundo_bug4(self):
+        self.reset()
+
+        program = """class X:
+    def helloworld():
+        for x in y:
+            if x:
+                return 1"""
+        self.treemanager.import_file(program)
+        assert self.parser.last_status == True
+
+        start_version = self.treemanager.version
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 1)
+        self.treemanager.key_normal('c')
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 0)
+        self.treemanager.key_normal('(')
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal('b')
+        self.treemanager.undo_snapshot()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # bug causes the 'b' to be ignored by undo
+        assert self.treemanager.cursor.node.symbol.name == "bc"
+        self.treemanager.key_ctrl_z()
+        assert self.treemanager.cursor.node.next_term.next_term.symbol.name == "c"
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(program)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+
+        self.text_compare(broken)
+
+    def test_undo_random_insertdeleteundo_bug5(self):
+        self.reset()
+        program = """class X:
+    def x():
+        pass
+
+    def y():
+        pass2"""
+        self.treemanager.import_file(program)
+        assert self.parser.last_status == True
+        start_version = self.treemanager.version
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 0)
+        self.treemanager.key_normal('&')
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 5)
+        self.move(RIGHT, 0)
+        self.treemanager.key_normal('!')
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 3)
+        self.move(RIGHT, 0)
+        self.treemanager.key_normal('^')
+        self.treemanager.undo_snapshot()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(program)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+
+        self.text_compare(broken)
+
+    def test_undo_random_insertdeleteundo_bug6(self):
+        self.reset()
+        program = """class X:
+    def x():
+        pass
+
+    def y():
+        pass2"""
+        self.treemanager.import_file(program)
+        assert self.parser.last_status == True
+        start_version = self.treemanager.version
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 4)
+        self.treemanager.key_normal('$')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal('a')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 1)
+        self.move(RIGHT, 1)
+        self.treemanager.key_normal('0')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 1)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 1)
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal('2')
+
     def random_insert_delete_undo(self, program):
         import random
         self.reset()
@@ -2387,6 +2546,7 @@ class Test_Undo(Test_Python):
         # redo all and compare with broken
         while self.treemanager.version < end_version:
             self.treemanager.key_shift_ctrl_z()
+
         self.text_compare(broken)
 
         # undo again and compare with original
@@ -2400,6 +2560,8 @@ class Test_Undo(Test_Python):
         t1.import_file(program)
 
         self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+
 
     def test_bug_infinite_loop(self):
         self.reset()
@@ -2675,6 +2837,7 @@ self.key_normal('e')"""
 
 class Test_Comments_Indents(Test_Python):
     def test_newline(self):
+        self.reset()
         for c in "y = 12 # blaz = 13":
             self.treemanager.key_normal(c)
         assert self.parser.last_status == True
@@ -2684,6 +2847,7 @@ class Test_Comments_Indents(Test_Python):
         assert self.parser.last_status == True
 
     def test_single_line_comment(self):
+        self.reset()
         for c in """x = 12
 y = 13""":
             self.treemanager.key_normal(c)

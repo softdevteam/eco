@@ -121,7 +121,8 @@ class IndentationManager:
         new_tokens = []
         temp = bol
         if bol is self.bos:
-            self.indentation[bol] = 0
+            this_ws = self.count_whitespace(bol)
+            self.indentation[bol] = this_ws
         elif self.is_logical_line(bol):
             this_ws = self.count_whitespace(bol)
             self.whitespaces[bol] = this_ws
@@ -176,6 +177,11 @@ class IndentationManager:
 
             # generate correct amount of dedentation nodes
             this_indent = self.get_indentation(bol)
+            if this_indent is None:
+                # this happens when there's only one line and that line is not
+                # logical
+                return
+
             new = []
             for i in range(this_indent):
                 new.append(self.create_token("dedent"))

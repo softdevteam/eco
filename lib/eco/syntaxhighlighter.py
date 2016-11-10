@@ -56,10 +56,9 @@ class SyntaxHighlighter(object):
 
     def get_color(self, node):
         parent = node.parent
-        if parent:
-            while parent.symbol.name.startswith("*match_until"):
-                parent = parent.parent
-        if parent and parent.symbol.name in self.parent_colors:
+        if parent and parent.lookup and parent.lookup in self.keyword_colors:
+            color = self.keyword_colors[parent.lookup]
+        elif parent and parent.symbol.name in self.parent_colors:
             color = self.parent_colors[parent.symbol.name]
         elif node.symbol.name in self.keyword_colors:
             color = self.keyword_colors[node.symbol.name]
@@ -78,7 +77,7 @@ class SyntaxHighlighter(object):
         return self.palette.color(QPalette.Text)
 
     def get_style(self, node):
-        if node.symbol.name in self.keyword_style:
+        if not isinstance(node.symbol.name, list) and node.symbol.name in self.keyword_style:
             return self.keyword_style[node.symbol.name]
         elif node.lookup in self.keyword_style:
             return self.keyword_style[node.lookup]
@@ -119,12 +118,14 @@ class PythonHighlighter(SyntaxHighlighter):
         "print":"blue",
         "True":"blue",
         "False":"blue",
+        "MLS":"yellow",
+        "dstring":"cyan",
+        "sstring":"cyan",
+        "slcomment":"grey"
     }
 
     parent_colors = {
-        "slcomment": "grey",
-        "single_string": "cyan",
-        "multiline_string": "cyan"
+        "slcomment": "grey"
     }
 
 class JavaHighlighter(SyntaxHighlighter):

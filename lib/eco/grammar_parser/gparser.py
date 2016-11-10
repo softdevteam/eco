@@ -59,6 +59,8 @@ class Symbol(object):
     def copy(self):
         return self.__class__(self.name, self.folding)
 
+    
+
 class Terminal(Symbol):
     def __repr__(self):
         return "Terminal('%s')" % (repr(self.name),)

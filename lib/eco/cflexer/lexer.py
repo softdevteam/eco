@@ -146,6 +146,7 @@ class AbstractLexingDFARunner(deterministic.DFARunner):
         self.matcher = matcher
         self.lineno = 0
         self.columnno = 0
+        self.reachedend = False
 
     def find_next_token(self):
         while 1:
@@ -156,6 +157,7 @@ class AbstractLexingDFARunner(deterministic.DFARunner):
             # Handle end of file situation
             if start == len(self.text) and self.eof:
                 self.last_matched_index += 1
+                assert False
                 return self.make_token(start, -1, "", eof=True, lookahead = 0)
             elif start >= len(self.text):
                 raise StopIteration
@@ -168,15 +170,18 @@ class AbstractLexingDFARunner(deterministic.DFARunner):
                 assert stop >= 0
                 if start == stop:
                     source = self.text[start:]
-                    result = self.make_token(start, self.last_matched_state, source, lookahead = i - stop)
+                    raise LexingError("Could not successfully parse %s" % source)
+                    result = self.make_token(start, -1, self.last_matched_state, lookahead = i - stop)
                     self.last_matched_index = start + len(source)
                     return result
                     #source_pos = SourcePos(i - 1, self.lineno, self.columnno)
                     #raise deterministic.LexerError(self.text, self.state,
                     #                               source_pos)
                 source = self.text[start:stop]
-                #print self.text, i, self.last_matched_state
-                result = self.make_token(start, self.last_matched_state, source, lookahead = i - stop)
+                lookahead = i - stop
+                if self.reachedend:
+                    lookahead += 1
+                result = self.make_token(start, stop, self.last_matched_state, lookahead = lookahead)
                 self.adjust_position(source)
                 if self.ignore_token(self.last_matched_state):
                     continue
@@ -189,13 +194,14 @@ class AbstractLexingDFARunner(deterministic.DFARunner):
                         lookahead = 1
                         break
                 source = self.text[start: ]
-                result = self.make_token(start, self.last_matched_state, source, lookahead = lookahead)
+                result = self.make_token(start, -1, self.last_matched_state, lookahead = lookahead)
                 self.last_matched_index = start + len(source)
                 self.adjust_position(source)
                 if self.ignore_token(self.last_matched_state):
                     if self.eof:
                         self.last_matched_index += 1
-                        return self.make_token(i, -1, "", eof=True)
+                        assert False
+                        return None#self.make_token(i, -1, "", eof=True)
                     else:
                         raise StopIteration
                 return result
@@ -244,10 +250,27 @@ class LexingDFARunner(AbstractLexingDFARunner):
     def ignore_token(self, state):
         return self.automaton.names[state] in self.ignore
 
-    def make_token(self, index, state, text, eof=False, lookahead=None):
+    def make_token(self, start, stop, state, eof=False, lookahead=None):
         assert (eof and state == -1) or 0 <= state < len(self.automaton.names)
-        source_pos = SourcePos(index, self.lineno, self.columnno)
-        if eof:
-            return Token("EOF", "EOF", source_pos, lookahead)
-        return Token(self.automaton.names[self.last_matched_state],
-                     text, source_pos, lookahead)
+        #source_pos = SourcePos(index, self.lineno, self.columnno)
+        source_pos = None
+        if self.last_matched_state == 0:
+            raise LexingError("blupp")
+        tokentype = self.automaton.names[self.last_matched_state]
+        if isinstance(self.text, str):
+            # lexing normal strings
+            if eof:
+                return Token("EOF", "EOF", source_pos, lookahead)
+            if stop == -1:
+                text = self.text[start:]
+            else:
+                text = self.text[start:stop]
+            return Token(self.automaton.names[self.last_matched_state],
+                    text, source_pos, lookahead)
+        else:
+            # lexing nodes using stringwrapper
+            token, read = self.text.make_token(start, stop, tokentype)
+            return token, tokentype, lookahead, read
+
+class LexingError(Exception):
+    pass

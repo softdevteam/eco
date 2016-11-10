@@ -240,6 +240,8 @@ class Node(object):
         if self.new:
             self.log[("new", version)] = True
             self.new = False
+        # XXX save local_error: None, parse, lex
+        # XXX save lookback
         self.version = version
 
     def load(self, version):
@@ -295,6 +297,17 @@ class Node(object):
 
     def insert_after(self, node):
         self.parent.insert_after_node(self, node)
+
+    def remove(self):
+        self.parent.remove_child(self)
+
+    def replace(self, node):
+        # XXX non optimal version
+        self.insert_after(node)
+        self.remove()
+
+    def ismultichild(self):
+        return isinstance(self.parent, MultiTextNode)
 
     def insert_after_node(self, node, newnode):
         i = 0
@@ -360,6 +373,11 @@ class Node(object):
 
     def next_terminal(self, skip_indent=False):
         n = self.next_term
+        if not n:
+            if type(self.parent) is MultiTextNode:
+                return self.parent.next_term
+        if type(n) is MultiTextNode:
+            return n.children[0]
         if skip_indent:
             while n is not None and isinstance(n.symbol, IndentationTerminal):
                 n = n.next_term
@@ -386,6 +404,11 @@ class Node(object):
 
     def previous_terminal(self, skip_indent = False):
         n = self.prev_term
+        if not n:
+            if type(self.parent) is MultiTextNode:
+                return self.parent.prev_term
+        if type(n) is MultiTextNode:
+            return n.children[-1]
         if skip_indent:
             while n is not None and isinstance(n.symbol, IndentationTerminal):
                 n = n.prev_term
@@ -447,7 +470,7 @@ class TextNode(Node):
     def __init__(self, symbol, state=-1, children=[], pos=-1, lookahead=0):
         Node.__init__(self, symbol, state, children)
         self.position = 0
-        self.changed = False
+        self.changed = False #XXX should maybe be True by default
         self.new = True
         self.nested_changes = False
         self.local_error = False
@@ -464,6 +487,7 @@ class TextNode(Node):
         self.indent = None
         self.textlen = -1
         self.isolated = False
+        self.lookback = 0
 
     def get_magicterminal(self):
         try:
@@ -511,6 +535,12 @@ class TextNode(Node):
         _cls = self.symbol.__class__
         self.symbol = _cls(text)
         self.mark_changed()
+        # Remove their lookup values to make sure the parser fails if these
+        # can't be relexed properly
+        if type(self.parent) is MultiTextNode:
+            self.parent.lookup = ""
+        else:
+            self.lookup = ""
 
     def save(self, version):
         Node.save(self, version)
@@ -599,6 +629,46 @@ class TextNode(Node):
 
     def __repr__(self):
         return "%s(%s, %s, %s, %s)" % (self.__class__.__name__, self.symbol, self.state, len(self.children), self.lookup)
+
+class MultiTextNode(TextNode):
+    def __init__(self):
+        TextNode.__init__(self, Terminal("<Multinode>"))
+
+    def insert_at_beginning(self, node):
+        self.children.insert(0, node)
+        node.parent = self
+
+    def update_children(self):
+        for i in xrange(len(self.children)):
+            c = self.children[i]
+            if i == 0:
+                c.left = None
+                c.prev_term = None
+            else:
+                c.left = c.prev_term = self.children[i-1]
+            if i < len(self.children) - 1:
+                c.right = c.next_term = self.children[i+1]
+            else:
+                c.right = None
+                c.next_term = None
+
+    def insert_after_node(self, node, newnode):
+        for i in xrange(len(self.children)):
+            if self.children[i] is node:
+                self.children.insert(i+1, newnode)
+                newnode.parent = self
+
+    def remove_child(self, child):
+        for i in xrange(len(self.children)):
+            if self.children[i] is child:
+                self.children.pop(i)
+                return
+
+    def isempty(self):
+        return self.children == []
+
+    def __repr__(self):
+        return "MultiTextNode(%s)" % self.children
 
 class SpecialTextNode(TextNode):
     def backspace(self, pos):
