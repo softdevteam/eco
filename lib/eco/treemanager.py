@@ -1768,49 +1768,17 @@ class TreeManager(object):
             return text
 
     def relex(self, node):
-        # traverse changes in tree to find terminals that need relexing
         if node is None:
-            return
-
-        next_to_relex = None
-        changes = False
-        node = node.get_root().children[0]
-        while True:
-            if isinstance(node, EOS):
-                break
-            if type(node.symbol) is IndentationTerminal:
-                node = self.pop_lookahead(node)
-                continue
-            if node.changed: #XXX once we merge error recovery this should be nested/local_errors
-                if type(node.symbol) is Nonterminal:
-                    if node.children:
-                        node = node.children[0]
-                        continue
-                else:
-                    node.changed = False
-                    try:
-                        # If lexing was successful this means that the node we
-                        # started at might have been moved or even deleted. Due
-                        # to lookback we also might have started relexing
-                        # earlier than the current node. To find the correct
-                        # node to continue we start at the current nodes parent.
-                        # Successfully relexed nodes won't have changes and will
-                        # now be skipped. The only downside is that we
-                        # potentially relex nodes a second time if they still
-                        # have changes/errors and are within the same parent as
-                        # the current node.
-                        next_to_relex = node.parent
-                        changes |= self.relex_node(node)
-                    except LexingError:
-                        next_to_relex = None
-                        #break # stop relexing (slowdown reasons if we have lots of errors) and do something
-                        # XXX we don't want to do that. see comment in relex_node
-            if next_to_relex:
-                node = next_to_relex
-                next_to_relex = None
-            else:
-                node = self.pop_lookahead(node)
-        return changes
+            return False
+        if isinstance(node, BOS) or isinstance(node, EOS):
+            return False
+        if isinstance(node.symbol, MagicTerminal):
+            return False
+        try:
+            return self.relex_node(node)
+        except LexingError:
+            #XXX show LexingError message somwhere in the UI
+            return True
 
     def relex_node(self, node):
         # XXX start from top, only relex former lexingerror nodes

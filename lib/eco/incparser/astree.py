@@ -473,7 +473,7 @@ class TextNode(Node):
             children = []
         Node.__init__(self, symbol, state, children)
         self.position = 0
-        self.changed = False
+        self.changed = False #XXX should maybe be True by default
         self.deleted = False
         self.image = None
         self.image_src = None
