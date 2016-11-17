@@ -664,6 +664,10 @@ class IncrementalLexerCF(object):
             if gen is None and read is None:
                 break
 
+            if read and read.deleted:
+                read = it_read.next()
+                continue
+
             if gen is None:
                 lengen = 0
             elif gen[0] == "new mt":
@@ -671,7 +675,7 @@ class IncrementalLexerCF(object):
                     current_mt = read.parent # reuse
                 else:
                     current_mt = MultiTextNode() # create new
-                    lastread.insert_after(current_mt)
+                    lastread.insert_after(current_mt) # insert multiline under same parent as the nodes it replaces
                     changed = True
                 if current_mt.lookup != gen[1]:
                     changed = True
@@ -740,7 +744,7 @@ class IncrementalLexerCF(object):
                         # Read node was previously part of a multinode but has
                         # been updated to a normal node. Remove it from the
                         # multinode.
-                        read.remove()
+                        read.remove(True)
                         read.deleted = False
                         self.remove_check(read)
                         lastread.insert_after(read)
@@ -751,7 +755,7 @@ class IncrementalLexerCF(object):
                         # multinode or from one multinode into another
                         # multinode. Remove from old locations and insert into
                         # new location.
-                        read.remove()
+                        read.remove(True)
                         read.deleted = False
                         self.remove_check(read)
                         if current_mt.isempty():
@@ -877,6 +881,11 @@ class StringWrapper(object):
             node = node.next_term
 
         self.last_node = node.prev_term
+
+        while isinstance(read[-1].symbol, IndentationTerminal):
+            # remove IndentationTerminals at the end of read that are not
+            # actually part of the token
+            read.pop()
 
         tokenname = "".join(text)[(start-skip):(end-skip)]
         return (tokenname, read)

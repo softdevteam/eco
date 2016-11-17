@@ -231,7 +231,7 @@ class IncParser(object):
                             continue
                         else:
                             #XXX can be made faster by providing more information in syntax tables
-                            first_term = la.find_first_terminal()
+                            first_term = la.find_first_terminal(self.prev_version)
 
                             lookup_symbol = self.get_lookup(first_term)
                             element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
@@ -309,7 +309,7 @@ class IncParser(object):
             else:
                 self.error_nodes.append(la)
                 self.error_node = la
-                if self.rm.recover(la):
+                if False:# and self.rm.recover(la):
                     # recovered, continue parsing
                     self.refine(self.rm.iso_node, self.rm.iso_offset, self.rm.error_offset)
                     self.current_state = self.rm.new_state

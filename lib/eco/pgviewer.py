@@ -100,6 +100,8 @@ class PGViewer(object):
             label = "<return>"
         if lookup == "<ws>":
             label = "<ws> x%s" % len(label)
+        if label == "\\":
+            label = "<backslash>"
         label = label.replace("\"", "\\\"")
         label = label.replace("\\\\\"", "\\\\\\\"")
         dotnode = pydot.Node("\"%s\"" % id(node), label='"%s"' % label, shape="box")
