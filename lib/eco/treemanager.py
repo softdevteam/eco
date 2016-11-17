@@ -1014,12 +1014,13 @@ class TreeManager(object):
             self.deleteSelection()
             return
 
+        need_reparse = False
+
         if self.cursor.inside(): # cursor inside a node
             internal_position = self.cursor.pos
             self.last_delchar = node.backspace(internal_position)
             repairnode = node
         else: # between two nodes
-            need_reparse = False
             node = self.cursor.find_next_visible(node) # delete should edit the node to the right from the selected node
             # if lbox is selected, select first node in lbox
             if isinstance(node, EOS):
@@ -1045,7 +1046,6 @@ class TreeManager(object):
             # if node is empty, delete it and repair previous/next node
             if node.symbol.name == "" and not isinstance(node, BOS):
                 repairnode = self.cursor.find_previous_visible(node)
-                repairnode.changed = True
                 repairnode.mark_changed()
 
                 if not self.clean_empty_lbox(node):
@@ -1053,7 +1053,7 @@ class TreeManager(object):
                     node.parent.remove_child(node)
                     need_reparse = True
 
-        need_reparse = self.relex(repairnode)
+        need_reparse |= self.relex(repairnode)
         need_reparse |= self.post_keypress("")
         self.cursor.fix()
         self.reparse(repairnode, need_reparse)
@@ -1321,12 +1321,11 @@ class TreeManager(object):
             # im.repair if it hasn't already been repaired
             node = root.children[0]
             while type(node) is not EOS:
-                if node.changed and isinstance(node.symbol, Nonterminal):
-                    changed = True
+                if node.has_changes() and isinstance(node.symbol, Nonterminal) and node.children:
                     node = node.children[0]
                     continue
                 elif node.symbol.name == "\r" or type(node) is BOS:
-                    im.repair(node)
+                    changed |= im.repair(node)
                 node = self.next_node(node)
         return changed
 

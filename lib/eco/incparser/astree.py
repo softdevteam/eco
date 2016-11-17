@@ -282,7 +282,7 @@ class Node(object):
                 version -= 1
         raise AttributeError("Attribute %s for version %s not found." % (attr, version))
 
-    def remove_child(self, child):
+    def remove_child(self, child, remove=False):
         for i in xrange(len(self.children)):
             if self.children[i] is child:
                 removed_child = child
@@ -293,13 +293,21 @@ class Node(object):
                 child.next_term.mark_changed()
                 child.mark_changed()
                 self.mark_changed()
+                if remove:
+                    self.children.pop(i)
+                    if removed_child.left:
+                        removed_child.left.right = removed_child.right
+                        removed_child.left.changed = True
+                    if removed_child.right:
+                        removed_child.right.left = removed_child.left
+                        removed_child.right.changed = True
                 return
 
     def insert_after(self, node):
         self.parent.insert_after_node(self, node)
 
-    def remove(self):
-        self.parent.remove_child(self)
+    def remove(self, remove=False):
+        self.parent.remove_child(self, remove)
 
     def replace(self, node):
         # XXX non optimal version
@@ -360,15 +368,17 @@ class Node(object):
             else:
                 last = siblings[i]
 
-    def find_first_terminal(self):
+    def find_first_terminal(self, version):
         node = self
         while isinstance(node.symbol, Nonterminal):
-            if node.children == []:
-                while node.right is None:
-                    node = node.parent
-                node = node.right
+            if node.get_attr("children", version) == []:
+                while node.right_sibling(version) is None:
+                    node = node.get_attr("parent", version)
+                node = node.right_sibling(version)
             else:
-                node = node.children[0]
+                node = node.get_attr("children", version)[0]
+        while node.deleted:
+            node = node.get_attr("next_term", version)
         return node
 
     def next_terminal(self, skip_indent=False):
@@ -658,7 +668,7 @@ class MultiTextNode(TextNode):
                 self.children.insert(i+1, newnode)
                 newnode.parent = self
 
-    def remove_child(self, child):
+    def remove_child(self, child, version=None):
         for i in xrange(len(self.children)):
             if self.children[i] is child:
                 self.children.pop(i)
