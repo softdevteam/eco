@@ -26,7 +26,7 @@ import tempfile
 import subprocess
 
 from incparser.annotation import Annotation, Footnote, ToolTip, Railroad
-from incparser.annotation import HUDEval, HUDTypes, HUDCallgraph, HUDHeatmap
+from incparser.annotation import HUDEval, HUDTypes, HUDCallgraph
 
 from incparser.astree import EOS
 from grammar_parser.gparser import MagicTerminal, IndentationTerminal
@@ -292,7 +292,7 @@ class JRubyExporter(object):
         log_file_name = os.path.join("/",
                                      "tmp",
                                      next(tempfile._get_candidate_names()) + ".txt")
-        logging.debug("Placing callgraph trace in", log_file_name)
+        logging.debug("Placing callgraph trace in %s" % log_file_name)
 
         settings = QSettings("softdev", "Eco")
         jruby_bin = str(settings.value("env_jruby", "").toString())
@@ -349,7 +349,7 @@ class JRubyCallgraphProcessor(object):
                 if len(tokens) == 0:
                     pass
                 elif tokens[0] == "method":
-                    method = Method(tokens[1], tokens[2], Source(*tokens[3:6]))
+                    method = Method(tokens[1], ' '.join(tokens[2:-3]), Source(*tokens[-3:]))
                     objects[method.id] = method
                 elif tokens[0] == "method-version":
                     method = objects[int(tokens[1])]
