@@ -444,7 +444,7 @@ class JRubyCallgraphProcessor(object):
                 method = obj
                 def_msg = method.name
                 if method.is_mega:
-                    def_msg += "is megamorphic."
+                    def_msg += " is megamorphic."
                 num_versions = len(method.versions)
                 def_lineno = method.source.line_start
                 def_filename = method.source.file
