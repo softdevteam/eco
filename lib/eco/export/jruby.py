@@ -532,7 +532,7 @@ class JRubyCallgraphProcessor(object):
         # Attempt to find 'text' on 'lineno'.
         try:
             temp_cursor = self.tm.cursor.copy()
-            temp_cursor.line = lineno - 1
+            temp_cursor.line = lineno - 2
             temp_cursor.move_to_x(0)
             node = temp_cursor.find_next_visible(temp_cursor.node)
             while node.lookup == "<ws>" or node.symbol.name != text:
