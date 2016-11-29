@@ -465,6 +465,8 @@ class JRubyCallgraphProcessor(object):
                 # Find and annotate method calls.
                 for version in method.versions:
                     for key in version.arg_types:
+                        if key == "(self)":
+                            continue
                         if key in def_arg_types:
                             def_arg_types[key].update(version.arg_types[key])
                         else:
