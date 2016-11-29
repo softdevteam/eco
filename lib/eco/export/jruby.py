@@ -407,11 +407,14 @@ class JRubyCallgraphProcessor(object):
                         called.called_from.append(callsite_version)
                         new_calls.append(called)
                 callsite_version.calls = new_calls
-            # Resolve eval() strings.
-            if isinstance(obj, MethodVersion) and obj.method.name == 'eval':
+        # Resolve eval() strings. This must be done after resolving method
+        # ids, because we need to walk eval strings back up the callgraph.
+        for obj in objects.itervalues():
+            if isinstance(obj, MethodVersion) and '#eval' in obj.method.name:
                 version = obj
-                for caller in version.called_from:
-                    caller.method_version.eval_code = version.eval_code
+                if version.eval_code:
+                    for caller in version.called_from:
+                        caller.method_version.eval_code.extend(version.eval_code)
 
         # Find which objects were actually used
         reachable_objects = set()
@@ -467,7 +470,7 @@ class JRubyCallgraphProcessor(object):
                         else:
                             def_arg_types[key] = set(version.arg_types[key])
                     for eval_code in version.eval_code:
-                        def_eval_strings.append('eval "%s"' % eval_code)
+                        def_eval_strings.append("eval(%s)" % eval_code)
                     if len(version.called_from) == 0:
                         continue
                     for caller in version.called_from:
