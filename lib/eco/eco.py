@@ -1268,7 +1268,7 @@ class Window(QtGui.QMainWindow):
             self.ui.hud_callgraph_button.setDisabled(False)
             self.ui.hud_eval_button.setDisabled(False)
             self.ui.hud_types_button.setDisabled(False)
-            self.ui.hud_heat_map_button.setDisabled(False)
+            self.ui.hud_heat_map_button.setDisabled(True)
         else:
             self.ui.hud_callgraph_button.setDisabled(True)
             self.ui.hud_eval_button.setDisabled(True)
