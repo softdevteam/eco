@@ -823,6 +823,8 @@ class NodeEditor(QFrame):
         # has been processes in get_nodes_at_pos -> reset
         self.edit_rightnode = False
 
+        reparse = True
+
         if key.escape:
             self.tm.key_escape()
         elif key.backspace:
@@ -837,6 +839,7 @@ class NodeEditor(QFrame):
                 self.tm.ctrl_cursor(key, shift=key.m_shift)
             else:
                 self.tm.key_cursors(key, shift=key.m_shift)
+                reparse = False
         elif key.delete:
             startundotimer = True
             self.tm.key_delete()
@@ -860,7 +863,8 @@ class NodeEditor(QFrame):
                     return
             self.tm.key_normal(text)
 
-        self.getWindow().btReparse([])
+        if reparse:
+            self.getWindow().btReparse([])
         self.update()
         self.emit(SIGNAL("keypress(QKeyEvent)"), e)
         self.getWindow().showLookahead()
