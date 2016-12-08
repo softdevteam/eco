@@ -165,6 +165,7 @@ class Node(object):
         self.magic_parent = None
         self.set_children(children)
         self.log = {}
+        self.max_version = None
         self.annotations = []
 
     def add_annotation(self, annotation):
@@ -266,15 +267,26 @@ class Node(object):
             version -= 1
 
     def delete_version(self, version):
+        if not ("parent", version) in self.log:
+            return
+        assert version <= self.max_version
         for attr in ["parent", "children", "left", "right", "next_term", "prev_term", "deleted", "indent",\
                 "changed", "nested_changes", "local_error", "nested_errors", "symbol.name", "lookup", "version"]:
             if (attr, version) in self.log:
                 self.log.pop((attr, version))
+        # reset max_version
+        new_max = version - 1
+        while not ("parent", new_max) in self.log:
+            if new_max == 0:
+                break
+            new_max -= 1
+        self.max_version = new_max
 
     def get_attr(self, attr, version):
         if version is None:
-            return self.__getattribute__(attr)
-        version = int(version)
+            return getattr(self, attr)
+        if self.max_version and version > self.max_version:
+            return self.log[(attr, self.max_version)]
         while version >= 0:
             try:
                 return self.log[(attr, version)]
@@ -476,7 +488,7 @@ uppercase = set(list(string.ascii_uppercase))
 digits = set(list(string.digits))
 
 class TextNode(Node):
-    __slots__ = ["log", "version", "position", "changed", "isolated", "textlen", "local_error", "nested_errors", "nested_changes", "new", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookback", "lookup", "parent_lbox", "magic_backpointer", "indent"]
+    __slots__ = ["log", "max_version", "version", "position", "changed", "isolated", "textlen", "local_error", "nested_errors", "nested_changes", "new", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookback", "lookup", "parent_lbox", "magic_backpointer", "indent"]
     def __init__(self, symbol, state=-1, children=[], pos=-1, lookahead=0):
         Node.__init__(self, symbol, state, children)
         self.position = 0
@@ -556,6 +568,7 @@ class TextNode(Node):
         Node.save(self, version)
         self.log[("symbol.name", version)] = self.symbol.name
         self.log[("lookup", version)] = self.lookup
+        self.max_version = version
 
     def load(self, version):
         Node.load(self, version)
@@ -576,25 +589,18 @@ class TextNode(Node):
     def is_new(self, version):
         return ("new", version) in self.log
 
-    def refresh_textlen(self):
-        self.textlen = -1
-        self.textlength(forced = True)
+    def textlength(self, version = None):
+        if version:
+            return self.get_attr("textlen", version)
+        return self.textlen
 
-    def textlength(self, version = None, forced = False):
-        if isinstance(self.symbol, FinishSymbol):
-            return 0
-        if isinstance(self.symbol, Terminal):
-            return len(self.symbol.name)
-        if isinstance(self.symbol, Nonterminal):
-            if forced or self.get_attr("textlen", version) == -1 or self.has_changes(version):
-                l = 0
-                for c in self.get_attr("children", version):
-                    l += c.textlength(version = version)
-                if not version:
-                    self.textlen = l
-                else:
-                    return l
-            return self.textlen
+    def calc_textlength(self):
+        if self.children:
+            self.textlen = sum([c.textlen for c in self.children])
+        elif self.deleted or isinstance(self.symbol, FinishSymbol) or isinstance(self, BOS) or isinstance(self.symbol, Nonterminal):
+            self.textlen = 0
+        else:
+            self.textlen = len(self.symbol.name)
 
     def has_unsaved_changes(self):
         if self.changed != self.log[("changed", self.version)]:

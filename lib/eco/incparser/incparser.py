@@ -181,15 +181,28 @@ class IncParser(object):
                 logging.debug("ooc %s", self.ooc)
                 logging.debug("la %s", la)
                 logging.debug("cs %s", self.current_state)
-                if la is self.ooc[0] and self.current_state == self.ooc[1].state:
-                    logging.debug("HELAU")
-                    self.last_status = True
-                    return True
+                if la is self.ooc[0]:
+                    if self.current_state == self.ooc[1].state:
+                        logging.debug("======= OOC parse successfull =========")
+                        self.last_status = True
+                        return True
+                    else:
+                        # Before we know that OOC has failed we need to apply
+                        # all reductions with the EOS symbol. Only if no
+                        # reductions are left and the next action is SHIFT or
+                        # ERROR, then OOC has failed.
+                        lookup = self.get_lookup(la)
+                        element = self.syntaxtable.lookup(self.current_state, lookup)
+                        logging.debug(element)
+                        if not isinstance(element, Reduce):
+                            logging.debug("===== OOC parse Reached temp EOS but state doesn't match ====")
+                            return False
 
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
                     lookup_symbol = self.get_lookup(la)
                     result = self.parse_terminal(la, lookup_symbol)
                     if result == "Accept":
+                        logging.debug("============ INCREMENTAL PARSE END (ACCEPT) ================= ")
                         # With error recovery we can end up in the accepting
                         # state despite errors occuring during the parse.
                         if len(self.error_nodes) == 0:
@@ -198,6 +211,7 @@ class IncParser(object):
                         self.last_status = False
                         return False
                     elif result == "Error":
+                        logging.debug("============ INCREMENTAL PARSE END (ERROR) ================= ")
                         self.last_status = False
                         return False
                     elif result != None:
@@ -252,7 +266,6 @@ class IncParser(object):
                             la = self.pop_lookahead(la)
                         else:
                             la = self.left_breakdown(la)
-        logging.debug("============ INCREMENTAL PARSE END ================= ")
 
     def parse_terminal(self, la, lookup_symbol):
         element = None
@@ -265,7 +278,7 @@ class IncParser(object):
         # XXX if temporary EOS symbol, check lookup
         #        if accept: return accept
         #        if nothing: try normal EOS instead (e.g. to reduce things)
-        
+
         if isinstance(la, EOS):
             # This is needed so we can finish single line comments at the end of
             # the file
@@ -306,7 +319,7 @@ class IncParser(object):
             else:
                 self.error_nodes.append(la)
                 self.error_node = la
-                if False:# and self.rm.recover(la):
+                if self.rm.recover(la):
                     # recovered, continue parsing
                     self.refine(self.rm.iso_node, self.rm.iso_offset, self.rm.error_offset)
                     self.current_state = self.rm.new_state
@@ -343,13 +356,19 @@ class IncParser(object):
     def refine(self, node, offset, error_offset):
         # for all children that come after the detection offset, we need
         # to analyse them using the normal incparser
-        print("Refine", node, offset, error_offset)
+        logging.debug("Refine %s Offset: %s Error Offset: %s", node, offset, error_offset)
         node.load(self.prev_version)
         node.local_error = node.nested_errors = False
         for c in node.children:
+            # Before detection offset -> Retain or discard
+            # Spanning detection offset -> Discard/Isolate                                       isolate to mark errors
+            # After detection offset -> Out-of-context analysis
+            logging.debug("   CHECK OOC. offset: %s erroroffset: %s child: %s", offset, error_offset, c)
             if offset > error_offset:
+                logging.debug("   OOC: %s", c)
                 self.out_of_context_analysis(c)
-            else:
+            else: #XXX subtrees before the error may be retained
+                logging.debug("   Isolate: %s", c)
                 self.isolate(c)
             offset += c.textlength()
             # XXX don't undo valid changes in nodes that don't contain the
@@ -357,17 +376,10 @@ class IncParser(object):
 
     def out_of_context_analysis(self, node):
         logging.debug("Attempting out of context analysis on %s", node)
-        print("Attempting out of context analysis on %s", node)
-
-        if self.indentation_based:
-            # XXX update succeeeding whitespace in outer tree
-            #     update indent attr of isolated tree so remaining outer tree
-            #     can be parsed correctly
-            logging.debug("    Failed: OOC not working with indentation atm")
-            return
 
         if not node.children:
             logging.debug("    Failed: Node has no children")
+            self.isolate(node)
             return
 
         if not node.has_changes():
@@ -385,12 +397,25 @@ class IncParser(object):
         oldright = node.right
         oldparent = node.parent
 
+        saved_left = node.get_attr("left", self.prev_version)
+
         temp_bos = BOS(Terminal(""), 0, [])
         temp_eos = self.pop_lookahead(node)
+        while temp_eos.deleted:
+            # We can't use a deleted node as a temporary EOS since the deleted
+            # note can pass the temp EOS reduction check but is then immediately
+            # skipped by parse_terminal. This causes the parser to continue
+            # parsing past the temp_eos resulting in faulty sub parse trees.
+            temp_eos = self.pop_lookahead(temp_eos)
 
         eos_parent = temp_eos.parent
         eos_left = temp_eos.left
         eos_right = temp_eos.right
+        # During out-of-context analysis we need to calculate offsets of
+        # isolation nodes. Without this change we would calculate the offset
+        # within the original parse tree and not the offset within the temporary
+        # parse tree
+        node.log[("left", self.prev_version)] = temp_bos
 
         logging.debug("    TempEOS: %s", temp_eos)
         temp_root = Node(Nonterminal("TempRoot"), 0, [temp_bos, node, temp_eos])
@@ -411,7 +436,9 @@ class IncParser(object):
 
         if temp_parser.last_status == False:
               # isolate
-              logging.debug("OOC analysis of %s failed", node)
+              logging.debug("OOC analysis of %s failed. Error on %s.", node, temp_parser.error_nodes)
+              self.error_nodes.extend(temp_parser.error_nodes)
+              node.log[("left", self.prev_version)] = saved_left
               self.isolate(node) # XXX actually need to call refine here
               node.isolated = True
               return
@@ -421,10 +448,12 @@ class IncParser(object):
         if newnode.symbol.name != oldname:
             logging.debug("OOC analysis resulted in different symbol")
             # not is not the same: revert all changes!
+            node.log[("left", self.prev_version)] = saved_left
             self.isolate(node)
             return
 
         if newnode is not node:
+            node.log[("left", self.prev_version)] = saved_left
             logging.debug("OOC analysis resulted in different node but same symbol")
             i = oldparent.children.index(node)
             oldparent.children[i] = newnode
@@ -432,16 +461,19 @@ class IncParser(object):
             newnode.left = oldleft
             if oldleft:
                 oldleft.right = newnode
+                oldleft.mark_changed()
             newnode.right = oldright
             if oldright:
                 oldright.left = newnode
-            newnode.mark_changed()
+                oldright.mark_changed()
+            newnode.mark_changed() # why did I remove this?
             return
 
-        logging.debug("Subtree resulted in the same parse as before", newnode, node)
+        logging.debug("Subtree resulted in the same parse as before %s %s", newnode, node)
         node.parent = oldparent
         node.left = oldleft
         node.right = oldright
+        node.log[("left", self.prev_version)] = saved_left
 
     def reduce(self, element):
         # Reduces elements from the stack to a Nonterminal subtree.  special:
@@ -487,7 +519,7 @@ class IncParser(object):
             new_node.mark_changed()
         else:
             new_node = Node(element.action.left.copy(), goto.action, children)
-        new_node.refresh_textlen()
+        new_node.calc_textlength()
         logging.debug("   Add %s to stack and goto state %s", new_node.symbol, new_node.state)
         self.stack.append(new_node)
         self.current_state = new_node.state # = goto.action

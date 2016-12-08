@@ -21,6 +21,8 @@ class RecoveryManager(object):
 
         logging.debug("\x1b[31mRecovering\x1b[0m %s (%s)", error_node, id(error_node))
 
+        ancestors_to_ignore = set()
+
         self.new_state = None
         self.iso_node = None
 
@@ -52,9 +54,13 @@ class RecoveryManager(object):
                 node = node.get_attr("parent", self.previous_version)
                 if node is self.root:
                     break
+                if node in ancestors_to_ignore:
+                    continue
                 # Check if current node can be isolated
                 if self.is_valid_iso_subtree(node, error_offset):
                     return True
+                else:
+                    ancestors_to_ignore.add(node)
 
             # Couldn't find elegible parent. Now try more previously parsed subtrees
             # on the stack
@@ -77,18 +83,17 @@ class RecoveryManager(object):
             return False
 
         left_offset = self.stack_offset(cut) # offset of the stack node at position `cut`
+        if left_offset > error_offset:
+            # The node offset is after the error
+            return False
+
         last_offset = self.offset(node, self.previous_version) # character offset of the isolation node
 
         # because I am using get_cut on all nodes, get_cut would fail before
         # this check. Wagner doesn't use get_cut on stack nodes which is why he
         # needed this check
-        assert left_offset == last_offset
         if left_offset != last_offset:
             # Offsets don't align
-            return False
-
-        if left_offset > error_offset:
-            # The node offset is after the error
             return False
 
         # Get the subtrees character length as in the previous version
@@ -134,7 +139,6 @@ class RecoveryManager(object):
             self.iso_node.state = self.new_state
             self.iso_offset = last_offset
             self.error_offset = error_offset
-            print("   Found valid isolation node ", node, id(node))
             logging.debug("   Found valid isolation node %s (%s)", node, id(node))
             return True
 
