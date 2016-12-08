@@ -943,10 +943,14 @@ class Test_Indentation(Test_Python):
                 del_ws = random.randint(0, whitespace)
                 if del_ws > 0:
                     self.treemanager.cursor_reset()
+                    print("self.treemanager.cursor_reset()")
+                    print("self.move(DOWN, %s)" % linenr)
+                    print("self.move(RIGHT, %s)" % del_ws)
                     self.move(DOWN, linenr)
                     self.move(RIGHT, del_ws)
                     assert self.treemanager.cursor.node.symbol.name == " " * whitespace
                     for i in range(del_ws):
+                        print("self.treemanager.key_backspace()")
                         self.treemanager.key_backspace()
                     deleted[linenr] = del_ws
         assert self.parser.last_status == False
@@ -1029,6 +1033,46 @@ class Test_Indentation(Test_Python):
         self.treemanager.cursor_reset()
         self.move(DOWN, 5)
         self.treemanager.key_normal(' ')
+
+    def test_indentation_stresstest_bug3(self):
+        self.reset()
+        connect4 = """class Connect4():
+
+    def _update_from_pos_one_colour():
+        assert colour in x
+
+        for c in pylist:
+            a"""
+        self.treemanager.import_file(connect4)
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 5)
+        self.move(RIGHT, 15)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 5)
+        self.move(RIGHT, 10)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 5)
+        self.move(RIGHT, 13)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 5)
+        self.move(RIGHT, 4)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 5)
+        self.move(RIGHT, 12)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 5)
+        self.move(RIGHT, 5)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 5)
+        self.move(RIGHT, 17)
+        self.treemanager.key_delete()
 
     def test_single_statement(self):
         self.reset()
@@ -1783,6 +1827,128 @@ class Test_Undo(Test_Python):
         assert self.treemanager.version == max_version
 
     @slow
+    def test_undo_random_deletion_short(self):
+        import random
+        self.reset()
+
+        program = """class Connect4(object):
+    UI_DEPTH = 5 # lookahead for minimax
+
+    def __init__(self, p1_is_ai, p2_is_ai):
+        self.top = tk.Tk()
+        self.top.title("Unipycation: Connect 4 GUI (Python)")
+
+    def _set_status_text(self, text):
+        self.status_text["text"] = text
+
+    def _update_from_pos_one_colour(self, pylist, colour):
+        assert colour in ["red", "yellow"]
+
+        for c in pylist:
+            assert c.name == "c"
+            (x, y) = c
+            self.cols[x][y]["background"] = colour"""
+
+        self.treemanager.import_file(program)
+        assert self.parser.last_status == True
+
+        line_count = len(self.treemanager.lines)
+        random_lines = range(line_count)
+        random.shuffle(random_lines)
+
+        start_version = self.treemanager.version
+        for linenr in random_lines:
+            cols = range(10)
+            random.shuffle(cols)
+            for col in cols:
+                self.treemanager.cursor_reset()
+                print("self.treemanager.cursor_reset()")
+                self.move(DOWN, linenr)
+                print("self.move(DOWN, %s)" % linenr)
+                self.move(RIGHT, col)
+                print("self.move(RIGHT, %s)" % col)
+                print("self.treemanager.key_delete()")
+                x = self.treemanager.key_delete()
+                if x == "eos":
+                    continue
+            self.treemanager.undo_snapshot()
+            print("self.treemanager.undo_snapshot()")
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(program)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+        self.text_compare(broken)
+
+        # undo again and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(program)
+
+    def test_undo_random_deletion_short_bug1(self):
+        self.reset()
+
+        program = """class Connect4(object):
+    UI_DEPTH = 5 # lookahead for minimax
+
+    def __init__(self, p1_is_ai, p2_is_ai):
+        self.top = tk.Tk()
+        self.top.title("Unipycation: Connect 4 GUI (Python)")
+
+    def _set_status_text(self, text):
+        self.status_text["text"] = text
+
+    def _update_from_pos_one_colour(self, pylist, colour):
+        assert colour in ["red", "yellow"]
+
+        for c in pylist:
+            assert c.name == "c"
+            (x, y) = c
+            self.cols[x][y]["background"] = colour"""
+
+        self.treemanager.import_file(program)
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 13)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.move(RIGHT, 6)
+        self.treemanager.key_delete()
+        self.move(RIGHT, 2)
+        self.treemanager.key_delete()
+        self.move(RIGHT, 1)
+        self.treemanager.key_delete()
+        self.move(LEFT, 3)
+        self.treemanager.key_delete()
+        self.move(LEFT, 1)
+        self.treemanager.key_delete()
+        self.move(RIGHT, 3)
+        self.treemanager.key_delete()
+        self.move(LEFT, 4)
+        self.treemanager.key_delete()
+        self.move(RIGHT, 1)
+        self.treemanager.key_delete()
+        self.move(LEFT, 5)
+        self.treemanager.key_delete()
+        self.move(RIGHT, 9)
+        self.treemanager.key_delete()
+        self.move(LEFT, 7)
+        self.treemanager.key_delete()
+        self.move(RIGHT, 4)
+        self.treemanager.key_delete()
+
+    @slow
     def test_undo_random_deletion(self):
         import random
         self.reset()
@@ -1807,8 +1973,8 @@ class Test_Undo(Test_Python):
                 print("self.move(DOWN, %s)" % linenr)
                 self.move(RIGHT, col)
                 print("self.move(RIGHT, %s)" % col)
-                x = self.treemanager.key_delete()
                 print("self.treemanager.key_delete()")
+                x = self.treemanager.key_delete()
                 if x == "eos":
                     continue
             self.treemanager.undo_snapshot()
@@ -1873,9 +2039,180 @@ class Test_Undo(Test_Python):
             self.treemanager.key_ctrl_z()
         self.text_compare(src)
 
+    def test_undo_random_deletion_bug2(self):
+        self.reset()
+        self.treemanager.import_file("""class Connect4(object):
+    UI_DEPTH = 5
 
-    def test_undo_random_deletion_infitite_loop(self):
+    def __init__():
+        self.top = 1
+        self.top.title()
+
+        self.pl_engine = 2
+
+
+        self.turn = None
+        self.ai_players = 3
+
+        self.cols = []
+        self.insert_buttons = []
+
+    def _set_status_text():
+        self.status_text = 4""")
+        assert self.parser.last_status == True
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 12)
+        self.move(RIGHT, 5)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 12)
+        self.move(RIGHT, 10)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 12)
+        self.move(RIGHT, 14)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 12)
+        self.move(RIGHT, 16)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 12)
+        self.move(RIGHT, 13)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 12)
+        self.move(RIGHT, 7)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 12)
+        self.move(RIGHT, 8)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 12)
+        self.move(RIGHT, 15)
+        self.treemanager.key_delete() # infinite loop
+
+    def test_undo_random_deletion_bug3(self):
+        self.reset()
+
+        program = """class Connect4():
+    pass
+    def __init__():
         pass
+        for x in y:
+            pass
+
+            for x in y:
+                pass
+                pass
+            pass
+
+        pass
+
+    def _end():
+        if winner_colour:
+            pass
+            pass"""
+        self.treemanager.import_file(program)
+        assert self.parser.last_status == True
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 16)
+        self.move(RIGHT, 8)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 15)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 3)
+        self.move(RIGHT, 2)
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 16)
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 9)
+        self.move(RIGHT, 1)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 9)
+        self.move(RIGHT, 13)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 9)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 9)
+        self.move(RIGHT, 10)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 9)
+        self.move(RIGHT, 7)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 9)
+        self.move(RIGHT, 9)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 9)
+        self.move(RIGHT, 2)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 9)
+        self.move(RIGHT, 8)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 9)
+        self.move(RIGHT, 3)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 9)
+        self.move(RIGHT, 5)
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 10)
+        self.move(RIGHT, 6)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 10)
+        self.move(RIGHT, 2)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 10)
+        self.move(RIGHT, 1)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 10)
+        self.move(RIGHT, 7)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 10)
+        self.move(RIGHT, 5)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 10)
+        self.move(RIGHT, 3)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 10)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 10)
+        self.move(RIGHT, 4)
+        self.treemanager.key_delete()
 
     def get_random_key(self):
         import random
@@ -1968,12 +2305,16 @@ class Test_Undo(Test_Python):
             random.shuffle(cols)
             for col in cols[:1]: # add one newline per line
                 self.treemanager.cursor_reset()
+                print "self.move(DOWN, %s)" % linenr
+                print "self.move(RIGHT, %s)" % col
+                print "self.treemanager.key_normal(\"\r\")"
                 self.move(DOWN, linenr)
                 self.move(RIGHT, col)
                 x = self.treemanager.key_normal("\r")
                 if x == "eos":
                     continue
             self.treemanager.undo_snapshot()
+            print "self.treemanager.undo_snapshot()"
 
         end_version = self.treemanager.version
         broken = self.treemanager.export_as_text()
@@ -2063,6 +2404,30 @@ class Test_Undo(Test_Python):
         self.text_compare(t1.export_as_text())
 
         self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+    def test_bug_insert_newlines_3(self):
+        import random
+        self.reset()
+
+        p = """class X:
+    def helloworld():
+        for x in range(0, 10):
+            if x == 1:
+                return 1
+            else:
+                return 12
+        return 13"""
+        self.treemanager.import_file(p)
+        assert self.parser.last_status == True
+
+        self.move(DOWN, 1)
+        self.move(RIGHT, 3)
+        self.treemanager.key_normal("\r")
+
+        self.treemanager.undo_snapshot()
+        self.move(DOWN, 5)
+        self.move(RIGHT, 7)
+        self.treemanager.key_normal("\r")
 
     def test_bug_delete(self):
         import random

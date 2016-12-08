@@ -866,6 +866,7 @@ class TreeManager(object):
         self.parsers = list(self.saved_parsers[self.version])
 
     def save(self, postparse=False):
+        """Recursive version of save used to calculate textlength on the fly"""
         self.save_lines()
         self.save_parsers()
         self.cursor.save(self.version)
@@ -878,20 +879,17 @@ class TreeManager(object):
             bos.save(self.version)
             eos = root.children[-1]
             eos.save(self.version)
-            node = self.pop_lookahead(bos)
-            while True:
-                if isinstance(node, EOS):
-                    node.save(self.version)
-                    break
-                if node.has_changes() or node.new:
-                    if postparse:
-                        node.changed = False
-                        node.nested_changes = False
-                    node.save(self.version)
-                    if len(node.children) > 0:
-                        node = node.children[0]
-                        continue
-                node = self.pop_lookahead(node)
+            self.save_and_textlen_rec(root, postparse)
+
+    def save_and_textlen_rec(self, node, postparse):
+        if node.has_changes() or node.new:
+            if postparse:
+                node.changed = False
+                node.nested_changes = False
+            for c in node.children:
+                self.save_and_textlen_rec(c, postparse)
+            node.calc_textlength()
+            node.save(self.version)
 
     def key_home(self, shift=False):
         self.log_input("key_home", str(shift))
@@ -1321,6 +1319,9 @@ class TreeManager(object):
             # im.repair if it hasn't already been repaired
             node = root.children[0]
             while type(node) is not EOS:
+                if node.deleted:
+                    node = self.next_node(node)
+                    continue
                 if node.has_changes() and isinstance(node.symbol, Nonterminal) and node.children:
                     node = node.children[0]
                     continue
@@ -1792,7 +1793,7 @@ class TreeManager(object):
             #self.last_saved_version = self.version
             for l in self.parsers:
                 root = l[0].previous_version.parent
-                for v in range(self.version+1, self.global_version+1):
+                for v in reversed(range(self.version+1, self.global_version+1)):
                     self.delete_version(v, root)
                     try:
                         self.undo_snapshots.remove(v)
