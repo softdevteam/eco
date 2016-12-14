@@ -26,7 +26,7 @@ import tempfile
 import subprocess
 
 from incparser.annotation import Annotation, Footnote, ToolTip, Railroad
-from incparser.annotation import HUDEval, HUDTypes, HUDCallgraph, HUDHeatmap
+from incparser.annotation import HUDEval, HUDTypes, HUDCallgraph
 
 from incparser.astree import EOS
 from grammar_parser.gparser import MagicTerminal, IndentationTerminal
@@ -35,8 +35,7 @@ from PyQt4.QtCore import QSettings
 
 
 class JRubyCallGraph(Annotation):
-    """Annotation for JRuby callgraph railroad diagrams.
-    """
+    """Annotation for JRuby callgraph railroad diagrams."""
 
     def __init__(self, annotation):
         self._hints = [Railroad()]
@@ -52,8 +51,7 @@ class JRubyCallGraph(Annotation):
 
 
 class JRubyMorphismMsg(Annotation):
-    """Annotation for JRuby callgraph tooltips.
-    """
+    """Annotation for JRuby callgraph tooltips."""
 
     def __init__(self, annotation):
         self._hints = [ToolTip(), HUDCallgraph()]
@@ -69,8 +67,7 @@ class JRubyMorphismMsg(Annotation):
 
 
 class JRubyArgumentTypes(Annotation):
-    """Annotation for JRuby type information.
-    """
+    """Annotation for JRuby type information."""
 
     def __init__(self, annotation):
         self._hints = [Footnote(), HUDTypes()]
@@ -86,8 +83,7 @@ class JRubyArgumentTypes(Annotation):
 
 
 class JRubyEvalStrings(Annotation):
-    """Annotation for JRuby type information.
-    """
+    """Annotation for JRuby type information."""
 
     def __init__(self, annotation):
         self._hints = [Footnote(), HUDEval()]
@@ -103,8 +99,7 @@ class JRubyEvalStrings(Annotation):
 
 
 class Source(object):
-    """JRuby source file (needed by callgraph profiler).
-    """
+    """JRuby source file (needed by callgraph profiler)."""
 
     def __init__(self, file, line_start, line_end):
         self.file = file
@@ -113,8 +108,7 @@ class Source(object):
 
 
 class Method(object):
-    """JRuby method (needed by callgraph profiler).
-    """
+    """JRuby method (needed by callgraph profiler)."""
 
     def __init__(self, id_, name, source):
         self.id = int(id_)
@@ -160,20 +154,19 @@ class MethodVersion(object):
         return [self.method] + self.callsite_versions
 
     def __str__(self):
-        types = 'Arguments had types:' if len(self.arg_types) > 0 else ''
+        types = "Arguments had types:" if len(self.arg_types) > 0 else ""
         for name in self.arg_types:
-            types += '%s : %s\n' % (name, ', '.join(self.arg_types[name]))
-        evals = ''
+            types += "%s : %s\n" % (name, ", ".join(self.arg_types[name]))
+        evals = ""
         if len(self.eval_code) > 0:
-            evals = 'Evaluated from:' + '\n\t'.join(self.eval_code)
-        return ('Method Version: %s id=%g called_from=[ %s ] %s' %
+            evals = "Evaluated from:" + "\n\t".join(self.eval_code)
+        return ("Method Version: %s id=%g called_from=[ %s ] %s" %
                 (self.method.name, self.id,
-                 ', '.join([str(cs) for cs in self.called_from]),
+                 ", ".join([str(cs) for cs in self.called_from]),
                  types, evals))
 
 class CallSite(object):
-    """JRuby callsite (needed by callgraph profiler).
-    """
+    """JRuby callsite (needed by callgraph profiler)."""
 
     def __init__(self, id_, method, line):
         self.id = int(id_)
@@ -190,8 +183,7 @@ class CallSite(object):
 
 
 class CallSiteVersion(object):
-    """JRuby callsite version (needed by callgraph profiler).
-    """
+    """JRuby callsite version (needed by callgraph profiler)."""
 
     def __init__(self, id_, callsite, method_version):
         self.id = int(id_)
@@ -200,7 +192,7 @@ class CallSiteVersion(object):
         self.calls = []
 
     def reachable(self):
-        # Method_version isn't reachable - find it through calls
+        """Method_version isn't reachable - find it through calls."""
         return [self.callsite] + self.calls
 
     def __str__(self):
@@ -209,24 +201,21 @@ class CallSiteVersion(object):
 
 
 class Mega(object):
-    """Class used to indicate that a method is megamorphic.
-    """
+    """Class used to indicate that a method is megamorphic."""
 
     def __str__(self):
         return "Megamorphic"
 
 
 class Foreign(object):
-    """Indicate that a method was defined in a language other than JRuby.
-    """
+    """Indicate that a method was defined in a language other than JRuby."""
 
     def __str__(self):
         return "Foreign function"
 
 
 class JRubyExporter(object):
-    """Export, run or profile a JRuby file.
-    """
+    """Export, run or profile a JRuby file."""
 
     def __init__(self, tm):
         self.tm = tm  # TreeManager object.
@@ -276,8 +265,6 @@ class JRubyExporter(object):
         settings = QSettings("softdev", "Eco")
         jruby_bin =str (settings.value("env_jruby").toString())
         self._export_as_text(f[1])
-        # Run this command:
-        #     $ jruby -X+T FILE.rb
         return subprocess.Popen([jruby_bin, "-X+T", f[1]],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT,
@@ -289,10 +276,9 @@ class JRubyExporter(object):
         _, src_file_name = tempfile.mkstemp(suffix=".rb")
         self.tm.export_as_text(src_file_name).split("\n")
 
-        log_file_name = os.path.join("/",
-                                     "tmp",
+        log_file_name = os.path.join("/", "tmp",
                                      next(tempfile._get_candidate_names()) + ".txt")
-        logging.debug("Placing callgraph trace in", log_file_name)
+        logging.debug("Placing callgraph trace in %s" % log_file_name)
 
         settings = QSettings("softdev", "Eco")
         jruby_bin = str(settings.value("env_jruby", "").toString())
@@ -307,7 +293,7 @@ class JRubyExporter(object):
                "-Xtruffle.callgraph.write=" + log_file_name,
                "-Xtruffle.dispatch.cache=" + pic_size,
                src_file_name]
-        logging.debug("Running command: " + " ".join(cmd))
+        logging.debug("Running command: %s" % " ".join(cmd))
         settings = QSettings("softdev", "Eco")
         graalvm_bin = str(settings.value("env_graalvm", "").toString())
         subprocess.call(cmd, env={"JAVACMD":graalvm_bin})
@@ -316,8 +302,7 @@ class JRubyExporter(object):
 
 
 class JRubyCallgraphProcessor(object):
-    """Process a JRuby callgraph log and annotate the current parse tree.
-    """
+    """Process a JRuby callgraph log and annotate the current parse tree."""
 
     def __init__(self, tm):
         self.tm = tm
@@ -349,7 +334,7 @@ class JRubyCallgraphProcessor(object):
                 if len(tokens) == 0:
                     pass
                 elif tokens[0] == "method":
-                    method = Method(tokens[1], tokens[2], Source(*tokens[3:6]))
+                    method = Method(tokens[1], " ".join(tokens[2:-3]), Source(*tokens[-3:]))
                     objects[method.id] = method
                 elif tokens[0] == "method-version":
                     method = objects[int(tokens[1])]
@@ -363,7 +348,7 @@ class JRubyCallgraphProcessor(object):
                     method_version.arg_types[tokens[2]].append(tokens[3])
                 elif tokens[0] == "eval":
                     method_version = objects[int(tokens[1])]
-                    eval_code = ' '.join(tokens[2:])
+                    eval_code = " ".join(tokens[2:])
                     method_version.eval_code.append(eval_code)
                 elif tokens[0] == "callsite":
                     method = objects[int(tokens[1])]
@@ -387,7 +372,7 @@ class JRubyCallgraphProcessor(object):
                         # We just store the method id here for now as we may not have seen all methods yet
                         callsite_version.calls.append(int(tokens[2]))
                 else:
-                    logging.debug("Cannot parse the following:", line)
+                    logging.debug("Cannot parse the following: %s" % line)
                     return
                 i += 1
 
@@ -407,11 +392,14 @@ class JRubyCallgraphProcessor(object):
                         called.called_from.append(callsite_version)
                         new_calls.append(called)
                 callsite_version.calls = new_calls
-            # Resolve eval() strings.
-            if isinstance(obj, MethodVersion) and obj.method.name == 'eval':
+        # Resolve eval() strings. This must be done after resolving method
+        # ids, because we need to walk eval strings back up the callgraph.
+        for obj in objects.itervalues():
+            if isinstance(obj, MethodVersion) and "#eval" in obj.method.name:
                 version = obj
-                for caller in version.called_from:
-                    caller.method_version.eval_code = version.eval_code
+                if version.eval_code:
+                    for caller in version.called_from:
+                        caller.method_version.eval_code.extend(version.eval_code)
 
         # Find which objects were actually used
         reachable_objects = set()
@@ -444,7 +432,7 @@ class JRubyCallgraphProcessor(object):
                 method = obj
                 def_msg = method.name
                 if method.is_mega:
-                    def_msg += "is megamorphic."
+                    def_msg += " is megamorphic."
                 num_versions = len(method.versions)
                 def_lineno = method.source.line_start
                 def_filename = method.source.file
@@ -452,7 +440,7 @@ class JRubyCallgraphProcessor(object):
                 # file, we ignore it. We also ignore methods like <main>
                 # or times which were inserted by the interpreter.
                 if (def_filename != src_file_name or
-                      method.name.startswith('<') or
+                      method.name.startswith("<") or
                       method.source.line_start < 0):
                     continue
                 def_msg += "\n%s has %d versions" % (method.name, num_versions)
@@ -462,12 +450,14 @@ class JRubyCallgraphProcessor(object):
                 # Find and annotate method calls.
                 for version in method.versions:
                     for key in version.arg_types:
+                        if key == "(self)":
+                            continue
                         if key in def_arg_types:
                             def_arg_types[key].update(version.arg_types[key])
                         else:
                             def_arg_types[key] = set(version.arg_types[key])
                     for eval_code in version.eval_code:
-                        def_eval_strings.append('eval "%s"' % eval_code)
+                        def_eval_strings.append("eval(%s)" % eval_code)
                     if len(version.called_from) == 0:
                         continue
                     for caller in version.called_from:
@@ -498,8 +488,7 @@ class JRubyCallgraphProcessor(object):
                 if num_calls > 0:
                     def_msg += " and is called %d times." % num_calls
                     self._annotate_text(def_lineno, def_filename,
-                                        method.name, def_msg,
-                                        JRubyMorphismMsg)
+                                        method.name, def_msg, JRubyMorphismMsg)
                     self._annotate_text(def_lineno, def_filename,
                                         method.name,
                                         { method.name : method.is_mega },
@@ -522,14 +511,13 @@ class JRubyCallgraphProcessor(object):
                                             JRubyArgumentTypes)
 
     def _annotate_text(self, lineno, filename, text, annotation, klass):
-        """Annotate a node on a given line with a given symbol name.
-        """
+        """Annotate a node on a given line with a given symbol name."""
         if lineno < 0:  # Method not defined by the programmer (e.g. <main>)
             return
         # Attempt to find 'text' on 'lineno'.
         try:
             temp_cursor = self.tm.cursor.copy()
-            temp_cursor.line = lineno - 1
+            temp_cursor.line = lineno - 2
             temp_cursor.move_to_x(0)
             node = temp_cursor.find_next_visible(temp_cursor.node)
             while node.lookup == "<ws>" or node.symbol.name != text:
