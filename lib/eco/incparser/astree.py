@@ -155,6 +155,10 @@ class AST(object):
 class Node(object):
     __slots__ = ["symbol", "state", "parent", "left", "right", "prev_term", "next_term", "magic_parent", "children", "annotations"]
     def __init__(self, symbol, state, children):
+        """
+
+        :type symbol: grammar_parser.gparser.Symbol
+        """
         self.symbol = symbol
         self.state = state
         self.parent = None
@@ -327,6 +331,10 @@ class Node(object):
             i += 1
 
     def right_sibling(self):
+        """
+        :return right sibling (None) if not existing
+        :rtype Node
+        """
         return self.right
 
     def old_right_sibling(self):
@@ -446,6 +454,10 @@ digits = set(list(string.digits))
 class TextNode(Node):
     __slots__ = ["log", "version", "position", "changed", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookup", "parent_lbox", "magic_backpointer", "indent"]
     def __init__(self, symbol, state=-1, children=[], pos=-1, lookahead=0):
+        """
+
+        :type symbol: grammar_parser.gparser.Symbol
+        """
         Node.__init__(self, symbol, state, children)
         self.position = 0
         self.changed = False

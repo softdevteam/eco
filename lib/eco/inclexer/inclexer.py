@@ -53,6 +53,13 @@ class IncrementalLexer(object):
                 self.indentation_based = True
 
     def lex(self, text):
+        """
+        Applies lexing to the given piece of text.
+        The code always returns the longest match result
+
+        :param text: the code to lex
+        :return: an array of (value, name, priority) =  (regex_result, regex_name, regex_priority)
+        """
         matches = []
         remaining = text
         any_match_found = False
@@ -88,10 +95,15 @@ class IncrementalLexer(object):
             return [(text, '', 0)]
 
     def relex(self, node):
-
+        """
+        Relex a nodes environment (from the IndentationTerminal, <return>, MagicTerminal or BOS before it upto the one
+        after it)
+        :param node: node to relex
+        """
         if isinstance(node, BOS):
             return
 
+        #Start position is found by going back till just before a IndentationTerminal, <return>, MagicTerminal or BOS
         start = node
         while True:
             if isinstance(start.symbol, IndentationTerminal):
@@ -108,7 +120,7 @@ class IncrementalLexer(object):
                 break
             start = start.prev_term
 
-        # find end node
+        #End position is found by going forward till just before a IndentationTerminal, <return>, MagicTerminal or EOS
         end = node
         while True:
             if isinstance(end.symbol, IndentationTerminal):
@@ -141,6 +153,7 @@ class IncrementalLexer(object):
                 relex_string.append(token.symbol.name)
                 token = token.next_term
 
+        #lex the token in start:end
         success = self.lex("".join(relex_string))
 
         old_node = start
@@ -333,6 +346,13 @@ class IncrementalLexer(object):
         return
 
     def relex_import(self, startnode, version=0):
+        # type: (TextNode, int) -> object
+        """
+        Replace a node with the tokens of its name
+        :param startnode: node to expand
+        :param version: version assigned to each created node
+        :return:
+        """
         success = self.lex(startnode.symbol.name)
         bos = startnode.prev_term # bos
         startnode.parent.remove_child(startnode)
@@ -359,6 +379,19 @@ class IncrementalLexer(object):
 from cflexer.regexparse import parse_regex
 from cflexer.lexer import Lexer
 class IncrementalLexerCF(object):
+    """
+    Incremental lexer that works in accordance with the lexer described in:
+
+    Wagner, Tim A. Practical algorithms for incremental software development environments.
+    Diss. University of California, Berkeley, 1997.
+
+    This incremental parser works by relexing the piece of the code that may have been affected. These are all tokens
+    that have a look ahead into the altered node (often just one), the token itself until the changes merge.
+
+    @TODO make more clear
+    @TODO the merge should use zip
+
+    """
     def __init__(self, rules=None, language=""):
         self.indentation_based = False
         if rules:
@@ -412,6 +445,12 @@ class IncrementalLexerCF(object):
         return l
 
     def relex_import(self, startnode, version = 0):
+        """
+        Replace a node with the tokens of its name
+        :param startnode: node to expand
+        :param version: version assigned to each created node
+        :return:
+        """
         success = self.lex(startnode.symbol.name)
         bos = startnode.prev_term # bos
         startnode.parent.remove_child(startnode)
@@ -451,11 +490,18 @@ class IncrementalLexerCF(object):
         self.merge_back(read_nodes, generated_tokens)
 
     def relex(self, node):
-        # find farthest node that has lookahead into node
-        # start munching tokens and spit out nodes
-        #     if generated node already exists => stop
-        #     (only if we passed edited node)
+        """
+        Relex a nodes environment
+        The environement is: the nodes from first token that may look ahead into node upto
 
+         find farthest node that has lookahead into node
+         start munching tokens and spit out nodes
+             if generated node already exists => stop
+             (only if we passed edited node)
+
+        :param node: a node that needs to be relexed
+        :return:
+        """
         # find node to start relaxing
         startnode = node
         nodes = self.find_preceeding_nodes(node)
@@ -467,7 +513,7 @@ class IncrementalLexerCF(object):
             past_startnode = False
 
         if isinstance(node, EOS):
-            # nothing to do here
+            # nothing to do here, the first node to reparse is the EOS
             return False
 
         # relex
@@ -509,7 +555,22 @@ class IncrementalLexerCF(object):
         return self.merge_back(read_nodes, generated_tokens)
 
     def merge_back(self, read_nodes, generated_tokens):
+        """
+        Replace the symbols in the nodes with the newly generated tokens.
 
+
+        We loop over read_nodes and generated tokens at the same pace and replace the read_node.symbol.name with
+        the corresponding generated_token.source. We also update the node's lookup (the type of token). I
+        If it is changed, the node is marked changed (A node whom lookup did not change is identical to the parser)
+
+        If the arrays are of unequal length:
+          - If the length of generated_tokens is insufficient, we add extra nodes
+          - Excess nodes are removed
+
+        :param read_nodes: Nodes that have been read by the relexer
+        :param generated_tokens: Tokens that have been found during relexing
+        :return:
+        """
         any_changes = False
         # insert new nodes into tree
         it = iter(read_nodes)
@@ -559,6 +620,11 @@ class IncrementalLexerCF(object):
         return any_changes
 
     def find_preceeding_nodes(self, node):
+        """
+        Traverses backward in the line to find the nodes that have a lookahead into the given node
+        :param node: the (asjusted) node to start form
+        :return: a list of nodes that have a look ahead into the given node
+        """
         chars = 0
         nodes = []
         if node.symbol.name == "\r": # if at line beginning there are no previous nodes to consider
@@ -576,6 +642,10 @@ IncrementalLexer = IncrementalLexerCF
 import sys
 
 class StringWrapper(object):
+    """
+    Creates an indexable Object that returns node and all its next_terms upto an EOS, IndentationTerminal, newline or
+    Magic terminal
+    """
     # XXX This is just a temprary solution. To do this right we have to alter
     # the lexer to work on (node, index)-tuples
 
@@ -593,6 +663,8 @@ class StringWrapper(object):
             node = node.next_term
         if isinstance(node, EOS):
             raise IndexError
+
+        #move till we are in `node`
         while index > len(node.symbol.name) - 1:
             index -= len(node.symbol.name)
             node = node.next_term
@@ -602,6 +674,8 @@ class StringWrapper(object):
                 node = node.next_term
             if isinstance(node, EOS):
                 raise IndexError
+
+        # the startindex was a EOS, IndentationTerminal, newline or Magic terminal
         if node.next_term and (isinstance(node.next_term, EOS) or isinstance(node.next_term.symbol, IndentationTerminal) or node.next_term.symbol.name == "\r" or isinstance(node.next_term.symbol, MagicTerminal)):
             self.length = startindex + len(node.symbol.name[index:])
         return node.symbol.name[index]

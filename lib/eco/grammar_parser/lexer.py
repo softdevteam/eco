@@ -58,17 +58,33 @@ class Token(object):
         return "%s(%s)" % (self.name, self.value)
 
 class Lexer(object):
+    """
+    A lexer that can be stared with a call the lex.
+    """
 
     def __init__(self, code):
+        """
+        Create a lexer
+        :param code: Code to lex
+        """
         self.tokens = []
         self.code = code
         self.pos = 0
         self.regex = regex
 
     def set_regex(self, expressions):
+        """
+        Set the regular expressions for the various kinds of tokens to lex
+        :param expressions: A Named capturing group regular expression that can lex te code
+        """
         self.regex = make_groups(expressions)
 
     def lex(self):
+        """
+        Convert input stream (given at construction) to tokens.
+        The lexing reuslt can be found a Lexer.tokens
+        :return: Boolean indicating succes
+        """
         token = self.next()
         while token is not None:
             self.pos += len(token.value)
@@ -80,6 +96,10 @@ class Lexer(object):
         return False
 
     def next(self):
+        """
+        :return: The next token that is matched as a Token with the name of the capture group that captured it and as
+        value the effective token as string
+        """
         m = re.match(self.regex, self.code[self.pos:])
         if m:
             result = m.groupdict()

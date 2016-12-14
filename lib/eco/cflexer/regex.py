@@ -186,6 +186,9 @@ class NotExpression(RegularExpression):
 
 
 class LexingOrExpression(RegularExpression):
+    """
+    Class to make automata of regular expressions
+    """
     def __init__(self, regs, names):
         self.regs = regs
         self.names = names

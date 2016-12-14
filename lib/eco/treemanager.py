@@ -49,6 +49,11 @@ class NodeSize(object):
         self.h = h
 
 class Line(object):
+    """
+    A line of code in the editor,
+    A line start with it's newline.
+    The height and width are used to calculate what lines are on the screen.
+    """
     def __init__(self, node, height=1):
         self.node = node        # this lines newline node
         self.height = height    # line height
@@ -60,6 +65,11 @@ class Line(object):
         return "Line(%s, width=%s, height=%s)" % (self.node, self.width, self.height)
 
 class Cursor(object):
+    """
+    Represents the position of the cursor in the file.
+    The position of the cursor is stored as a pair of a node and an offset within this node.
+    """
+
     def __init__(self, node, pos, line, lines):
         self.node = node
         self.pos = pos
@@ -91,6 +101,10 @@ class Cursor(object):
             self.node = self.find_next_visible(self.node)
 
     def left(self):
+        """
+        Move one visual position left
+        If the current node is not
+        """
         node = self.node
         if not self.is_visible(node):
             node = self.find_previous_visible(self.node)
@@ -98,7 +112,7 @@ class Cursor(object):
             self.line -= 1
         if isinstance(node, BOS):
             return
-        if not node is self.node:
+        if node is not self.node:
             self.node = node
             self.pos = len(node.symbol.name)
         if self.pos > 1 and (not node.image or node.plain_mode):
@@ -145,12 +159,18 @@ class Cursor(object):
         self.line = other.line
 
     def jump_left(self):
+        """
+        Move one visual token left
+        """
         if self.node.symbol.name == "\r":
             self.line -= 1
         self.node = self.find_previous_visible(self.node)
         self.pos = len(self.node.symbol.name)
 
     def jump_right(self):
+        """
+        Move one visual token right
+        """
         node = self.find_next_visible(self.node)
         if self.inside() or isinstance(node, EOS):
             self.pos = len(self.node.symbol.name)
@@ -161,10 +181,16 @@ class Cursor(object):
             self.line += 1
 
     def find_next_visible(self, node):
+        """
+        Gets the next visual token. This method crosses language boxes if needed.
+        :param node: the current node
+        :return: The next visible node
+        """
         if self.is_visible(node) or isinstance(node.symbol, MagicTerminal):
             node = node.next_term
         while not self.is_visible(node):
             if isinstance(node, EOS):
+                # At end of language box, go to first node after box
                 root = node.get_root()
                 lbox = root.get_magicterminal()
                 if lbox:
@@ -173,16 +199,23 @@ class Cursor(object):
                 else:
                     return node
             elif isinstance(node.symbol, MagicTerminal):
+                # Reached language box, go into it
                 node = node.symbol.ast.children[0]
                 continue
             node = node.next_term
         return node
 
     def find_previous_visible(self, node):
+        """
+        Gets the previous visual token. This method crosses language boxes if needed.
+        :param node: the current node
+        :return: The previous visible node
+        """
         if self.is_visible(node):
             node = node.prev_term
         while not self.is_visible(node):
             if isinstance(node, BOS):
+                # At beginning of language box, go to first node before box
                 root = node.get_root()
                 lbox = root.get_magicterminal()
                 if lbox:
@@ -191,12 +224,19 @@ class Cursor(object):
                 else:
                     return node
             elif isinstance(node.symbol, MagicTerminal):
+                # Reached language box, go into it
                 node = node.symbol.ast.children[-1]
                 continue
             node = node.prev_term
         return node
 
     def is_visible(self, node):
+        """
+        Returns True is the given node is in the displayed source code. Indentation terminals, BOS, EOS and
+        MagicTerminal are not visible.
+        :param node:
+        :return:
+        """
         if isinstance(node.symbol, IndentationTerminal):
             return False
         if isinstance(node, BOS):
@@ -208,22 +248,36 @@ class Cursor(object):
         return True
 
     def up(self):
+        """
+        Move one line up
+        """
         if self.line > 0:
             x = self.get_x()
             self.line -= 1
             self.move_to_x(x)
 
     def down(self):
+        """
+        Move one line down
+        """
         if self.line < len(self.lines) - 1:
             x = self.get_x()
             self.line += 1
             self.move_to_x(x)
 
     def home(self):
+        """
+        Go to the beginning of the current line.
+        Note that the first element of a line is the newline (or BOS), we put the cursor after the newline
+        """
         self.node = self.lines[self.line].node
         self.pos = len(self.node.symbol.name)
 
     def end(self):
+        """
+        Go to the end of the current line.
+        Note that the first element of a line is the newline, we put the cursor after the newline
+        """
         if self.line < len(self.lines)-1:
             self.node = self.find_previous_visible(self.lines[self.line+1].node)
         else:
@@ -233,6 +287,10 @@ class Cursor(object):
         self.pos = len(self.node.symbol.name)
 
     def move_to_x(self, x):
+        """
+        Move to the x-th visible character of the current line
+        :param x: the character to move to
+        """
         node = self.lines[self.line].node
         while x > 0:
             newnode = self.find_next_visible(node)
@@ -253,6 +311,10 @@ class Cursor(object):
         self.node = node
 
     def get_x(self):
+        """
+        Get the number of visible characters before the cursor position
+        :return the index of the cursor
+        """
         if self.node.symbol.name == "\r" or isinstance(self.node, BOS):
             return 0
 
@@ -270,6 +332,11 @@ class Cursor(object):
         return x
 
     def get_nodesize_in_chars(self, node):
+        """
+        Convert the size of a node to characters to allow no-textual parts
+        :param node: the node to measure
+        :return: the NodeSize of the node
+        """
         gfont = QApplication.instance().gfont
         if node.image:
             w = math.ceil(node.image.width() * 1.0 / gfont.fontwt)
@@ -279,9 +346,15 @@ class Cursor(object):
             return NodeSize(len(node.symbol.name), 1)
 
     def inside(self):
+        """
+        :return: True if strictly in node (not at begin of end)
+        """
         return self.pos > 0 and self.pos < len(self.node.symbol.name)
 
     def isend(self):
+        """
+        :return: True if after the last character of the node
+        """
         if isinstance(self.node.symbol, MagicTerminal):
             return True
         return self.pos == len(self.node.symbol.name)
@@ -310,6 +383,9 @@ class Cursor(object):
         return "Cursor(%s, %s)" % (self.node, self.pos)
 
 class TreeManager(object):
+    """
+    The TreeManager keeps track of the tre TODO
+    """
     version = 1
 
     def __init__(self):
@@ -366,6 +442,9 @@ class TreeManager(object):
         fontmanager.fontht = self.fontht
 
     def hasSelection(self):
+        """
+        :return: True if a part of the code is selected
+        """
         return self.selection_start != self.selection_end
 
     def get_bos(self):
@@ -375,6 +454,9 @@ class TreeManager(object):
         return self.parsers[0][0].previous_version.parent.children[-1]
 
     def get_mainparser(self):
+        """
+        :return: The parser of the root language box
+        """
         return self.parsers[0][0]
 
     def delete_parser(self, root):
@@ -1535,6 +1617,7 @@ class TreeManager(object):
             try:
                 lbox = root.magic_backpointer
                 lbox.parent_lbox = lbox.get_root()
+
             except:
                 pass # first language doesn't have parent
 
