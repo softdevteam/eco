@@ -54,7 +54,9 @@ def printline(start):
     return "".join(l)
 
 class IncParser(object):
-
+    """
+    The incremental parser
+    """
     def __init__(self, grammar=None, lr_type=LR0, whitespaces=False, startsymbol=None):
 
         if grammar:
@@ -179,11 +181,13 @@ class IncParser(object):
 
             else: # Nonterminal
                 if la.changed or reparse:
+                    # deconstruct the
                     #la.changed = False # as all nonterminals that have changed are being rebuild, there is no need to change this flag (this also solves problems with comments)
                     self.undo.append((la, 'changed', True))
                     la = self.left_breakdown(la)
                 else:
                     if USE_OPT:
+                        #Follow parsing/syntax table
                         goto = self.syntaxtable.lookup(self.current_state, la.symbol)
                         if goto: # can we shift this Nonterminal in the current state?
                             logging.debug("OPTShift: %s in state %s -> %s", la.symbol, self.current_state, goto)
@@ -225,6 +229,14 @@ class IncParser(object):
         logging.debug("============ INCREMENTAL PARSE END ================= ")
 
     def parse_terminal(self, la, lookup_symbol):
+        """
+        Take in one terminal and set it's state to the state the parsing is in at the moment this terminal
+        has been read.
+
+        :param la: lookahead
+        :param lookup_symbol:
+        :return: "Accept" is the code was accepted as valid, "Error" if the syntax table does not provide a next state
+        """
         element = None
         if isinstance(la, EOS):
             element = self.syntaxtable.lookup(self.current_state, Terminal("<eos>"))
@@ -262,6 +274,15 @@ class IncParser(object):
                 return self.do_undo(la)
 
     def get_lookup(self, la):
+        """
+        Retrurn the lookup of a node as Terminal. The lookup is name of the regular expression that mached the
+        token in the lexing phase.
+
+        Note: indentation terminals are handled in a special manner
+
+        :param la: node to find lookup of
+        :return: the lookup of the node wraped in a Terminal
+        """
         if la.lookup != "":
             lookup_symbol = Terminal(la.lookup)
         else:
@@ -272,6 +293,13 @@ class IncParser(object):
         return lookup_symbol
 
     def do_undo(self, la):
+        """
+        Restore changes
+
+        Loop over self.undo and for the tupel (a,b,c) do a.b = c
+        :param la:
+        :return:
+        """
         while len(self.undo) > 0:
             node, attribute, value = self.undo.pop(-1)
             setattr(node, attribute, value)
@@ -281,10 +309,20 @@ class IncParser(object):
         return "Error"
 
     def reduce(self, element):
-        # Reduces elements from the stack to a Nonterminal subtree.  special:
-        # COMMENT subtrees that are found on the stack during reduction are
-        # added "silently" to the subtree (they don't count to the amount of
-        # symbols of the reduction)
+        """
+        Execute the reduction given on the current stack.
+
+        Reduces elements from the stack to a Nonterminal subtree.  special:
+        COMMENT subtrees that are found on the stack during reduction are
+        added "silently" to the subtree (they don't count to the amount of
+        symbols of the reduction)
+
+        :type element: Reduce
+        :param element: reduction to apply
+        :except Exception rule not applicable
+        """
+
+        #Fill a children array with nodes that are on the stack
         children = []
         i = 0
         while i < element.amount():
@@ -319,7 +357,7 @@ class IncParser(object):
         self.current_state = new_node.state # = goto.action
         logging.debug("Reduce: set state to %s (%s)", self.current_state, new_node.symbol)
         if getattr(element.action.annotation, "interpret", None):
-            # eco grammar annotations
+            # eco grammar annotations\
             self.interpret_annotation(new_node, element.action)
         else:
             # johnstone annotations
@@ -412,6 +450,12 @@ class IncParser(object):
         self.pm.do_incparse_shift(la, rb)
 
     def pop_lookahead(self, la):
+        """
+        Get next (right) Node
+        :rtype: Node
+        :param la:
+        :return:
+        """
         org = la
         while(la.right_sibling() is None):
             la = la.parent

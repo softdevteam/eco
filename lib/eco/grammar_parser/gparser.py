@@ -22,6 +22,10 @@
 from lexer import Lexer
 
 class Rule(object):
+    """
+    A rule specifies the relation between a non-terminal (self.symbol) and the list of Symbols it corresponds to.
+    One non-terminal may correspond with multiple lists, it's alternatives.
+    """
 
     def __init__(self, symbol=None):
         self.symbol = symbol
@@ -60,6 +64,9 @@ class Symbol(object):
         return self.__class__(self.name, self.folding)
 
 class Terminal(Symbol):
+    """
+    A Symbol that is in it's final form
+    """
     def __repr__(self):
         return "Terminal('%s')" % (repr(self.name),)
 
@@ -68,14 +75,23 @@ class MagicTerminal(Terminal):
         return "MagicTerminal('%s')" % (repr(self.name),)
 
 class IndentationTerminal(Terminal):
+    """
+    A (terminal) Symbol that indicates an indentation of an indent based language
+    """
     def __repr__(self):
         return "IndentationTerminal('%s')" % (repr(self.name),)
 
 class Nonterminal(Symbol):
+    """
+    A symbol that will be rewritten to a one ore more terminals
+    """
     def __repr__(self):
         return "Nonterminal('%s')" % (self.name,)
 
 class Epsilon(Symbol):
+    """
+    Symbol representing the empty string ""
+    """
 
     def __eq__(self, other):
         return isinstance(other, Epsilon)
@@ -97,7 +113,9 @@ class ExtendedSymbol(object):
         return "%s(%s)" % (self.name, self.children)
 
 class Parser(object):
-
+    """
+    A parser that reads grammars and transforms then into a dict of `Rule`s with the EBNF expanded
+    """
     def __init__(self, code, whitespaces=False):
         self.lexer = Lexer(code)
         self.lexer.lex()
@@ -113,6 +131,10 @@ class Parser(object):
         return "\n".join(s)
 
     def parse(self):
+        """
+        Parses the code per token as given from the lexer (that iterates over the code given to the constructor).
+        Each rule is analysed and the result is stored in Parser.rules. The EBNF is expanded.
+        """
         while self.curtok < len(self.lexer.tokens):
             rule = self.parse_rule()
 
@@ -140,6 +162,22 @@ class Parser(object):
             self.start_symbol = start_rule.symbol
 
     def transform_ebnf(self, original_rule):
+        """
+        Expand EBNF rules to simple rules and add them to the system
+
+        For example:
+
+            A ::= a {b} c
+
+        becomes
+
+            A ::= a A_loop
+            A_loop ::= b A_loop
+                     | c
+
+
+        :param original_rule: the rule to convert
+        """
         # XXX can be made faster by setting a flag if there is a ebnf token
         # in the rule or not (can be done in first parse)
         new_rules = []
@@ -192,13 +230,26 @@ class Parser(object):
             self.transform_ebnf(rule)
 
     def inc(self):
+        """
+        Move to the next token
+        """
         self.curtok += 1
 
     def next_token(self):
+        """
+        Get the current token. (alias for self.lexer.tokens[self.curtok])
+
+        :return: The current token
+        """
         t = self.lexer.tokens[self.curtok]
         return t
 
     def parse_rule(self):
+        """
+        Read the next rule in the grammar.
+
+        :return: a Rule representing the parsed rule
+        """
         symbols_level = []
         rule = Rule()
         rule.symbol = self.parse_nonterminal()
@@ -292,12 +343,20 @@ class Parser(object):
         return rule
 
     def parse_nonterminal(self):
+        """
+        Parse a non-terminal (for grammars the token on the left side of "::=")
+        :return: the parsed non-terminal
+        """
         t = self.next_token()
         assert t.name == "Nonterminal"
         self.inc()
         return Nonterminal(t.value)
 
     def parse_mappingsymbol(self):
+        """
+        Parse the mapping symbol (for grammars ::=)
+        :return: the parsed non-terminal
+        """
         t = self.next_token()
         assert t.name == "Mapsto"
         self.inc()
