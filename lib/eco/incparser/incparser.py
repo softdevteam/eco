@@ -225,6 +225,7 @@ class IncParser(object):
         logging.debug("============ INCREMENTAL PARSE END ================= ")
 
     def parse_terminal(self, la, lookup_symbol):
+        """Lookup the current lookahead symbol in the syntax table and apply the received action."""
         element = None
         if isinstance(la, EOS):
             element = self.syntaxtable.lookup(self.current_state, Terminal("<eos>"))
@@ -262,6 +263,7 @@ class IncParser(object):
                 return self.do_undo(la)
 
     def get_lookup(self, la):
+        """Get the lookup symbol of a node. If no such lookup symbol exists use the nodes symbol instead."""
         if la.lookup != "":
             lookup_symbol = Terminal(la.lookup)
         else:
@@ -272,6 +274,7 @@ class IncParser(object):
         return lookup_symbol
 
     def do_undo(self, la):
+        """Abort parsing and undo all changes to the parse tree done in the process."""
         while len(self.undo) > 0:
             node, attribute, value = self.undo.pop(-1)
             setattr(node, attribute, value)
@@ -281,10 +284,8 @@ class IncParser(object):
         return "Error"
 
     def reduce(self, element):
-        # Reduces elements from the stack to a Nonterminal subtree.  special:
-        # COMMENT subtrees that are found on the stack during reduction are
-        # added "silently" to the subtree (they don't count to the amount of
-        # symbols of the reduction)
+        """Reduce elements on the stack to a non-terminal."""
+
         children = []
         i = 0
         while i < element.amount():
@@ -412,6 +413,7 @@ class IncParser(object):
         self.pm.do_incparse_shift(la, rb)
 
     def pop_lookahead(self, la):
+        """Return the next lookahead node from the parse tree."""
         org = la
         while(la.right_sibling() is None):
             la = la.parent

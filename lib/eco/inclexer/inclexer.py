@@ -26,6 +26,7 @@ from PyQt4.QtGui import QImage
 import re, os
 
 class IncrementalLexer(object):
+    """Deprecated incremental lexer."""
     # XXX needs to be replaced by a lexing automaton to avoid unnecessary
     # relexing of unchanged nodes
 
@@ -88,7 +89,6 @@ class IncrementalLexer(object):
             return [(text, '', 0)]
 
     def relex(self, node):
-
         if isinstance(node, BOS):
             return
 
@@ -359,6 +359,21 @@ class IncrementalLexer(object):
 from cflexer.regexparse import parse_regex
 from cflexer.lexer import Lexer
 class IncrementalLexerCF(object):
+    """
+    Incrementally relexes nodes within the parse tree that have been changed.
+
+    When a node changes we need to relex that node and all nodes that are
+    dependent on it. This includes nodes before and after the altered node.
+    Previous nodes are found by observing their lookaheads. If it reaches the
+    changed node they are dependent on it and need to be relexed as well.
+
+    Relexing starts at the earliest node with lookahead into the changed node,
+    and continues until the changed node has been passed and relexing doesn't lead
+    to any more changes.
+
+    Afterwards the new nodes are merged back into the parse tree, replacing all
+    previously relexed nodes.
+    """
     def __init__(self, rules=None, language=""):
         self.indentation_based = False
         if rules:
@@ -412,6 +427,7 @@ class IncrementalLexerCF(object):
         return l
 
     def relex_import(self, startnode, version = 0):
+        """Optimised relex for freshly imported files."""
         success = self.lex(startnode.symbol.name)
         bos = startnode.prev_term # bos
         startnode.parent.remove_child(startnode)
@@ -451,11 +467,6 @@ class IncrementalLexerCF(object):
         self.merge_back(read_nodes, generated_tokens)
 
     def relex(self, node):
-        # find farthest node that has lookahead into node
-        # start munching tokens and spit out nodes
-        #     if generated node already exists => stop
-        #     (only if we passed edited node)
-
         # find node to start relaxing
         startnode = node
         nodes = self.find_preceeding_nodes(node)
@@ -509,7 +520,8 @@ class IncrementalLexerCF(object):
         return self.merge_back(read_nodes, generated_tokens)
 
     def merge_back(self, read_nodes, generated_tokens):
-
+        """Merges new/changed nodes back into the parse tree, replacing all nodes
+        that have been relexed."""
         any_changes = False
         # insert new nodes into tree
         it = iter(read_nodes)
@@ -559,6 +571,7 @@ class IncrementalLexerCF(object):
         return any_changes
 
     def find_preceeding_nodes(self, node):
+        """Traverses the parse tree backwards, finding nodes with lookahead into the changed node."""
         chars = 0
         nodes = []
         if node.symbol.name == "\r": # if at line beginning there are no previous nodes to consider
@@ -576,7 +589,10 @@ IncrementalLexer = IncrementalLexerCF
 import sys
 
 class StringWrapper(object):
-    # XXX This is just a temprary solution. To do this right we have to alter
+    """A wrapper around nodes within the parse tree that makes them appear as a normal Python string.
+
+    Used by the lexer to generate tokens from a stream of nodes."""
+    # XXX This is just a temporary solution. To do this right we have to alter
     # the lexer to work on (node, index)-tuples
 
     def __init__(self, startnode):
@@ -593,6 +609,7 @@ class StringWrapper(object):
             node = node.next_term
         if isinstance(node, EOS):
             raise IndexError
+
         while index > len(node.symbol.name) - 1:
             index -= len(node.symbol.name)
             node = node.next_term
@@ -602,6 +619,7 @@ class StringWrapper(object):
                 node = node.next_term
             if isinstance(node, EOS):
                 raise IndexError
+
         if node.next_term and (isinstance(node.next_term, EOS) or isinstance(node.next_term.symbol, IndentationTerminal) or node.next_term.symbol.name == "\r" or isinstance(node.next_term.symbol, MagicTerminal)):
             self.length = startindex + len(node.symbol.name[index:])
         return node.symbol.name[index]
