@@ -888,6 +888,13 @@ class Window(QtGui.QMainWindow):
         parser.add_option("-f", "--fullexport", action="store_true", default=False, help="Export files. Usage: --fullexport [SOURCE] [DESTINATION]")
         parser.add_option("-g", "--grammar", action="store_true", default=None, help="Load external grammar. Usage: --grammar [GRAMMARFILE]")
         (options, args) = parser.parse_args()
+
+        if options.log.upper() in ["INFO", "WARNING", "ERROR", "DEBUG"]:
+            loglevel=getattr(logging, options.log.upper())
+        else:
+            loglevel=logging.WARNING
+        logging.basicConfig(format='%(levelname)s: %(message)s', filemode='w', level=loglevel)
+
         if options.preload:
             self.preload()
         if options.fullexport:
@@ -905,11 +912,6 @@ class Window(QtGui.QMainWindow):
             for f in args:
                 self.openfile(QString(f))
 
-        if options.log.upper() in ["INFO", "WARNING", "ERROR", "DEBUG"]:
-            loglevel=getattr(logging, options.log.upper())
-        else:
-            loglevel=logging.WARNING
-        logging.basicConfig(format='%(levelname)s: %(message)s', filemode='w', level=loglevel)
 
     def preload(self):
         for l in newfile_langs + submenu_langs:
