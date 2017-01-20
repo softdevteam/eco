@@ -567,11 +567,16 @@ class Test_General:
         assert c.parent is cp
 
 class Test_Helper:
+
     def reset(self):
         self.parser.reset()
         self.treemanager = TreeManager()
         self.treemanager.add_parser(self.parser, self.lexer, python.name)
         self.treemanager.set_font_test(7, 17)
+
+    def view(self):
+        import pgviewer
+        pgviewer.debug(self.treemanager)
 
     def move(self, direction, times):
         for i in range(times): self.treemanager.cursor_movement(direction)
@@ -1089,6 +1094,7 @@ class Test_Indentation(Test_Python):
         assert self.parser.last_status == True
 
         for i in range(13):
+            print self.treemanager.cursor
             self.treemanager.key_delete()
 
         assert self.parser.last_status == True
@@ -2212,6 +2218,54 @@ class Test_Undo(Test_Python):
         self.treemanager.cursor_reset()
         self.move(DOWN, 10)
         self.move(RIGHT, 4)
+        self.treemanager.key_delete()
+
+    def test_random_undo_deletion_bug4(self):
+        # Occured during implementing retain changes
+
+        self.reset()
+
+        connect4 = """class X:
+
+    def __init__():
+        if x:
+            for rowno in ROWS:
+                a
+                b
+                c
+            d
+        e"""
+
+        self.treemanager.import_file(connect4)
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 6)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 7)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
         self.treemanager.key_delete()
 
     def get_random_key(self):
@@ -3470,6 +3524,36 @@ class Test_ErrorRecoveryPython(Test_Python):
         self.treemanager.key_normal("]")
         self.treemanager.key_normal("e")
 
+    def test_nodereuse_bug(self):
+        t = TreeManager()
+        parser, lexer = calc.load()
+        t.add_parser(parser, lexer, "Calc")
+
+        t.key_normal("1")
+        t.key_normal("+")
+        t.key_normal("2")
+
+        # remember nodes
+        t.key_home()
+        t.key_cursors(RIGHT)
+        assert t.cursor.node.symbol.name == "1"
+        P = t.cursor.node.parent
+        T = t.cursor.node.parent.parent
+        E = t.cursor.node.parent.parent.parent
+        assert P.symbol.name == "P"
+        assert T.symbol.name == "T"
+        assert E.symbol.name == "E"
+
+        t.key_normal("+")
+
+        # check if nodes have been reused
+        t.key_home()
+        t.key_cursors(RIGHT)
+        assert t.cursor.node.symbol.name == "1"
+        assert t.cursor.node.parent is P
+        assert t.cursor.node.parent.parent is T
+        assert t.cursor.node.parent.parent.parent is E
+
 class Test_ErrorRecoveryJava(Test_Java):
     def test_delete(self):
         self.reset()
@@ -3527,6 +3611,9 @@ class Test_ErrorRecoverySurroundingContext:
         # of an isolated subtree is it's next terminal. So if the left-most
         # subtree to the right of the isolated subtree has changes, we need to
         # reevalute the isolated subtree and cannot skip it.
+        # Also tests if isolated subtrees are reached at all as we need to keep
+        # a changed path down to the isotree to recheck their surrounding
+        # context.
         grm = EcoFile("ErrortestSur", "test/errorsurroundingcontext.eco", "ErrorSurround")
         t = TreeManager()
         parser, lexer = grm.load()
@@ -3545,3 +3632,91 @@ class Test_ErrorRecoverySurroundingContext:
         assert t.cursor.node.symbol.name == "ab"
         # without checking surrounding context this would be 'left'
         assert t.cursor.node.parent.symbol.name == "left2"
+
+class Test_RetainSubtree:
+
+    def test_simple(self):
+        # This test checks that if a node is being retained but it's parent node
+        # was reset, that the siblings of the node are updated as well, as they
+        # could have changed when the parent was reverted back to the previous
+        # version.
+        grm = EcoFile("RetainTest", "test/retaincalc.eco", "RetainTest")
+        t = TreeManager()
+        parser, lexer = grm.load()
+        t.add_parser(parser, lexer, "RT")
+
+        t.key_normal("1")
+        t.key_normal("+")
+        t.key_normal("2")
+
+        t.key_home()
+        t.key_cursors(RIGHT)
+
+        assert t.cursor.node.symbol.name == "1"
+        assert t.cursor.node.parent.symbol.name == "P"
+
+        t.key_normal("*")
+        t.key_cursors(LEFT)
+
+        assert t.cursor.node.symbol.name == "1"
+        assert t.cursor.node.parent.symbol.name == "P" # must not be 'X'
+
+    def test_simple2(self):
+        # Tests basic retainablity
+        grm = EcoFile("RetainTest2", "test/retaincalc2.eco", "RetainTest2")
+        t = TreeManager()
+        parser, lexer = grm.load()
+        t.add_parser(parser, lexer, "RT")
+
+        t.key_normal("1")
+        t.key_normal("*")
+        t.key_normal("2")
+
+        # Create an error
+        t.key_cursors(LEFT)
+        t.key_normal("*")
+
+        # Add changes that can be retained
+        t.key_home()
+        t.key_cursors(RIGHT)
+        t.key_normal("-")
+        t.key_normal("3")
+
+        assert t.cursor.node.symbol.name == "3"
+        assert t.cursor.node.parent.symbol.name == "X" # will be 'P' without retaining
+
+    def test_bug1(self):
+        t = TreeManager()
+        parser, lexer = python.load()
+        t.add_parser(parser, lexer, "Python")
+
+        for c in "class X:\n pass":
+            t.key_normal(c)
+
+        t.key_cursors(UP)
+        t.key_home()
+        t.key_delete()
+        t.key_delete()
+        t.key_delete()
+        t.key_delete()
+        t.key_delete()
+
+        startrule = parser.previous_version.parent.children[1]
+        assert startrule.symbol.name == "Startrule"
+
+        WS = startrule.children[0]
+        assert WS.symbol.name == "WS"
+        assert WS.parent is startrule
+
+        classdef = startrule.children[1].children[0].children[0].children[0].children[0]
+        assert classdef.symbol.name == "classdef"
+
+        WS2 = classdef.children[1]
+        assert WS2.symbol.name == "WS"
+
+        WS3 = WS2.children[0]
+        assert WS3.symbol.name == "WS"
+
+        # current retaining creates a loop here as 'WS' is partly reverted and
+        # retained at the same time
+        assert WS3 is not WS

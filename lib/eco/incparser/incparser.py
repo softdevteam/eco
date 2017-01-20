@@ -232,6 +232,7 @@ class IncParser(object):
                             logging.debug("OPTShift: %s in state %s -> %s", la.symbol, self.current_state, goto)
                             follow_id = goto.action
                             self.stack.append(la)
+                            la.deleted = False
                             la.state = follow_id #XXX this fixed goto error (I should think about storing the states on the stack instead of inside the elements)
                             self.current_state = follow_id
                             logging.debug("USE_OPT: set state to %s", self.current_state)
@@ -327,6 +328,7 @@ class IncParser(object):
                     self.refine(self.rm.iso_node, self.rm.iso_offset, self.rm.error_offset)
                     self.current_state = self.rm.new_state
                     self.rm.iso_node.isolated = True
+                    self.rm.iso_node.deleted = False
                     self.stack.append(self.rm.iso_node)
                     logging.debug("Recovered. Continue after %s", self.rm.iso_node)
                     return self.pop_lookahead(self.rm.iso_node)
@@ -356,26 +358,72 @@ class IncParser(object):
             for c in node.children:
                 self.isolate(c)
 
+    def discard_changes(self, node):
+        if node.has_changes():
+            node.load(self.prev_version)
+            if node.nested_changes:
+                node.nested_errors = True
+            if node.changed:
+                node.local_error = True
+
     def refine(self, node, offset, error_offset):
         # for all children that come after the detection offset, we need
         # to analyse them using the normal incparser
         logging.debug("Refine %s Offset: %s Error Offset: %s", node, offset, error_offset)
         node.load(self.prev_version)
         node.local_error = node.nested_errors = False
+        self.pass2(node, offset, error_offset)
+
+    def pass2(self, node, offset, error_offset):
         for c in node.children:
-            # Before detection offset -> Retain or discard
-            # Spanning detection offset -> Discard/Isolate                                       isolate to mark errors
-            # After detection offset -> Out-of-context analysis
-            logging.debug("   CHECK OOC. offset: %s erroroffset: %s child: %s", offset, error_offset, c)
             if offset > error_offset:
-                logging.debug("   OOC: %s", c)
+                # XXX check if following terminal requires analysis
                 self.out_of_context_analysis(c)
-            else: #XXX subtrees before the error may be retained
-                logging.debug("   Isolate: %s", c)
-                self.isolate(c)
+            elif offset + c.textlength() <= error_offset:
+                self.retain_or_discard(c, node)
+            else:
+                assert offset <= error_offset
+                assert offset + c.textlength() > error_offset
+                self.discard_changes(c)
+                self.pass2(c, offset, error_offset)
             offset += c.textlength()
-            # XXX don't undo valid changes in nodes that don't contain the
-            # error node. needs retainablity check
+
+    def is_retainable_subtree(self, node):
+        if node.new:
+            return False
+
+        if not node.exists():
+            return False
+
+        if not node.has_changes():
+            # if no changes, discarding doesn't do anything anyways so why check?
+            return True
+
+        #XXX currently broken so don't retain anything until we can fix it
+        return False
+
+        #XXX also needs to check offset
+        if node.textlength(self.previous_version) == node.textlength():
+            return True
+
+        return False
+
+
+    def retain_or_discard(self, node, parent):
+        if self.is_retainable_subtree(node):
+            logging.debug("   Retaining %s (%s). Set parent to %s (%s)", node, id(node), parent, id(parent))
+            # Might have been assigned to a different parent in current version
+            # that was removed during refinement. This makes sure this node is
+            # assigned to the right parent. See test_eco.py:Test_RetainSubtree
+            node.parent = parent
+            # Also need to update siblings as they might have been changed by
+            # the parser before nodes parent was reset
+            node.update_siblings()
+            node.mark_changed()
+            return
+        self.discard_changes(node)
+        for c in node.children:
+            self.retain_or_discard(c, node)
 
     def out_of_context_analysis(self, node):
         logging.debug("Attempting out of context analysis on %s", node)
@@ -404,7 +452,7 @@ class IncParser(object):
 
         temp_bos = BOS(Terminal(""), 0, [])
         temp_eos = self.pop_lookahead(node)
-        while temp_eos.deleted:
+        while isinstance(temp_eos.symbol, Terminal) and temp_eos.deleted:
             # We can't use a deleted node as a temporary EOS since the deleted
             # note can pass the temp EOS reduction check but is then immediately
             # skipped by parse_terminal. This causes the parser to continue
@@ -427,6 +475,7 @@ class IncParser(object):
         temp_bos.save(node.version)
         temp_parser.previous_version = AST(temp_root)
         temp_parser.ooc = (temp_eos, node)
+        temp_parser.root = temp_root
         dummy_stack_eos = EOS(Terminal(""), oldleft.state, [])
         try:
             temp_parser.inc_parse(state=oldleft.state, stack=[dummy_stack_eos])
@@ -514,14 +563,17 @@ class IncParser(object):
 
         reuse_parent = self.ambig_reuse_check(element.action.left, children)
         if not self.needs_reparse and reuse_parent:
+            logging.debug("   Reusing parent: %s (%s)", reuse_parent, id(reuse_parent))
             new_node = reuse_parent
             new_node.changed = False
+            new_node.deleted = False
             new_node.isolated = False
             new_node.set_children(children)
             new_node.state = goto.action # XXX need to save state using hisotry service
             new_node.mark_changed()
         else:
             new_node = Node(element.action.left.copy(), goto.action, children)
+            logging.debug("   No reuse parent. Make new %s (%s)", new_node, id(new_node))
         new_node.calc_textlength()
         logging.debug("   Add %s to stack and goto state %s", new_node.symbol, new_node.state)
         self.stack.append(new_node)
@@ -540,7 +592,11 @@ class IncParser(object):
                 if c.parent and not c.new: # not a new node
                     old_parent = c.get_attr('parent', self.prev_version)
                     if old_parent.symbol == prod and old_parent not in self.reused_nodes:
-                        self.reused_nodes.add(old_parent)
+                        if len(old_parent.get_attr("children", self.prev_version)) > 1:
+                            # if node is the only child, reuse is unambiguous so
+                            # we don't need to remember we've reused this node
+                            # (which allows us to reuse it after error recovery)
+                            self.reused_nodes.add(old_parent)
                         return old_parent
         return None
 
@@ -583,6 +639,7 @@ class IncParser(object):
         node.alternate = alternate
 
     def left_breakdown(self, la):
+        la.deleted = True # node wasn't reused so is considered deleted
         if len(la.children) > 0:
             return la.children[0]
         else:
@@ -590,6 +647,7 @@ class IncParser(object):
 
     def right_breakdown(self):
         node = self.stack.pop() # optimistically shifted Nonterminal
+        node.deleted = True
         # after the breakdown, we need to properly shift the left over terminal
         # using the (correct) current state from before the optimistic shift of
         # it's parent tree

@@ -218,6 +218,16 @@ class Node(object):
             last.right = None # last child has no right sibling
             #XXX need to save this?
 
+    def update_siblings(self):
+        for i in range(len(self.parent.children)):
+            c = self.parent.children[i]
+            if c is self:
+                if i > 0:
+                    c.left = self.parent.children[i-1]
+                if i < len(self.parent.children) - 1:
+                    c.right = self.parent.children[i+1]
+                break
+
     def save(self, version):
         # XXX version set, e.g. set(0,1,5,6,9) that contains all versions in
         # which this node has been saved. this way we can easily check if a
@@ -611,6 +621,11 @@ class TextNode(Node):
         if version:
             return self.get_attr("changed", version) or self.get_attr("nested_changes", version)
         return self.changed or self.nested_changes
+
+    def exists(self, version = None):
+        if version:
+            return not self.get_attr("deleted", version)
+        return not self.deleted
 
     def has_errors(self):
         return self.nested_errors or self.local_error
