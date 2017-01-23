@@ -3603,6 +3603,7 @@ class Test_ErrorRecoveryRightbreakdown:
 
         assert parser.last_status == False
 
+@pytest.mark.xfail
 class Test_ErrorRecoverySurroundingContext:
     def test_simple(self):
         # This test checks the correct behaviour for skipping already isolated
@@ -3633,6 +3634,7 @@ class Test_ErrorRecoverySurroundingContext:
         # without checking surrounding context this would be 'left'
         assert t.cursor.node.parent.symbol.name == "left2"
 
+@pytest.mark.xfail
 class Test_RetainSubtree:
 
     def test_simple(self):
