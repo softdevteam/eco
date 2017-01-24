@@ -170,7 +170,6 @@ class AbstractLexingDFARunner(deterministic.DFARunner):
                 assert stop >= 0
                 if start == stop:
                     source = self.text[start:]
-                    print("start == stop")
                     result = self.make_token(start, -1, self.last_matched_state, lookahead = i - stop)
                     self.last_matched_index = start + len(source)
                     return result
@@ -178,11 +177,9 @@ class AbstractLexingDFARunner(deterministic.DFARunner):
                     #raise deterministic.LexerError(self.text, self.state,
                     #                               source_pos)
                 source = self.text[start:stop]
-                #print self.text, i, self.last_matched_state
                 lookahead = i - stop
                 if self.reachedend:
                     lookahead += 1
-                print("normal")
                 result = self.make_token(start, stop, self.last_matched_state, lookahead = lookahead)
                 self.adjust_position(source)
                 if self.ignore_token(self.last_matched_state):
@@ -196,7 +193,6 @@ class AbstractLexingDFARunner(deterministic.DFARunner):
                         lookahead = 1
                         break
                 source = self.text[start: ]
-                print("no progress")
                 result = self.make_token(start, -1, self.last_matched_state, lookahead = lookahead)
                 self.last_matched_index = start + len(source)
                 self.adjust_position(source)
@@ -245,7 +241,6 @@ class AbstractLexingDFARunner(deterministic.DFARunner):
     def __iter__(self):
         return self
 
-from grammar_parser.gparser import MultiTerminal
 class LexingDFARunner(AbstractLexingDFARunner):
     def __init__(self, matcher, automaton, text, ignore, eof=False):
         AbstractLexingDFARunner.__init__(self, matcher, automaton, text, eof)
@@ -258,7 +253,6 @@ class LexingDFARunner(AbstractLexingDFARunner):
         assert (eof and state == -1) or 0 <= state < len(self.automaton.names)
         #source_pos = SourcePos(index, self.lineno, self.columnno)
         source_pos = None
-        print("last_matched_state", self.last_matched_state)
         if self.last_matched_state == 0:
             raise LexingError("blupp")
         tokentype = self.automaton.names[self.last_matched_state]

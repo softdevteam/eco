@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 import re
-from grammar_parser.gparser import Nonterminal, Terminal, IndentationTerminal, MultiTerminal
+from grammar_parser.gparser import Nonterminal, Terminal, IndentationTerminal
 from syntaxtable import FinishSymbol
 
 class AST(object):
@@ -294,39 +294,18 @@ class Node(object):
                 return
 
     def insert_after(self, node):
-        if isinstance(self.parent, MultiTerminal):
-            for i in xrange(len(self.parent.name)):
-                if self.parent.name[i] is self:
-                    self.parent.name.insert(i+1, node)
-                    node.parent = self.parent
-        else:
-            self.parent.insert_after_node(self, node)
+        self.parent.insert_after_node(self, node)
 
     def remove(self):
-        if isinstance(self.parent, MultiTerminal):
-            for i in range(len(self.parent.name)):
-                if self.parent.name[i] is self:
-                    self.parent.name.pop(i)
-                    return
-        else:
-            self.parent.remove_child(self)
-
-    def insert_at_beginning(self, node):
-        if isinstance(self.symbol, MultiTerminal):
-            self.symbol.name.insert(0, node)
-            node.parent = self.symbol
+        self.parent.remove_child(self)
 
     def replace(self, node):
         # XXX non optimal version
         self.insert_after(node)
         self.remove()
 
-    def isempty(self):
-        if isinstance(self.symbol, MultiTerminal):
-            return self.symbol.name == []
-
     def ismultichild(self):
-        return isinstance(self.parent, MultiTerminal)
+        return isinstance(self.parent, MultiTextNode)
 
     def insert_after_node(self, node, newnode):
         i = 0
@@ -393,7 +372,7 @@ class Node(object):
     def next_terminal(self, skip_indent=False):
         n = self.next_term
         if not n:
-            if type(self.parent.symbol) is MultiTerminal:
+            if type(self.parent) is MultiTextNode:
                 return self.parent.next_term
         if skip_indent:
             while n is not None and isinstance(n.symbol, IndentationTerminal):
@@ -479,7 +458,9 @@ digits = set(list(string.digits))
 
 class TextNode(Node):
     __slots__ = ["log", "version", "position", "changed", "isolated", "textlen", "local_error", "nested_errors", "nested_changes", "new", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookup", "parent_lbox", "magic_backpointer", "indent"]
-    def __init__(self, symbol, state=-1, children=[], pos=-1, lookahead=0):
+    def __init__(self, symbol, state=-1, children=None, pos=-1, lookahead=0):
+        if children is None:
+            children = []
         Node.__init__(self, symbol, state, children)
         self.position = 0
         self.changed = False
@@ -497,13 +478,11 @@ class TextNode(Node):
         self.log = {}
         self.version = 0
         self.indent = None
-        if isinstance(symbol, MultiTerminal):
-            symbol.pnode = self
 
     def prev_terminal(self):
         if self.prev_term:
             return self.prev_term
-        if type(self.parent.symbol) is MultiTerminal:
+        if type(self.parent) is MultiTextNode:
             return self.parent.prev_term
 
     def get_magicterminal(self):
@@ -640,6 +619,32 @@ class TextNode(Node):
 
     def __repr__(self):
         return "%s(%s, %s, %s, %s)" % (self.__class__.__name__, self.symbol, self.state, len(self.children), self.lookup)
+
+class MultiTextNode(TextNode):
+    def __init__(self):
+        TextNode.__init__(self, Terminal("multinode"))
+
+    def insert_at_beginning(self, node):
+        self.children.insert(0, node)
+        node.parent = self
+
+    def insert_after_node(self, node, newnode):
+        for i in xrange(len(self.children)):
+            if self.children[i] is node:
+                self.children.insert(i+1, newnode)
+                newnode.parent = self
+
+    def remove_child(self, child):
+        for i in xrange(len(self.children)):
+            if self.children[i] is child:
+                self.children.pop(i)
+                return
+
+    def isempty(self):
+        return self.children == []
+
+    def __repr__(self):
+        return "MultiTextNode(%s)" % self.children
 
 class SpecialTextNode(TextNode):
     def backspace(self, pos):

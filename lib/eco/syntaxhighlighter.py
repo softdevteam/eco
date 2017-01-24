@@ -21,7 +21,6 @@
 
 from PyQt4.Qt import QPalette
 from PyQt4.QtCore import QSettings
-from grammar_parser.gparser import MultiTerminal
 
 class SyntaxHighlighter(object):
     colors = {
@@ -66,8 +65,6 @@ class SyntaxHighlighter(object):
        #if parent:
        #    while parent.symbol.name.startswith("*match_until"):
        #        parent = parent.parent
-        if parent and type(parent.symbol) is MultiTerminal:
-            return self.get_color(parent)
         if parent and parent.symbol.name in self.parent_colors:
             color = self.parent_colors[parent.symbol.name]
         elif node.symbol.name in self.keyword_colors:
