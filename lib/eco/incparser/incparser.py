@@ -99,10 +99,6 @@ class IncParser(object):
         self.errornode_by_version = {}
         self.indentation_based = False
 
-        self.pm = PluginManager()
-        self.pm.loadplugins(self)
-        self.pm.do_incparse_init()
-
         self.previous_version = None
         self.prev_version = 0
 
@@ -128,7 +124,6 @@ class IncParser(object):
                 pickle.dump(self.syntaxtable, open(filename, "w"))
 
         self.whitespaces = whitespaces
-        self.pm.do_incparse_from_dict(rules)
 
     def init_ast(self, magic_parent=None):
         bos = BOS(Terminal(""), 0, [])
@@ -171,7 +166,6 @@ class IncParser(object):
 
         USE_OPT = True
 
-        self.pm.do_incparse_inc_parse_top()
 
         la = self.pop_lookahead(bos)
         while(True):
@@ -219,7 +213,6 @@ class IncParser(object):
                         goto = self.syntaxtable.lookup(self.current_state, la.symbol)
                         if goto: # can we shift this Nonterminal in the current state?
                             logging.debug("OPTShift: %s in state %s -> %s", la.symbol, self.current_state, goto)
-                            self.pm.do_incparse_optshift(la)
                             follow_id = goto.action
                             self.stack.append(la)
                             la.state = follow_id #XXX this fixed goto error (I should think about storing the states on the stack instead of inside the elements)
@@ -478,27 +471,13 @@ class IncParser(object):
 
         # save childrens parents state
         for c in children:
-            c.local_error = False
-            c.nested_errors = False
-            if not c.new:
-                # just marking changed is not enough. If we encounter an error
-                # during reduction the path from the root down to this node is
-                # incomplete and thus can't be reverted/isolate properly
-                c.mark_changed()
-            self.pm.do_reduce_process_child(c)
+            self.undo.append((c, 'parent', c.parent))
+            self.undo.append((c, 'left', c.left))
+            self.undo.append((c, 'right', c.right))
+            self.undo.append((c, 'log', c.log.copy()))
+            c.mark_version() # XXX with node reuse we only have to do this if the parent changes
 
-        reuse_parent = self.ambig_reuse_check(element.action.left, children)
-        if not self.needs_reparse and reuse_parent:
-            new_node = reuse_parent
-            new_node.changed = False
-            new_node.isolated = False
-            new_node.set_children(children)
-            new_node.state = goto.action # XXX need to save state using hisotry service
-            new_node.mark_changed()
-        else:
-            new_node = Node(element.action.left.copy(), goto.action, children)
-        new_node.refresh_textlen()
-        self.pm.do_incparse_reduce(new_node)
+        new_node = Node(element.action.left.copy(), goto.action, children)
         logging.debug("   Add %s to stack and goto state %s", new_node.symbol, new_node.state)
         self.stack.append(new_node)
         self.current_state = new_node.state # = goto.action
@@ -618,7 +597,6 @@ class IncParser(object):
             # whitespace destroys correct behaviour
             self.last_shift_state = element.action
 
-        self.pm.do_incparse_shift(la, rb)
 
     def pop_lookahead(self, la):
         while(self.right_sibling(la) is None):
