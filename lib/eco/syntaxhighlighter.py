@@ -21,6 +21,7 @@
 
 from PyQt4.Qt import QPalette
 from PyQt4.QtCore import QSettings
+from grammar_parser.gparser import MultiTerminal
 
 class SyntaxHighlighter(object):
     colors = {
@@ -55,10 +56,18 @@ class SyntaxHighlighter(object):
             self.colors = self.gb_colors
 
     def get_color(self, node):
+        if isinstance(node.symbol.name, list):
+            if node.lookup in self.keyword_colors:
+                color = self.keyword_colors[node.lookup]
+            else:
+                color = "default"
+            return self.colors[color]
         parent = node.parent
-        if parent:
-            while parent.symbol.name.startswith("*match_until"):
-                parent = parent.parent
+       #if parent:
+       #    while parent.symbol.name.startswith("*match_until"):
+       #        parent = parent.parent
+        if parent and type(parent.symbol) is MultiTerminal:
+            return self.get_color(parent)
         if parent and parent.symbol.name in self.parent_colors:
             color = self.parent_colors[parent.symbol.name]
         elif node.symbol.name in self.keyword_colors:
@@ -78,7 +87,7 @@ class SyntaxHighlighter(object):
         return self.palette.color(QPalette.Text)
 
     def get_style(self, node):
-        if node.symbol.name in self.keyword_style:
+        if not isinstance(node.symbol.name, list) and node.symbol.name in self.keyword_style:
             return self.keyword_style[node.symbol.name]
         elif node.lookup in self.keyword_style:
             return self.keyword_style[node.lookup]

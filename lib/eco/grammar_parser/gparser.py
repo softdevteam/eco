@@ -59,9 +59,32 @@ class Symbol(object):
     def copy(self):
         return self.__class__(self.name, self.folding)
 
+    
+
 class Terminal(Symbol):
     def __repr__(self):
         return "Terminal('%s')" % (repr(self.name),)
+
+class MultiTerminal(Terminal):
+    def __init__(self, name=""):
+        self.name = name
+        for n in name:
+            n.parent = self
+        self.folding = None
+
+    def link_children(self, parent):
+        for i in range(len(self.name)):
+            if i < len(self.name) - 1 :
+                self.name[i].next_term = self.name[i+1]
+            if i > 0:
+                self.name[i].prev_term = self.name[i-1]
+            self.name[i].parent = parent
+        self.name[0].prev_term = None
+        self.name[-1].next_term = None
+        print("self.name[-1]", self.name[-1], self.name[-1].next_term)
+
+    def __repr__(self):
+        return "MultiTerminal('%s')" % (repr(self.name),)
 
 class MagicTerminal(Terminal):
     def __repr__(self):
