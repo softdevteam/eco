@@ -362,6 +362,7 @@ from cflexer.lexer import Lexer
 class IncrementalLexerCF(object):
     def __init__(self, rules=None, language=""):
         self.indentation_based = False
+        self.relexed = set()
         if rules:
             if rules.startswith("%"):
                 config_line = rules.splitlines()[0]     # get first line
@@ -450,6 +451,13 @@ class IncrementalLexerCF(object):
         #     if generated node already exists => stop
         #     (only if we passed edited node)
 
+        self.relexed = set()
+
+        if type(node.parent) is MultiTextNode:
+            # When changing a node within a MultiNode we need to relex the
+            # MultiNode
+            node = node.parent
+
         # find node to start relaxing
         startnode = node
         node = self.find_preceeding_node(node)
@@ -532,7 +540,6 @@ class IncrementalLexerCF(object):
                 # node and also separate any newlines contained within.
                 error = e
                 if toks:
-                    print "get leftover"
                     leftover = readlength - tokenslength
                     if leftover > 0:
                         name = read[-1].symbol.name[-leftover:]
@@ -540,7 +547,6 @@ class IncrementalLexerCF(object):
                         for e in l:
                             toks.append((e, "<E>", 1))
                     pairs.append((toks, read))
-                    print "toks", toks
                 else:
                     # There are no part matches so remark the startnode as error
                     startnode.changed = True
@@ -564,24 +570,38 @@ class IncrementalLexerCF(object):
                 changed = True
 
         # update lookback counts using lookaheads
-        textlen = len(getname(node))
-        node = node_before_changes.next_term
-        for la in lookaheads:
-            textlen = 0
-            n = node
-            lb = 0
-            while textlen < la:
-                n = n.next_term
-                if isinstance(n, EOS):
-                    break
-                lb += 1
-                n.lookback = lb
-                textlen += len(getname(n))
-            node = node.next_term
+        self.update_lookback(node_before_changes.next_term)
 
         if error:
             raise error
         return changed
+
+    def update_lookback(self, node):
+        # XXX Use lookback to determine how far back we need to initiate
+        # the update procedure
+        la_list = []
+        n = node
+        while True:
+            # compute lookback (removes old lookbacks)
+            la_list = [(name, la, cnt) for name, la, cnt in la_list if la > 0]
+            newlookback = max(la_list, key=lambda item:item[2])[2] if la_list else 0
+            if not self.was_relexed(n) and n.lookback == newlookback:
+                break
+            n.lookback = newlookback
+
+            # advance
+            offset = getlength(n)
+            la_list = [(name, la - offset, cnt+1) for name, la, cnt in la_list]
+
+            # add
+            la_list.append((n.symbol.name, n.lookahead, 1))
+
+            n = n.next_term
+            if isinstance(n, EOS):
+                break
+
+    def was_relexed(self, node):
+        return node in self.relexed
 
     def iter_gen(self, tokens):
         r = re.compile("([\r\x80])")
@@ -657,6 +677,7 @@ class IncrementalLexerCF(object):
                     changed = True
                 current_mt.lookup = gen[1]
                 current_mt.lookahead = gen[2]
+                self.relexed.add(current_mt)
                 gen = it_gen.next()
                 continue
             elif gen[0] == "finish mt":
@@ -674,6 +695,7 @@ class IncrementalLexerCF(object):
                 # One node has been split into multiple nodes. Insert all
                 # remaining nodes until the lengths add up again.
                 new = TextNode(Terminal(gen[0]))
+                self.relexed.add(new)
                 new.lookup = gen[1]
                 if new.lookup == "<E>":
                     # If this token comes from the leftovers of a LexingError,
@@ -702,6 +724,7 @@ class IncrementalLexerCF(object):
                 totalg += lengen
                 if read.lookup != gen[1]:
                     read.mark_changed()
+                    self.relexed.add(read)
                     changed = True
                 else:
                     read.mark_version()
@@ -709,6 +732,7 @@ class IncrementalLexerCF(object):
                     read.symbol.name = gen[0].replace("\x81", "")
                     read.lookup = gen[1]
                     read.lookahead = gen[2]
+                    self.relexed.add(read)
                 else:
                     read.lookup = gen[1]
                 if not current_mt:
