@@ -228,3 +228,69 @@ class Test_MultiTextNodePython:
         self.treemanager.key_backspace()
 
         assert self.parser.last_status == False
+
+    def test_remember_open_lexing_states(self):
+
+        self.reset()
+        inputstring = """x = 1
+y = 2"""
+
+        self.treemanager.import_file(inputstring)
+
+        assert self.parser.last_status == True
+
+        self.treemanager.key_end()
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.key_normal("\"")
+        #assert self.parser.last_status == False # unfinished lexing jobs
+
+        self.treemanager.key_end()
+        self.treemanager.key_normal("\"")
+        assert self.parser.last_status == True
+
+    def test_triplequote_string(self):
+
+        self.reset()
+        inputstring = 'x="""abc"""'
+
+        for i in inputstring:
+            self.treemanager.key_normal(i)
+
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+
+        bos = self.parser.previous_version.parent.children[0]
+
+        assert bos.next_term.symbol.name == "x"
+        assert bos.next_term.next_term.symbol.name == "="
+        assert bos.next_term.next_term.next_term.symbol.name == '""'
+        assert bos.next_term.next_term.next_term.next_term.symbol.name == '"ab"'
+        assert bos.next_term.next_term.next_term.next_term.lookback == 1
+        assert bos.next_term.next_term.next_term.next_term.next_term.symbol.name == '"c"'
+        assert bos.next_term.next_term.next_term.next_term.next_term.lookback == 2
+        assert bos.next_term.next_term.next_term.next_term.next_term.next_term.symbol.name == '""'
+
+
+        self.treemanager.key_normal("\"")
+        #assert self.parser.last_status == False
+
+
+        assert bos.next_term.symbol.name == "x"
+        assert bos.next_term.next_term.symbol.name == "="
+        assert bos.next_term.next_term.next_term.symbol.name == '""'
+        assert bos.next_term.next_term.next_term.next_term.symbol.name == '"ab"'
+        assert bos.next_term.next_term.next_term.next_term.next_term.symbol.name == '""c"'
+        assert bos.next_term.next_term.next_term.next_term.next_term.next_term.symbol.name == '""'
+
+        self.treemanager.key_end()
+        self.treemanager.key_backspace()
+
+        assert bos.next_term.symbol.name == "x"
+        assert bos.next_term.next_term.symbol.name == "="
+        assert bos.next_term.next_term.next_term.symbol.name == '"""ab"""'
+        assert bos.next_term.next_term.next_term.next_term.symbol.name == 'c'
+        assert bos.next_term.next_term.next_term.next_term.next_term.symbol.name == '""'

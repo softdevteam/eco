@@ -485,6 +485,7 @@ class TextNode(Node):
         self.log = {}
         self.version = 0
         self.indent = None
+        self.lookback = 0
 
     def get_magicterminal(self):
         try:

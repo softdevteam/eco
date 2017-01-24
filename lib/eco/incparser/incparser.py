@@ -187,6 +187,9 @@ class IncParser(object):
                     return True
 
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
+                if la.changed and False: #XXX not needed once we introduce errors
+                    assert False # with prelexing you should never end up here!
+                else:
                     lookup_symbol = self.get_lookup(la)
                     result = self.parse_terminal(la, lookup_symbol)
                     if result == "Accept":

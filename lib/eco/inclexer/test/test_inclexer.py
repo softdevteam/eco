@@ -25,6 +25,9 @@ from grammars.grammars import calc
 from incparser.astree import TextNode, BOS, EOS, MultiTextNode
 from grammar_parser.gparser import Terminal, Nonterminal, MagicTerminal
 
+import pytest
+from cflexer.lexer import LexingError
+
 class Test_IncrementalLexer:
 
     def setup_class(cls):
@@ -68,8 +71,6 @@ class Test_CalcLexer(Test_IncrementalLexer):
         assert tokens == expected
 
     def test_lex_no_valid_token(self):
-        import pytest
-        from cflexer.lexer import LexingError
         pytest.raises(LexingError, self.lex, "abc") # shouldn't loop forever
 
     def test_token_iter(self):
@@ -327,17 +328,18 @@ class Test_CalcLexer(Test_IncrementalLexer):
         assert bos.next_term.lookup == "singlecolon"
         assert text.lookahead == 1
 
-        text2 = TextNode(Terminal(":"))
-        bos.insert_after(text2)
-        lexer.relex(text2)
-        assert text2.lookahead == 2
+        text.symbol.name = "::"
+        lexer.relex(text)
+
+        assert text.lookahead == 2
+        text2 = text.next_term
+        assert text2.lookback == 1
 
         assert bos.next_term.symbol.name == ":"
         assert bos.next_term.next_term.symbol.name == ":"
 
-        text3 = TextNode(Terminal("="))
-        text.insert_after(text3)
-        lexer.relex(text3)
+        text2.symbol.name = ":="
+        lexer.relex(text2)
 
         assert bos.next_term.symbol.name == "::="
         assert isinstance(bos.next_term.next_term, EOS)
@@ -417,6 +419,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
     def test_normal_to_multi_and_normal(self):
         lexer = IncrementalLexer("""
 "\"[a-z\r\x80]*\"":str
+"[a-z]+":var
         """)
 
         ast = AST()
@@ -493,6 +496,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
     def test_multi_to_multi_and_normal1(self):
         lexer = IncrementalLexer("""
 "\"[a-z\r\x80]*\"":str
+"[a-z]+":var
         """)
 
         ast = AST()
@@ -643,7 +647,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
 
     def test_multi_to_multix2(self):
         lexer = IncrementalLexer("""
-"\"[a-z\r\x80]*\"":str
+"\"[a-zA-Z\r\x80]*\"":str
 "[a-z]+":var
         """)
 
@@ -833,6 +837,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
     def test_multitoken_real_lbox_cut_off_string(self):
         lexer = IncrementalLexer("""
 "\"[a-z\r\x80]*\"":str
+"[a-z]+":var
         """)
 
         ast = AST()
@@ -845,10 +850,12 @@ class Test_CalcLexer(Test_IncrementalLexer):
         bos.insert_after(text1)
         text1.insert_after(lbox)
         lbox.insert_after(text2)
+        pytest.raises(LexingError, lexer.relex, text1)
+        text2.symbol.name = "d\"ef"
         lexer.relex(text1)
         assert bos.next_term.lookup == "str"
         assert bos.next_term == mk_multitextnode([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("d\"")])
-        assert bos.next_term.next_term.symbol.name == "ef\""
+        assert bos.next_term.next_term.symbol.name == "ef"
 
     def test_multitoken_real_lbox_relex(self):
         lexer = IncrementalLexer("""
@@ -877,6 +884,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
     def test_multitoken_real_lbox_relex_cut_off_string(self):
         lexer = IncrementalLexer("""
 "\"[a-z\r\x80]*\"":str
+"[a-z]+":var
         """)
 
         ast = AST()
@@ -895,10 +903,13 @@ class Test_CalcLexer(Test_IncrementalLexer):
         assert bos.next_term.lookahead == 0
 
         bos.next_term.children[2].symbol.name = "d\"ef\""
+        pytest.raises(LexingError, lexer.relex, bos.next_term)
+
+        bos.next_term.children[2].symbol.name = "d\"ef"
         lexer.relex(bos.next_term)
 
         assert bos.next_term == mk_multitextnode([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("d\"")])
-        assert bos.next_term.next_term.symbol.name == "ef\""
+        assert bos.next_term.next_term.symbol.name == "ef"
 
     def test_bug_two_newlines_delete_one(self):
         lexer = IncrementalLexer("""
@@ -1022,3 +1033,30 @@ class Test_CalcLexer(Test_IncrementalLexer):
         assert bos.next_term.symbol == Terminal("1")
         assert bos.next_term.next_term.symbol == Terminal("+")
         assert bos.next_term.next_term.next_term == mk_multitextnode([Terminal("#abc"), MagicTerminal("<SQL>")])
+
+    def test_triplequotes1(self):
+        lexer = IncrementalLexer("""
+"\"\"\"[^\"]*\"\"\"":triplestring
+"\"[^\"]*\"":string
+"[a-z]+":var
+        """)
+
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        eos = ast.parent.children[1]
+        text1 = TextNode(Terminal("\"\"\""))
+        text2 = TextNode(Terminal("abc"))
+        text3 = TextNode(Terminal("\"\"\""))
+        bos.insert_after(text1)
+        text1.insert_after(text2)
+        text2.insert_after(text3)
+        lexer.relex(text1)
+        assert bos.next_term.symbol == Terminal("\"\"\"abc\"\"\"")
+        assert bos.next_term.lookup == "triplestring"
+
+        bos.next_term.symbol.name = "\"\"\"ab\"\"\"c\"\"\""
+        pytest.raises(LexingError, lexer.relex, bos.next_term)
+
+        bos.next_term.symbol.name = "\"\"\"ab\"\"\"c\"\""
+        lexer.relex(bos.next_term)
