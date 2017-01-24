@@ -1349,7 +1349,7 @@ class Window(QtGui.QMainWindow):
         if editor is None:
             return
         nested = {}
-        for parser, lexer, lang, _ in editor.tm.parsers:
+        for parser, lexer, lang, _, _ in editor.tm.parsers:
             #import cProfile
             #cProfile.runctx("parser.inc_parse(self.ui.frame.line_indents)", globals(), locals())
             root = parser.previous_version.parent
