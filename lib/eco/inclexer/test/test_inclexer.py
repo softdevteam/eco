@@ -860,7 +860,8 @@ class Test_CalcLexer(Test_IncrementalLexer):
         leftover = bos.next_term.next_term.next_term
         assert leftover.symbol.name == "\"g"
 
-        bos.next_term.next_term.next_term.symbol.name = "g"
+        leftover.symbol.name = "g"
+        leftover.changed = True
         lexer.relex(leftover)
         assert bos.next_term.lookup == "str"
         assert bos.next_term == mk_multitextnode([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("d\"")])
@@ -1069,3 +1070,104 @@ class Test_CalcLexer(Test_IncrementalLexer):
 
         bos.next_term.symbol.name = "\"\"\"ab\"\"\"c\"\""
         lexer.relex(bos.next_term)
+
+    def test_lookback(self):
+        lexer = IncrementalLexer("""
+"\"\"\"[^\"]*\"\"\"":triplestring
+"\"[^\"]*\"":string
+"[a-z]+":var
+        """)
+
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        eos = ast.parent.children[1]
+
+        text1 = TextNode(Terminal("abcd"))
+        text2 = TextNode(Terminal("ef"))
+        text3 = TextNode(Terminal("ghij"))
+        text4 = TextNode(Terminal("k"))
+        text5 = TextNode(Terminal("lm"))
+        text6 = TextNode(Terminal("nopqr"))
+        text7 = TextNode(Terminal("stu"))
+
+        bos.insert_after(text1)
+        text1.insert_after(text2)
+        text2.insert_after(text3)
+        text3.insert_after(text4)
+        text4.insert_after(text5)
+        text5.insert_after(text6)
+        text6.insert_after(text7)
+
+        lexer.relexed.add(text1)
+        lexer.relexed.add(text2)
+        lexer.relexed.add(text3)
+        lexer.relexed.add(text4)
+        lexer.relexed.add(text5)
+        lexer.relexed.add(text6)
+
+        text1.lookahead = 7
+        text2.lookahead = 7
+        text3.lookahead = 1
+        text4.lookahead = 0
+        text5.lookahead = 0
+        text6.lookahead = 3
+        text7.lookahead = 0
+
+        lexer.update_lookback(text1)
+
+        assert text1.lookback == 0
+        assert text2.lookback == 1
+        assert text3.lookback == 2
+        assert text4.lookback == 3
+        assert text5.lookback == 3
+        assert text6.lookback == 0
+        assert text7.lookback == 1
+
+    def test_lookback_wagner(self):
+        lexer = IncrementalLexer("""
+"\"\"\"[^\"]*\"\"\"":triplestring
+"\"[^\"]*\"":string
+"[a-z]+":var
+        """)
+
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        eos = ast.parent.children[1]
+
+        text1 = TextNode(Terminal("\n"))
+        text2 = TextNode(Terminal(" "))
+        text3 = TextNode(Terminal("/*aaaaaaaaaaaaaaaaaaaaa*/"))
+        text4 = TextNode(Terminal(" "))
+        text5 = TextNode(Terminal("if"))
+        text6 = TextNode(Terminal("("))
+
+        lexer.relexed.add(text1)
+        lexer.relexed.add(text2)
+        lexer.relexed.add(text3)
+        lexer.relexed.add(text4)
+        lexer.relexed.add(text5)
+        lexer.relexed.add(text6)
+
+        bos.insert_after(text1)
+        text1.insert_after(text2)
+        text2.insert_after(text3)
+        text3.insert_after(text4)
+        text4.insert_after(text5)
+        text5.insert_after(text6)
+
+        text1.lookahead = 27
+        text2.lookahead = 1
+        text3.lookahead = 0
+        text4.lookahead = 1
+        text5.lookahead = 1
+        text6.lookahead = 0
+
+        lexer.update_lookback(text1)
+
+        assert text2.lookback == 1
+        assert text3.lookback == 2
+        assert text4.lookback == 3
+        assert text5.lookback == 1
+        assert text6.lookback == 1

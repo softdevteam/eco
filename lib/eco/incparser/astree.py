@@ -469,7 +469,7 @@ class TextNode(Node):
     def __init__(self, symbol, state=-1, children=[], pos=-1, lookahead=0):
         Node.__init__(self, symbol, state, children)
         self.position = 0
-        self.changed = False
+        self.changed = False #XXX should maybe be True by default
         self.new = True
         self.nested_changes = False
         self.local_error = False
