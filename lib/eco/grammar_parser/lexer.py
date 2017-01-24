@@ -58,6 +58,7 @@ class Token(object):
         return "%s(%s)" % (self.name, self.value)
 
 class Lexer(object):
+    """Used to tokenise Eco grammar files."""
 
     def __init__(self, code):
         self.tokens = []
@@ -66,6 +67,7 @@ class Lexer(object):
         self.regex = regex
 
     def set_regex(self, expressions):
+        """Sets the (named capturing group) regular expressions to be used by the lexer to lex Eco grammar files."""
         self.regex = make_groups(expressions)
 
     def lex(self):
@@ -80,6 +82,7 @@ class Lexer(object):
         return False
 
     def next(self):
+        """Returns the next token (consisting of a name and a value) from the stream."""
         m = re.match(self.regex, self.code[self.pos:])
         if m:
             result = m.groupdict()

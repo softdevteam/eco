@@ -35,11 +35,12 @@ from incparser.astree import BOS, EOS, MultiTextNode
 from jsonmanager import JsonManager
 from utils import KeyPress
 from overlay import Overlay
-from incparser.annotation import Eval, Footnote, Heatmap, Railroad, ToolTip, Types
+from incparser.annotation import Footnote, Heatmap, Railroad, ToolTip
+from incparser.annotation import HUDEval, HUDTypes, HUDCallgraph, HUDHeatmap
 from incparser.astree import TextNode
 
 import syntaxhighlighter
-import editor
+import renderers
 
 import logging
 
@@ -90,15 +91,8 @@ class NodeEditor(QFrame):
         # Semi-transparent overlay.
         # Used to display heat-map visualisation of profiler info, etc.
         self.overlay = Overlay(self)
-        # Start hidden, make (in)visible with self.toggle_overlay().
-        self.overlay.hide()
-
-        # Set to True if the user wants to see tool visualisations.
-        self.show_tool_visualisations = True
-
-        # Set True if Eco should be running profiler and other tools,
-        # continuously in the background.
-        self.run_background_tools = False
+        # Always show the overlay, users hide visualisations with the HUD.
+        self.overlay.show()
 
         # Show / don't show HUD visualisations.
         self.hud_callgraph = False
@@ -143,18 +137,6 @@ class NodeEditor(QFrame):
 
     def focusInEvent(self, event):
         self.blinktimer.start()
-
-    def toggle_overlay(self):
-        self.hide_overlay() if self.overlay.isVisible() else self.show_overlay()
-
-    def show_overlay(self):
-        self.overlay.show()
-
-    def hide_overlay(self):
-        self.overlay.hide()
-
-    def is_overlay_visible(self):
-        return self.overlay.isVisible()
 
     def resizeEvent(self, event):
         self.overlay.resize(event.size())
@@ -221,10 +203,29 @@ class NodeEditor(QFrame):
             if msg:
                 QToolTip.showText(event.globalPos(), msg)
                 return True
-            # Draw annotations if there are any.
-            elif self.show_tool_visualisations:
-                annotes = [annote.annotation for annote in node.get_annotations_with_hint(ToolTip)]
-                msg = "\n".join(annotes)
+            # Draw tooltips if there are any. Tooltips can appear with any HUD
+            # visualisation.
+            elif (self.hud_callgraph or self.hud_eval or self.hud_types or
+                  self.hud_heat_map):
+                strings = []
+                annotes = node.get_annotations_with_hint(ToolTip)
+                if self.hud_callgraph:
+                    for annote in annotes:
+                        if annote.has_hint(HUDCallgraph):
+                            strings.append(annote.annotation)
+                elif self.hud_eval:
+                    for annote in annotes:
+                        if annote.has_hint(HUDEval):
+                            strings.append(annote.annotation)
+                elif self.hud_types:
+                    for annote in annotes:
+                        if annote.has_hint(HUDTypes):
+                            strings.append(annote.annotation)
+                elif self.hud_heat_map:
+                    for annote in annotes:
+                        if annote.has_hint(HUDHeatmap):
+                            strings.append(annote.annotation)
+                msg = "\n".join(strings)
                 if msg.strip() != "":
                     if self.tm.tool_data_is_dirty:
                         msg += "\n[Warning: Information may be out of date.]"
@@ -372,7 +373,7 @@ class NodeEditor(QFrame):
         draw_selection_start = (0,0,0)
         draw_selection_end = (0,0,0)
         start_lbox = self.get_languagebox(node)
-        editor = self.get_editor(node)
+        renderer = self.get_renderer(node)
 
         self.selected_lbox = self.tm.get_languagebox(self.tm.cursor.node)
         #XXX get initial x for langbox
@@ -406,7 +407,7 @@ class NodeEditor(QFrame):
                     draw_lbox = False
                 node = lbnode.children[0]
                 highlighter = self.get_highlighter(node)
-                editor = self.get_editor(node)
+                renderer = self.get_renderer(node)
                 error_node = self.tm.get_parser(lbnode).error_node
                 error_node = self.fix_errornode(error_node)
                 continue
@@ -421,7 +422,7 @@ class NodeEditor(QFrame):
                         lbox -= 1
                     node = lbnode.next_term
                     highlighter = self.get_highlighter(node)
-                    editor = self.get_editor(node)
+                    renderer = self.get_renderer(node)
                     if self.selected_lbox is lbnode:
                         # draw bracket
                         self.draw_lbox_bracket(paint, ']', node, x, y, color)
@@ -453,7 +454,7 @@ class NodeEditor(QFrame):
                     color.setAlpha(alpha)
                 if draw_lbox and draw_all_boxes: # we are drawing the currently selected language box
                     color.setAlpha(20)
-                editor.update_image(node)
+                renderer.update_image(node)
                 if node.symbol.name != "\r" and not isinstance(node.symbol, IndentationTerminal):
                     if not node.image or node.plain_mode:
                         if isinstance(node, BOS) and isinstance(node.next_term, EOS):
@@ -474,26 +475,27 @@ class NodeEditor(QFrame):
 
 
             # draw node
-            dx, dy = editor.paint_node(paint, node, x, y, highlighter)
+            dx, dy = renderer.paint_node(paint, node, x, y, highlighter)
             x += dx
             self.lines[line].height = max(self.lines[line].height, dy)
 
             # Draw footnotes and add heatmap data to overlay.
             annotes = [annote.annotation for annote in node.get_annotations_with_hint(Heatmap)]
+            # Heatmap data can always be sent to the overlay, it won't be
+            # rendered unless the user selects the Heatmap HUD radio button.
             for annote in annotes:
                 self.overlay.add_heatmap_datum(line + 1, annote)
-            if self.show_tool_visualisations:
-                # Draw footnotes.
+            if self.hud_eval or self.hud_types:
                 infofont = QApplication.instance().tool_info_font
                 annotes = []
                 annotes_ = node.get_annotations_with_hint(Footnote)
                 if self.hud_eval:
                     for annote in annotes_:
-                        if annote.has_hint(Eval):
+                        if annote.has_hint(HUDEval):
                             annotes.append(annote)
                 elif self.hud_types:
                     for annote in annotes_:
-                        if annote.has_hint(Types):
+                        if annote.has_hint(HUDTypes):
                             annotes.append(annote)
                 footnote = " ".join([annote.annotation for annote in annotes])
                 if footnote.strip() != "":
@@ -712,10 +714,10 @@ class NodeEditor(QFrame):
         lbox = root.get_magicterminal()
         return lbox
 
-    def get_editor(self, node):
+    def get_renderer(self, node):
         root = node.get_root()
         base = lang_dict[self.tm.get_language(root)].base
-        return editor.get_editor(base, self.fontwt, self.fontht, self.fontd)
+        return renderers.get_renderer(base, self.fontwt, self.fontht, self.fontd)
 
     def focusNextPrevChild(self, b):
         # don't switch to next widget on TAB

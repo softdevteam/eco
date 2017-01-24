@@ -154,35 +154,35 @@ qualified_name ::=
 
 
 compilation_unit ::=
-        package_declaration_opt 
+        package_declaration_opt
         import_declarations_opt
         type_declarations_opt
-        
-package_declaration_opt ::= package_declaration | 
-import_declarations_opt ::= import_declarations | 
-type_declarations_opt   ::= type_declarations   | 
 
-import_declarations ::= 
+package_declaration_opt ::= package_declaration |
+import_declarations_opt ::= import_declarations |
+type_declarations_opt   ::= type_declarations   |
+
+import_declarations ::=
         import_declaration
     |    import_declarations import_declaration
 
-type_declarations ::= 
+type_declarations ::=
         type_declaration
     |    type_declarations type_declaration
 
-package_declaration ::= 
+package_declaration ::=
         "PACKAGE" name "SEMICOLON"
 
-import_declaration ::= 
+import_declaration ::=
         single_type_import_declaration
     |    type_import_on_demand_declaration
     |    static_single_type_import_declaration
     |    static_type_import_on_demand_declaration
 
-single_type_import_declaration ::= 
+single_type_import_declaration ::=
         "IMPORT" name "SEMICOLON"
 
-static_single_type_import_declaration ::= 
+static_single_type_import_declaration ::=
         "IMPORT" "STATIC" name "SEMICOLON"
 
 type_import_on_demand_declaration ::=
@@ -211,31 +211,31 @@ modifier ::=    "PUBLIC" | "PROTECTED" | "PRIVATE"
 
 
 
-class_declaration ::= 
+class_declaration ::=
     modifiers_opt "CLASS" "IDENTIFIER" type_parameters_opt
       super_opt interfaces_opt class_body
 
 super ::=    "EXTENDS" class_type
 
-super_opt ::=    
+super_opt ::=
     |    super
 
 interfaces ::=    "IMPLEMENTS" interface_type_list
 
 interfaces_opt::=
-    |    interfaces 
+    |    interfaces
 
-interface_type_list ::= 
+interface_type_list ::=
         interface_type
     |    interface_type_list "COMMA" interface_type
 
-class_body ::=    "LBRACE" class_body_declarations_opt "RBRACE" 
+class_body ::=    "LBRACE" class_body_declarations_opt "RBRACE"
 
 class_body_opt ::=
-    |    class_body 
-class_body_declarations_opt ::= 
-    |    class_body_declarations 
-class_body_declarations ::= 
+    |    class_body
+class_body_declarations_opt ::=
+    |    class_body_declarations
+class_body_declarations ::=
         class_body_declaration
     |    class_body_declarations class_body_declaration
 
@@ -278,7 +278,7 @@ enum_body_declarations_opt ::=
     |    "SEMICOLON" class_body_declarations_opt
 
 
-field_declaration ::= 
+field_declaration ::=
         modifiers_opt type variable_declarators "SEMICOLON"
 
 variable_declarators ::=
@@ -324,7 +324,7 @@ formal_parameter ::=
     |    type "ELLIPSIS" "IDENTIFIER"
     |    "FINAL" type "ELLIPSIS" "IDENTIFIER"
 
-throws_opt ::=    
+throws_opt ::=
     |    throws
 
 throws ::=    "THROWS" class_type_list
@@ -494,7 +494,7 @@ if_then_statement ::=
         "IF" "LPAREN" expression "RPAREN" statement
 
 if_then_else_statement ::=
-        "IF" "LPAREN" expression "RPAREN" statement_no_short_if 
+        "IF" "LPAREN" expression "RPAREN" statement_no_short_if
             "ELSE" statement
 
 if_then_else_statement_no_short_if ::=
@@ -571,7 +571,7 @@ statement_expression_list ::=
     |    statement_expression_list "COMMA" statement_expression
 
 
-identifier_opt ::= 
+identifier_opt ::=
     |    "IDENTIFIER"
 
 
@@ -812,7 +812,7 @@ constant_expression ::=
         expression
 
 
-type_parameters_opt ::= type_parameters | 
+type_parameters_opt ::= type_parameters |
 type_parameters ::=
         "LT" type_parameter_list_1
 
@@ -831,7 +831,7 @@ type_parameter_1 ::=
         type_variable "GT"
     |    type_variable type_bound_1
 
-type_bound_opt ::= type_bound | 
+type_bound_opt ::= type_bound |
 type_bound ::=
         "EXTENDS" reference_type additional_bound_list_opt
 
@@ -839,7 +839,7 @@ type_bound_1 ::=
         "EXTENDS" reference_type_1
     |    "EXTENDS" reference_type additional_bound_list_1
 
-additional_bound_list_opt ::= additional_bound_list | 
+additional_bound_list_opt ::= additional_bound_list |
 additional_bound_list ::=
         additional_bound additional_bound_list
     |    additional_bound
@@ -948,7 +948,7 @@ conditional_or_expression_nn ::=
 conditional_expression_nn ::=
         conditional_or_expression_nn
     |    name "QUESTION" expression "COLON" conditional_expression
-    |    conditional_or_expression_nn "QUESTION" expression 
+    |    conditional_or_expression_nn "QUESTION" expression
             "COLON" conditional_expression
 
 assignment_expression_nn ::=

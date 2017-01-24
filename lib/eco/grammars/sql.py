@@ -308,7 +308,7 @@ table_ref_commalist ::=
 
 
 table_ref ::=
-        table 
+        table
     |   table range_variable
 
 

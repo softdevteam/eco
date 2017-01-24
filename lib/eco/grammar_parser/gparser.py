@@ -22,7 +22,18 @@
 from lexer import Lexer
 
 class Rule(object):
+    """Describes production rules of an Eco grammar.
 
+    Grammar rules are of the form
+
+        A ::= B 'c' D
+            | E 'f';
+
+    `self.symbol` stores the left-hand side of a rule, while
+    `self.alternatives` stores all it's right-hand sides. Eco grammars also
+    allow the annotation of AST rules within the grammar which are stored in
+    `self.annotations`.
+    """
     def __init__(self, symbol=None):
         self.symbol = symbol
         self.alternatives = []
@@ -62,22 +73,34 @@ class Symbol(object):
     
 
 class Terminal(Symbol):
+    """Literal symbol produced by the lexer."""
     def __repr__(self):
         return "Terminal('%s')" % (repr(self.name),)
 
 class MagicTerminal(Terminal):
+    """Special terminal representing language boxes."""
     def __repr__(self):
         return "MagicTerminal('%s')" % (repr(self.name),)
 
 class IndentationTerminal(Terminal):
+    """Special terminal indicating indentations.
+
+    Used by indentation based languages.
+    """
     def __repr__(self):
         return "IndentationTerminal('%s')" % (repr(self.name),)
 
 class Nonterminal(Symbol):
+    """Left-hand side symbol in productions.
+
+    When appearing on the right-hand side of a production, they will be replaced
+    with one of their alternatives by the parser.
+    """
     def __repr__(self):
         return "Nonterminal('%s')" % (self.name,)
 
 class Epsilon(Symbol):
+    """Describes the empty terminal."""
 
     def __eq__(self, other):
         return isinstance(other, Epsilon)
@@ -99,7 +122,12 @@ class ExtendedSymbol(object):
         return "%s(%s)" % (self.name, self.children)
 
 class Parser(object):
+    """Deprecated version of the Eco grammar parser (replaced by
+    BootstrapParser).
 
+    Reads a grammar files and produces rules from which a parser can be
+    generated.
+    """
     def __init__(self, code, whitespaces=False):
         self.lexer = Lexer(code)
         self.lexer.lex()
@@ -115,6 +143,10 @@ class Parser(object):
         return "\n".join(s)
 
     def parse(self):
+        """Parses the grammar file after it has been tokenised by the lexer and
+        generates `Rules` from it. Automatically embeds whitespace rules if
+        implicit whitespace has been enabled in the grammar.
+        """
         while self.curtok < len(self.lexer.tokens):
             rule = self.parse_rule()
 
@@ -142,6 +174,18 @@ class Parser(object):
             self.start_symbol = start_rule.symbol
 
     def transform_ebnf(self, original_rule):
+        """ Automatic transformation of EBNF rules to BNF rules (Experimental).
+
+        Example:
+
+            A ::= a {b} c
+
+            becomes
+
+            A      ::= a A_loop;
+            A_loop ::= b A_loop
+                     | c;
+        """
         # XXX can be made faster by setting a flag if there is a ebnf token
         # in the rule or not (can be done in first parse)
         new_rules = []
@@ -201,6 +245,8 @@ class Parser(object):
         return t
 
     def parse_rule(self):
+        """Read the next rule in the grammar."""
+
         symbols_level = []
         rule = Rule()
         rule.symbol = self.parse_nonterminal()

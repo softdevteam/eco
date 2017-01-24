@@ -27,6 +27,7 @@ import re, os
 from cflexer.lexer import LexingError
 
 class IncrementalLexer(object):
+    """Deprecated incremental lexer."""
     # XXX needs to be replaced by a lexing automaton to avoid unnecessary
     # relexing of unchanged nodes
 
@@ -89,7 +90,6 @@ class IncrementalLexer(object):
             return [(text, '', 0)]
 
     def relex(self, node):
-
         if isinstance(node, BOS):
             return
 
@@ -360,6 +360,21 @@ class IncrementalLexer(object):
 from cflexer.regexparse import parse_regex
 from cflexer.lexer import Lexer
 class IncrementalLexerCF(object):
+    """
+    Incrementally relexes nodes within the parse tree that have been changed.
+
+    When a node changes we need to relex that node and all nodes that are
+    dependent on it. This includes nodes before and after the altered node.
+    Previous nodes are found by observing their lookaheads. If it reaches the
+    changed node they are dependent on it and need to be relexed as well.
+
+    Relexing starts at the earliest node with lookahead into the changed node,
+    and continues until the changed node has been passed and relexing doesn't lead
+    to any more changes.
+
+    Afterwards the new nodes are merged back into the parse tree, replacing all
+    previously relexed nodes.
+    """
     def __init__(self, rules=None, language=""):
         self.indentation_based = False
         self.relexed = set()
@@ -414,6 +429,7 @@ class IncrementalLexerCF(object):
         return l
 
     def relex_import(self, startnode, version = 0):
+        """Optimised relex for freshly imported files."""
         success = self.lex(startnode.symbol.name)
         bos = startnode.prev_term # bos
         parent = bos.parent
@@ -778,7 +794,10 @@ IncrementalLexer = IncrementalLexerCF
 import sys
 
 class StringWrapper(object):
-    # XXX This is just a temprary solution. To do this right we have to alter
+    """A wrapper around nodes within the parse tree that makes them appear as a normal Python string.
+
+    Used by the lexer to generate tokens from a stream of nodes."""
+    # XXX This is just a temporary solution. To do this right we have to alter
     # the lexer to work on (node, index)-tuples
 
     def __init__(self, startnode, relexnode):

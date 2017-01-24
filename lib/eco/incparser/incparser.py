@@ -269,6 +269,7 @@ class IncParser(object):
                             la = self.left_breakdown(la)
 
     def parse_terminal(self, la, lookup_symbol):
+        """Lookup the current lookahead symbol in the syntax table and apply the received action."""
         element = None
         if la.deleted:
             # Nodes are no longer removed from the tree. Instead "deleted" nodes
@@ -336,6 +337,7 @@ class IncParser(object):
                 return "Error"
 
     def get_lookup(self, la):
+        """Get the lookup symbol of a node. If no such lookup symbol exists use the nodes symbol instead."""
         if la.lookup != "":
             lookup_symbol = Terminal(la.lookup)
         else:
@@ -525,10 +527,8 @@ class IncParser(object):
         node.log[("left", self.prev_version)] = saved_left
 
     def reduce(self, element):
-        # Reduces elements from the stack to a Nonterminal subtree.  special:
-        # COMMENT subtrees that are found on the stack during reduction are
-        # added "silently" to the subtree (they don't count to the amount of
-        # symbols of the reduction)
+        """Reduce elements on the stack to a non-terminal."""
+
         children = []
         i = 0
         while i < element.amount():

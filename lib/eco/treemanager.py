@@ -62,6 +62,11 @@ class NodeSize(object):
         self.h = h
 
 class Line(object):
+    """Representation of a source code line.
+
+    Has a reference to the node at the beginning of that line and stores the
+    lines width and height values.
+    """
     def __init__(self, node, height=1):
         self.node = node        # this lines newline node
         self.height = height    # line height
@@ -73,6 +78,12 @@ class Line(object):
         return "Line(%s, width=%s, height=%s)" % (self.node, self.width, self.height)
 
 class Cursor(object):
+    """Represents the text cursor in the sourcecode view.
+
+    Stores the current node next to the cursor, the cursors offset within this
+    node and the current line number. Can be manipulated by the user through key
+    presses."""
+
     def __init__(self, node, pos, line, lines):
         self.node = node
         self.pos = pos
@@ -174,10 +185,16 @@ class Cursor(object):
             self.line += 1
 
     def find_next_visible(self, node):
+        """Returns the next visible node in the parse tree.
+
+        Skips over invisible nodes like IndentationTerminals and crosses
+        languagebox boundaries.
+        """
         if self.is_visible(node) or isinstance(node.symbol, MagicTerminal):
             node = node.next_terminal()
         while not self.is_visible(node):
             if isinstance(node, EOS):
+                # Leave language box
                 root = node.get_root()
                 lbox = root.get_magicterminal()
                 if lbox:
@@ -186,6 +203,7 @@ class Cursor(object):
                 else:
                     return node
             elif isinstance(node.symbol, MagicTerminal):
+                # Enter language box
                 node = node.symbol.ast.children[0]
                 continue
             elif isinstance(node, MultiTextNode):
@@ -195,6 +213,7 @@ class Cursor(object):
         return node
 
     def find_previous_visible(self, node):
+        """Return the previous visible node in the parse tree."""
         if self.is_visible(node):
             node = node.previous_terminal() # XXX check for multiterm
         while not self.is_visible(node):
@@ -216,6 +235,7 @@ class Cursor(object):
         return node
 
     def is_visible(self, node):
+        """Checks whether a given node is visible in the source code view."""
         if isinstance(node.symbol, IndentationTerminal):
             return False
         if isinstance(node, BOS):
@@ -229,22 +249,26 @@ class Cursor(object):
         return True
 
     def up(self):
+        """Move the cursor a line up."""
         if self.line > 0:
             x = self.get_x()
             self.line -= 1
             self.move_to_x(x)
 
     def down(self):
+        """Move the cursor a line down."""
         if self.line < len(self.lines) - 1:
             x = self.get_x()
             self.line += 1
             self.move_to_x(x)
 
     def home(self):
+        """Jump to the beginning of the current line."""
         self.node = self.lines[self.line].node
         self.pos = len(self.node.symbol.name)
 
     def end(self):
+        """Jump to the end of the current line."""
         if self.line < len(self.lines)-1:
             self.node = self.find_previous_visible(self.lines[self.line+1].node)
         else:
@@ -254,6 +278,7 @@ class Cursor(object):
         self.pos = len(self.node.symbol.name)
 
     def move_to_x(self, x):
+        """Jump to the x-th character/column position in the current line."""
         node = self.lines[self.line].node
         while x > 0:
             newnode = self.find_next_visible(node)
@@ -274,6 +299,7 @@ class Cursor(object):
         self.node = node
 
     def get_x(self):
+        """Get the current character/column position of the cursor."""
         if self.node.symbol.name == "\r" or isinstance(self.node, BOS):
             return 0
 
@@ -291,6 +317,7 @@ class Cursor(object):
         return x
 
     def get_nodesize_in_chars(self, node):
+        """Calculate the size in characters of a non-textual node."""
         gfont = QApplication.instance().gfont
         if node.image:
             w = math.ceil(node.image.width() * 1.0 / gfont.fontwt)
@@ -300,6 +327,8 @@ class Cursor(object):
             return NodeSize(len(node.symbol.name), 1)
 
     def inside(self):
+        """Check if the cursor position is strictly within a node and not
+        between two nodes."""
         return self.pos > 0 and self.pos < len(self.node.symbol.name)
 
     def isend(self):
@@ -388,6 +417,7 @@ class TreeManager(object):
         fontmanager.fontht = self.fontht
 
     def hasSelection(self):
+        """Checks if there is any selection in the source code view."""
         return self.selection_start != self.selection_end
 
     def get_bos(self):
@@ -397,6 +427,7 @@ class TreeManager(object):
         return self.parsers[0][0].previous_version.parent.children[-1]
 
     def get_mainparser(self):
+        """Return the parser of the root language."""
         return self.parsers[0][0]
 
     def delete_parser(self, root):
