@@ -280,7 +280,6 @@ class IncParser(object):
             #XXX change parse so that stack is [bos, startsymbol, eos]
             bos = self.previous_version.parent.children[0]
             eos = self.previous_version.parent.children[-1]
-            self.pm.do_accept(bos, eos)
 
             bos.changed = False
             eos.changed = False
@@ -312,7 +311,6 @@ class IncParser(object):
                     self.refine(self.rm.iso_node, self.rm.iso_offset, self.rm.error_offset)
                     self.current_state = self.rm.new_state
                     self.rm.iso_node.isolated = True
-                    self.pm.do_incparse_optshift(self.rm.iso_node)
                     self.stack.append(self.rm.iso_node)
                     logging.debug("Recovered. Continue after %s", self.rm.iso_node)
                     return self.pop_lookahead(self.rm.iso_node)
@@ -616,8 +614,6 @@ class IncParser(object):
         return self.right_sibling(la)
 
     def right_sibling(self, node):
-        if self.indentation_based:
-            return self.pm.do_right_sibling(node)
         return node.right_sibling(self.prev_version)
 
     def shiftable(self, la):
