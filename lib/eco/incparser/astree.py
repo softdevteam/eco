@@ -533,6 +533,12 @@ class TextNode(Node):
         _cls = self.symbol.__class__
         self.symbol = _cls(text)
         self.mark_changed()
+        # Remove their lookup values to make sure the parser fails if these
+        # can't be relexed properly
+        if type(self.parent) is MultiTextNode:
+            self.parent.lookup = ""
+        else:
+            self.lookup = ""
 
     def save(self, version):
         Node.save(self, version)
@@ -624,7 +630,7 @@ class TextNode(Node):
 
 class MultiTextNode(TextNode):
     def __init__(self):
-        TextNode.__init__(self, Terminal("multinode"))
+        TextNode.__init__(self, Terminal("<Multinode>"))
 
     def insert_at_beginning(self, node):
         self.children.insert(0, node)
