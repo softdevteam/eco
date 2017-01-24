@@ -303,6 +303,7 @@ class DFA(object):
                     result.emit("i += 1")
                 with result.block("except IndexError:"):
                     result.emit("runner.state = %s" % (state, ))
+                    result.emit("runner.reachedend = True")
                     if state in self.final_states:
                         result.emit("return i")
                     else:
