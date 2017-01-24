@@ -55,17 +55,10 @@ class SyntaxHighlighter(object):
             self.colors = self.gb_colors
 
     def get_color(self, node):
-        if isinstance(node.symbol.name, list):
-            if node.lookup in self.keyword_colors:
-                color = self.keyword_colors[node.lookup]
-            else:
-                color = "default"
-            return self.colors[color]
         parent = node.parent
-       #if parent:
-       #    while parent.symbol.name.startswith("*match_until"):
-       #        parent = parent.parent
-        if parent and parent.symbol.name in self.parent_colors:
+        if parent and parent.lookup:
+            color = self.keyword_colors[parent.lookup]
+        elif parent and parent.symbol.name in self.parent_colors:
             color = self.parent_colors[parent.symbol.name]
         elif node.symbol.name in self.keyword_colors:
             color = self.keyword_colors[node.symbol.name]
@@ -125,12 +118,13 @@ class PythonHighlighter(SyntaxHighlighter):
         "print":"blue",
         "True":"blue",
         "False":"blue",
+        "MLS":"yellow",
+        "slcomment":"grey"
     }
 
     parent_colors = {
         "slcomment": "grey",
         "single_string": "cyan",
-        "multiline_string": "cyan"
     }
 
 class JavaHighlighter(SyntaxHighlighter):

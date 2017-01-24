@@ -3,6 +3,12 @@ from treemanager import TreeManager
 from utils import KEY_UP as UP, KEY_DOWN as DOWN, KEY_LEFT as LEFT, KEY_RIGHT as RIGHT
 from grammars.grammars import EcoFile
 
+import pytest
+
+if pytest.config.option.log:
+    import logging
+    logging.getLogger().setLevel(logging.DEBUG)
+
 class Test_MultiTextNode:
 
     def setup_class(cls):
@@ -149,5 +155,76 @@ class Test_MultiTextNodePython:
         self.treemanager.cursor_movement(LEFT)
         self.treemanager.cursor_movement(LEFT)
 
-        print "DO THE PRESS NOW!!!"
         self.treemanager.key_normal("\r")
+
+    def test_relex_over_indentation(self):
+        self.reset()
+        inputstring = """class X:
+    x = 1
+    def x():
+        pass
+    y = 2"""
+
+        self.treemanager.import_file(inputstring)
+
+        assert self.parser.last_status == True
+
+        self.treemanager.cursor_movement(DOWN)
+        self.treemanager.cursor_movement(DOWN)
+        self.treemanager.cursor_movement(DOWN)
+        self.treemanager.key_end()
+
+        assert self.treemanager.cursor.node.symbol.name == "pass"
+
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+
+        self.treemanager.cursor_movement(UP)
+        self.treemanager.cursor_movement(UP)
+        self.treemanager.key_end()
+
+        assert self.treemanager.cursor.node.symbol.name == "1"
+        self.treemanager.cursor_movement(LEFT)
+
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+
+        assert self.parser.last_status == True
+
+    def test_indentation_to_string_and_back(self):
+        self.reset()
+        inputstring = """class X:
+    a
+    b"""
+
+        self.treemanager.import_file(inputstring)
+
+        assert self.parser.last_status == True
+
+        self.treemanager.cursor_movement(DOWN)
+        self.treemanager.cursor_movement(DOWN)
+        self.treemanager.key_end()
+
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+
+        self.treemanager.cursor_movement(UP)
+        self.treemanager.cursor_movement(UP)
+        self.treemanager.key_home()
+
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+
+        assert self.parser.last_status == True
+
+        self.treemanager.cursor_movement(DOWN)
+        self.treemanager.cursor_movement(DOWN)
+        self.treemanager.key_end()
+        print "BEFORE BACKSPACE\n\n\n"
+        self.treemanager.key_backspace()
+
+        assert self.parser.last_status == False
