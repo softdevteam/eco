@@ -283,7 +283,6 @@ class IncParser(object):
             #XXX change parse so that stack is [bos, startsymbol, eos]
             bos = self.previous_version.parent.children[0]
             eos = self.previous_version.parent.children[-1]
-            self.pm.do_accept(bos, eos)
 
             bos.changed = False
             eos.changed = False
@@ -315,7 +314,6 @@ class IncParser(object):
                     self.refine(self.rm.iso_node, self.rm.iso_offset, self.rm.error_offset)
                     self.current_state = self.rm.new_state
                     self.rm.iso_node.isolated = True
-                    self.pm.do_incparse_optshift(self.rm.iso_node)
                     self.stack.append(self.rm.iso_node)
                     logging.debug("Recovered. Continue after %s", self.rm.iso_node)
                     return self.pop_lookahead(self.rm.iso_node)
@@ -474,13 +472,25 @@ class IncParser(object):
 
         # save childrens parents state
         for c in children:
-            self.undo.append((c, 'parent', c.parent))
-            self.undo.append((c, 'left', c.left))
-            self.undo.append((c, 'right', c.right))
-            self.undo.append((c, 'log', c.log.copy()))
-            c.mark_version() # XXX with node reuse we only have to do this if the parent changes
+            c.local_error = False
+            c.nested_errors = False
+            if not c.new:
+                # just marking changed is not enough. If we encounter an error
+                # during reduction the path from the root down to this node is
+                # incomplete and thus can't be reverted/isolate properly
+                c.mark_changed()
 
-        new_node = Node(element.action.left.copy(), goto.action, children)
+        reuse_parent = self.ambig_reuse_check(element.action.left, children)
+        if not self.needs_reparse and reuse_parent:
+            new_node = reuse_parent
+            new_node.changed = False
+            new_node.isolated = False
+            new_node.set_children(children)
+            new_node.state = goto.action # XXX need to save state using hisotry service
+            new_node.mark_changed()
+        else:
+            new_node = Node(element.action.left.copy(), goto.action, children)
+        new_node.refresh_textlen()
         logging.debug("   Add %s to stack and goto state %s", new_node.symbol, new_node.state)
         self.stack.append(new_node)
         self.current_state = new_node.state # = goto.action
@@ -607,8 +617,6 @@ class IncParser(object):
         return self.right_sibling(la)
 
     def right_sibling(self, node):
-        if self.indentation_based:
-            return self.pm.do_right_sibling(node)
         return node.right_sibling(self.prev_version)
 
     def shiftable(self, la):
