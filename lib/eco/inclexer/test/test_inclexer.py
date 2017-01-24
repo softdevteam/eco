@@ -846,16 +846,25 @@ class Test_CalcLexer(Test_IncrementalLexer):
         eos = ast.parent.children[1]
         text1 = TextNode(Terminal("\"abc"))
         lbox  = TextNode(MagicTerminal("<SQL>"))
-        text2 = TextNode(Terminal("d\"ef\""))
+        text2 = TextNode(Terminal("d\"ef\"g"))
         bos.insert_after(text1)
         text1.insert_after(lbox)
         lbox.insert_after(text2)
         pytest.raises(LexingError, lexer.relex, text1)
-        text2.symbol.name = "d\"ef"
-        lexer.relex(text1)
+        assert type(bos.next_term) is MultiTextNode
+        assert bos.next_term.children[0] is text1
+        assert bos.next_term.children[1] is lbox
+        assert bos.next_term.children[2] is text2
+        assert text2.symbol.name == "d\""
+        assert bos.next_term.next_term.symbol.name == "ef"
+        leftover = bos.next_term.next_term.next_term
+        assert leftover.symbol.name == "\"g"
+
+        bos.next_term.next_term.next_term.symbol.name = "g"
+        lexer.relex(leftover)
         assert bos.next_term.lookup == "str"
         assert bos.next_term == mk_multitextnode([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("d\"")])
-        assert bos.next_term.next_term.symbol.name == "ef"
+        assert bos.next_term.next_term.symbol.name == "efg"
 
     def test_multitoken_real_lbox_relex(self):
         lexer = IncrementalLexer("""

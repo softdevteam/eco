@@ -631,7 +631,7 @@ class TextNode(Node):
 
 class MultiTextNode(TextNode):
     def __init__(self):
-        TextNode.__init__(self, Terminal("multinode"))
+        TextNode.__init__(self, Terminal("<Multinode>"))
 
     def insert_at_beginning(self, node):
         self.children.insert(0, node)
