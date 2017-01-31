@@ -19,7 +19,7 @@ class PGThread(Thread):
 
 class PGViewer(object):
 
-    def __init__(self, root, version):
+    def __init__(self, root, version, max_version = None):
         self.root = root
 
         self.whitespaces = True
@@ -30,7 +30,7 @@ class PGViewer(object):
         self.links = {}
         self.gl = drawgraph.GraphLayout(0,0,0)
         self.gl.pgviewer = self
-        self.max_version = 0
+        self.max_version = max_version
         self.t = None
 
     def quit(self):
@@ -215,4 +215,4 @@ def splitline(line, re_word = re.compile(r'[^\s"]\S*|["]["]|["].*?[^\\]["]')):
     return result
 
 def debug(treemanager):
-    PGViewer(treemanager.get_mainparser().previous_version.parent, treemanager.version).run()
+    PGViewer(treemanager.get_mainparser().previous_version.parent, treemanager.version, treemanager.get_max_version()).run()
