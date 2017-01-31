@@ -436,7 +436,16 @@ class IncParser(object):
             logging.debug("    Failed: Node has no changes")
             return
 
-        #XXX lookahead can't have changes either
+        # check if subtree is followed by terminal requiring analysis
+        # (includes deleted terminals)
+        follow = self.next_terminal(node)
+        if follow.deleted: # or follow.changed:
+            # XXX This should also include `follow.changed`, but since currently nodes
+            # are marked as changed even if just their siblings or next_terms
+            # are updated, this would fail for most out-of-context analyses
+            logging.debug("   Failed: Surrounding context has changed")
+            self.isolate(node)
+            return
 
         temp_parser = IncParser()
         temp_parser.syntaxtable = self.syntaxtable
@@ -497,7 +506,7 @@ class IncParser(object):
         newnode = temp_parser.stack[-1]
 
         if newnode.symbol.name != oldname:
-            logging.debug("OOC analysis resulted in different symbol")
+            logging.debug("OOC analysis resulted in different symbol: %s", newnode.symbol.name)
             # not is not the same: revert all changes!
             node.log[("left", self.prev_version)] = saved_left
             self.isolate(node)
@@ -505,7 +514,8 @@ class IncParser(object):
 
         if newnode is not node:
             node.log[("left", self.prev_version)] = saved_left
-            logging.debug("OOC analysis resulted in different node but same symbol")
+            logging.debug("OOC analysis resulted in different node but same symbol: %s", newnode.symbol.name)
+            assert len(temp_parser.stack) == 2 # should only contain [EOS, node]
             i = oldparent.children.index(node)
             oldparent.children[i] = newnode
             newnode.parent = oldparent
@@ -521,6 +531,7 @@ class IncParser(object):
             return
 
         logging.debug("Subtree resulted in the same parse as before %s %s", newnode, node)
+        assert len(temp_parser.stack) == 2 # should only contain [EOS, node]
         node.parent = oldparent
         node.left = oldleft
         node.right = oldright
@@ -799,7 +810,6 @@ class IncParser(object):
 
     def surrounding_context_changed(self, node):
         # find isolation trees last terminal
-        print("surroduning", node)
         while isinstance(node, Nonterminal):
             if node.children:
                 node = node.children[-1]
@@ -812,6 +822,15 @@ class IncParser(object):
         # found terminal
         if node.next_term.changed:
             return True
-        
+
         if node.next_term is not node.get_attr("next_term", self.prev_version):
             return True
+
+    def next_terminal(self, node):
+        n = self.pop_lookahead(node)
+        while type(n.symbol) is Nonterminal:
+            if len(n.children) > 0:
+                n = n.children[0]
+            else:
+                n = self.pop_lookahead(n)
+        return n

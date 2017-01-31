@@ -2268,6 +2268,79 @@ class Test_Undo(Test_Python):
         self.treemanager.key_delete()
         self.treemanager.key_delete()
 
+    def test_undo_random_deletion_bug5(self):
+        self.reset()
+
+        connect4 = """class Connect4:
+    def __init__(self):
+        pass1X
+
+    def _update_from_pos_one_colour():
+        pass2
+
+    def _turn(self):
+        while True:
+            pass3X
+
+    def _end():
+        for i in buttons:
+            pass4
+
+        if winner_colour:
+            pass5"""
+
+        self.treemanager.import_file(connect4)
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 9)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 7)
+        self.move(RIGHT, 19)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 7)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_end()
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 7)
+        self.move(RIGHT, 6)
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 15)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 12)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+
     def get_random_key(self):
         import random
         keys = list("abcdefghijklmnopqrstuvwxyz0123456789 \r:,.[]{}()!$%^&*()_+=")
