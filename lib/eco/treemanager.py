@@ -1820,8 +1820,6 @@ class TreeManager(object):
         if self.version < self.global_version:
             # we changed stuff after one or more undos
             # later versions are void -> delete
-            #self.clean_versions(self.version)
-            #self.last_saved_version = self.version
             for l in self.parsers:
                 root = l[0].previous_version.parent
                 for v in reversed(range(self.version+1, self.global_version+1)):

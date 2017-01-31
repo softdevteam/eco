@@ -171,12 +171,6 @@ class AbstractLexingDFARunner(deterministic.DFARunner):
                 if start == stop:
                     source = self.text[start:]
                     raise LexingError("Could not successfully parse %s" % source)
-                    result = self.make_token(start, -1, self.last_matched_state, lookahead = i - stop)
-                    self.last_matched_index = start + len(source)
-                    return result
-                    #source_pos = SourcePos(i - 1, self.lineno, self.columnno)
-                    #raise deterministic.LexerError(self.text, self.state,
-                    #                               source_pos)
                 source = self.text[start:stop]
                 lookahead = i - stop
                 if self.reachedend:
@@ -201,7 +195,6 @@ class AbstractLexingDFARunner(deterministic.DFARunner):
                     if self.eof:
                         self.last_matched_index += 1
                         assert False
-                        return None#self.make_token(i, -1, "", eof=True)
                     else:
                         raise StopIteration
                 return result
@@ -252,10 +245,9 @@ class LexingDFARunner(AbstractLexingDFARunner):
 
     def make_token(self, start, stop, state, eof=False, lookahead=None):
         assert (eof and state == -1) or 0 <= state < len(self.automaton.names)
-        #source_pos = SourcePos(index, self.lineno, self.columnno)
         source_pos = None
         if self.last_matched_state == 0:
-            raise LexingError("blupp")
+            raise LexingError("")
         tokentype = self.automaton.names[self.last_matched_state]
         if isinstance(self.text, str):
             # lexing normal strings

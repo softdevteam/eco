@@ -106,15 +106,13 @@ class RecoveryManager(object):
         # Reaching this point means we found a candidate for isolation. Now we
         # need to check if we can continue parsing if we isolate this subtree
 
-        cut_point = cut
-
         # Check if the isolation candidate can be shifted at the point to which
         # we need to cut down the stack.
-        element = self.syntaxtable.lookup(self.stack[cut_point].state, node.symbol)
+        element = self.syntaxtable.lookup(self.stack[cut].state, node.symbol)
         if not element:
             # Couldn't shift candidate at this point. Try to adjust for empty
             # Nonterminals, before giving up.
-            temp_cp = cut_point + 1
+            temp_cp = cut + 1
             if temp_cp >= len(self.stack):
                 # Reached end of stack. Isolation tree can't be pushed here.
                 return False
@@ -122,7 +120,7 @@ class RecoveryManager(object):
             while len(self.stack[temp_cp].children) == 0:
                 element = self.syntaxtable.lookup(self.stack[temp_cp].state, node.symbol)
                 if isinstance(element, Goto):
-                    cut_point = temp_cp
+                    cut = temp_cp
                     break
                 temp_cp += 1
                 if temp_cp > len(self.stack) - 1:
@@ -133,7 +131,7 @@ class RecoveryManager(object):
             # Found a valid isolation subtree. Now cut back the stack to the
             # position where we can push the subtree and setup the parser so
             # parsing can continue.
-            self.stack[:] = self.stack[:cut_point+1]
+            self.stack[:] = self.stack[:cut+1]
             self.new_state = element.action
             self.iso_node = node
             self.iso_node.state = self.new_state

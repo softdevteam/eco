@@ -80,7 +80,7 @@ class SyntaxTable(object):
             state_set = graph.get_state_set(i)
             for state in state_set.elements:
                 if state.isfinal():
-                    if state.p.left == None:
+                    if state.p.left is None:
                         self.table[(i, FinishSymbol())] = Accept()
                     else:
                         if self.lr_type in [LR1, LALR]:

@@ -70,8 +70,6 @@ class Symbol(object):
     def copy(self):
         return self.__class__(self.name, self.folding)
 
-    
-
 class Terminal(Symbol):
     """Literal symbol produced by the lexer."""
     def __repr__(self):
