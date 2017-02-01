@@ -9,13 +9,17 @@ addons:
     packages:
       python-qt4
 
+cache:
+  directories:
+    - lib/eco/pickle
+
 install:
     - "pip install py"
 
 script:
 - if [ "${TRAVIS_PULL_REQUEST}" == "false" ] && [ "${TRAVIS_BRANCH}" == "master" ] ;
   then
-     cd lib/eco; py.test test/test_eco.py --runslow ;
+     cd lib/eco; travis_wait 30 py.test test/test_eco.py --runslow ;
    else
-     cd lib/eco; py.test test/test_eco.py ;
+     cd lib/eco; travis_wait 30 py.test test/test_eco.py ;
   fi
