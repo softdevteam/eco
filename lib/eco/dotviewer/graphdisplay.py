@@ -468,12 +468,20 @@ class GraphDisplay(Display):
             if node.name in self.layout.links:
                 realnode = self.layout.links[node.name]
                 text = ["v%s " % self.layout.pgviewer.version]
+                text.append(str(id(realnode)))
                 if isinstance(realnode.symbol, Terminal):
                     self.add_status_text(text, realnode, "ns")
                     self.add_status_text(text, realnode, "lookup")
                     self.add_status_text(text, realnode, "prev_term")
                     self.add_status_text(text, realnode, "next_term")
+                    self.add_status_text(text, realnode, "left")
+                    self.add_status_text(text, realnode, "right")
+                elif isinstance(realnode.symbol, Nonterminal):
+                    self.add_status_text(text, realnode, "changed")
+                    self.add_status_text(text, realnode, "nested_changes")
                 self.add_status_text(text, realnode, "indent")
+                self.add_status_text(text, realnode, "parent")
+                self.add_status_text(text, realnode, "state")
                 text = "; ".join(text)
             else:
                 text = "No info"
@@ -512,6 +520,8 @@ class GraphDisplay(Display):
             if info.lookup == "<ws>":
                 return "ws(%s)" % len(info.symbol.name)
             if info.lookup == "<return>":
+                return repr(info.symbol.name)
+            if isinstance(info.symbol.name, str):
                 return repr(info.symbol.name)
             return info.symbol.name
         return str(info)
@@ -720,6 +730,7 @@ class GraphDisplay(Display):
         raise StopIteration
 
     def redraw_now(self):
+        self.viewer.highlightwords = self.layout.links
         self.viewer.render()
         if self.statusbarinfo:
             self.drawstatusbar()

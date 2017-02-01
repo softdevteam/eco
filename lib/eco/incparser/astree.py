@@ -165,6 +165,7 @@ class Node(object):
         self.magic_parent = None
         self.set_children(children)
         self.log = {}
+        self.max_version = None
         self.annotations = []
 
     def add_annotation(self, annotation):
@@ -189,38 +190,20 @@ class Node(object):
                     matching.append(annotation)
         return matching
 
-    def save_ns(self, setchildren=False):
-        from treemanager import TreeManager
-        self.log[("ns", TreeManager.version)] = True
-
     def mark_changed(self):
+        if self.changed or self.nested_changes:
+            # this has already been marked
+            self.changed = True
+            return
         node = self
+        self.changed = True
         while True:
-            node.save_ns()
-            node.version = node.version + 0.000001
             if not node.parent:
-                # if language box changed we need to update the version numbers
-                # in the parent parser as well
-                if node.get_magicterminal():
-                    node.get_magicterminal().mark_version()
                 break
-            if node.parent.changed is True and node.parent.has_changes() is True:
+            if node.parent.has_changes():
                 break
             node = node.parent
-            node.changed = True
-
-    def mark_version(self):
-        node = self
-        while True:
-            node.save_ns()
-            node.version = node.version + 0.000001
-            if not node.parent:
-                if node.get_magicterminal():
-                    node.get_magicterminal().mark_version()
-                break
-            if node.parent.has_changes() is True:
-                break
-            node = node.parent
+            node.nested_changes = True
 
     def set_children(self, children):
         self.children = children
@@ -231,12 +214,25 @@ class Node(object):
             if last is not None:
                 last.right = c
             last = c
-            c.save_ns(True)
         if last is not None:
             last.right = None # last child has no right sibling
             #XXX need to save this?
 
+    def update_siblings(self):
+        for i in range(len(self.parent.children)):
+            c = self.parent.children[i]
+            if c is self:
+                if i > 0:
+                    c.left = self.parent.children[i-1]
+                if i < len(self.parent.children) - 1:
+                    c.right = self.parent.children[i+1]
+                break
+
     def save(self, version):
+        # XXX version set, e.g. set(0,1,5,6,9) that contains all versions in
+        # which this node has been saved. this way we can easily check if a
+        # the node has changes in that version and quickly get the closest
+        # versions to it if not
         self.log[("children", version)] = list(self.children)
         self.log[("parent", version)] = self.parent
         self.log[("left", version)] = self.left
@@ -245,6 +241,17 @@ class Node(object):
         self.log[("prev_term", version)] = self.prev_term
         self.log[("deleted", version)] = self.deleted
         self.log[("indent", version)] = self.indent
+        self.log[("changed", version)] = self.changed
+        self.log[("nested_changes", version)] = self.nested_changes
+        self.log[("nested_errors", version)] = self.nested_errors
+        self.log[("local_error", version)] = self.local_error
+        self.log[("textlen", version)] = self.textlen
+        self.log[("isolated", version)] = self.isolated
+        self.log[("version", version)] = version
+        if self.new:
+            self.log[("new", version)] = True
+            self.new = False
+        # XXX save lookback
         self.version = version
 
     def load(self, version):
@@ -258,14 +265,37 @@ class Node(object):
                 self.prev_term = self.log[("prev_term", version)]
                 self.deleted = self.log[("deleted", version)]
                 self.indent = self.log[("indent", version)]
+                self.changed = self.log[("changed", version)]
+                self.nested_changes = self.log[("nested_changes", version)]
+                self.local_error = self.log[("local_error", version)]
+                self.nested_errors = self.log[("nested_errors", version)]
+                self.textlen = self.log[("textlen", version)]
+                self.isolated = self.log[("isolated", version)]
                 self.version = version
                 return
             version -= 1
 
+    def delete_version(self, version):
+        if not ("parent", version) in self.log:
+            return
+        assert version <= self.max_version
+        for attr in ["parent", "children", "left", "right", "next_term", "prev_term", "deleted", "indent",\
+                "changed", "nested_changes", "local_error", "nested_errors", "symbol.name", "lookup", "version"]:
+            if (attr, version) in self.log:
+                self.log.pop((attr, version))
+        # reset max_version
+        new_max = version - 1
+        while not ("parent", new_max) in self.log:
+            if new_max == 0:
+                break
+            new_max -= 1
+        self.max_version = new_max
+
     def get_attr(self, attr, version):
         if version is None:
-            return self.__getattribute__(attr)
-        version = int(version)
+            return getattr(self, attr)
+        if self.max_version and version > self.max_version:
+            return self.log[(attr, self.max_version)]
         while version >= 0:
             try:
                 return self.log[(attr, version)]
@@ -273,60 +303,71 @@ class Node(object):
                 version -= 1
         raise AttributeError("Attribute %s for version %s not found." % (attr, version))
 
-    def remove_child(self, child):
+    def remove_child(self, child, remove=False):
         for i in xrange(len(self.children)):
             if self.children[i] is child:
-                removed_child = self.children.pop(i)
+                removed_child = child
                 removed_child.deleted = True
-                removed_child.save_ns()
-                # update siblings
-                if removed_child.left:
-                    removed_child.left.right = removed_child.right
-                    removed_child.left.save_ns()
-                if removed_child.right:
-                    removed_child.right.left = removed_child.left
-                    removed_child.right.save_ns()
-                # update terminal pointers
                 child.prev_term.next_term = child.next_term
-                child.prev_term.save_ns()
-                child.prev_term.mark_version()
+                child.prev_term.mark_changed()
                 child.next_term.prev_term = child.prev_term
-                child.next_term.save_ns()
-                child.next_term.mark_version()
+                child.next_term.mark_changed()
+                child.mark_changed()
                 self.mark_changed()
-                self.changed = True
+                if remove:
+                    self.children.pop(i)
+                    if removed_child.left:
+                        removed_child.left.right = removed_child.right
+                        removed_child.left.changed = True
+                    if removed_child.right:
+                        removed_child.right.left = removed_child.left
+                        removed_child.right.changed = True
                 return
 
     def insert_after(self, node):
         self.parent.insert_after_node(self, node)
+
+    def remove(self, remove=False):
+        self.parent.remove_child(self, remove)
+
+    def replace(self, node):
+        # XXX non optimal version
+        self.insert_after(node)
+        self.remove()
+
+    def ismultichild(self):
+        return isinstance(self.parent, MultiTextNode)
 
     def insert_after_node(self, node, newnode):
         i = 0
         for c in self.children:
             if c is node:
                 self.children.insert(i+1, newnode)
+                self.mark_changed()
                 newnode.parent = self
                 newnode.mark_changed()
                 # update siblings
                 newnode.left = c
                 newnode.right = c.right
                 c.right = newnode
-                c.save_ns()
+                c.changed = True
                 if newnode.right:
                     newnode.right.left = newnode
-                    newnode.right.save_ns()
+                    newnode.right.changed = True
                 # update terminal pointers
                 newnode.prev_term = node
                 node.next_term.prev_term = newnode
-                node.next_term.save_ns()
-                node.next_term.mark_version()
+                node.next_term.mark_changed()
                 newnode.next_term = node.next_term
                 node.next_term = newnode
                 newnode.magic_parent = node.magic_parent
                 return
             i += 1
+        assert False
 
-    def right_sibling(self):
+    def right_sibling(self, version=None):
+        if version:
+            return self.get_attr("right", version)
         return self.right
 
     def old_right_sibling(self):
@@ -348,19 +389,26 @@ class Node(object):
             else:
                 last = siblings[i]
 
-    def find_first_terminal(self):
+    def find_first_terminal(self, version):
         node = self
         while isinstance(node.symbol, Nonterminal):
-            if node.children == []:
-                while node.right is None:
-                    node = node.parent
-                node = node.right
+            if node.get_attr("children", version) == []:
+                while node.right_sibling(version) is None:
+                    node = node.get_attr("parent", version)
+                node = node.right_sibling(version)
             else:
-                node = node.children[0]
+                node = node.get_attr("children", version)[0]
+        while node.deleted:
+            node = node.get_attr("next_term", version)
         return node
 
     def next_terminal(self, skip_indent=False):
         n = self.next_term
+        if not n:
+            if type(self.parent) is MultiTextNode:
+                return self.parent.next_term
+        if type(n) is MultiTextNode:
+            return n.children[0]
         if skip_indent:
             while n is not None and isinstance(n.symbol, IndentationTerminal):
                 n = n.next_term
@@ -387,6 +435,11 @@ class Node(object):
 
     def previous_terminal(self, skip_indent = False):
         n = self.prev_term
+        if not n:
+            if type(self.parent) is MultiTextNode:
+                return self.parent.prev_term
+        if type(n) is MultiTextNode:
+            return n.children[-1]
         if skip_indent:
             while n is not None and isinstance(n.symbol, IndentationTerminal):
                 n = n.prev_term
@@ -444,11 +497,15 @@ uppercase = set(list(string.ascii_uppercase))
 digits = set(list(string.digits))
 
 class TextNode(Node):
-    __slots__ = ["log", "version", "position", "changed", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookup", "parent_lbox", "magic_backpointer", "indent"]
+    __slots__ = ["log", "max_version", "version", "position", "changed", "isolated", "textlen", "local_error", "nested_errors", "nested_changes", "new", "deleted", "image", "image_src", "plain_mode", "alternate", "lookahead", "lookback", "lookup", "parent_lbox", "magic_backpointer", "indent"]
     def __init__(self, symbol, state=-1, children=[], pos=-1, lookahead=0):
         Node.__init__(self, symbol, state, children)
         self.position = 0
-        self.changed = False
+        self.changed = False #XXX should maybe be True by default
+        self.new = True
+        self.nested_changes = False
+        self.local_error = False
+        self.nested_errors = False
         self.deleted = False
         self.image = None
         self.image_src = None
@@ -459,6 +516,9 @@ class TextNode(Node):
         self.log = {}
         self.version = 0
         self.indent = None
+        self.textlen = -1
+        self.isolated = False
+        self.lookback = 0
 
     def get_magicterminal(self):
         try:
@@ -505,14 +565,28 @@ class TextNode(Node):
     def change_text(self, text):
         _cls = self.symbol.__class__
         self.symbol = _cls(text)
-        self.mark_version()
+        self.mark_changed()
+        # Remove their lookup values to make sure the parser fails if these
+        # can't be relexed properly
+        if type(self.parent) is MultiTextNode:
+            self.parent.lookup = ""
+        else:
+            self.lookup = ""
 
     def save(self, version):
         Node.save(self, version)
         self.log[("symbol.name", version)] = self.symbol.name
+        self.log[("lookup", version)] = self.lookup
+        self.max_version = version
 
     def load(self, version):
         Node.load(self, version)
+        while version >= 0:
+            if ("parent", version) in self.log:
+                self.lookup = self.log[("lookup", version)]
+                break
+            version -= 1
+
         if not isinstance(self.symbol, Terminal):
             return
         text = self.get_text(version)
@@ -521,21 +595,48 @@ class TextNode(Node):
         else:
             pass
 
-    def has_changes(self, version=None):
-        if version is None:
-            from treemanager import TreeManager
-            version = TreeManager.version
-        return self.log.has_key(("ns", version))
+    def is_new(self, version):
+        return ("new", version) in self.log
+
+    def textlength(self, version = None):
+        if version:
+            return self.get_attr("textlen", version)
+        return self.textlen
+
+    def calc_textlength(self):
+        if self.children:
+            self.textlen = sum([c.textlen for c in self.children])
+        elif self.deleted or isinstance(self.symbol, FinishSymbol) or isinstance(self, BOS) or isinstance(self.symbol, Nonterminal):
+            self.textlen = 0
+        else:
+            self.textlen = len(self.symbol.name)
+
+    def has_unsaved_changes(self):
+        if self.changed != self.log[("changed", self.version)]:
+            return True
+        if self.nested_changes != self.log[("nested_changes", self.version)]:
+            return True
+        return False
+
+    def has_changes(self, version = None):
+        if version:
+            return self.get_attr("changed", version) or self.get_attr("nested_changes", version)
+        return self.changed or self.nested_changes
+
+    def exists(self, version = None):
+        if version:
+            return not self.get_attr("deleted", version)
+        return not self.deleted
+
+    def has_errors(self):
+        return self.nested_errors or self.local_error
 
     def get_text(self, version):
-        while True:
-            try:
+        while version >= 0:
+            if ("symbol.name", version) in self.log:
                 return self.log[("symbol.name", version)]
-            except KeyError:
-                version -= 1
-                if version == -1:
-                    return None
-                continue
+            version -= 1
+        return self.symbol.name
 
     def insert(self, char, pos):
         l = list(self.symbol.name)
@@ -558,6 +659,46 @@ class TextNode(Node):
 
     def __repr__(self):
         return "%s(%s, %s, %s, %s)" % (self.__class__.__name__, self.symbol, self.state, len(self.children), self.lookup)
+
+class MultiTextNode(TextNode):
+    def __init__(self):
+        TextNode.__init__(self, Terminal("<Multinode>"))
+
+    def insert_at_beginning(self, node):
+        self.children.insert(0, node)
+        node.parent = self
+
+    def update_children(self):
+        for i in xrange(len(self.children)):
+            c = self.children[i]
+            if i == 0:
+                c.left = None
+                c.prev_term = None
+            else:
+                c.left = c.prev_term = self.children[i-1]
+            if i < len(self.children) - 1:
+                c.right = c.next_term = self.children[i+1]
+            else:
+                c.right = None
+                c.next_term = None
+
+    def insert_after_node(self, node, newnode):
+        for i in xrange(len(self.children)):
+            if self.children[i] is node:
+                self.children.insert(i+1, newnode)
+                newnode.parent = self
+
+    def remove_child(self, child, version=None):
+        for i in xrange(len(self.children)):
+            if self.children[i] is child:
+                self.children.pop(i)
+                return
+
+    def isempty(self):
+        return self.children == []
+
+    def __repr__(self):
+        return "MultiTextNode(%s)" % self.children
 
 class SpecialTextNode(TextNode):
     def backspace(self, pos):

@@ -25,6 +25,7 @@ from state import StateSet, State, LR0Element
 from production import Production
 from helpers import Helper
 from syntaxtable import FinishSymbol
+from grammar_parser.gparser import Terminal
 from constants import LR0, LR1, LALR
 from time import time
 import logging
@@ -61,6 +62,8 @@ class StateGraph(object):
             self.goto = helper.goto_1
             self.start_set = StateSet()
             self.start_set.add(LR0Element(Production(None, [self.start_symbol]), 0), set([FinishSymbol()]))
+            for s in grammar:
+                self.start_set.add(LR0Element(Production(None, [Terminal("<bos_%s>" % s.name), s]), 0), set([FinishSymbol(s.name)]))
 
     def build(self):
         State._hashtime = 0

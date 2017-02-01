@@ -15,9 +15,16 @@ COLOR = {
     'black': (0,0,0),
     'white': (255,255,255),
     'red': (255,0,0),
+    'firebrick': (205,50,50),
     'green': (0,255,0),
+    'limegreen': (50,255,50),
+    'mediumseagreen': (60,179,113),
+    'darkgreen': (50,255,50),
     'blue': (0,0,255),
     'yellow': (255,255,0),
+    'orange': (255,165,0),
+    'gray': (90,90,90),
+    'purple': (165,105,189),
     }
 re_nonword=re.compile(r'([^0-9a-zA-Z_.]+)')
 re_linewidth=re.compile(r'setlinewidth\((\d+(\.\d*)?|\.\d+)\)')
@@ -499,6 +506,32 @@ class GraphRenderer:
             def cmd():
                 pygame.draw.rect(self.screen, fgcolor, rect, 1)
             commands.append(cmd)
+            if node.name in self.highlightwords:
+                realnode = self.highlightwords[node.name]
+                try:
+                    v = int(realnode.get_attr("version", self.graphlayout.pgviewer.version))
+                except AttributeError:
+                    v = int(realnode.version)
+                try:
+                    changed = int(realnode.get_attr("changed", self.graphlayout.pgviewer.version))
+                    nested_changes = int(realnode.get_attr("nested_changes", self.graphlayout.pgviewer.version))
+                except AttributeError:
+                    changed = realnode.changed
+                    nested_changes = realnode.nested_changes
+                changed_str = ""
+                if nested_changes:
+                    changed_str += "N"
+                if changed:
+                    changed_str += "C"
+                font = self.getfont(10)
+                img = TextSnippet(self, str(v), (0,0,0), bgcolor, font=font)
+                img2 = TextSnippet(self, changed_str, (0,0,0), bgcolor, font=font)
+                w,h = img.get_size()
+                def cmd(img=img, y=hmax, w=w):
+                    img.draw(x + boxwidth - w, ytop-h)
+                    img2.draw(x + boxwidth - w, ycenter)
+                commands.append(cmd)
+            
         elif node.shape == 'ellipse':
             rect = (x-1, y-1, boxwidth+2, boxheight+2)
             def cmd():

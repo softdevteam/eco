@@ -27,7 +27,7 @@ class PluginManager:
                     print("WARNING: Plugin %s has no method '%s'" % (type(p), fname))
             def func(*args, **kwargs):
                 for f in funcs:
-                    f(*args, **kwargs)
+                    return f(*args, **kwargs)
             return func
         else:
             return object.__getattribute__(self, attr)

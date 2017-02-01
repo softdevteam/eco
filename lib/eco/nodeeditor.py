@@ -31,12 +31,13 @@ from treemanager import TreeManager
 from grammars.grammars import submenu_langs as languages, lang_dict
 from grammar_parser.gparser import MagicTerminal, IndentationTerminal
 from grammar_parser.bootstrap import ListNode, AstNode
-from incparser.astree import BOS, EOS
+from incparser.astree import BOS, EOS, MultiTextNode
 from jsonmanager import JsonManager
 from utils import KeyPress
 from overlay import Overlay
 from incparser.annotation import Footnote, Heatmap, Railroad, ToolTip
 from incparser.annotation import HUDEval, HUDTypes, HUDCallgraph, HUDHeatmap
+from incparser.astree import TextNode
 
 import syntaxhighlighter
 import renderers
@@ -44,6 +45,18 @@ import renderers
 import logging
 
 whitelist = set(u"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!\"$%^&*()_-+=;:'@#~[]{},.<>/?|\\`\r ")
+
+def debug_trace():
+  '''Set a tracepoint in the Python debugger that works with Qt'''
+  from PyQt4.QtCore import pyqtRemoveInputHook
+
+  # Or for Qt5
+  #from PyQt5.QtCore import pyqtRemoveInputHook
+
+  from pdb import set_trace
+  pyqtRemoveInputHook()
+  set_trace()
+
 
 class NodeEditor(QFrame):
 
@@ -324,6 +337,16 @@ class NodeEditor(QFrame):
 
 
     #XXX if starting node is inside language box, init lbox with amount of language boxes
+
+    def new_paint_nodes(self, paint, node, x, y, line, max_y, lbox=0):
+        from nodepainter import NodePainter
+        np = NodePainter(paint, node, x, y, line, max_y, lbox)
+        np.cursor = self.tm.cursor
+        np.repaint()
+        self.lines = self.tm.lines
+        self.cursor = self.tm.cursor
+        return np.x, np.y, np.line
+
     def paint_nodes(self, paint, node, x, y, line, max_y, lbox=0):
 
         settings = QSettings("softdev", "Eco")
@@ -417,6 +440,10 @@ class NodeEditor(QFrame):
                     self.lines[line].width = x / self.fontwt
                     break
 
+            if isinstance(node.symbol.name, list):
+                node = node.symbol.name[0]
+                continue
+
             # draw language boxes
             if lbox > 0 and (draw_lbox or draw_all_boxes):
                 if draw_all_boxes:
@@ -484,7 +511,7 @@ class NodeEditor(QFrame):
                     paint.setFont(self.font)
 
             # after we drew a return, update line information
-            if node.lookup == "<return>" and not node is first_node:
+            if (node.lookup == "<return>" or node.symbol.name == "\r") and not node is first_node:
                 # draw lbox to end of line
                 if draw_lbox or (draw_all_boxes and lbox > 0):
                     paint.fillRect(QRectF(x,3+y*self.fontht, self.geometry().width()-x, self.fontht), color)
@@ -536,7 +563,7 @@ class NodeEditor(QFrame):
                         err_color = "red"
                     self.draw_squiggly_line(paint,x-length,y,length, err_color)
 
-            node = node.next_term
+            node = node.next_terminal()
 
         if selection_start != selection_end:
             self.draw_selection(paint, draw_selection_start, draw_selection_end, max_y)
@@ -798,6 +825,8 @@ class NodeEditor(QFrame):
         # has been processes in get_nodes_at_pos -> reset
         self.edit_rightnode = False
 
+        reparse = True
+
         if key.escape:
             self.tm.key_escape()
         elif key.backspace:
@@ -812,6 +841,7 @@ class NodeEditor(QFrame):
                 self.tm.ctrl_cursor(key, shift=key.m_shift)
             else:
                 self.tm.key_cursors(key, shift=key.m_shift)
+                reparse = False
         elif key.delete:
             startundotimer = True
             self.tm.key_delete()
@@ -835,7 +865,8 @@ class NodeEditor(QFrame):
                     return
             self.tm.key_normal(text)
 
-        self.getWindow().btReparse([])
+        if reparse:
+            self.getWindow().btReparse([])
         self.update()
         self.emit(SIGNAL("keypress(QKeyEvent)"), e)
         self.getWindow().showLookahead()

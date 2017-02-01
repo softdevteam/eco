@@ -35,18 +35,18 @@ class SyntaxTableElement(object):
         return "%s(%s)" % (self.__class__.__name__, self.action)
 
 class FinishSymbol(object):
-    def __init__(self):
-        self.name = "eos"
+    def __init__(self, name="eos"):
+        self.name = name
 
     def __eq__(self, other):
         return isinstance(other, FinishSymbol)
 
     def __hash__(self):
         # XXX hack: may cause errors if grammar consist of same symbol
-        return hash("FinishSymbol123")
+        return hash("FinishSymbol(%s)" % (self.name))
 
     def __repr__(self):
-        return "$"
+        return "$(%s)" % self.name
 
 class Goto(SyntaxTableElement): pass
 class Shift(SyntaxTableElement): pass
@@ -73,7 +73,6 @@ class SyntaxTable(object):
         self.lr_type = lr_type
 
     def build(self, graph, precedences=[]):
-        start_production = Production(None, [graph.start_symbol])
         symbols = graph.get_symbols()
         symbols.add(FinishSymbol())
         for i in range(len(graph.state_sets)):
@@ -81,7 +80,7 @@ class SyntaxTable(object):
             state_set = graph.get_state_set(i)
             for state in state_set.elements:
                 if state.isfinal():
-                    if state.p == start_production:
+                    if state.p.left is None:
                         self.table[(i, FinishSymbol())] = Accept()
                     else:
                         if self.lr_type in [LR1, LALR]:

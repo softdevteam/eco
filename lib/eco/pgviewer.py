@@ -19,7 +19,7 @@ class PGThread(Thread):
 
 class PGViewer(object):
 
-    def __init__(self, root, version):
+    def __init__(self, root, version, max_version = None):
         self.root = root
 
         self.whitespaces = True
@@ -30,7 +30,7 @@ class PGViewer(object):
         self.links = {}
         self.gl = drawgraph.GraphLayout(0,0,0)
         self.gl.pgviewer = self
-        self.max_version = 0
+        self.max_version = max_version
         self.t = None
 
     def quit(self):
@@ -100,16 +100,50 @@ class PGViewer(object):
             label = "<return>"
         if lookup == "<ws>":
             label = "<ws> x%s" % len(label)
+        if label == "\\":
+            label = "<backslash>"
         label = label.replace("\"", "\\\"")
         label = label.replace("\\\\\"", "\\\\\\\"")
         dotnode = pydot.Node("\"%s\"" % id(node), label='"%s"' % label, shape="box")
 
         try:
-            changed = node.get_attr("changed", self.version)
+            if node.get_attr("nested_errors", self.version):
+                dotnode.set('color','firebrick')
         except AttributeError:
-            changed = node.changed
-        if changed:
-            dotnode.set('color','green')
+            pass
+
+        try:
+            if node.get_attr("local_error", self.version):
+                dotnode.set('color','red')
+        except AttributeError:
+            pass
+
+        try:
+            if node.get_attr("nested_changes", self.version):
+                dotnode.set('color','mediumseagreen')
+        except AttributeError:
+            pass
+
+        try:
+            if node.get_attr("changed", self.version):
+                dotnode.set('color','limegreen')
+        except AttributeError:
+            pass
+
+        try:
+            if node.get_attr("deleted", self.version):
+                dotnode.set('color','gray')
+        except AttributeError:
+            pass
+
+        try:
+            if node.get_attr("isolated", self.version):
+                dotnode.set('color','purple')
+        except AttributeError:
+            pass
+
+        if node.is_new(self.version):
+            dotnode.set('color','orange')
 
         graph.add_node(dotnode)
 
@@ -179,3 +213,6 @@ def splitline(line, re_word = re.compile(r'[^\s"]\S*|["]["]|["].*?[^\\]["]')):
             word = word[1:-1]
         result.append(word)
     return result
+
+def debug(treemanager):
+    PGViewer(treemanager.get_mainparser().previous_version.parent, treemanager.version, treemanager.get_max_version()).run()

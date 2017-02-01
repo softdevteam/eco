@@ -856,6 +856,13 @@ class Window(QtGui.QMainWindow):
         parser.add_option("-f", "--fullexport", action="store_true", default=False, help="Export files. Usage: --fullexport [SOURCE] [DESTINATION]")
         parser.add_option("-g", "--grammar", action="store_true", default=None, help="Load external grammar. Usage: --grammar [GRAMMARFILE]")
         (options, args) = parser.parse_args()
+
+        if options.log.upper() in ["INFO", "WARNING", "ERROR", "DEBUG"]:
+            loglevel=getattr(logging, options.log.upper())
+        else:
+            loglevel=logging.WARNING
+        logging.basicConfig(format='%(levelname)s: %(message)s', filemode='w', level=loglevel)
+
         if options.preload:
             self.preload()
         if options.fullexport:
@@ -873,11 +880,6 @@ class Window(QtGui.QMainWindow):
             for f in args:
                 self.openfile(QString(f))
 
-        if options.log.upper() in ["INFO", "WARNING", "ERROR", "DEBUG"]:
-            loglevel=getattr(logging, options.log.upper())
-        else:
-            loglevel=logging.WARNING
-        logging.basicConfig(format='%(levelname)s: %(message)s', filemode='w', level=loglevel)
 
     def preload(self):
         for l in newfile_langs + submenu_langs:
@@ -1331,7 +1333,7 @@ class Window(QtGui.QMainWindow):
         if editor is None:
             return
         nested = {}
-        for parser, lexer, lang, _ in editor.tm.parsers:
+        for parser, lexer, lang, _, _ in editor.tm.parsers:
             #import cProfile
             #cProfile.runctx("parser.inc_parse(self.ui.frame.line_indents)", globals(), locals())
             root = parser.previous_version.parent
@@ -1370,8 +1372,9 @@ class Window(QtGui.QMainWindow):
             else:
                 qtreeitem.setIcon(0, QIcon("gui/exclamation.png"))
                 enode = parser.error_node
-                emsg = "Error on \"%s\"" % (enode.symbol.name,)
-                qtreeitem.setToolTip(0, emsg)
+                if enode:
+                    emsg = "Error on \"%s\"" % (enode.symbol.name,)
+                    qtreeitem.setToolTip(0, emsg)
             qtreeitem.parser = parser
             self.add_parsingstatus(nested, parser.previous_version.parent, qtreeitem)
 

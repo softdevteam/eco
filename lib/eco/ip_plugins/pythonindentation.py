@@ -13,11 +13,67 @@ class PythonIndent(object):
         self.comment_tokens = []
         self.indent_stack = None
 
+    def right_sibling(self, node):
+        """Checks if a new indentation token was added or removed during the
+        current parse and returns the correct next node according to the current
+        parse tree instead of the previous version of the tree."""
+        if node in self.lookahead:
+            return self.lookahead[node]
+        else:
+            n = node.right_sibling(self.incparser.prev_version)
+            if n in self.deleted:
+                return self.right_sibling(n)
+            return n
+
+    def wasdeleted(self, node):
+        return node in self.deleted
+
+    def accept(self, bos, eos):
+        if self.wasdeleted(bos.next_term):
+            bos.next_term = bos.next_term.next_term
+        if self.wasdeleted(eos.prev_term):
+            eos.prev_term = eos.prev_term.prev_term
+
+    def reduce_process_child(self, c):
+        if isinstance(c.symbol, IndentationTerminal):
+            # this node is now part of the parse tree, thus properly update
+            # terminal links
+            c.prev_term.next_term = c
+            # We need to mark those nodes as changed so we can revert the
+            # changes when en error occurs. Unfortunately this slows down
+            # parsing because the parser now has to look down that tree even
+            # though the node has no parsing related changes
+            c.prev_term.mark_changed()
+            c.next_term.prev_term = c
+            c.next_term.mark_changed()
+        while self.wasdeleted(c.next_term):
+            c.next_term = c.next_term.next_term
+        while self.wasdeleted(c.prev_term):
+            c.prev_term = c.prev_term.prev_term
+
+    def pseudo_insert(self, oldnode, newnode):
+        #print("pseudo insert", oldnode.symbol.name, newnode.symbol.name)
+        self.lookahead[oldnode] = newnode
+        newnode.left = oldnode
+        newnode.right = oldnode.right
+        try:
+            print(newnode, "parent", newnode.parent.symbol.name, "changed to ", oldnode.parent.symbol.name)
+        except  AttributeError:
+            pass
+        newnode.parent = oldnode.parent
+        newnode.next_term = oldnode.next_term
+        newnode.prev_term = oldnode
+        newnode.save(self.incparser.prev_version)
+        oldnode.mark_changed()
+
     def incparse_inc_parse_top(self):
         self.incparser.stack[0].indent = [0] # init bos with indent
         self.last_indent = [0]
         self.multimode = None
         self.multinewlines = []
+
+        self.lookahead = {}
+        self.deleted = set()
 
         bos = self.incparser.previous_version.parent.children[0]
         eos = self.incparser.previous_version.parent.children[-1]
@@ -30,15 +86,17 @@ class PythonIndent(object):
             # if file is empty, delete left over indentation tokens
             n = d.next_term
             while isinstance(n.symbol, IndentationTerminal):
-                n.parent.remove_child(n)
+                self.deleted.add(n)
+                n.mark_changed()
                 n = n.next_term
 
         # fix indentation after bos. Should result in an error for whitespace
         # at the beginning
         if bos.next_term.lookup == "<ws>":
-            bos.insert_after(TextNode(IndentationTerminal("INDENT")))
+            self.pseudo_insert(bos, TextNode(IndentationTerminal("INDENT")))
         elif isinstance(bos.next_term.symbol, IndentationTerminal):
-            bos.next_term.parent.remove_child(bos.next_term)
+            self.deleted.add(bos.next_term)
+            bos.next_term.mark_changed()
 
     def incparse_optshift(self, la):
         if la.indent:
@@ -121,17 +179,19 @@ class PythonIndent(object):
                     continue
                 else:
                     ne.symbol.name = e.symbol.name
+                    ne.deleted = False # when reusing nodes, erase deleted flag
                     ne.mark_changed()
                     continue
             except StopIteration:
                 pass
-            last.insert_after(e)
+            self.pseudo_insert(last, e)
             last = e
         # delete all leftovers
         while True:
             try:
                 x = it.next()
-                x.parent.remove_child(x)
+                self.deleted.add(x)
+                x.mark_changed()
             except StopIteration:
                 break
 
@@ -180,7 +240,8 @@ class PythonIndent(object):
                 # delete indentation tokens and indent level
                 n = la.next_term
                 while isinstance(n.symbol, IndentationTerminal):
-                    n.parent.remove_child(n)
+                    self.deleted.add(n)
+                    n.mark_changed()
                     n = n.next_term
                 la.indent = None
                 newindent = list(self.get_last_indent(la))

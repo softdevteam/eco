@@ -22,6 +22,15 @@
 from grammar_parser.gparser import IndentationTerminal
 from incparser.astree import TextNode
 
+def println(node):
+    l = []
+    if node.symbol.name == "\r":
+        node = node.next_term
+    while node and node.symbol.name != "\r":
+        l.append(node.symbol.name)
+        node = node.next_term
+    return repr("".join(l))
+
 class IndentationManager:
 
     def __init__(self, root):
@@ -121,7 +130,8 @@ class IndentationManager:
         new_tokens = []
         temp = bol
         if bol is self.bos:
-            self.indentation[bol] = 0
+            this_ws = self.count_whitespace(bol)
+            self.indentation[bol] = this_ws
         elif self.is_logical_line(bol):
             this_ws = self.count_whitespace(bol)
             self.whitespaces[bol] = this_ws
@@ -176,6 +186,11 @@ class IndentationManager:
 
             # generate correct amount of dedentation nodes
             this_indent = self.get_indentation(bol)
+            if this_indent is None:
+                # this happens when there's only one line and that line is not
+                # logical
+                return
+
             new = []
             for i in range(this_indent):
                 new.append(self.create_token("dedent"))
@@ -196,7 +211,8 @@ class IndentationManager:
         previous_nodes = []
         node = bol.next_term
         while isinstance(node.symbol, IndentationTerminal):
-            previous_nodes.append(node)
+            if not node.deleted:
+                previous_nodes.append(node)
             node = node.next_term
 
         previous_nodes.reverse()
@@ -297,8 +313,12 @@ class IndentationManager:
     def is_logical_line(self, node):
         # check if line is logical (i.e. doesn't only consist of whitespaces,
         # comments, etc)
-        if node.symbol.name == "\r" and node.prev_term.symbol.name == "\\":
-            return False
+        if node.symbol.name == "\r":
+            prev = node.prev_term
+            while prev.deleted:
+                prev = prev.prev_term
+            if prev.symbol.name == "\\":
+                return False
         node = node.next_term
         while True:
             if node is self.eos:
