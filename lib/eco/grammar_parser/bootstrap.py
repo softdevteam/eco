@@ -75,7 +75,7 @@ class BootstrapParser(object):
         self.treemanager.add_parser(self.parser, self.lexer, grammar.name)
         self.treemanager.import_file(ecogrammar)
         if self.parser.last_status == False:
-            raise Exception("Invalid input grammar: at %s %s" % (self.parser.error_node.prev_term, self.parser.error_node))
+            raise Exception("Invalid input grammar due to syntax errors")
         self.read_options()
         self.parse_both()
         self.create_parser()

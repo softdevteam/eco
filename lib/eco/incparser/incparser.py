@@ -93,10 +93,9 @@ class IncParser(object):
         self.last_shift_state = 0
         self.validating = False
         self.last_status = False
-        self.error_node = None
         self.whitespaces = whitespaces
         self.status_by_version = {}
-        self.errornode_by_version = {}
+        self.errornodes_by_version = {}
         self.indentation_based = False
 
         self.previous_version = None
@@ -145,7 +144,6 @@ class IncParser(object):
         logging.debug("============ NEW INCREMENTAL PARSE ================= ")
         logging.debug("= starting in state %s ", state)
         self.validating = False
-        self.error_node = None
         self.reused_nodes = set()
         self.current_state = state
         bos = self.previous_version.parent.children[0]
@@ -320,7 +318,6 @@ class IncParser(object):
                 self.validating = False
             else:
                 self.error_nodes.append(la)
-                self.error_node = la
                 if self.rm.recover(la):
                     # recovered, continue parsing
                     self.refine(self.rm.iso_node, self.rm.iso_offset, self.rm.error_offset)
@@ -777,7 +774,6 @@ class IncParser(object):
         self.last_shift_state = 0
         self.validating = False
         self.last_status = False
-        self.error_node = None
         self.previous_version = None
         self.init_ast()
 
@@ -787,13 +783,13 @@ class IncParser(object):
         except KeyError:
             logging.warning("Could not find status for version %s", version)
         try:
-            self.error_node = self.errornode_by_version[version]
+            self.error_nodes = list(self.errornodes_by_version[version])
         except KeyError:
-            logging.warning("Could not find errornode for version %s", version)
+            logging.warning("Could not find errornodes for version %s", version)
 
     def save_status(self, version):
         self.status_by_version[version] = self.last_status
-        self.errornode_by_version[version] = self.error_node
+        self.errornodes_by_version[version] = list(self.error_nodes)
 
     def find_nested_error(self, node):
         """Given an isolated node, finds the first local error node contained in
