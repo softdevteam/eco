@@ -364,8 +364,6 @@ class NodeEditor(QFrame):
 
         first_node = node
         selected_language = self.tm.mainroot
-        error_node = self.tm.get_mainparser().error_node
-        error_node = self.fix_errornode(error_node)
 
         highlighter = self.get_highlighter(node)
         selection_start = min(self.tm.selection_start, self.tm.selection_end)
@@ -408,8 +406,6 @@ class NodeEditor(QFrame):
                 node = lbnode.children[0]
                 highlighter = self.get_highlighter(node)
                 renderer = self.get_renderer(node)
-                error_node = self.tm.get_parser(lbnode).error_node
-                error_node = self.fix_errornode(error_node)
                 continue
 
             if isinstance(node, EOS):
@@ -430,11 +426,6 @@ class NodeEditor(QFrame):
                     lbnode = self.get_languagebox(node)
                     if lbnode and self.selected_lbox is lbnode:
                         draw_lbox = True
-                        error_node = self.tm.get_parser(lbnode.symbol.ast).error_node
-                        error_node = self.fix_errornode(error_node)
-                    else:
-                        error_node = self.tm.get_mainparser().error_node
-                        error_node = self.fix_errornode(error_node)
                     continue
                 else:
                     self.lines[line].width = x / self.fontwt
@@ -548,8 +539,12 @@ class NodeEditor(QFrame):
                 infobox_coordinates = (self.cursor.x * self.fontwt, (y+1) * self.fontht)
                 draw_cursor = False
 
-            # draw squiggly line
-            if node is error_node or (show_namebinding and self.tm.has_error(node)):
+            # draw errors using squiggly lines
+            if show_namebinding and self.tm.is_typeerror(node):
+                length = len(node.symbol.name)*self.fontwt
+                self.draw_squiggly_line(paint, x-length, y, length, "orange")
+
+            if self.tm.is_syntaxerror(node):
                 if isinstance(node, EOS):
                     length = self.fontwt
                 else:
@@ -557,11 +552,7 @@ class NodeEditor(QFrame):
                 if isinstance(node.symbol, MagicTerminal):
                     self.draw_vertical_squiggly_line(paint,x,y)
                 else:
-                    if self.tm.has_error(node):
-                        err_color = "orange"
-                    else:
-                        err_color = "red"
-                    self.draw_squiggly_line(paint,x-length,y,length, err_color)
+                    self.draw_squiggly_line(paint, x-length, y, length, "red")
 
             node = node.next_terminal()
 
@@ -634,13 +625,6 @@ class NodeEditor(QFrame):
         paint.drawPath(path)
 
         paint.setPen(oldpen)
-
-    def fix_errornode(self, error_node):
-        if not error_node:
-            return
-        while isinstance(error_node.symbol, IndentationTerminal):
-            error_node = error_node.next_term
-        return error_node
 
     def draw_cursor(self, paint, x, y):
         pen = paint.pen()

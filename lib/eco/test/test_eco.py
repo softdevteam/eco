@@ -3529,16 +3529,16 @@ class Test_ErrorRecovery(Test_Helper):
         self.treemanager.key_normal("*")
         self.treemanager.key_normal("3")
         assert self.parser.last_status == False
-        assert self.parser.error_node is not None
+        assert len(self.parser.error_nodes) > 0
 
         # continue after successful out-of-context analysis and integration
         self.treemanager.key_normal("+")
         assert self.parser.last_status == False
-        assert self.parser.error_node is not None
+        assert len(self.parser.error_nodes) > 0
 
         self.treemanager.key_normal("3")
         assert self.parser.last_status == False
-        assert self.parser.error_node is not None
+        assert len(self.parser.error_nodes) > 0
 
     def test_temp(self):
         self.reset()

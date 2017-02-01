@@ -495,17 +495,23 @@ class TreeManager(object):
         lbox = root.get_magicterminal()
         return lbox
 
-    def has_error(self, node):
+    def is_typeerror(self, node):
         for p in self.parsers:
             if p[3] and p[3].has_error(node):
                 return True
         return False
 
-    def get_error(self, node):
+    def is_syntaxerror(self, node):
         for p in self.parsers:
-            # check for syntax error
-            if node is p[0].error_node:
-                return "Syntax error on token '%s' (%s)." % (node.symbol.name, node.lookup)
+            if p[0] and node in p[0].error_nodes:
+                return True
+        return False
+
+    def get_error(self, node):
+        if self.is_syntaxerror(node):
+            return "Syntax error on token '%s' (%s)." % (node.symbol.name, node.lookup)
+
+        for p in self.parsers:
             # check for namebinding error
             if p[3]:
                 error = p[3].get_error(node)
