@@ -165,14 +165,7 @@ class IndentationManager:
         """Insert generated indentation tokens into the token stream if they
         differ from current tokens"""
         # test if indent nodes have changed
-        changed = self.indentation_nodes_changed(bol, new)
-        if changed:
-            self.changed = True
-            # remove old indentation nodes
-            self.remove_indentation_nodes(bol)
-            # and insert new ones
-            for node in new:
-                bol.insert_after(node)
+        self.merge_nodes(bol, new)
 
         # generate last lines dedent
         if self.next_line(bol) is None: # this is the last line
@@ -196,32 +189,38 @@ class IndentationManager:
                 new.append(self.create_token("dedent"))
             new.append(self.create_token("newline"))
 
-            changed = self.indentation_nodes_changed(node, new)
-            if changed:
-                self.changed = True
-                # remove old indentation nodes
-                self.remove_indentation_nodes(node)
-                # and insert new ones
-                for n in new:
-                    node.insert_after(n)
+            self.merge_nodes(node, new)
 
-    def indentation_nodes_changed(self, bol, nodes):
-        """Compares indentation tokens in a line with new tokens to find out
-        whether the line needs to be updated"""
+    def merge_nodes(self, bol, newnodes):
         previous_nodes = []
+        last_node = bol
         node = bol.next_term
         while isinstance(node.symbol, IndentationTerminal):
             if not node.deleted:
                 previous_nodes.append(node)
             node = node.next_term
 
-        previous_nodes.reverse()
-        if len(previous_nodes) != len(nodes):
-            return True
-        for i in range(len(nodes)):
-            if nodes[i].symbol != previous_nodes[i].symbol:
-                return True
-        return False
+        for i in range(len(previous_nodes)):
+            if len(newnodes) > 0:
+                newnode = newnodes.pop()
+            else:
+                # remove leftover previous_nodes
+                previous_nodes[i].remove()
+                continue
+
+            oldnode = previous_nodes[i]
+            if newnode.symbol != oldnode.symbol:
+                # remove old, insert new
+                oldnode.replace(newnode)
+                last_node = newnode
+            else:
+                if oldnode.deleted:
+                    oldnode.deleted = False
+                last_node = oldnode
+
+        for n in newnodes:
+            # insert remaining newnodes
+            last_node.insert_after(n)
 
     def remove_indentation_nodes(self, bol):
         if bol is None:
