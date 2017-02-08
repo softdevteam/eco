@@ -1298,6 +1298,21 @@ def z():
         self.treemanager.import_file(inputstring)
         assert self.parser.last_status == True
 
+    def test_indentation_reuse(self):
+        self.reset()
+        for c in """class X:\n    """:
+            self.treemanager.key_normal(c)
+
+        newline = self.treemanager.cursor.node.next_term
+        assert newline.symbol.name == "NEWLINE"
+
+        self.treemanager.key_normal("p")
+
+        newline2 = self.treemanager.cursor.node.next_term
+        assert newline2.symbol.name == "NEWLINE"
+
+        assert newline is newline2
+
 class Test_Relexing(Test_Python):
 
     def test_dont_stop_relexing_after_first_error(self):
