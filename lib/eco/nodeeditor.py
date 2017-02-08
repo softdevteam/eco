@@ -146,6 +146,7 @@ class NodeEditor(QFrame):
         if self.getWindow().show_namebinding():
             self.tm.analyse()
             self.update()
+            self.getWindow().updateASTOutline()
         self.timer.stop()
 
         # save swap

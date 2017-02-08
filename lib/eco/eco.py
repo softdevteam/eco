@@ -313,6 +313,7 @@ class SettingsView(QtGui.QMainWindow):
         self.ui.gen_showconsole.setCheckState(settings.value("gen_showconsole", 0).toInt()[0])
         self.ui.gen_showparsestatus.setCheckState(settings.value("gen_showparsestatus", 2).toInt()[0])
         self.ui.gen_showhud.setCheckState(settings.value("gen_showhud", 0).toInt()[0])
+        self.ui.gen_showoutline.setCheckState(settings.value("gen_showoutline", 0).toInt()[0])
         # Appearance pane.
         family = settings.value("font-family").toString()
         size = settings.value("font-size").toInt()[0]
@@ -359,6 +360,7 @@ class SettingsView(QtGui.QMainWindow):
         settings.setValue("gen_showconsole", self.ui.gen_showconsole.checkState())
         settings.setValue("gen_showparsestatus", self.ui.gen_showparsestatus.checkState())
         settings.setValue("gen_showhud", self.ui.gen_showhud.checkState())
+        settings.setValue("gen_showoutline", self.ui.gen_showoutline.checkState())
         settings.setValue("font-family", self.ui.app_fontfamily.currentFont().family())
         settings.setValue("font-size", self.ui.app_fontsize.value())
         settings.setValue("tool-font-family", self.ui.tool_info_fontfamily.currentFont().family())
@@ -648,6 +650,7 @@ class Window(QtGui.QMainWindow):
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget_3.toggleViewAction())
+        self.ui.menuWindow.addAction(self.ui.dockWidget_4.toggleViewAction())
 
         self.ui.teConsole.setFont(QApplication.instance().gfont.font)
         self.connect(self.ui.teConsole, SIGNAL("customContextMenuRequested(QPoint)"), self.consoleContextMenu)
@@ -686,6 +689,8 @@ class Window(QtGui.QMainWindow):
             self.ui.dockWidget_2.hide()
         if not settings.value("gen_showhud", False).toBool():
             self.ui.dockWidget_3.hide()
+        if not settings.value("gen_showoutline", False).toBool():
+            self.ui.dockWidget_4.hide()
 
         # hardcoded key bindings for OS X
         if sys.platform == "darwin":
@@ -1359,6 +1364,21 @@ class Window(QtGui.QMainWindow):
             self.pgviewer.max_version = editor.tm.get_max_version()
             self.pgviewer.refresh(editor.tm.version)
 
+    def updateASTOutline(self):
+        self.ui.tw_astoutline.clear()
+        aa = self.getEditor().tm.parsers[0][3]
+        for uri in aa.data["class"]:
+            if uri.path[0].name is None and len(uri.path) == 1:
+                self.addToASTOutline(aa, uri, self.ui.tw_astoutline)
+        self.ui.tw_astoutline.expandAll()
+
+    def addToASTOutline(self, aa, uri, parent):
+        qtreeitem = QTreeWidgetItem(parent)
+        qtreeitem.setText(0, uri.name)
+        qtreeitem.setIcon(0, QIcon("gui/"+uri.kind+".png"))
+        names = aa.get_names_within_path(uri.as_path())
+        for n in names:
+            self.addToASTOutline(aa, n, qtreeitem)
 
     def add_parsingstatus(self, nested, root, parent):
         if not nested.has_key(root):

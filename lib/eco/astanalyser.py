@@ -30,6 +30,11 @@ class URI(object):
         self.ruleid = ""
         self.index = -1
 
+    def as_path(self):
+        newpath = list(self.path)
+        newpath.append(Reference(self.kind, self.name))
+        return newpath
+
     def __repr__(self):
         path = []
         for p in self.path:
@@ -439,6 +444,17 @@ class AstAnalyser(object):
                     if uri.path == path:
                         names.append(uri)
             path.pop()
+        return names
+
+    def get_names_within_path(self, path):
+        names = []
+        path = list(path)   # copy to not manipulate existing path
+        for key in self.data:
+            if key in ["reference", "block"]: #XXX needs to be supplied by codecompletion rules
+                continue
+            for uri in self.data[key]:
+                if uri.path == path:
+                    names.append(uri)
         return names
 
 class RuleReader(object):

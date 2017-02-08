@@ -169,10 +169,17 @@
                </property>
               </widget>
              </item>
-             <item row="2" column="0">
+             <item row="3" column="0">
               <widget class="QCheckBox" name="gen_showhud">
                <property name="text">
                 <string>Show HUD</string>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="0">
+              <widget class="QCheckBox" name="gen_showoutline">
+               <property name="text">
+                <string>Show Outline</string>
                </property>
               </widget>
              </item>
