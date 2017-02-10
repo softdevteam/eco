@@ -1391,10 +1391,6 @@ class Window(QtGui.QMainWindow):
                 qtreeitem.setIcon(0, QIcon("gui/accept.png"))
             else:
                 qtreeitem.setIcon(0, QIcon("gui/exclamation.png"))
-                if parser.error_nodes:
-                    enode = parser.error_nodes[0]
-                    emsg = "Error on \"%s\"" % (enode.symbol.name,)
-                    qtreeitem.setToolTip(0, emsg)
             qtreeitem.parser = parser
             self.add_parsingstatus(nested, parser.previous_version.parent, qtreeitem)
 
