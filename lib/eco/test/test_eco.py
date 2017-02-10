@@ -1313,6 +1313,32 @@ def z():
 
         assert newline is newline2
 
+class Test_Incremental_AST(Test_Python):
+
+    def test_simple(self):
+        self.reset()
+        self.treemanager.import_file("def x():\n    pass")
+        root = self.parser.previous_version.parent
+        funcdef = root.children[1].children[1].children[0].children[0].children[0].children[0]
+        assert funcdef.symbol.name == "funcdef"
+        assert funcdef.alternate.name == "FuncDef"
+
+    def test_reuse(self):
+        self.reset()
+        self.treemanager.import_file("def x():\n    pass")
+        root = self.parser.previous_version.parent
+        funcdef = root.children[1].children[1].children[0].children[0].children[0].children[0]
+        assert funcdef.symbol.name == "funcdef"
+        assert funcdef.alternate.name == "FuncDef"
+
+        oldastnode = funcdef.alternate
+        self.move(DOWN, 1)
+        self.treemanager.key_end()
+        self.treemanager.key_normal("2")
+        newfuncdef = root.children[1].children[1].children[0].children[0].children[0].children[0]
+        assert newfuncdef is funcdef
+        assert newfuncdef.alternate is oldastnode
+
 class Test_Relexing(Test_Python):
 
     def test_dont_stop_relexing_after_first_error(self):

@@ -609,7 +609,8 @@ class IncParser(object):
         annotation = production.annotation
         if annotation:
             astnode = annotation.interpret(node)
-            node.alternate = astnode
+            if not self.is_reusable_astnode(node.alternate, astnode):
+                node.alternate = astnode
 
     def add_alternate_version(self, node, production):
         # add alternate (folded) versions for nodes to the tree
@@ -642,6 +643,17 @@ class IncParser(object):
             else:
                 alternate.children.append(c)
         node.alternate = alternate
+
+    def is_reusable_astnode(self, old, new):
+        from grammar_parser.bootstrap import AstNode
+        if type(old) is not AstNode or type(new) is not AstNode:
+            return False
+        if old.name != new.name:
+            return False
+        for key in old.children:
+            if old.children.get(key) is not new.children.get(key):
+                return False
+        return True
 
     def left_breakdown(self, la):
         la.deleted = True # node wasn't reused so is considered deleted
