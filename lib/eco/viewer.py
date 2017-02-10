@@ -93,11 +93,7 @@ class Viewer(object):
         if ast:
             if not isinstance(node, AstNode) and not isinstance(node, ListNode) and node.alternate:
                 node = node.alternate
-        try:
-            if node.symbol.folding:
-                pass
-        except AttributeError:
-            pass
+
         label = []
         if isinstance(node, ListNode):
             label.append("[" + node.symbol.name + "]")

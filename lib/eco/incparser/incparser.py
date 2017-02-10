@@ -541,9 +541,6 @@ class IncParser(object):
         i = 0
         while i < element.amount():
             c = self.stack.pop()
-            # apply folding information from grammar to tree nodes
-            fold = element.action.right[element.amount()-i-1].folding
-            c.symbol.folding = fold
             children.insert(0, c)
             i += 1
 
@@ -587,9 +584,6 @@ class IncParser(object):
         if getattr(element.action.annotation, "interpret", None):
             # eco grammar annotations
             self.interpret_annotation(new_node, element.action)
-        else:
-            # johnstone annotations
-            self.add_alternate_version(new_node, element.action)
 
     def ambig_reuse_check(self, prod, children):
         if children:
@@ -609,39 +603,19 @@ class IncParser(object):
         annotation = production.annotation
         if annotation:
             astnode = annotation.interpret(node)
-            node.alternate = astnode
+            if not self.is_reusable_astnode(node.alternate, astnode):
+                node.alternate = astnode
 
-    def add_alternate_version(self, node, production):
-        # add alternate (folded) versions for nodes to the tree
-        alternate = TextNode(node.symbol.__class__(node.symbol.name), node.state, [])
-        alternate.children = []
-        teared = []
-        for i in range(len(node.children)):
-            if production.inserts.has_key(i):
-                # insert tiered nodes at right position
-                value = production.inserts[i]
-                for t in teared:
-                    if t.symbol.name == value.name:
-                        alternate.children.append(t)
-            c = node.children[i]
-            if c.symbol.folding == "^^^":
-                c.symbol.folding = None
-                teared.append(c)
-                continue
-            elif c.symbol.folding == "^^":
-                while c.alternate is not None:
-                    c = c.alternate
-                alternate.symbol = c.symbol
-                for child in c.children:
-                    alternate.children.append(child)
-            elif c.symbol.folding == "^":
-                while c.alternate is not None:
-                    c = c.alternate
-                for child in c.children:
-                    alternate.children.append(child)
-            else:
-                alternate.children.append(c)
-        node.alternate = alternate
+    def is_reusable_astnode(self, old, new):
+        from grammar_parser.bootstrap import AstNode
+        if type(old) is not AstNode or type(new) is not AstNode:
+            return False
+        if old.name != new.name:
+            return False
+        for key in old.children:
+            if old.children.get(key) is not new.children.get(key):
+                return False
+        return True
 
     def left_breakdown(self, la):
         la.deleted = True # node wasn't reused so is considered deleted
