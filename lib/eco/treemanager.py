@@ -503,8 +503,10 @@ class TreeManager(object):
 
     def is_syntaxerror(self, node):
         for p in self.parsers:
-            if p[0] and node in p[0].error_nodes:
-                return True
+            if p[0]:
+                for n in p[0].error_nodes:
+                    if n is node:
+                        return True
         return False
 
     def get_error(self, node):
