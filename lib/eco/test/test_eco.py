@@ -3382,7 +3382,6 @@ class Test_ErrorRecoveryRightbreakdown:
 
         assert parser.last_status == False
 
-@pytest.mark.xfail
 class Test_ErrorRecoverySurroundingContext:
     def test_simple(self):
         # This test checks the correct behaviour for skipping already isolated

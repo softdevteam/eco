@@ -216,8 +216,7 @@ class IncParser(object):
                         la = result
 
             else: # Nonterminal
-                #iso_and_changed = la.isolated and self.surrounding_context_changed(la)
-                if la.has_changes() or needs_reparse or la.has_errors():# or iso_and_changed:
+                if la.has_changes() or needs_reparse or la.has_errors() or self.iso_context_changed(la):
                     #la.changed = False # as all nonterminals that have changed are being rebuild, there is no need to change this flag (this also solves problems with comments)
                     la = self.left_breakdown(la)
                 else:
@@ -303,6 +302,7 @@ class IncParser(object):
         elif isinstance(element, Shift):
             self.validating = False
             self.shift(la, element)
+            la.local_error = la.nested_errors = False
             return self.pop_lookahead(la)
 
         elif isinstance(element, Reduce):
@@ -554,9 +554,12 @@ class IncParser(object):
         assert goto != None
 
         # save childrens parents state
+        has_errors = False
         for c in children:
-            c.local_error = False
-            c.nested_errors = False
+            if c.has_errors():
+                has_errors = True
+            if c.isolated:
+                has_errors = True
             if not c.new:
                 # just marking changed is not enough. If we encounter an error
                 # during reduction the path from the root down to this node is
@@ -570,6 +573,7 @@ class IncParser(object):
             new_node.changed = False
             new_node.deleted = False
             new_node.isolated = False
+            new_node.nested_errors = has_errors
             new_node.set_children(children)
             new_node.state = goto.action # XXX need to save state using hisotry service
             new_node.mark_changed()
@@ -778,23 +782,14 @@ class IncParser(object):
                 return c
         return None
 
-    def surrounding_context_changed(self, node):
-        # find isolation trees last terminal
-        while isinstance(node, Nonterminal):
-            if node.children:
-                node = node.children[-1]
-                continue
-            else:
-                # find left sibling
-                while not node.left:
-                    node = node.parent
-                continue
-        # found terminal
-        if node.next_term.changed:
-            return True
-
-        if node.next_term is not node.get_attr("next_term", self.prev_version):
-            return True
+    def iso_context_changed(self, node):
+        # Currently catches more cases than neccessary. Could be made more
+        # accurate by finding the next terminal reachable from node (including
+        # deleted ones)
+        if not node.isolated:
+            return False
+        la = self.pop_lookahead(node)
+        return la.has_changes()
 
     def next_terminal(self, node):
         n = self.pop_lookahead(node)
