@@ -62,8 +62,6 @@ class StateGraph(object):
             self.goto = helper.goto_1
             self.start_set = StateSet()
             self.start_set.add(LR0Element(Production(None, [self.start_symbol]), 0), set([FinishSymbol()]))
-            for s in grammar:
-                self.start_set.add(LR0Element(Production(None, [Terminal("<bos_%s>" % s.name), s]), 0), set([FinishSymbol(s.name)]))
 
     def build(self):
         State._hashtime = 0
