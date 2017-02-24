@@ -517,7 +517,7 @@ class TextNode(Node):
         self.version = 0
         self.indent = None
         self.textlen = -1
-        self.isolated = False
+        self.isolated = None
         self.lookback = 0
 
     def get_magicterminal(self):
