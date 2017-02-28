@@ -2218,6 +2218,30 @@ class Test_Undo(Test_Python):
         self.move(RIGHT, 5)
         self.treemanager.key_delete()
 
+    def test_undo_random_deletion_bug7(self):
+        self.reset()
+
+        self.treemanager.import_file("""class Connect4():
+    def _update_from_pos_one_colour():
+        self.cols[x][y]["background"] = colour""")
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 19)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 18)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 17)
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+
     def get_random_key(self):
         import random
         keys = list("abcdefghijklmnopqrstuvwxyz0123456789 \r:,.[]{}()!$%^&*()_+=")

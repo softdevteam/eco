@@ -661,6 +661,11 @@ class IncParser(object):
         self.current_state = self.stack[-1].state
         logging.debug("right breakdown(%s): set state to %s", node.symbol.name, self.current_state)
         while(isinstance(node.symbol, Nonterminal)):
+            # Right_breakdown reverts wrong optimistic shifts including
+            # subsequent reductions. These reductions may contain nodes that
+            # have been reused. Reverting the reduction also means we need to
+            # undo the reusing of that node to free it up for future reusing.
+            self.reused_nodes.discard(node)
             # This bit of code is necessary to avoid a bug that occurs with the
             # default Wagner implementation if we isolate a subtree and
             # optimistically shift an empty Nonterminal, and then run into an
