@@ -141,11 +141,12 @@ class IncParser(object):
         self.inc_parse([], True)
 
     def inc_parse(self, line_indents=[], needs_reparse=False, state=0, stack = []):
-        logging.debug("============ NEW INCREMENTAL PARSE ================= ")
+        logging.debug("============ NEW %s PARSE ================= ", "OOC" if self.ooc else "INCREMENTAL")
         logging.debug("= starting in state %s ", state)
         self.validating = False
         self.reused_nodes = set()
         self.current_state = state
+        self.previous_version.parent.isolated = None
         bos = self.previous_version.parent.children[0]
         eos = self.previous_version.parent.children[-1]
         if not stack:
@@ -180,21 +181,31 @@ class IncParser(object):
                 logging.debug("la %s", la)
                 logging.debug("cs %s", self.current_state)
                 if la is self.ooc[0]:
-                    if self.current_state == self.ooc[1].state:
-                        logging.debug("======= OOC parse successfull =========")
-                        self.last_status = True
-                        return True
+                    if isinstance(la.symbol, Nonterminal):
+                        # if OOC is Nonterminal, use first terminal to apply
+                        # reductions
+                        first_term = la.find_first_terminal(self.prev_version)
+                        lookup = self.get_lookup(first_term)
                     else:
-                        # Before we know that OOC has failed we need to apply
-                        # all reductions with the EOS symbol. Only if no
-                        # reductions are left and the next action is SHIFT or
-                        # ERROR, then OOC has failed.
                         lookup = self.get_lookup(la)
+                    while True:
+                        # OOC is complete if we reached the expected state and
+                        # there are no more reductions left to do
+                        if self.current_state == self.ooc[2] and len(self.stack) == 2:
+                            logging.debug("======= OOC parse successfull =========")
+                            self.last_status = True
+                            return True
+                        # Otherwise apply more reductions to reach the wanted
+                        # state or an error occurs
                         element = self.syntaxtable.lookup(self.current_state, lookup)
-                        logging.debug(element)
                         if not isinstance(element, Reduce):
-                            logging.debug("===== OOC parse Reached temp EOS but state doesn't match ====")
-                            return False
+                            logging.debug("No more reductions")
+                            break
+                        else:
+                            self.reduce(element)
+                    logging.debug("======= OOC parse failed =========")
+                    self.last_status = False
+                    return False
 
             if isinstance(la.symbol, Terminal) or isinstance(la.symbol, FinishSymbol) or la.symbol == Epsilon():
                     lookup_symbol = self.get_lookup(la)
@@ -216,9 +227,7 @@ class IncParser(object):
                         la = result
 
             else: # Nonterminal
-                #iso_and_changed = la.isolated and self.surrounding_context_changed(la)
-                if la.has_changes() or needs_reparse or la.has_errors():# or iso_and_changed:
-                    #la.changed = False # as all nonterminals that have changed are being rebuild, there is no need to change this flag (this also solves problems with comments)
+                if la.has_changes() or needs_reparse or la.has_errors() or self.iso_context_changed(la):
                     la = self.left_breakdown(la)
                 else:
                     if USE_OPT:
@@ -303,6 +312,7 @@ class IncParser(object):
         elif isinstance(element, Shift):
             self.validating = False
             self.shift(la, element)
+            la.local_error = la.nested_errors = False
             return self.pop_lookahead(la)
 
         elif isinstance(element, Reduce):
@@ -322,15 +332,19 @@ class IncParser(object):
                     # recovered, continue parsing
                     self.refine(self.rm.iso_node, self.rm.iso_offset, self.rm.error_offset)
                     self.current_state = self.rm.new_state
-                    self.rm.iso_node.isolated = True
+                    self.rm.iso_node.isolated = la
                     self.rm.iso_node.deleted = False
                     self.stack.append(self.rm.iso_node)
                     logging.debug("Recovered. Continue after %s", self.rm.iso_node)
                     return self.pop_lookahead(self.rm.iso_node)
-                # Couldn't find a subtree to recover. Recovering the whole tree.
-                logging.debug ("\x1b[31mError\x1b[0m: %s %s %s", la, la.prev_term, la.next_term)
+                logging.debug("Couldn't find a subtree to recover. Recovering the whole tree.")
+                logging.debug("\x1b[31mError\x1b[0m: %s %s %s", la, la.prev_term, la.next_term)
                 logging.debug("loopcount: %s", self.loopcount)
-                self.isolate(self.previous_version.parent) #XXX isolate middle child instead?
+
+                error_offset = self.rm.offset(la, self.rm.previous_version)
+                iso_node = self.previous_version.parent
+                self.refine(iso_node, 0, error_offset)
+                iso_node.isolated = la
                 return "Error"
 
     def get_lookup(self, la):
@@ -365,7 +379,7 @@ class IncParser(object):
     def refine(self, node, offset, error_offset):
         # for all children that come after the detection offset, we need
         # to analyse them using the normal incparser
-        logging.debug("Refine %s Offset: %s Error Offset: %s", node, offset, error_offset)
+        logging.debug("    Refine %s Offset: %s Error Offset: %s", node, offset, error_offset)
         node.load(self.prev_version)
         node.local_error = node.nested_errors = False
         self.pass2(node, offset, error_offset)
@@ -385,6 +399,9 @@ class IncParser(object):
             offset += c.textlength()
 
     def is_retainable_subtree(self, node):
+        # Subtrees are currently always unretainable due to a potential bug in
+        # Wagners algorithm. See test/test_eco.py::Test_RetainSubtree::test_bug1
+        return False
         if node.new:
             return False
 
@@ -407,7 +424,7 @@ class IncParser(object):
 
     def retain_or_discard(self, node, parent):
         if self.is_retainable_subtree(node):
-            logging.debug("   Retaining %s (%s). Set parent to %s (%s)", node, id(node), parent, id(parent))
+            logging.debug("    Retaining %s (%s). Set parent to %s (%s)", node, id(node), parent, id(parent))
             # Might have been assigned to a different parent in current version
             # that was removed during refinement. This makes sure this node is
             # assigned to the right parent. See test_eco.py:Test_RetainSubtree
@@ -422,7 +439,7 @@ class IncParser(object):
             self.retain_or_discard(c, node)
 
     def out_of_context_analysis(self, node):
-        logging.debug("Attempting out of context analysis on %s", node)
+        logging.debug("    Attempting out of context analysis on %s (%s)", node, id(node))
 
         if not node.children:
             logging.debug("    Failed: Node has no children")
@@ -430,6 +447,8 @@ class IncParser(object):
             return
 
         if not node.has_changes():
+            if node.has_errors():
+                self.find_nested_error(node)
             logging.debug("    Failed: Node has no changes")
             return
 
@@ -479,13 +498,13 @@ class IncParser(object):
         temp_bos.state = oldleft.state
         temp_bos.save(node.version)
         temp_parser.previous_version = AST(temp_root)
-        temp_parser.ooc = (temp_eos, node)
+        temp_parser.ooc = (temp_eos, node, node.state)
         temp_parser.root = temp_root
         dummy_stack_eos = EOS(Terminal(""), oldleft.state, [])
         try:
             temp_parser.inc_parse(state=oldleft.state, stack=[dummy_stack_eos])
         except IndexError:
-            temp_parser.last_status == False
+            temp_parser.last_status = False
 
         temp_eos.parent = eos_parent
         temp_eos.left = eos_left
@@ -496,15 +515,21 @@ class IncParser(object):
               logging.debug("OOC analysis of %s failed. Error on %s.", node, temp_parser.error_nodes)
               self.error_nodes.extend(temp_parser.error_nodes)
               node.log[("left", self.prev_version)] = saved_left
-              self.isolate(node) # XXX actually need to call refine here
-              node.isolated = True
+              self.isolate(node) # revert changes done during OOC
+              if temp_parser.previous_version.parent.isolated:
+                  # if during OOC parsing error recovery isolated the entire
+                  # tree (due to not finding an appropriate isolation node) we
+                  # need to move the isolation reference over to the actual node
+                  # being reparsed as the root is thrown away after this
+                  node.isolated = temp_parser.previous_version.parent.isolated
               return
 
         newnode = temp_parser.stack[-1]
 
         if newnode.symbol.name != oldname:
             logging.debug("OOC analysis resulted in different symbol: %s", newnode.symbol.name)
-            # not is not the same: revert all changes!
+            # node is not the same: revert all changes!
+            self.error_nodes.extend(temp_parser.error_nodes) # pass on nested isolation errors
             node.log[("left", self.prev_version)] = saved_left
             self.isolate(node)
             return
@@ -512,6 +537,7 @@ class IncParser(object):
         if newnode is not node:
             node.log[("left", self.prev_version)] = saved_left
             logging.debug("OOC analysis resulted in different node but same symbol: %s", newnode.symbol.name)
+            self.error_nodes.extend(temp_parser.error_nodes)
             assert len(temp_parser.stack) == 2 # should only contain [EOS, node]
             i = oldparent.children.index(node)
             oldparent.children[i] = newnode
@@ -528,6 +554,7 @@ class IncParser(object):
             return
 
         logging.debug("Subtree resulted in the same parse as before %s %s", newnode, node)
+        self.error_nodes.extend(temp_parser.error_nodes)
         assert len(temp_parser.stack) == 2 # should only contain [EOS, node]
         node.parent = oldparent
         node.left = oldleft
@@ -554,9 +581,10 @@ class IncParser(object):
         assert goto != None
 
         # save childrens parents state
+        has_errors = False
         for c in children:
-            c.local_error = False
-            c.nested_errors = False
+            if c.has_errors() or c.isolated:
+                has_errors = True
             if not c.new:
                 # just marking changed is not enough. If we encounter an error
                 # during reduction the path from the root down to this node is
@@ -569,7 +597,9 @@ class IncParser(object):
             new_node = reuse_parent
             new_node.changed = False
             new_node.deleted = False
-            new_node.isolated = False
+            new_node.isolated = None
+            new_node.local_error = False
+            new_node.nested_errors = has_errors
             new_node.set_children(children)
             new_node.state = goto.action # XXX need to save state using hisotry service
             new_node.mark_changed()
@@ -618,7 +648,6 @@ class IncParser(object):
         return True
 
     def left_breakdown(self, la):
-        la.deleted = True # node wasn't reused so is considered deleted
         if len(la.children) > 0:
             return la.children[0]
         else:
@@ -626,13 +655,17 @@ class IncParser(object):
 
     def right_breakdown(self):
         node = self.stack.pop() # optimistically shifted Nonterminal
-        node.deleted = True
         # after the breakdown, we need to properly shift the left over terminal
         # using the (correct) current state from before the optimistic shift of
         # it's parent tree
         self.current_state = self.stack[-1].state
         logging.debug("right breakdown(%s): set state to %s", node.symbol.name, self.current_state)
         while(isinstance(node.symbol, Nonterminal)):
+            # Right_breakdown reverts wrong optimistic shifts including
+            # subsequent reductions. These reductions may contain nodes that
+            # have been reused. Reverting the reduction also means we need to
+            # undo the reusing of that node to free it up for future reusing.
+            self.reused_nodes.discard(node)
             # This bit of code is necessary to avoid a bug that occurs with the
             # default Wagner implementation if we isolate a subtree and
             # optimistically shift an empty Nonterminal, and then run into an
@@ -766,35 +799,22 @@ class IncParser(object):
         self.errornodes_by_version[version] = list(self.error_nodes)
 
     def find_nested_error(self, node):
-        """Given an isolated node, finds the first local error node contained in
-        it."""
+        """Find errors within isolated subtrees."""
+        if node.isolated:
+            self.error_nodes.append(node.isolated)
+        elif not node.nested_errors:
+            return
         for c in node.children:
-            # if node.isolated: find nested_error
-            if c.nested_errors:
-                if self.find_nested_error(c):
-                    return c
-            if c.local_error:
-                self.error_nodes.append(c)
-                return c
-        return None
+            self.find_nested_error(c)
 
-    def surrounding_context_changed(self, node):
-        # find isolation trees last terminal
-        while isinstance(node, Nonterminal):
-            if node.children:
-                node = node.children[-1]
-                continue
-            else:
-                # find left sibling
-                while not node.left:
-                    node = node.parent
-                continue
-        # found terminal
-        if node.next_term.changed:
-            return True
-
-        if node.next_term is not node.get_attr("next_term", self.prev_version):
-            return True
+    def iso_context_changed(self, node):
+        # Currently catches more cases than neccessary. Could be made more
+        # accurate by finding the next terminal reachable from node (including
+        # deleted ones)
+        if not node.isolated:
+            return False
+        la = self.pop_lookahead(node)
+        return la.has_changes()
 
     def next_terminal(self, node):
         n = self.pop_lookahead(node)

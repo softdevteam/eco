@@ -75,6 +75,14 @@ class RecoveryManager(object):
 
         self.rejects.add(node)
 
+        # There is no point in isolating nodes that don't have changes, even if
+        # they are valid isolation trees. Ultimately the parse will fail again
+        # as no changes have been isolated, and a bigger isolation area will be
+        # picked. This is a deviation from Wagner's algorithm, which doesn't seem
+        # to check for this.
+        if not node.has_changes(self.previous_version):
+            return False
+
         if len(node.children) == 0:
             return False
 

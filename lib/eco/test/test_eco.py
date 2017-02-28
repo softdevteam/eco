@@ -1660,6 +1660,68 @@ class Test_Undo(Test_Python):
         self.move(RIGHT, 4)
         self.treemanager.key_delete()
 
+    def test_undo_random_deletion_fast(self):
+        # fast fuzzy test that can be run on normal test runs
+        import random
+        self.reset()
+
+        self.treemanager.import_file(programs.pythonsmall)
+        assert self.parser.last_status == True
+
+        self.text_compare(programs.pythonsmall)
+
+        line_count = len(self.treemanager.lines)
+        random_lines = range(line_count)
+        random.shuffle(random_lines)
+
+        start_version = self.treemanager.version
+        for linenr in random_lines:
+            cols = range(20)
+            random.shuffle(cols)
+            for col in cols[:5]:
+                self.treemanager.cursor_reset()
+                print("self.treemanager.cursor_reset()")
+                self.move(DOWN, linenr)
+                print("self.move(DOWN, %s)" % linenr)
+                self.move(RIGHT, col)
+                print("self.move(RIGHT, %s)" % col)
+                print("self.treemanager.key_delete()")
+                x = self.treemanager.key_delete()
+                if x == "eos":
+                    continue
+            self.treemanager.undo_snapshot()
+            print("self.treemanager.undo_snapshot()")
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.pythonsmall)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+        self.text_compare(broken)
+
+        # undo again and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.pythonsmall)
+
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        parser.init_ast()
+        t1.add_parser(parser, lexer, python.name)
+        t1.set_font_test(7, 17)
+        t1.import_file(programs.pythonsmall)
+
+        assert self.parser.last_status == True
+        assert parser.last_status == True
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
     @slow
     def test_undo_random_deletion(self):
         import random
@@ -1926,6 +1988,69 @@ class Test_Undo(Test_Python):
         self.move(RIGHT, 4)
         self.treemanager.key_delete()
 
+    def test_undo_random_deletion_bug3_short(self):
+        self.reset()
+
+        program = """class Connect4():
+        pass
+        def __init__():
+            pass
+            for x in y:
+                pass
+
+                for x in y:
+                    pass
+                    pass
+                pass
+
+            pass
+
+        def _end():
+            if winner_colour:
+                pass
+                pass"""
+        self.treemanager.import_file(program)
+        assert self.parser.last_status == True
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 16)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 15)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 3)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 9)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 10)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+
     def test_random_undo_deletion_bug4(self):
         # Occured during implementing retain changes
 
@@ -2046,6 +2171,76 @@ class Test_Undo(Test_Python):
         self.move(DOWN, 12)
         self.move(RIGHT, 0)
         self.treemanager.key_delete()
+
+    def test_undo_random_deletion_bug6(self):
+        self.reset()
+
+        self.treemanager.import_file("""class X:
+    def helloworld():
+        for x in y:
+            if x:
+                pass1
+            else:
+                pass2
+        pass3
+
+    def foo(x):
+        pass4""")
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 1)
+        self.move(RIGHT, 1)
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 0)
+        self.move(RIGHT, 1)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 0)
+        self.move(RIGHT, 6)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 0)
+        self.move(RIGHT, 5)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 0)
+        self.move(RIGHT, 9)
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 10)
+        self.move(RIGHT, 2)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 10)
+        self.move(RIGHT, 5)
+        self.treemanager.key_delete()
+
+    def test_undo_random_deletion_bug7(self):
+        self.reset()
+
+        self.treemanager.import_file("""class Connect4():
+    def _update_from_pos_one_colour():
+        self.cols[x][y]["background"] = colour""")
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 19)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 18)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 17)
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
+        self.treemanager.key_ctrl_z()
 
     def get_random_key(self):
         import random
@@ -3382,7 +3577,6 @@ class Test_ErrorRecoveryRightbreakdown:
 
         assert parser.last_status == False
 
-@pytest.mark.xfail
 class Test_ErrorRecoverySurroundingContext:
     def test_simple(self):
         # This test checks the correct behaviour for skipping already isolated
@@ -3467,6 +3661,18 @@ class Test_RetainSubtree:
         assert t.cursor.node.parent.symbol.name == "X" # will be 'P' without retaining
 
     def test_bug1(self):
+        """There is currently a bug in the retainability algorithm that causes
+        an infinite loop when a certain subtree is retained. In this test case
+        the bug happens when an empty non-terminal A (child of node B) is being
+        reused and becomes a child of another node C. After error recovery the
+        previous parent (B) is reverted which includes resetting A as well.
+        However the new parent (C) is being retained, causing it to keep a child
+        reference to A. Now A is being referenced by two different parents (B
+        and C), causing an infinite loop when traversing the parse tree. The
+        implementation however is correct and the error can also be reproduced
+        when manually applying Wagners algorithm to this problem. For this
+        reason retainability is current disabled in the parser until this
+        problem has been resolved."""
         t = TreeManager()
         parser, lexer = python.load()
         t.add_parser(parser, lexer, "Python")
