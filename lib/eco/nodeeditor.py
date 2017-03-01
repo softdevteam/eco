@@ -201,6 +201,8 @@ class NodeEditor(QFrame):
                 return True
             # Draw errors, if there are any.
             msg = self.tm.get_error(node)
+            if not msg:
+                msg = self.tm.get_error_presentation(node)
             if msg:
                 QToolTip.showText(event.globalPos(), msg)
                 return True
@@ -544,6 +546,10 @@ class NodeEditor(QFrame):
             if show_namebinding and self.tm.is_typeerror(node):
                 length = len(node.symbol.name)*self.fontwt
                 self.draw_squiggly_line(paint, x-length, y, length, "orange")
+
+            if self.tm.has_error_presentation(node):
+                length = len(node.symbol.name)*self.fontwt
+                self.draw_squiggly_line(paint, x-length, y, length, "green")
 
             if self.tm.is_syntaxerror(node):
                 if isinstance(node, EOS):

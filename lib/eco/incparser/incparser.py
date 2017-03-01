@@ -157,6 +157,7 @@ class IncParser(object):
         self.loopcount = 0
         self.needs_reparse = needs_reparse
         self.error_nodes = []
+        self.error_pres = []
         if self.ooc:
             rmroot = self.ooc[1]
         else:
@@ -375,6 +376,17 @@ class IncParser(object):
                 node.nested_errors = True
             if node.changed:
                 node.local_error = True
+                self.compute_presention(node)
+
+    def compute_presention(self, node):
+        if type(node.symbol) is not Terminal:
+            return
+        try:
+            prev_name = node.get_attr("symbol.name", self.reference_version)
+        except AttributeError:
+            prev_name = None
+        if prev_name != node.symbol.name:
+            self.error_pres.append((node, prev_name))
 
     def refine(self, node, offset, error_offset):
         # for all children that come after the detection offset, we need
@@ -466,6 +478,7 @@ class IncParser(object):
         temp_parser = IncParser()
         temp_parser.syntaxtable = self.syntaxtable
         temp_parser.prev_version = self.prev_version
+        temp_parser.reference_version = self.reference_version
 
         oldname = node.symbol.name
         oldleft = node.left
@@ -510,10 +523,12 @@ class IncParser(object):
         temp_eos.left = eos_left
         temp_eos.right = eos_right
 
+        # pass on errors to the outer parser
+        self.error_nodes.extend(temp_parser.error_nodes)
+        self.error_pres.extend(temp_parser.error_pres)
         if temp_parser.last_status == False:
               # isolate
               logging.debug("OOC analysis of %s failed. Error on %s.", node, temp_parser.error_nodes)
-              self.error_nodes.extend(temp_parser.error_nodes)
               node.log[("left", self.prev_version)] = saved_left
               self.isolate(node) # revert changes done during OOC
               if temp_parser.previous_version.parent.isolated:
@@ -529,7 +544,6 @@ class IncParser(object):
         if newnode.symbol.name != oldname:
             logging.debug("OOC analysis resulted in different symbol: %s", newnode.symbol.name)
             # node is not the same: revert all changes!
-            self.error_nodes.extend(temp_parser.error_nodes) # pass on nested isolation errors
             node.log[("left", self.prev_version)] = saved_left
             self.isolate(node)
             return
@@ -537,7 +551,6 @@ class IncParser(object):
         if newnode is not node:
             node.log[("left", self.prev_version)] = saved_left
             logging.debug("OOC analysis resulted in different node but same symbol: %s", newnode.symbol.name)
-            self.error_nodes.extend(temp_parser.error_nodes)
             assert len(temp_parser.stack) == 2 # should only contain [EOS, node]
             i = oldparent.children.index(node)
             oldparent.children[i] = newnode
@@ -554,7 +567,6 @@ class IncParser(object):
             return
 
         logging.debug("Subtree resulted in the same parse as before %s %s", newnode, node)
-        self.error_nodes.extend(temp_parser.error_nodes)
         assert len(temp_parser.stack) == 2 # should only contain [EOS, node]
         node.parent = oldparent
         node.left = oldleft
@@ -800,6 +812,7 @@ class IncParser(object):
 
     def find_nested_error(self, node):
         """Find errors within isolated subtrees."""
+        self.compute_presention(node)
         if node.isolated:
             self.error_nodes.append(node.isolated)
         elif not node.nested_errors:
