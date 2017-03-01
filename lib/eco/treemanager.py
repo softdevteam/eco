@@ -370,6 +370,7 @@ class TreeManager(object):
         self.changed = False
         self.last_search = ""
         self.version = self.global_version = 1
+        self.reference_version = 0
         TreeManager.version = 1
         self.last_saved_version = 1
         self.savenextparse = False
@@ -520,6 +521,22 @@ class TreeManager(object):
                 if error != "":
                     return error
         return ""
+
+    def has_error_presentation(self, node):
+        for p in self.parsers:
+            if p[0]:
+                for n, pres in p[0].error_pres:
+                    if n is node:
+                        return True
+        return False
+
+    def get_error_presentation(self, node):
+        for p in self.parsers:
+            if p[0]:
+                for n, pres in p[0].error_pres:
+                      if n is node:
+                          return "'%s' was changed to '%s'" % (pres, node.symbol.name)
+        return None
 
     def analyse(self):
         if self.parsers[0][2] == "PHP + Python":
@@ -1843,6 +1860,7 @@ class TreeManager(object):
             parser = self.get_parser(root)
             self.previous_version = self.version
             parser.prev_version = self.version
+            parser.reference_version = self.reference_version
             parser.inc_parse()
             self.save_current_version(postparse=True) # save post parse tree
             if parser.last_status == True:
