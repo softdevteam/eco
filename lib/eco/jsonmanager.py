@@ -69,6 +69,8 @@ class JsonManager(object):
         jsnode["symbol"] = node.symbol.__class__.__name__
         jsnode["text"] = node.symbol.name
         jsnode["lookup"] = node.lookup
+        jsnode["local_error"] = node.local_error
+        jsnode["nested_errors"] = node.nested_errors
         jsnode["image_src"] = node.image_src
 
         children = []
@@ -96,6 +98,11 @@ class JsonManager(object):
         node = node_class(symbol)
         assert node.symbol is symbol
         node.lookup = jsnode["lookup"]
+        try:
+            node.local_error = jsnode["local_error"]
+            node.nested_errors = jsnode["nested_errors"]
+        except KeyError:
+            pass # Backwards compatibility for old Eco files
         node.image_src = jsnode["image_src"]
         if node.image_src is not None:
             node.image = QImage(node.image_src)
