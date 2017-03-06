@@ -231,6 +231,27 @@ class Test_General:
 
         assert c.parent is cp
 
+    def test_load_file_with_error(self):
+        t = TreeManager()
+
+        from jsonmanager import JsonManager
+        manager = JsonManager()
+        language_boxes = manager.load("test/calcerror.eco")
+
+        t.load_file(language_boxes)
+        parser = t.get_mainparser()
+
+        t.key_home()
+        t.key_cursors(RIGHT)
+        t.key_cursors(RIGHT)
+        t.key_delete()
+        assert parser.last_status is False
+
+        t.key_cursors(RIGHT)
+        t.key_cursors(RIGHT)
+        t.key_delete()
+        assert parser.last_status is True
+
 class Test_Helper:
 
     def reset(self):

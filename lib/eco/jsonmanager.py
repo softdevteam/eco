@@ -104,6 +104,7 @@ class JsonManager(object):
             node.prev_term = self.last_terminal
             if self.last_terminal is not None:
                 self.last_terminal.next_term = node
+                self.last_terminal.save(0)
             self.last_terminal = node
 
         if "lbox" in jsnode:
@@ -124,9 +125,12 @@ class JsonManager(object):
             cnode.left = last_child
             if last_child:
                 last_child.right = cnode
+                last_child.save(0)
             cnode.save(0)
             children.append(cnode)
             last_child = cnode
         node.children = children
+        node.calc_textlength()
+        node.save(0)
 
         return node
