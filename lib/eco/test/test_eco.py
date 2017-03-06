@@ -252,6 +252,26 @@ class Test_General:
         t.key_delete()
         assert parser.last_status is True
 
+    def test_lexing_save_load_bug(self):
+        t = TreeManager()
+
+        from jsonmanager import JsonManager
+        manager = JsonManager()
+        language_boxes = manager.load("test/range_lex_bug.eco")
+
+        t.load_file(language_boxes)
+        parser = t.get_mainparser()
+
+        t.key_home()
+        t.key_cursors(RIGHT)
+        t.key_cursors(RIGHT)
+        t.key_cursors(RIGHT)
+        t.key_cursors(RIGHT)
+        t.key_cursors(RIGHT)
+        assert t.cursor.node.symbol.name == "range"
+        t.key_delete()
+        assert t.cursor.node.symbol.name == "rangex"
+
 class Test_Helper:
 
     def reset(self):

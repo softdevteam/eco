@@ -1664,7 +1664,7 @@ class TreeManager(object):
         self.last_saved_version = 1
         self.reference_version = 1
         self.full_reparse() # needed to recreate AST nodes
-        self.save()
+        self.save(True)
         TreeManager.version = 1
         self.changed = False
 
