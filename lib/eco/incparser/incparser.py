@@ -611,13 +611,13 @@ class IncParser(object):
             new_node.deleted = False
             new_node.isolated = None
             new_node.local_error = False
-            new_node.nested_errors = has_errors
             new_node.set_children(children)
             new_node.state = goto.action # XXX need to save state using hisotry service
             new_node.mark_changed()
         else:
             new_node = Node(element.action.left.copy(), goto.action, children)
             logging.debug("   No reuse parent. Make new %s (%s)", new_node, id(new_node))
+        new_node.nested_errors = has_errors
         new_node.calc_textlength()
         logging.debug("   Add %s to stack and goto state %s", new_node.symbol, new_node.state)
         self.stack.append(new_node)

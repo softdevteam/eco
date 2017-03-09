@@ -1662,8 +1662,9 @@ class TreeManager(object):
         self.savenextparse = True
         self.version = self.global_version = 1
         self.last_saved_version = 1
-        self.full_reparse()
-        self.save()
+        self.reference_version = 1
+        self.full_reparse() # needed to recreate AST nodes
+        self.save(True)
         TreeManager.version = 1
         self.changed = False
 
@@ -1894,6 +1895,8 @@ class TreeManager(object):
 
     def full_reparse(self):
         for p in self.parsers:
+            p[0].prev_version = self.version
+            p[0].reference_version = self.reference_version
             p[0].reparse()
 
     def apply_inputlog(self, inputlog):
