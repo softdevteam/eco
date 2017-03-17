@@ -2300,6 +2300,130 @@ class Test_Undo(Test_Python):
 
         self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
 
+    def test_undo_random_insertion_fast(self):
+        import random
+        self.reset()
+
+        self.treemanager.import_file(programs.pythonsmall)
+        assert self.parser.last_status == True
+
+        self.text_compare(programs.pythonsmall)
+
+        line_count = len(self.treemanager.lines)
+        random_lines = range(line_count)
+        random.shuffle(random_lines)
+
+        start_version = self.treemanager.version
+        for linenr in random_lines:
+            cols = range(10)
+            random.shuffle(cols)
+            for col in cols:
+                print("self.treemanager.cursor_reset()")
+                self.treemanager.cursor_reset()
+                print("self.move(DOWN, %s)" % linenr)
+                print("self.move(RIGHT, %s)" % col)
+                self.move(DOWN, linenr)
+                self.move(RIGHT, col)
+                k = self.get_random_key()
+                print("self.treemanager.key_normal('%s')" % repr(k))
+                x = self.treemanager.key_normal(k)
+                if x == "eos":
+                    continue
+            print("self.treemanager.undo_snapshot()")
+            self.treemanager.undo_snapshot()
+
+        end_version = self.treemanager.version
+        broken = self.treemanager.export_as_text()
+
+        # undo all and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.pythonsmall)
+
+        # redo all and compare with broken
+        while self.treemanager.version < end_version:
+            self.treemanager.key_shift_ctrl_z()
+        self.text_compare(broken)
+
+        # undo again and compare with original
+        while self.treemanager.version > start_version:
+            self.treemanager.key_ctrl_z()
+        self.text_compare(programs.pythonsmall)
+
+        t1 = TreeManager()
+        parser, lexer = python.load()
+        t1.add_parser(parser, lexer, python.name)
+        t1.import_file(programs.pythonsmall)
+
+        self.tree_compare(self.parser.previous_version.parent, parser.previous_version.parent)
+
+    def test_undo_random_insertion_fast_bug1(self):
+        self.reset()
+
+        self.treemanager.import_file(programs.pythonsmall)
+        assert self.parser.last_status == True
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 8)
+        self.treemanager.key_normal('5')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 3)
+        self.treemanager.key_normal('p')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 8)
+        self.treemanager.key_normal('\r')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 4)
+        self.treemanager.key_normal('\r')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 7)
+        self.treemanager.key_normal('.')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 0)
+        self.treemanager.key_normal('9')
+        self.treemanager.undo_snapshot()
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 0)
+        self.treemanager.key_normal('1')
+        self.treemanager.undo_snapshot()
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 13)
+        self.move(RIGHT, 0)
+        self.treemanager.key_normal('6')
+        self.treemanager.undo_snapshot()
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 10)
+        self.move(RIGHT, 6)
+        self.treemanager.key_normal('$')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 10)
+        self.move(RIGHT, 1)
+        self.treemanager.key_normal('j')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 10)
+        self.move(RIGHT, 0)
+        self.treemanager.key_normal('o')
+        self.treemanager.undo_snapshot()
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 6)
+        self.move(RIGHT, 3)
+        self.treemanager.key_normal('2')
+        self.treemanager.undo_snapshot()
+
+        for i in range(20):
+            self.treemanager.key_ctrl_z()
+
     def test_undo_random_newlines(self):
         import random
         self.reset()

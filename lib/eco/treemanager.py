@@ -820,6 +820,14 @@ class TreeManager(object):
                 self.redo(root, _from)
 
     def undo(self, node):
+        if not node.log:
+            # Node was never integrated during parsing and thus hasn't been
+            # saved. Continue with its children. This could be also solved by
+            # having nodes version themselves as soon as their attributes
+            # changes. Requires rethinking the versioning system.
+            for c in node.children:
+                self.undo(c)
+            return
         if node.version <= self.version and not node.has_unsaved_changes():
             # node is already at this or an even earlier version and has no
             # unsaved changes
