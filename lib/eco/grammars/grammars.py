@@ -52,26 +52,14 @@ class EcoFile(object):
     def load(self):
         from grammar_parser.bootstrap import BootstrapParser
         from jsonmanager import JsonManager
+        from incparser.incparser import IncParser
 
         if _cache.has_key(self.name + "::parser"):
 
-            root, language, whitespaces = _cache[self.name + "::json"]
-
-            # parse rules as they are needed by the incremental parser to
-            # detect comments
-
-            manager = JsonManager(unescape=True)
-            root, language, whitespaces = manager.load(self.filename)[0]
-
-            pickle_id = hash(self)
-            bootstrap = BootstrapParser(lr_type=1, whitespaces=whitespaces)
-            bootstrap.ast = root
-            bootstrap.parse_rules(root.children[1].children[1].children[0])
-
-            pickle_id, whitespace = _cache[self.name + "::parser"]
-            from incparser.incparser import IncParser
+            syntaxtable, whitespaces = _cache[self.name + "::parser"]
             incparser = IncParser()
-            incparser.from_dict(bootstrap.rules, None, None, whitespace, pickle_id, None)
+            incparser.syntaxtable = syntaxtable
+            incparser.whitespaces = whitespaces
             incparser.init_ast()
 
             inclexer = _cache[self.name + "::lexer"]
@@ -96,7 +84,7 @@ class EcoFile(object):
 
             _cache[self.name + "::lexer"] = bootstrap.inclexer
             _cache[self.name + "::json"] = (root, language, whitespaces)
-            _cache[self.name + "::parser"] = (pickle_id, whitespace)
+            _cache[self.name + "::parser"] = (bootstrap.incparser.syntaxtable, whitespace)
 
             bootstrap.incparser.lexer = bootstrap.inclexer
             return (bootstrap.incparser, bootstrap.inclexer)
