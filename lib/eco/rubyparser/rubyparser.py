@@ -81,6 +81,8 @@ class RubyParser(object):
         self.graph = None
         self.last_status = True
         self.whitespaces = True
+        self.error_pres = []
+        self.error_nodes = []
 
     def init_ast(self, magic_parent = None):
         bos = BOS(Terminal(""), 0, [])
