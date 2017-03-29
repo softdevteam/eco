@@ -265,7 +265,7 @@ class JRubyExporter(object):
         settings = QSettings("softdev", "Eco")
         jruby_bin =str (settings.value("env_jruby").toString())
         self._export_as_text(f[1])
-        return subprocess.Popen([jruby_bin, "-X+T", f[1]],
+        return subprocess.Popen([jruby_bin, "-J-Djvmci.Compiler=graal", f[1]],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT,
                                 bufsize=0)
@@ -288,11 +288,9 @@ class JRubyExporter(object):
         else:
             load_path = ""
         pic_size = str(settings.value("graalvm_pic_size", "").toString())
-        cmd = [jruby_bin, "-X+T", "-J-Djvmci.Compiler=graal",
-               "-Xtruffle.callgraph=true", load_path,
-               "-Xtruffle.callgraph.write=" + log_file_name,
-               "-Xtruffle.dispatch.cache=" + pic_size,
-               src_file_name]
+        cmd = [jruby_bin, "-J-Djvmci.Compiler=graal",
+               "-Xcallgraph=true", "-Xcallgraph.write=" + log_file_name,
+               "-Xdispatch.cache=" + pic_size, load_path, src_file_name]
         logging.debug("Running command: %s" % " ".join(cmd))
         settings = QSettings("softdev", "Eco")
         graalvm_bin = str(settings.value("env_graalvm", "").toString())
