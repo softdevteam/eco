@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from grammars.grammars import calc, java, python, Language, sql, pythonprolog, lang_dict, phppython, pythonphp
+from grammars.grammars import calc, java, python, Language, sql, pythonprolog, lang_dict, phppython, pythonphp, pythonhtmlsql
 from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer, IncrementalLexerCF
@@ -4453,3 +4453,90 @@ class Test_TopDownReuse(Test_Python):
         assert startrule is startrule2
         assert E is E2
         assert Y is Y2
+
+from autolboxdetector import AutoLBoxDetector
+from grammars.grammars import phppython
+
+class Test_AutoLanguageBoxDetection():
+
+    def test_pythonsql(self):
+        parser, lexer = pythonhtmlsql.load()
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, "")
+
+        autolboxdetector = AutoLBoxDetector()
+        autolboxdetector.init_language(pythonhtmlsql.name)
+        treemanager.autolboxdetector = autolboxdetector
+
+        for c in "x = SELECT * FROM table":
+            treemanager.key_normal(c)
+
+        assert parser.last_status == False
+
+        treemanager.key_normal(";")
+
+        assert parser.last_status == True
+
+    def test_php_python(self):
+        parser, lexer = phppython.load()
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, "")
+
+        autolboxdetector = AutoLBoxDetector()
+        autolboxdetector.init_language(phppython.name)
+        treemanager.autolboxdetector = autolboxdetector
+
+        for c in "class X {\n\n}":
+            treemanager.key_normal(c)
+        assert parser.last_status == True
+
+        treemanager.key_cursors(UP)
+        for c in "    def x():\n    ":
+            treemanager.key_normal(c)
+        assert parser.last_status == False
+
+        treemanager.key_normal("p")
+        assert parser.last_status == True
+
+    def test_php_python2(self):
+        parser, lexer = phppython.load()
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, "")
+
+        autolboxdetector = AutoLBoxDetector()
+        autolboxdetector.init_language(phppython.name)
+        treemanager.autolboxdetector = autolboxdetector
+
+        for c in "class X {\n}":
+            treemanager.key_normal(c)
+        assert parser.last_status == True
+
+        treemanager.key_cursors(LEFT)
+        for c in "    def x():\n    ":
+            treemanager.key_normal(c)
+        assert parser.last_status == False
+
+        treemanager.key_normal("p")
+        assert parser.last_status
+
+    def test_php_python3(self):
+        parser, lexer = phppython.load()
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, "")
+
+        autolboxdetector = AutoLBoxDetector()
+        autolboxdetector.init_language(phppython.name)
+        treemanager.autolboxdetector = autolboxdetector
+
+        for c in "class X {\n\n\n\n}":
+            treemanager.key_normal(c)
+        assert parser.last_status == True
+
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        for c in "    def x():\n    ":
+            treemanager.key_normal(c)
+        assert parser.last_status == False
+
+        treemanager.key_normal("p")
+        assert parser.last_status == True == True

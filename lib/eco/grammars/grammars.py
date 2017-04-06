@@ -47,6 +47,7 @@ class EcoFile(object):
         self.filename = filename
         self.base = base
         self.alts = {}
+        self.included_langs = set()
         self.extract = None
 
     def load(self, buildlexer=True):
@@ -64,6 +65,7 @@ class EcoFile(object):
 
             inclexer = _cache[self.name + "::lexer"]
             incparser.lexer = inclexer # give parser a reference to its lexer (needed for multiline comments)
+            incparser.previous_version.parent.name = self.name
 
             return (incparser, inclexer)
         else:
@@ -86,6 +88,7 @@ class EcoFile(object):
             _cache[self.name + "::json"] = (root, language, whitespaces)
             _cache[self.name + "::parser"] = (bootstrap.incparser.syntaxtable, whitespace)
 
+            bootstrap.incparser.previous_version.parent.name = self.name
             bootstrap.incparser.lexer = bootstrap.inclexer
             return (bootstrap.incparser, bootstrap.inclexer)
 
@@ -93,6 +96,7 @@ class EcoFile(object):
         if nonterminal not in self.alts:
             self.alts[nonterminal] = []
         self.alts[nonterminal].append("<%s>" % language.name)
+        self.included_langs.add(language.name)
 
     def change_start(self, name):
         self.extract = name

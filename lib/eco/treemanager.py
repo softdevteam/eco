@@ -316,6 +316,26 @@ class Cursor(object):
             node = self.find_previous_visible(node)
         return x
 
+    def move_to_node(self, node, after=False):
+        tmp = node
+        while tmp.symbol.name != "\r" and not isinstance(tmp, BOS):
+            tmp = self.find_previous_visible(tmp)
+        line = self.get_line_from_node(tmp)
+        self.line = line
+        self.node = node
+        if after:
+            self.pos = len(node.symbol.name)
+        else:
+            self.node = self.find_previous_visible(node)
+            self.pos = len(self.node.symbol.name)
+
+    def get_line_from_node(self, node):
+        i = 0
+        for l in self.lines:
+            if l.node is node:
+                return i
+            i += 1
+
     def get_nodesize_in_chars(self, node):
         """Calculate the size in characters of a non-textual node."""
         gfont = QApplication.instance().gfont
@@ -380,6 +400,7 @@ class TreeManager(object):
         self.min_version = 1
 
         self.tool_data_is_dirty = False
+        self.autolboxdetector = None
 
         # This code and the can_profile() method should probably be refactored.
         self.langs_with_profiler = {
@@ -1227,6 +1248,12 @@ class TreeManager(object):
         self.cursor.line = len(self.lines) - 1
         self.selection_end = self.cursor.copy()
 
+    def select_from_to(self, _from, _to):
+        self.cursor.move_to_node(_from)
+        self.selection_start = self.cursor.copy()
+        self.cursor.move_to_node(_to, after=True)
+        self.selection_end = self.cursor.copy()
+
     def get_all_annotations_with_hint(self, hint):
         """Return all annotations (optionally of a specific type).
         Call sparingly as this runs over the whole tree.
@@ -1865,7 +1892,7 @@ class TreeManager(object):
         lexer = self.get_lexer(root)
         return lexer.relex(node)
 
-    def reparse(self, node, changed=True):
+    def reparse(self, node, changed=True, skipautolbox=False):
         if self.version < self.global_version:
             # we changed stuff after one or more undos
             # later versions are void -> delete
@@ -1895,6 +1922,17 @@ class TreeManager(object):
             # the type remains the same)
             self.save_current_version(postparse=True)
         TreeManager.version = self.version
+
+        # Now check for auto language boxes
+        if not skipautolbox and self.autolboxdetector:
+            main_parser = self.parsers[0][0]
+            error_nodes = main_parser.error_nodes
+            for en in error_nodes:
+                if en.has_changes(self.previous_version) or True:
+                    result = self.autolboxdetector.detect_languagebox(en)
+                    if result:
+                        self.select_from_to(result[0], result[1])
+                        self.surround_with_languagebox(lang_dict[result[2]])
 
     def delete_version(self, version, node):
         if ("parent", version) in node.log:

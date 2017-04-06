@@ -103,6 +103,11 @@ class IncParser(object):
 
         self.ooc = None
 
+    def is_valid_symbol(self, state, token):
+        action = self.syntaxtable.lookup(state, token)
+        if action:
+            return True
+        return False
 
     def from_dict(self, rules, startsymbol, lr_type, whitespaces, pickle_id, precedences):
         self.graph = None
