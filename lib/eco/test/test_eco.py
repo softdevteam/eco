@@ -4539,4 +4539,22 @@ class Test_AutoLanguageBoxDetection():
         assert parser.last_status == False
 
         treemanager.key_normal("p")
-        assert parser.last_status == True == True
+        assert parser.last_status == True
+
+    def test_php_python_expression(self):
+        parser, lexer = phppython.load()
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, "")
+
+        autolboxdetector = AutoLBoxDetector()
+        autolboxdetector.init_language(phppython.name)
+        treemanager.autolboxdetector = autolboxdetector
+
+        for c in "$x = [x for x in range(10)":
+            treemanager.key_normal(c)
+        assert parser.last_status == False
+
+        treemanager.key_normal("]")
+        treemanager.leave_languagebox()
+        treemanager.key_normal(";")
+        assert parser.last_status == True

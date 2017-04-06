@@ -107,6 +107,8 @@ class Recognizer(object):
                 return True
         elif self.lang == "SQL":
             return token.name in ["SELECT"]
+        elif self.lang == "Python expression":
+            return token.name in ["["]
         return False
 
 class RecognizerIndent(Recognizer):
@@ -132,7 +134,12 @@ class RecognizerIndent(Recognizer):
         tok1 = self.get_token_iter()
         if tok1 is None:
             # XXX generate remaining dedents?
-            return FinishSymbol()
+            self.todo.append(FinishSymbol())
+            self.todo.append(Terminal("NEWLINE"))
+            while self.indents[-1] != 0:
+                self.todo.append(Terminal("DEDENT"))
+                self.indents.pop()
+            return self.todo.pop()
         elif tok1[1] != "<return>":
             self.last_read = tok1[3]
             return Terminal(tok1[1])
