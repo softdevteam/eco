@@ -4477,6 +4477,30 @@ class Test_AutoLanguageBoxDetection():
 
         assert parser.last_status == True
 
+    def test_pythonsql2(self):
+        parser, lexer = pythonhtmlsql.load()
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, "")
+
+        autolboxdetector = AutoLBoxDetector()
+        autolboxdetector.init_language(pythonhtmlsql.name)
+        treemanager.autolboxdetector = autolboxdetector
+
+        treemanager.key_normal("t")
+        treemanager.key_cursors(LEFT)
+
+        for c in "x = SELECT * FROM table":
+            treemanager.key_normal(c)
+
+        assert parser.last_status == False
+        assert len(treemanager.parsers) == 1
+
+        treemanager.key_normal(";")
+
+        treemanager.key_cursors(RIGHT)
+        treemanager.key_backspace()
+        assert len(treemanager.parsers) == 2
+
     def test_php_python(self):
         parser, lexer = phppython.load()
         treemanager = TreeManager()

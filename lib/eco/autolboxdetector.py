@@ -87,14 +87,18 @@ class Recognizer(object):
                 self.state.append(goto.action)
                 continue
             elif isinstance(element, Accept):
-                return self.last_read[-1]
+                return self.last_read
             else:
+                if not isinstance(token, FinishSymbol):
+                    self.last_read = self.last_read.prev_term
+                    token = FinishSymbol()
+                    continue
                 return None
 
     def next_token(self):
         try:
             t = self.tokeniter()
-            self.last_read = t[3]
+            self.last_read = t[3][-1]
             return Terminal(t[1])
         except StopIteration:
            return FinishSymbol() # No more tokens to read
@@ -141,7 +145,7 @@ class RecognizerIndent(Recognizer):
                 self.indents.pop()
             return self.todo.pop()
         elif tok1[1] != "<return>":
-            self.last_read = tok1[3]
+            self.last_read = tok1[3][-1]
             return Terminal(tok1[1])
         else:
             tok2 = self.get_token_iter()
