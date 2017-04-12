@@ -1931,8 +1931,11 @@ class TreeManager(object):
                 if en.has_changes(self.previous_version) or True:
                     result = self.autolboxdetector.detect_languagebox(en)
                     if result:
+                        self.undo_snapshot()
                         self.select_from_to(result[0], result[1])
                         self.surround_with_languagebox(lang_dict[result[2]])
+                        self.reparse(result[0].prev_term)
+                        self.undo_snapshot()
 
     def delete_version(self, version, node):
         if ("parent", version) in node.log:
