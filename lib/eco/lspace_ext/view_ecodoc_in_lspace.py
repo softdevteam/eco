@@ -3,7 +3,7 @@ import os, tempfile, json, subprocess
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 
-from .lspace import Text, Row, Column, Flow, Pres, viewer
+from .lspace import Text, Row, Column, Flow, Pres, Colour, ApplyStyleSheet, viewer
 
 
 class EcoDocToken (object):
@@ -56,7 +56,10 @@ class EcoDoc (object):
         return self._get_current_line().token(token)
 
     def __present__(self):
-        return Column(self.lines)
+        title = ApplyStyleSheet(Text('Eco Document'), text_size=20.0, text_weight='bold', text_colour=Colour(0.0, 0.3, 0.4))
+        content = Column(self.lines)
+        content = ApplyStyleSheet(content, text_font_family='Courier New', text_colour=Colour(0.4, 0.4, 0.4))
+        return ApplyStyleSheet(Column([title, content]), column_y_spacing=20.0)
 
 
 def view_in_lspace(tree_manager, lspace_root=None):
@@ -85,6 +88,8 @@ def view_in_lspace(tree_manager, lspace_root=None):
             doc.new_line()
         else:
             doc.token(EcoDocToken(node.symbol.name))
+
+
 
     return viewer(doc, lspace_root=lspace_root)
 
