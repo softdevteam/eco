@@ -55,7 +55,7 @@ from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
 from grammars.grammars import languages, newfile_langs, submenu_langs, lang_dict, Language, EcoGrammar
 import os
 import math
-
+import sys
 import syntaxhighlighter
 
 from nodeeditor import NodeEditor
@@ -66,7 +66,11 @@ from lspace_ext import view_ecodoc_in_lspace
 import logging
 from debug import Debugger
 
-Ui_MainWindow, _     = uic.loadUiType('gui/gui.ui')
+if sys.platform == "darwin" and os.path.exists('gui/gui_osx.ui'):
+    Ui_MainWindow, _     = uic.loadUiType('gui/gui_osx.ui')
+else:
+    Ui_MainWindow, _     = uic.loadUiType('gui/gui.ui')
+
 Ui_ParseTree, _      = uic.loadUiType('gui/parsetree.ui')
 Ui_StateView, _      = uic.loadUiType('gui/stateview.ui')
 Ui_About, _          = uic.loadUiType('gui/about.ui')
