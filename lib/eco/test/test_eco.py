@@ -4592,12 +4592,17 @@ class Test_AutoLanguageBoxDetection():
         autolboxdetector.init_language(phppython.name)
         treemanager.autolboxdetector = autolboxdetector
 
-        for c in "$x = ":
+        for c in "$x = 1 or not ":
             treemanager.key_normal(c)
         assert len(treemanager.parsers) == 1
 
-        treemanager.key_normal("1")
-        assert len(treemanager.parsers) == 1
+        treemanager.key_normal("2")
+        assert len(treemanager.parsers) == 2
+        assert parser.last_status is False
+
+        treemanager.leave_languagebox()
+        treemanager.key_normal(";")
+        assert parser.last_status is True
 
     def test_autoremove_pythonsql(self):
         parser, lexer = pythonhtmlsql.load()

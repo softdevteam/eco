@@ -1,6 +1,6 @@
 from grammars.grammars import lang_dict
 from incparser.astree import BOS, EOS
-from grammar_parser.gparser import MagicTerminal, Terminal
+from grammar_parser.gparser import MagicTerminal, Terminal, Nonterminal, IndentationTerminal
 from incparser.syntaxtable import Shift, Reduce, Goto, Accept
 
 class AutoLBoxDetector(object):
@@ -23,7 +23,8 @@ class AutoLBoxDetector(object):
         outer_lang = outer_root.name
         outer_parser, outer_lexer = self.langs[outer_lang]
         r = IncrementalRecognizer(outer_parser.syntaxtable, outer_lexer.lexer, outer_lang)
-        return r.parse(outer_root, lbox)
+        r.preparse(outer_root, lbox)
+        return r.parse(lbox.symbol.ast.children[0].next_term)
 
     def detect_languagebox(self, node):
         # Get current language
@@ -36,22 +37,31 @@ class AutoLBoxDetector(object):
             # get most left terminal
             if type(term) is BOS:
                 break
+            elif type(term) is EOS:
+                term = term.prev_term
+                continue
 
-            # Check if first token is valid in one of the autobox grammars
-            for langname in self.langs:
-                p, l = self.langs[langname]
-                state = term.prev_term.state
-                result = parser.is_valid_symbol(state, MagicTerminal("<%s>" % (langname,)))
-                if result:
-                    end = self.detect_end(langname, term)
-                    if end and self.contains_errornode(term, end, node):
-                       return (term, end, langname)
+            #XXX check if term is valid in any of the langs first? If not we don't need to increc
+            outer_root = term.get_root()
+            outer_lang = outer_root.name
+            outer_parser, outer_lexer = self.langs[outer_lang]
+            r = IncrementalRecognizer(outer_parser.syntaxtable, outer_lexer.lexer, outer_lang)
+            result = r.preparse(outer_root, term)
+            if result:
+                # Check if first token is valid in one of the autobox grammars
+                for langname in self.langs:
+                    if r.is_valid(MagicTerminal("<%s>" % (langname,))):
+                        end = self.detect_end(langname, term)
+                        if end and self.contains_errornode(term, end, node):
+                            return (term, end, langname)
+                    else:
+                        #print("Language box {} not valid at position {} in {}\n".format(langname, term, outer_lang))
+                        pass
             term = term.prev_term
 
     def detect_end(self, lang, start):
-        if type(start) is EOS:
-            return None
         parser, lexer = self.langs[lang]
+        #print("Language box valid. Find lbox end")
         if lexer.indentation_based:
             r = RecognizerIndent(parser.syntaxtable, lexer.lexer, lang)
         else:
@@ -60,9 +70,11 @@ class AutoLBoxDetector(object):
         return end
 
     def contains_errornode(self, start, end, error):
-        while start is not end:
+        while True:
             if start is error:
                 return True
+            if start is end:
+                break
             start = start.next_term
         return False
 
@@ -128,7 +140,7 @@ class Recognizer(object):
         elif self.lang == "SQL":
             return token.name in ["SELECT"]
         elif self.lang == "Python expression":
-            return token.name in ["["]
+            return token.name in ["[", "NUMBER"]
         return False
 
 class RecognizerIndent(Recognizer):
@@ -188,26 +200,42 @@ class RecognizerIndent(Recognizer):
             return Terminal(tok1[1]) # parse <return> token first
 
 class IncrementalRecognizer(Recognizer):
-    def parse(self, outer_root, lbox):
-        # Start parsing incrementally from BOS. Parsing was successful if we
-        # reached and parsed the last node of the language box.
-        path_to_lbox = set()
-        parent = lbox.parent
+
+    def preparse(self, outer_root, stop):
+        """Puts the recogniser into the state just before `stop`."""
+        #print("Preparsing {} upto {}".format(outer_root, stop))
+        path_to_stop = set()
+        parent = stop.parent
         while parent is not None:
-            path_to_lbox.add(parent)
+            path_to_stop.add(parent)
             parent = parent.parent
 
         # setup parser to the state just before lbox
         node = outer_root.children[1]
         while True:
-            if node is lbox:
-                # Reached lbox
-                break
-            if node not in path_to_lbox:
+            if node.deleted:
+                node = node.right
+                continue
+            if node is stop:
+                # Reached stop node
+                return True
+            if node not in path_to_stop:
                 # Skip/Shift nodes that are not parents of the language box
-                goto = self.syntaxtable.lookup(self.state[-1], node.symbol)
-                if goto:
+                lookup = self.get_lookup(node)
+                element = self.syntaxtable.lookup(self.state[-1], lookup)
+                if type(element) is Goto:
+                    self.state.append(element.action)
+                elif type(element) is Shift:
+                    self.state.append(element.action)
+                elif type(element) is Reduce:
+                    i = 0
+                    while i < element.amount():
+                       self.state.pop()
+                       i += 1
+                    goto = self.syntaxtable.lookup(self.state[-1], element.action.left)
+                    assert isinstance(goto, Goto)
                     self.state.append(goto.action)
+                    continue
                 else:
                     return False
                 node  = node.right
@@ -217,11 +245,47 @@ class IncrementalRecognizer(Recognizer):
                 else:
                     node = node.right
 
+    def is_valid(self, token):
+        """Checks if a token is valid in the current state."""
+        state = list(self.state)
+        while True:
+            element = self.syntaxtable.lookup(state[-1], token)
+            #print("Checking validity of {} in state {}: {}".format(token, state, element))
+            if type(element) is Shift:
+                state.append(element.action)
+                return True
+            elif type(element) is Reduce:
+                i = 0
+                while i < element.amount():
+                   state.pop()
+                   i += 1
+                goto = self.syntaxtable.lookup(state[-1], element.action.left)
+                assert isinstance(goto, Goto)
+                state.append(goto.action)
+            else:
+                #print("Error on", token, state)
+                return False
+        return False
+
+    def get_lookup(self, la):
+        """Get the lookup symbol of a node. If no such lookup symbol exists use
+        the nodes symbol instead."""
+        if la.lookup != "":
+            lookup_symbol = Terminal(la.lookup)
+        else:
+            lookup_symbol = la.symbol
+        if isinstance(lookup_symbol, IndentationTerminal):
+            #XXX hack: change parsing table to accept IndentationTerminals
+            lookup_symbol = Terminal(lookup_symbol.name)
+        return lookup_symbol
+
+    def parse(self, node):
+        """Parse normally starting at `node`."""
+
         # try parsing lbox content in outer language
-        lbox_start = lbox.symbol.ast.children[0].next_term
-        result = Recognizer.parse(self, lbox_start, valid_override=True)
+        result = Recognizer.parse(self, node, valid_override=True)
         if self.reached_eos:
-            after_lbox = lbox.next_term
+            #after_lbox = lbox.next_term
             # XXX validate language box by checking if the next token after the
             # language box has been shifted is valid (reduce/shift)
             return True
