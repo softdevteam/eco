@@ -532,6 +532,13 @@ class TreeManager(object):
                         return True
         return False
 
+    def get_all_syntaxerrors(self):
+        l = []
+        for p in self.parsers:
+            if p[0]:
+                l.extend(p[0].error_nodes)
+        return l
+
     def get_error(self, node):
         if self.is_syntaxerror(node):
             return "Syntax error on token '%s' (%s)." % (node.symbol.name, node.lookup)
@@ -1306,6 +1313,7 @@ class TreeManager(object):
         self.cursor.pos = 0
         self.reparse(newnode)
         self.changed = True
+        return newnode
 
     def leave_languagebox(self):
         self.log_input("leave_languagebox")
@@ -1332,7 +1340,7 @@ class TreeManager(object):
         lbox.plain_mode = True
         return lbox
 
-    def surround_with_languagebox(self, language):
+    def surround_with_languagebox(self, language, auto=False):
         self.log_input("surround_with_languagebox", repr(language.name))
         #XXX if partly selected node, need to split it
         nodes, _, _ = self.get_nodes_from_selection()
@@ -1340,12 +1348,43 @@ class TreeManager(object):
         # cut text
         text = self.copySelection()
         self.deleteSelection()
-        self.add_languagebox(language)
+        lbox = self.add_languagebox(language)
         self.pasteText(text)
+        lbox.tbd = auto
         self.input_log.pop()
         self.input_log.pop()
         self.input_log.pop()
         return
+
+    def remove_languagebox(self, lbox):
+        if lbox.deleted:
+            # Language box was already removed by an earlier error
+            return
+        parent = lbox.parent
+        root = lbox.symbol.ast
+        bos = root.children[0]
+        eos = root.children[-1]
+
+        # move all nodes from lbox to the outside
+        node = bos.next_term
+        top = []
+        while node is not eos:
+            top.append(node)
+            node = node.next_term
+
+        for n in reversed(top):
+            lbox.insert_after(n)
+
+        # remove language box and parser
+        lbox.remove(True)
+        self.delete_parser(root)
+
+        # relex
+        for t in top:
+            #XXX add method to relex a range, e.g. relex(start, end)
+            self.relex(t)
+        # reparse
+        self.reparse(top[0], skipautolbox = True)
 
     def change_languagebox(self, language):
         self.log_input("change_languagebox", repr(language.name))
@@ -1925,17 +1964,24 @@ class TreeManager(object):
 
         # Now check for auto language boxes
         if not skipautolbox and self.autolboxdetector:
-            main_parser = self.parsers[0][0]
-            error_nodes = main_parser.error_nodes
+            error_nodes = self.get_all_syntaxerrors()
             for en in error_nodes:
                 if en.has_changes(self.previous_version) or True:
-                    result = self.autolboxdetector.detect_languagebox(en)
-                    if result:
-                        self.undo_snapshot()
-                        self.select_from_to(result[0], result[1])
-                        self.surround_with_languagebox(lang_dict[result[2]])
-                        self.reparse(result[0].prev_term)
-                        self.undo_snapshot()
+                    root = en.get_root()
+                    lbox = root.get_magicterminal()
+                    if lbox and lbox.tbd and not lbox.deleted:
+                        result = self.autolboxdetector.detect_autoremove(lbox)
+                        if result:
+                            # remove language box
+                            self.remove_languagebox(lbox)
+                    else:
+                        result = self.autolboxdetector.detect_languagebox(en)
+                        if result:
+                            self.undo_snapshot()
+                            self.select_from_to(result[0], result[1])
+                            self.surround_with_languagebox(lang_dict[result[2]], True)
+                            self.reparse(result[0].prev_term, skipautolbox=True)
+                            self.undo_snapshot()
 
     def delete_version(self, version, node):
         if ("parent", version) in node.log:

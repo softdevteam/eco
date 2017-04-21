@@ -18,6 +18,13 @@ class AutoLBoxDetector(object):
         for sub in main.included_langs:
             self.init_language(sub)
 
+    def detect_autoremove(self, lbox):
+        outer_root = lbox.get_root()
+        outer_lang = outer_root.name
+        outer_parser, outer_lexer = self.langs[outer_lang]
+        r = IncrementalRecognizer(outer_parser.syntaxtable, outer_lexer.lexer, outer_lang)
+        return r.parse(outer_root, lbox)
+
     def detect_languagebox(self, node):
         # Get current language
         mainlang = node.get_root().name
@@ -65,11 +72,12 @@ class Recognizer(object):
         self.lexer = lexer
         self.lang = lang
         self.state = [0]
+        self.reached_eos = False
 
-    def parse(self, startnode):
+    def parse(self, startnode, valid_override=False):
         self.tokeniter = self.lexer.get_token_iter(StringWrapper(startnode, startnode))
         token = self.next_token()
-        if not self.valid_start(token):
+        if not valid_override and not self.valid_start(token):
             return None
         while True:
             element = self.syntaxtable.lookup(self.state[-1], token)
@@ -101,7 +109,8 @@ class Recognizer(object):
             self.last_read = t[3][-1]
             return Terminal(t[1])
         except StopIteration:
-           return FinishSymbol() # No more tokens to read
+            self.reached_eos = True
+            return FinishSymbol() # No more tokens to read
         except LexingError:
            return FinishSymbol() # Couldn't continue lexing with given language
 
@@ -170,4 +179,44 @@ class RecognizerIndent(Recognizer):
                     self.indents.pop()
                 self.todo.append(Terminal("NEWLINE"))
             return Terminal(tok1[1]) # parse <return> token first
+
+class IncrementalRecognizer(Recognizer):
+    def parse(self, outer_root, lbox):
+        # Start parsing incrementally from BOS. Parsing was successful if we
+        # reached and parsed the last node of the language box.
+        path_to_lbox = set()
+        parent = lbox.parent
+        while parent is not None:
+            path_to_lbox.add(parent)
+            parent = parent.parent
+
+        # setup parser to the state just before lbox
+        node = outer_root.children[1]
+        while True:
+            if node is lbox:
+                # Reached lbox
+                break
+            if node not in path_to_lbox:
+                # Skip/Shift nodes that are not parents of the language box
+                goto = self.syntaxtable.lookup(self.state[-1], node.symbol)
+                if goto:
+                    self.state.append(goto.action)
+                else:
+                    return False
+                node  = node.right
+            else:
+                if node.children:
+                    node = node.children[0]
+                else:
+                    node = node.right
+
+        # try parsing lbox content in outer language
+        lbox_start = lbox.symbol.ast.children[0].next_term
+        result = Recognizer.parse(self, lbox_start, valid_override=True)
+        if self.reached_eos:
+            after_lbox = lbox.next_term
+            # XXX validate language box by checking if the next token after the
+            # language box has been shifted is valid (reduce/shift)
+            return True
+        return False
 

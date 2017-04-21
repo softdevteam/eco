@@ -4582,3 +4582,33 @@ class Test_AutoLanguageBoxDetection():
         treemanager.leave_languagebox()
         treemanager.key_normal(";")
         assert parser.last_status == True
+
+    def test_autoremove_pythonsql(self):
+        parser, lexer = pythonhtmlsql.load()
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, "")
+
+        autolboxdetector = AutoLBoxDetector()
+        autolboxdetector.init_language(pythonhtmlsql.name)
+        treemanager.autolboxdetector = autolboxdetector
+
+        for c in "x = SELECT * FROM table":
+            treemanager.key_normal(c)
+
+        assert parser.last_status == False
+
+        treemanager.key_normal(";")
+
+        assert parser.last_status == True
+
+        treemanager.key_backspace() # remove ';'
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+
+        print "\n\n\n"
+        treemanager.key_normal("*") # valid Python now
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == True
