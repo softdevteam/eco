@@ -44,7 +44,7 @@ class AutoLBoxDetector(object):
                 result = parser.is_valid_symbol(state, MagicTerminal("<%s>" % (langname,)))
                 if result:
                     end = self.detect_end(langname, term)
-                    if end:
+                    if end and self.contains_errornode(term, end, node):
                        return (term, end, langname)
             term = term.prev_term
 
@@ -58,6 +58,13 @@ class AutoLBoxDetector(object):
             r = Recognizer(parser.syntaxtable, lexer.lexer, lang)
         end = r.parse(start)
         return end
+
+    def contains_errornode(self, start, end, error):
+        while start is not end:
+            if start is error:
+                return True
+            start = start.next_term
+        return False
 
 from inclexer.inclexer import StringWrapper
 from cflexer.lexer import LexingError

@@ -4583,6 +4583,22 @@ class Test_AutoLanguageBoxDetection():
         treemanager.key_normal(";")
         assert parser.last_status == True
 
+    def test_php_python_expression2(self):
+        parser, lexer = phppython.load()
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, "")
+
+        autolboxdetector = AutoLBoxDetector()
+        autolboxdetector.init_language(phppython.name)
+        treemanager.autolboxdetector = autolboxdetector
+
+        for c in "$x = ":
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+
+        treemanager.key_normal("1")
+        assert len(treemanager.parsers) == 1
+
     def test_autoremove_pythonsql(self):
         parser, lexer = pythonhtmlsql.load()
         treemanager = TreeManager()
