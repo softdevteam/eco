@@ -67,6 +67,17 @@ class AutoLBoxDetector(object):
         else:
             r = Recognizer(parser.syntaxtable, lexer.lexer, lang)
         end = r.parse(start)
+        end = self.adjust_end(end)
+        return end
+
+    def adjust_end(self, end):
+        """Remove newlines/whitespace from end"""
+        if end is None:
+            return None
+        while True:
+            if end.lookup not in ["<ws>", "<return>"]:
+                break
+            end = end.prev_term
         return end
 
     def contains_errornode(self, start, end, error):
