@@ -189,6 +189,15 @@ class RecognizerIndent(Recognizer):
             self.last_read = tok1[3][-1]
             return Terminal(tok1[1])
         else:
+            # use NEWLINE to reduce everything, shift newline then try to shift
+            # DEDENT
+            if self.is_finished():
+                while self.indents:
+                    self.todo.append(Terminal("DEDENT"))
+                    self.indents.pop()
+                self.todo.append(Terminal("NEWLINE"))
+                self.last_read = tok1[3][-1]
+                return Terminal(tok1[1])
             tok2 = self.get_token_iter()
             if tok2 is None:
                 # non logical line -> parse <return> normally
@@ -211,6 +220,33 @@ class RecognizerIndent(Recognizer):
                     self.indents.pop()
                 self.todo.append(Terminal("NEWLINE"))
             return Terminal(tok1[1]) # parse <return> token first
+
+    def is_finished(self):
+        states = list(self.state)
+        if self.temp_parse(states, Terminal("NEWLINE")):
+            # XXX need to test ALL dedents not just one
+            # XXX also can just check for shift which should be enough
+            if self.temp_parse(states, Terminal("DEDENT")):
+                return True
+        return False
+
+    def temp_parse(self, states, terminal):
+        while True:
+            element = self.syntaxtable.lookup(states[-1], terminal)
+            if type(element) is Shift:
+                states.append(element.action)
+                return True
+            elif type(element) is Reduce:
+                i = 0
+                while i < element.amount():
+                   states.pop()
+                   i += 1
+                goto = self.syntaxtable.lookup(states[-1], element.action.left)
+                assert isinstance(goto, Goto)
+                states.append(goto.action)
+                continue
+            else:
+                return False
 
 class IncrementalRecognizer(Recognizer):
 
