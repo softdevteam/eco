@@ -1369,7 +1369,8 @@ class TreeManager(object):
         node = bos.next_term
         top = []
         while node is not eos:
-            top.append(node)
+            if type(node.symbol) is not IndentationTerminal:
+                top.append(node)
             node = node.next_term
 
         for n in reversed(top):

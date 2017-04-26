@@ -37,9 +37,11 @@ class AutoLBoxDetector(object):
             # get most left terminal
             if type(term) is BOS:
                 break
-            elif type(term) is EOS:
+            if type(term) is EOS:
                 term = term.prev_term
                 continue
+            if  term.lookup == "<return>":
+                break
 
             #XXX check if term is valid in any of the langs first? If not we don't need to increc
             outer_root = term.get_root()

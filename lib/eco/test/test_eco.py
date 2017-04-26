@@ -4531,17 +4531,20 @@ class Test_AutoLanguageBoxDetection():
         autolboxdetector.init_language(phppython.name)
         treemanager.autolboxdetector = autolboxdetector
 
-        for c in "class X {\n}":
+        for c in "class X {\n\n}":
             treemanager.key_normal(c)
         assert parser.last_status == True
 
         treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(UP)
         for c in "    def x():\n    ":
             treemanager.key_normal(c)
         assert parser.last_status == False
+        assert len(treemanager.parsers) == 1
 
         treemanager.key_normal("p")
-        assert parser.last_status
+        assert len(treemanager.parsers) == 2
+        assert parser.last_status == True
 
     def test_php_python3(self):
         parser, lexer = phppython.load()
@@ -4629,7 +4632,6 @@ class Test_AutoLanguageBoxDetection():
         treemanager.key_cursors(LEFT)
         treemanager.key_cursors(LEFT)
 
-        print "\n\n\n"
         treemanager.key_normal("*") # valid Python now
         assert len(treemanager.parsers) == 1
         assert parser.last_status == True
