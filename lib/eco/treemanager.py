@@ -1979,8 +1979,12 @@ class TreeManager(object):
                         result = self.autolboxdetector.detect_languagebox(en)
                         if result:
                             self.undo_snapshot()
+                            ctemp = self.cursor.get_x()
+                            ltemp = self.cursor.line
                             self.select_from_to(result[0], result[1])
                             self.surround_with_languagebox(lang_dict[result[2]], True)
+                            self.cursor.line = ltemp
+                            self.cursor.move_to_x(ctemp)
                             self.reparse(result[0].prev_term, skipautolbox=True)
                             self.undo_snapshot()
 
