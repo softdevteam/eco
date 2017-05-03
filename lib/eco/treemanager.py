@@ -116,18 +116,30 @@ class Cursor(object):
 
     def left(self):
         node = self.node
+        if type(node.symbol) is MagicTerminal:
+            node = node.symbol.ast.children[-1]
         if not self.is_visible(node):
-            node = self.find_previous_visible(self.node)
+            node = self.find_previous_visible(node)
         if node.symbol.name == "\r":
             self.line -= 1
         if isinstance(node, BOS):
-            return
+            root = node.get_root()
+            lbox = root.get_magicterminal()
+            if lbox:
+                node = lbox.previous_terminal()
+            else:
+                return
         if not node is self.node:
             self.node = node
             self.pos = len(node.symbol.name)
         if self.pos > 1 and (not node.image or node.plain_mode):
             self.pos -= 1
         else:
+            # if neighbouring node is BOS, stay in box
+            if type(node.previous_terminal()) is BOS:
+                self.node = node.previous_terminal()
+                self.pos = 0
+                return
             node = self.find_previous_visible(node)
             self.node = node
             self.pos = len(node.symbol.name)
@@ -151,6 +163,9 @@ class Cursor(object):
                 self.line += 1
             if isinstance(node, EOS):
                 return
+            if type(node.symbol) is MagicTerminal:
+                node = node.symbol.ast.children[0]
+                node = self.find_next_visible(node)
             self.node = node
             self.pos = 1
             if node.image and not node.plain_mode:
@@ -218,10 +233,11 @@ class Cursor(object):
             node = node.previous_terminal() # XXX check for multiterm
         while not self.is_visible(node):
             if isinstance(node, BOS):
+                # leave lbox
                 root = node.get_root()
                 lbox = root.get_magicterminal()
                 if lbox:
-                    node = lbox.previous_terminal() #XXX check for multiterm
+                    node = lbox.previous_terminal()
                     continue
                 else:
                     return node
@@ -241,8 +257,6 @@ class Cursor(object):
         if isinstance(node, BOS):
             return False
         if isinstance(node, EOS):
-            return False
-        if isinstance(node.symbol, MagicTerminal):
             return False
         if isinstance(node.symbol, MultiTextNode):
             return False
@@ -287,14 +301,27 @@ class Cursor(object):
                 self.pos = len(node.symbol.name)
                 return
             node = newnode
+            if type(node.symbol) is MagicTerminal:
+                node = node.symbol.ast.children[0]
+                continue
             if node.image and not node.plain_mode:
                 x -= self.get_nodesize_in_chars(node).w
             else:
                 x -= len(node.symbol.name)
-            if node.symbol.name == "\r" or isinstance(node, EOS):
+            if node.symbol.name == "\r":
                 self.node = self.find_previous_visible(node)
                 self.pos = len(self.node.symbol.name)
                 return
+            if isinstance(node, EOS):
+                root = node.get_root()
+                lbox = root.get_magicterminal()
+                if lbox:
+                    node = lbox
+                    continue
+                else:
+                    self.node = self.find_previous_visible(node)
+                    self.pos = len(self.node.symbol.name)
+                    return
         self.pos = len(node.symbol.name) + x
         self.node = node
 
