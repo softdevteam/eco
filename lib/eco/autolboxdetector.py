@@ -152,6 +152,8 @@ class Recognizer(object):
                 return True
         elif self.lang == "SQL":
             return token.name in ["SELECT"]
+        elif self.lang == "SQL Statement":
+            return token.name in ["SELECT"]
         elif self.lang == "Python expression":
             return token.name in ["[", "NUMBER"]
         return False
