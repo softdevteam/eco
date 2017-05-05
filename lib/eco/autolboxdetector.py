@@ -156,6 +156,10 @@ class Recognizer(object):
             return token.name in ["SELECT"]
         elif self.lang == "Python expression":
             return token.name in ["[", "NUMBER"]
+        elif self.lang == "SimpleLanguage":
+            return token.name in ["function"]
+        elif self.lang == "HTML":
+            return token.name.startswith("<") and token.name not in ["<ws>", "<return>"]
         return False
 
 class RecognizerIndent(Recognizer):
