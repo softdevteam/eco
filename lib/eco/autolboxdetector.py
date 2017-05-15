@@ -147,9 +147,8 @@ class Recognizer(object):
            return FinishSymbol() # Couldn't continue lexing with given language
 
     def valid_start(self, token):
-        if self.lang.find("Python") > -1:
-            if token.name in ["def"]:
-                return True
+        if self.lang == "Python + PHP":
+            return token.name in ["def"]
         elif self.lang == "SQL":
             return token.name in ["SELECT"]
         elif self.lang == "SQL Statement":
@@ -160,6 +159,8 @@ class Recognizer(object):
             return token.name in ["function"]
         elif self.lang == "HTML":
             return token.name.startswith("<") and token.name not in ["<ws>", "<return>"]
+        elif self.lang.find("Python") > -1: # other Python derivatives
+            return token.name in ["def"]
         return False
 
 class RecognizerIndent(Recognizer):
