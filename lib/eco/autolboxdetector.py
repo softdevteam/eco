@@ -187,10 +187,10 @@ class RecognizerIndent(Recognizer):
         if tok1 is None:
             # XXX generate remaining dedents?
             self.todo.append(FinishSymbol())
-            self.todo.append(Terminal("NEWLINE"))
             while self.indents[-1] != 0:
                 self.todo.append(Terminal("DEDENT"))
                 self.indents.pop()
+            self.todo.append(Terminal("NEWLINE"))
             return self.todo.pop()
         elif tok1[1] != "<return>":
             self.last_read = tok1[3][-1]
@@ -209,6 +209,8 @@ class RecognizerIndent(Recognizer):
             if tok2 is None:
                 # non logical line -> parse <return> normally
                 return Terminal(tok1[1])
+            # put tok2 into todo list so we don't forget parsing it
+            self.todo.append(Terminal(tok2[1]))
             # XXX get tok3 and check it's not whitespace/comment
             ws_len = 0
             if tok2[1] == "<ws>":
