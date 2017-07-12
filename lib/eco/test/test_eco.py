@@ -2283,6 +2283,138 @@ class Test_Undo(Test_Python):
         self.treemanager.key_ctrl_z()
         self.treemanager.key_ctrl_z()
 
+    def test_undo_random_deletion_bug8(self):
+        # This is a test for a bug in the out-of-context analysis, where the
+        # boundaries of the subtree being parsed were not strictly defined,
+        # causing the parser to reduce and reuse nodes outside of the original
+        # subtree. After the analysis failed, those reused subtrees would then
+        # not be reverted causing errors with subtrees that have become detached
+        # from the main parse tree.
+        # This was solved by cutting off the subtree's root from its parent during
+        # out-of-context analysis and reattaching is after analysis is done.
+
+        self.reset()
+
+        self.treemanager.import_file("""class Connect4():
+    def f1():
+        a
+        b
+        for c in d:
+            e
+
+        f
+
+        g
+        h
+
+        for i in j:
+            k
+
+    def f2():
+        while True:
+            l
+            if m:
+                n
+
+    def f3():
+        for o in p:
+            q
+
+        if r:
+            s
+            t("%s wins" % winner_colour)""")
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 3)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 9)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 25)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_end()
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 24)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 14)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 3)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 24)
+        self.move(RIGHT, 14)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 24)
+        self.move(RIGHT, 26)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 24)
+        self.move(RIGHT, 16)
+        self.treemanager.key_delete()
+
+    def test_undo_random_deletion_bug9(self):
+        self.reset()
+        self.treemanager.import_file("""class Connect4():
+    UI_DEPTH = 5
+
+    def __init__():
+        self.top = tk.Tk()
+
+        self.pl_engine = uni.Engine()""")
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 8)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 15)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 13)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 12)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+
     def get_random_key(self):
         import random
         keys = list("abcdefghijklmnopqrstuvwxyz0123456789 \r:,.[]{}()!$%^&*()_+=")

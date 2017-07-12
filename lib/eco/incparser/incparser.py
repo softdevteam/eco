@@ -486,6 +486,8 @@ class IncParser(object):
         oldparent = node.parent
 
         saved_left = node.get_attr("left", self.prev_version)
+        saved_right = node.get_attr("right", self.prev_version)
+        saved_parent = node.get_attr("parent", self.prev_version)
 
         temp_bos = BOS(Terminal(""), 0, [])
         temp_eos = self.pop_lookahead(node)
@@ -504,9 +506,11 @@ class IncParser(object):
         # within the original parse tree and not the offset within the temporary
         # parse tree
         node.log[("left", self.prev_version)] = temp_bos
+        node.log[("right", self.prev_version)] = temp_eos
 
         logging.debug("    TempEOS: %s", temp_eos)
         temp_root = Node(Nonterminal("TempRoot"), 0, [temp_bos, node, temp_eos])
+        node.log[("parent", self.prev_version)] = temp_root
         temp_bos.next_term = node
         temp_bos.state = oldleft.state
         temp_bos.save(node.version)
@@ -530,6 +534,8 @@ class IncParser(object):
               # isolate
               logging.debug("OOC analysis of %s failed. Error on %s.", node, temp_parser.error_nodes)
               node.log[("left", self.prev_version)] = saved_left
+              node.log[("right", self.prev_version)] = saved_right
+              node.log[("parent", self.prev_version)] = saved_parent
               self.isolate(node) # revert changes done during OOC
               if temp_parser.previous_version.parent.isolated:
                   # if during OOC parsing error recovery isolated the entire
@@ -545,11 +551,15 @@ class IncParser(object):
             logging.debug("OOC analysis resulted in different symbol: %s", newnode.symbol.name)
             # node is not the same: revert all changes!
             node.log[("left", self.prev_version)] = saved_left
+            node.log[("right", self.prev_version)] = saved_right
+            node.log[("parent", self.prev_version)] = saved_parent
             self.isolate(node)
             return
 
         if newnode is not node:
             node.log[("left", self.prev_version)] = saved_left
+            node.log[("right", self.prev_version)] = saved_right
+            node.log[("parent", self.prev_version)] = saved_parent
             logging.debug("OOC analysis resulted in different node but same symbol: %s", newnode.symbol.name)
             assert len(temp_parser.stack) == 2 # should only contain [EOS, node]
             i = oldparent.children.index(node)
@@ -572,6 +582,8 @@ class IncParser(object):
         node.left = oldleft
         node.right = oldright
         node.log[("left", self.prev_version)] = saved_left
+        node.log[("right", self.prev_version)] = saved_right
+        node.log[("parent", self.prev_version)] = saved_parent
 
     def reduce(self, element):
         """Reduce elements on the stack to a non-terminal."""
