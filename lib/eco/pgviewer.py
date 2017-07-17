@@ -206,11 +206,12 @@ class PGViewer(object):
         return dotnode
 
 def splitline(line, re_word = re.compile(r'[^\s"]\S*|["]["]|["].*?[^\\]["]')):
+    import ast
     result = []
     for word in re_word.findall(line):
         if word.startswith("\""):
             assert word[-1] == "\""
-            word = word[1:-1]
+            word = ast.literal_eval(word)
         result.append(word)
     return result
 
