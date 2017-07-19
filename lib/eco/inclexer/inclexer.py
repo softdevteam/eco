@@ -515,8 +515,11 @@ class IncrementalLexerCF(object):
             try:
                 token = next_token()
                 lookaheads.append(token[2])
-                if token[3][0] is startnode:
-                    past_startnode = True
+                if not past_startnode:
+                    for temp in token[3]:
+                        if temp is startnode:
+                            past_startnode = True
+                            break
                 toks.append(token[:3])
                 tokenslength += len(token[0])
                 for r in token[3]:
