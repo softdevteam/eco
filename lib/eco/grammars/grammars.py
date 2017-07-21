@@ -62,6 +62,7 @@ class EcoFile(object):
             incparser.syntaxtable = syntaxtable
             incparser.whitespaces = whitespaces
             incparser.init_ast()
+            incparser.lang = self.name
 
             inclexer = _cache[self.name + "::lexer"]
             incparser.lexer = inclexer # give parser a reference to its lexer (needed for multiline comments)
@@ -88,6 +89,7 @@ class EcoFile(object):
             _cache[self.name + "::json"] = (root, language, whitespaces)
             _cache[self.name + "::parser"] = (bootstrap.incparser.syntaxtable, whitespace)
 
+            bootstrap.incparser.lang = self.name
             bootstrap.incparser.previous_version.parent.name = self.name
             bootstrap.incparser.lexer = bootstrap.inclexer
             return (bootstrap.incparser, bootstrap.inclexer)
@@ -182,9 +184,13 @@ rubyjs.add_alternative("top_stmt", javascript)
 
 regex = EcoFile("Regex", "grammars/regex.eco", "Regex")
 
-languages = [calc, java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonhtmlsqlsingle, pythonprolog, pythonphp, prolog, sql, sql_single, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar, python_expr, ipython, pythonipython, simplelang, ruby, rubysl, rubyjs, javascript, regex]
-newfile_langs = [java, javasqlchemical, php, phppython, python, pythonhtmlsql, pythonhtmlsqlsingle, pythonprolog, prolog, sql, html, htmlpythonsql, pythonipython, calc, ruby, simplelang, rubysl, rubyjs, javascript, regex]
-submenu_langs = [java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, python_expr, prolog, sql, sql_ref_java, html, htmlpythonsql, img, chemical, ipython, ruby, simplelang, javascript, rubysl, rubyjs]
+javapy = EcoFile("Java + Python", "grammars/java15.eco", "Java")
+javapy.add_alternative("unary_expression", python_expr)
+javapy.add_alternative("class_body_declaration", python)
+
+languages = [calc, java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonhtmlsqlsingle, pythonprolog, pythonphp, prolog, sql, sql_single, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar, python_expr, ipython, pythonipython, simplelang, ruby, rubysl, rubyjs, javascript, regex, javapy]
+newfile_langs = [java, javasqlchemical, php, phppython, python, pythonhtmlsql, pythonhtmlsqlsingle, pythonprolog, prolog, sql, html, htmlpythonsql, pythonipython, calc, ruby, simplelang, rubysl, rubyjs, javascript, regex, javapy]
+submenu_langs = [java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, python_expr, prolog, sql, sql_single, sql_ref_java, html, htmlpythonsql, img, chemical, ipython, ruby, simplelang, javascript, rubysl, rubyjs]
 
 lang_dict = {}
 for l in languages:

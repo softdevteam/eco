@@ -3,7 +3,21 @@ from incparser.astree import BOS, EOS
 from grammar_parser.gparser import MagicTerminal, Terminal, Nonterminal, IndentationTerminal
 from incparser.syntaxtable import Shift, Reduce, Goto, Accept
 
+def get_lookup(la):
+    """Get the lookup symbol of a node. If no such lookup symbol exists use
+    the nodes symbol instead."""
+    if la.lookup != "":
+        lookup_symbol = Terminal(la.lookup)
+    else:
+        lookup_symbol = la.symbol
+    if isinstance(lookup_symbol, IndentationTerminal):
+        lookup_symbol = Terminal(lookup_symbol.name)
+    return lookup_symbol
+
 class AutoLBoxDetector(object):
+    """Automatic language box detection that runs after the parse has finished.
+    Uses text search to find a valid location for a language box that encloses
+    the error."""
 
     def __init__(self):
         self.langs = {}
@@ -52,10 +66,12 @@ class AutoLBoxDetector(object):
             if result:
                 # Check if first token is valid in one of the autobox grammars
                 for langname in self.langs:
-                    if r.is_valid(MagicTerminal("<%s>" % (langname,))):
-                        end = self.detect_end(langname, term)
-                        if end and self.contains_errornode(term, end, node):
-                            return (term, end, langname)
+                    magic = MagicTerminal("<%s>" % (langname,))
+                    if r.is_valid(magic):
+                        ends = self.detect_end(langname, term)
+                        ends = self.reduce_ends(r, ends, magic, term, node)
+                        if ends:
+                            return (term, ends, langname)
                     else:
                         #print("Language box {} not valid at position {} in {}\n".format(langname, term, outer_lang))
                         pass
@@ -69,8 +85,30 @@ class AutoLBoxDetector(object):
         else:
             r = Recognizer(parser.syntaxtable, lexer.lexer, lang)
         end = r.parse(start)
-        end = self.adjust_end(end)
-        return end
+        return r.possible_ends
+
+    def reduce_ends(self, r, possible_ends, magic, start, errornode):
+        """Remove unwanted language box boundaries from the results that
+        - do not span the error node
+        - end on whitespace/newline
+        - don't allow terminal following box to be parsed"""
+        tstates = list(r.state)
+        r.temp_parse(tstates, magic)
+        new = []
+        for p in possible_ends:
+            if p.lookup in ["<return>", "<ws>"]:
+                continue
+            la = get_lookup(p.next_term)
+            # XXX this will almost always success if la is whitespace as
+            # whitespace can always be shifted/reduced In theory we have to
+            # continue incrementally parsing the entire remaining tree. So GLR
+            # parsing is probably the proper way to do this
+            result = r.syntaxtable.lookup(tstates[-1], la)
+            if type(result) is Shift or type(result) is Reduce:
+                # Check if it spans the error
+                if self.contains_errornode(start, p, errornode):
+                    new.append(p)
+        return new
 
     def adjust_end(self, end):
         """Remove newlines/whitespace from end"""
@@ -91,6 +129,114 @@ class AutoLBoxDetector(object):
             start = start.next_term
         return False
 
+from incparser.astree import TextNode
+
+class NewAutoLboxDetector(object):
+    """Automatic languagebox detector that runs during parsing when an error
+    occurs. Similar to error recovery it uses the current parse stack to
+    determine a location where a language box can be inserted and then tries to
+    wrap the error into that box."""
+    def __init__(self, origparser):
+        self.op = origparser
+        self.langs = {}
+
+    def preload(self, langname):
+        if langname in self.langs:
+            return
+
+        main = lang_dict[langname]
+
+        # preload nested languages
+        for sub in main.included_langs:
+            self.langs[sub] = get_recognizer(sub)
+
+    def find_terminal(self, node):
+        while node.children:
+            node = node.children[-1]
+        if type(node.symbol) is Terminal:
+            return node.next_term
+        return None
+
+    def detect_lbox(self, errornode):
+        # Find position on stack where lbox would be valid
+        valid = []
+        for sub in self.langs:
+            lbox = MagicTerminal("<{}>".format(sub))
+            cut = len(self.op.stack) - 1
+            while cut > 0:
+                top = self.op.stack[cut]
+                state = self.op.stack[cut].state
+                # get all possible sublangs
+                element = self.op.syntaxtable.lookup(state, lbox)
+                if type(element) in [Reduce, Shift]:
+                    term = self.find_terminal(top)
+                    if type(term) is EOS:
+                        cut = cut - 1
+                        continue
+                    if term:
+                        n = term
+                        # See if we can get a valid language box using the Recogniser
+                        r = self.langs[sub]
+                        result = r.parse(n)
+                        if r.possible_ends:
+                            # Filter results and test if remaining file can be
+                            # parsed after shifting the language box
+                            for e in r.possible_ends:
+                                if e.lookup == "<ws>" or e.lookup == "<return>":
+                                    continue
+                                if not self.contains_errornode(n, e, errornode):
+                                    continue
+                                if self.parse_after_lbox(lbox, e, cut, errornode):
+                                    valid.append((n, e, sub))
+                cut = cut - 1
+        if valid:
+            errornode.autobox = valid
+        else:
+            errornode.autobox = None
+
+    def contains_errornode(self, start, end, errornode):
+        while start is not end:
+            if start is errornode:
+                return True
+            start = start.next_term
+        if start is errornode:
+            return True
+        return False
+
+    def parse_after_lbox(self, lbox, end, cut, errornode):
+        # copy stack
+        stack = []
+        for i in range(cut+1):
+            stack.append(self.op.stack[i].state)
+        after_end = self.op.next_terminal(end)
+        # do all reductions until there's a shift or accept (whitespace doesn't
+        # count) XXX: parse entire file incrementally?
+        lboxnode = TextNode(lbox)
+        la = lboxnode
+        la.next_term = after_end
+        while True:
+            if la.deleted:
+                la = la.next_term
+                continue
+            element = self.op.syntaxtable.lookup(stack[-1], self.op.get_lookup(la))
+            if type(element) is Reduce:
+                for i in range(element.amount()):
+                    stack.pop()
+                goto = self.op.syntaxtable.lookup(stack[-1], element.action.left)
+                assert goto is not None
+                stack.append(goto.action)
+                continue
+            if type(element) is Shift:
+                # if whitespace continue
+                if la.lookup in ["<ws>", "<return>"] or la is lboxnode:
+                    stack.append(element.action)
+                    la = la.next_term
+                    continue
+                return True
+            if type(element) is Accept:
+                return True
+            return False
+
 from inclexer.inclexer import StringWrapper
 from cflexer.lexer import LexingError
 from incparser.incparser import FinishSymbol
@@ -105,16 +251,32 @@ class Recognizer(object):
         self.lang = lang
         self.state = [0]
         self.reached_eos = False
+        self.seen_error = False
+        self.possible_ends = []
+        self.last_read = None
 
-    def parse(self, startnode, valid_override=False):
+    def reset(self):
+        self.state = [0]
+        self.reached_eos = False
+        self.seen_error = False
+        self.possible_ends = []
+        self.last_read = None
+
+    def parse(self, startnode, ppmode=False):
+        # as we are reusing recogisers now, reset it
+        if not ppmode:
+            self.reset()
+
         self.tokeniter = self.lexer.get_token_iter(StringWrapper(startnode, startnode))
         token = self.next_token()
-        if not valid_override and not self.valid_start(token):
+        if not ppmode and not self.valid_start(token):
             return None
         while True:
             element = self.syntaxtable.lookup(self.state[-1], token)
             if isinstance(element, Shift):
                 self.state.append(element.action)
+                if self.is_finished() and self.last_read:
+                    self.possible_ends.append(self.last_read)
                 token = self.next_token()
                 continue
             elif isinstance(element, Reduce):
@@ -130,7 +292,8 @@ class Recognizer(object):
                 return self.last_read
             else:
                 if not isinstance(token, FinishSymbol):
-                    self.last_read = self.last_read.prev_term
+                    if self.last_read:
+                        self.last_read = self.last_read.prev_term
                     token = FinishSymbol()
                     continue
                 return None
@@ -147,96 +310,37 @@ class Recognizer(object):
            return FinishSymbol() # Couldn't continue lexing with given language
 
     def valid_start(self, token):
-        if self.lang == "Python + PHP":
-            return token.name in ["def"]
-        elif self.lang == "SQL":
-            return token.name in ["SELECT"]
-        elif self.lang == "SQL Statement":
-            return token.name in ["SELECT"]
-        elif self.lang == "Python expression":
-            return token.name in ["[", "NUMBER"]
-        elif self.lang == "SimpleLanguage":
-            return token.name in ["function"]
-        elif self.lang == "HTML":
-            return token.name.startswith("<") and token.name not in ["<ws>", "<return>"]
-        elif self.lang.find("Python") > -1: # other Python derivatives
-            return token.name in ["def"]
-        return False
-
-class RecognizerIndent(Recognizer):
-
-    def __init__(self, syntaxtable, lexer, lang):
-        Recognizer.__init__(self, syntaxtable, lexer, lang)
-        self.todo = []
-        self.indents = [0]
-
-    def get_token_iter(self):
-        try:
-            return self.tokeniter()
-        except StopIteration:
-            return None
-        except LexingError:
-            return None
-
-    def next_token(self):
-
-        if self.todo:
-           return self.todo.pop()
-
-        tok1 = self.get_token_iter()
-        if tok1 is None:
-            # XXX generate remaining dedents?
-            self.todo.append(FinishSymbol())
-            while self.indents[-1] != 0:
-                self.todo.append(Terminal("DEDENT"))
-                self.indents.pop()
-            self.todo.append(Terminal("NEWLINE"))
-            return self.todo.pop()
-        elif tok1[1] != "<return>":
-            self.last_read = tok1[3][-1]
-            return Terminal(tok1[1])
-        else:
-            # use NEWLINE to reduce everything, shift newline then try to shift
-            # DEDENT
-            if self.is_finished():
-                while self.indents:
-                    self.todo.append(Terminal("DEDENT"))
-                    self.indents.pop()
-                self.todo.append(Terminal("NEWLINE"))
-                self.last_read = tok1[3][-1]
-                return Terminal(tok1[1])
-            tok2 = self.get_token_iter()
-            if tok2 is None:
-                # non logical line -> parse <return> normally
-                return Terminal(tok1[1])
-            # put tok2 into todo list so we don't forget parsing it
-            self.todo.append(Terminal(tok2[1]))
-            # XXX get tok3 and check it's not whitespace/comment
-            ws_len = 0
-            if tok2[1] == "<ws>":
-                ws_len = len(tok2[0])
-
-            if ws_len > self.indents[-1]:
-                # create NEWLINE INDENT
-                self.todo.append(Terminal("INDENT"))
-                self.todo.append(Terminal("NEWLINE"))
-                self.indents.append(ws_len)
-            elif ws_len == self.indents[-1]:
-                self.todo.append(Terminal("NEWLINE"))
-            else:
-                while ws_len < self.indents[-1]:
-                    self.todo.append(Terminal("DEDENT"))
-                    self.indents.pop()
-                self.todo.append(Terminal("NEWLINE"))
-            return Terminal(tok1[1]) # parse <return> token first
+        if token.name in ["<ws>", "<return>"]:
+            return False
+        return True
+       #if self.lang == "Python + PHP":
+       #    return token.name in ["def"]
+       #elif self.lang == "SQL":
+       #    return token.name in ["SELECT"]
+       #elif self.lang == "SQL Statement":
+       #    return token.name in ["SELECT"]
+       #elif self.lang == "Python expression":
+       #    return token.name in ["[", "NUMBER"]
+       #elif self.lang == "SimpleLanguage":
+       #    return token.name in ["function"]
+       #elif self.lang == "HTML":
+       #    return token.name.startswith("<") and token.name not in ["<ws>", "<return>"]
+       #elif self.lang.find("Python") > -1: # other Python derivatives
+       #    return token.name in ["def"]
+       #return False
 
     def is_finished(self):
+        result = self.syntaxtable.lookup(self.state[-1], FinishSymbol())
         states = list(self.state)
-        if self.temp_parse(states, Terminal("NEWLINE")):
-            # XXX need to test ALL dedents not just one
-            # XXX also can just check for shift which should be enough
-            if self.temp_parse(states, Terminal("DEDENT")):
-                return True
+        while isinstance(result, Reduce):
+            i = 0
+            for i in range(result.amount()):
+                states.pop()
+            goto = self.syntaxtable.lookup(states[-1], result.action.left)
+            states.append(goto.action)
+            result = self.syntaxtable.lookup(states[-1], FinishSymbol())
+        if isinstance(result, Accept):
+            return True
         return False
 
     def temp_parse(self, states, terminal):
@@ -256,6 +360,99 @@ class RecognizerIndent(Recognizer):
                 continue
             else:
                 return False
+
+class RecognizerIndent(Recognizer):
+
+    def __init__(self, syntaxtable, lexer, lang):
+        Recognizer.__init__(self, syntaxtable, lexer, lang)
+        self.todo = []
+        self.indents = [0]
+        self.last_ws = 0
+        self.logical_line = False
+
+    def parse(self, node):
+        self.indents = [0]
+        self.todo = []
+        Recognizer.parse(self, node)
+
+    def reset(self):
+        self.todo = []
+        self.indents = [0]
+        self.last_ws = 0
+        self.logical_line = False
+        Recognizer.reset(self)
+
+    def get_token_iter(self):
+        try:
+            return self.tokeniter()
+        except StopIteration:
+            return None
+        except LexingError:
+            return None
+
+    def is_logical(self, tok):
+        if tok == "<ws>":
+            return False
+        if tok == "<return>":
+            return False
+        return True
+
+    def next_token(self):
+
+        if self.todo:
+           return self.todo.pop(0)
+
+        tok1 = self.get_token_iter()
+        if tok1 is None:
+            self.todo.append(Terminal("NEWLINE"))
+            while self.indents[-1] != 0:
+                self.todo.append(Terminal("DEDENT"))
+                self.indents.pop()
+            self.todo.append(FinishSymbol())
+            return self.todo.pop(0)
+
+        if tok1[3][-1].symbol.name.endswith(tok1[0]):
+            # only use fully parsed nodes as possible ends
+            self.last_read = tok1[3][-1]
+
+        if tok1[1] == "<return>":
+            if self.logical_line: # last line was logical
+                self.todo.append(Terminal("NEWLINE"))
+                self.logical_line = False
+                self.last_ws = 0
+            return Terminal(tok1[1]) # parse <return> token first
+
+        if tok1[1] == "<ws>":
+            self.last_ws = len(tok1[0])
+            return Terminal(tok1[1])
+
+        if self.is_logical(tok1[1]):
+            if self.logical_line is False: # first logical token in this line
+                self.logical_line = True
+                if self.last_ws > self.indents[-1]:
+                    self.todo.append(Terminal("INDENT"))
+                    self.indents.append(self.last_ws)
+                elif self.last_ws == self.indents[-1]:
+                    pass
+                else:
+                    while self.last_ws < self.indents[-1]:
+                        self.todo.append(Terminal("DEDENT"))
+                        self.indents.pop()
+                self.todo.append(Terminal(tok1[1]))
+                return self.todo.pop(0)
+        return Terminal(tok1[1])
+
+    def is_finished(self):
+        states = list(self.state)
+        if self.temp_parse(states, Terminal("NEWLINE")):
+            # XXX need to test ALL dedents not just one
+            # XXX also can just check for shift which should be enough
+            element = self.syntaxtable.lookup(states[-1], FinishSymbol())
+            if element:
+                return True
+            elif self.temp_parse(states, Terminal("DEDENT")):
+                return True
+        return False
 
 class IncrementalRecognizer(Recognizer):
 
@@ -279,7 +476,7 @@ class IncrementalRecognizer(Recognizer):
                 return True
             if node not in path_to_stop:
                 # Skip/Shift nodes that are not parents of the language box
-                lookup = self.get_lookup(node)
+                lookup = get_lookup(node)
                 element = self.syntaxtable.lookup(self.state[-1], lookup)
                 if type(element) is Goto:
                     self.state.append(element.action)
@@ -325,27 +522,22 @@ class IncrementalRecognizer(Recognizer):
                 return False
         return False
 
-    def get_lookup(self, la):
-        """Get the lookup symbol of a node. If no such lookup symbol exists use
-        the nodes symbol instead."""
-        if la.lookup != "":
-            lookup_symbol = Terminal(la.lookup)
-        else:
-            lookup_symbol = la.symbol
-        if isinstance(lookup_symbol, IndentationTerminal):
-            #XXX hack: change parsing table to accept IndentationTerminals
-            lookup_symbol = Terminal(lookup_symbol.name)
-        return lookup_symbol
-
     def parse(self, node):
         """Parse normally starting at `node`."""
 
+        # parsing a language box is successful if the last token
+        # in the box has been processed without errors
+
         # try parsing lbox content in outer language
-        result = Recognizer.parse(self, node, valid_override=True)
+        result = Recognizer.parse(self, node, ppmode=True)
         if self.reached_eos:
-            #after_lbox = lbox.next_term
-            # XXX validate language box by checking if the next token after the
-            # language box has been shifted is valid (reduce/shift)
             return True
         return False
 
+def get_recognizer(lang):
+        main = lang_dict[lang]
+        parser, lexer = main.load()
+        if lexer.indentation_based:
+            return RecognizerIndent(parser.syntaxtable, lexer.lexer, lang)
+        else:
+            return Recognizer(parser.syntaxtable, lexer.lexer, lang)

@@ -1587,6 +1587,12 @@ class TreeManager(object):
         self.cursor.line += text.count("\r")
         self.changed = True #XXX needed?
 
+    def select_nodes(self, start, end):
+        self.cursor.move_to_node(start)
+        self.selection_start = self.cursor.copy()
+        self.cursor.move_to_node(end, True)
+        self.selection_end = self.cursor.copy()
+
     def cutSelection(self):
         self.log_input("cutSelection")
         self.tool_data_is_dirty = True
@@ -1991,29 +1997,37 @@ class TreeManager(object):
         TreeManager.version = self.version
 
         # Now check for auto language boxes
-        if not skipautolbox and self.autolboxdetector:
-            error_nodes = self.get_all_syntaxerrors()
-            for en in error_nodes:
-                if en.has_changes(self.previous_version) or True:
-                    root = en.get_root()
-                    lbox = root.get_magicterminal()
-                    if lbox and lbox.tbd and not lbox.deleted:
-                        result = self.autolboxdetector.detect_autoremove(lbox)
-                        if result:
-                            # remove language box
-                            self.remove_languagebox(lbox)
-                    else:
-                        result = self.autolboxdetector.detect_languagebox(en)
-                        if result:
-                            self.undo_snapshot()
-                            ctemp = self.cursor.get_x()
-                            ltemp = self.cursor.line
-                            self.select_from_to(result[0], result[1])
-                            self.surround_with_languagebox(lang_dict[result[2]], True)
-                            self.cursor.line = ltemp
-                            self.cursor.move_to_x(ctemp)
-                            self.reparse(result[0].prev_term, skipautolbox=True)
-                            self.undo_snapshot()
+        for temp in self.parsers:
+            # remove language boxes that are not valid anymore
+            p = temp[0]
+            lbox = p.previous_version.parent.get_magicterminal()
+            if lbox and lbox.tbd and p.last_status is False:
+                result = self.lbox_autoremove_test(lbox)
+                if result:
+                    self.remove_languagebox(lbox)
+
+            # apply language boxes if there is only one choice
+            for n in p.error_nodes:
+                if not n.deleted and n.autobox and len(n.autobox) == 1:
+                    s, e, l = n.autobox[0]
+                    self.undo_snapshot()
+                    ctemp = self.cursor.get_x()
+                    ltemp = self.cursor.line
+                    self.select_from_to(s, e)
+                    self.surround_with_languagebox(lang_dict[l], True)
+                    self.cursor.line = ltemp
+                    self.cursor.move_to_x(ctemp)
+                    self.reparse(s.prev_term, skipautolbox=True)
+                    self.undo_snapshot()
+
+    def lbox_autoremove_test(self, lbox):
+        from autolboxdetector import IncrementalRecognizer
+        outer_root = lbox.get_root()
+        outer_lang = outer_root.name
+        outer_parser, outer_lexer = lang_dict[outer_lang].load() # get preloaded one
+        r = IncrementalRecognizer(outer_parser.syntaxtable, outer_lexer.lexer, outer_lang)
+        r.preparse(outer_root, lbox)
+        return r.parse(lbox.symbol.ast.children[0].next_term)
 
     def delete_version(self, version, node):
         if ("parent", version) in node.log:
@@ -2051,3 +2065,6 @@ class TreeManager(object):
                 eval(l) # expressions
             except SyntaxError:
                 exec(l) # statements
+
+    def get_langdef_from_string(self, lang):
+        return lang_dict[lang]

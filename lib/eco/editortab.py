@@ -52,6 +52,9 @@ class EditorTab(QWidget):
         self.linenumbers = LineNumbers(self)
         self.linenumbers.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
 
+        self.autolboxes = AutoLBoxComplete(self)
+
+        boxlayout.addWidget(self.autolboxes)
         boxlayout.addWidget(self.linenumbers)
         boxlayout.addWidget(self.scrollarea)
 
@@ -76,6 +79,7 @@ class EditorTab(QWidget):
     def painted(self):
         self.linenumbers.update()
         self.scrollarea.update()
+        self.autolboxes.update()
         if self.filename:
             filename = os.path.basename(str(self.filename))
         else:
@@ -110,6 +114,7 @@ class EditorTab(QWidget):
         elif isinstance(lang, EcoFile):
             incparser, inclexer = lang.load()
             self.editor.set_mainlanguage(incparser, inclexer, lang.name)
+            incparser.setup_autolbox(lang.name)
             # Create parsers for auto language box detection
             self.editor.add_autobox_parsers(lang.name)
 
@@ -323,3 +328,61 @@ class LineNumbers(QFrame):
             breakpoint_space = 10
         self.setMinimumWidth(gfont.fontwt * (digits + 1) + breakpoint_space)
         QFrame.update(self)
+
+class AutoLBoxComplete(QFrame):
+    def paintEvent(self, event):
+        gfont = QApplication.instance().gfont
+        paint = QtGui.QPainter()
+        paint.begin(self)
+
+        editor = self.parent().editor
+        y = editor.paint_start[1]
+        start = editor.paint_start[0]
+        for i in range(start, len(editor.lines)):
+
+            try:
+                auto = self.parent().editor.autolboxlines[i]
+                posy = y*gfont.fontht + gfont.fontht/2
+                paint.drawImage(QPointF(0, posy), QImage("gui/lightbulb.png"))
+            except KeyError:
+                pass
+
+            y += editor.lines[i].height
+            i += 1
+            if (y+1)*gfont.fontht >= editor.geometry().height():
+                break
+
+        paint.end()
+
+    def update(self):
+        self.setMinimumWidth(16)
+        QFrame.update(self)
+
+    def mousePressEvent(self, event):
+        gfont = QApplication.instance().gfont
+        if event.button() == Qt.LeftButton:
+            # calculate line
+            line = self.parent().linenumbers.findLineNumberAt(event.y()) - 1
+            menu = QMenu(self)
+            if line not in self.parent().editor.autolboxlines:
+                return
+            for s, e, l in self.parent().editor.autolboxlines[line]:
+                text = []
+                temp = s
+                while temp is not e:
+                    text.append(temp.symbol.name)
+                    temp = temp.next_term
+                text.append(e.symbol.name)
+                text.append(" : {}".format(l))
+                item = QAction("".join(text), menu)
+                item.setData((s,e,l))
+                menu.addAction(item)
+            action = menu.exec_(self.mapToGlobal(event.pos()))
+            if action:
+                s, e, l = action.data().toPyObject()
+                self.parent().editor.tm.select_nodes(s, e)
+                langdef = self.parent().editor.tm.get_langdef_from_string(l)
+                self.parent().editor.tm.surround_with_languagebox(langdef)
+                self.parent().editor.tm.reparse(s)
+                self.parent().editor.getWindow().btReparse([]) # refresh gui
+                self.parent().editor.update() # refresh code editor

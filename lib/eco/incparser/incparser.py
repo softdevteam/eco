@@ -28,13 +28,14 @@ except:
 
 import time, os
 
-from grammar_parser.gparser import Parser, Nonterminal, Terminal, Epsilon, IndentationTerminal
+from grammar_parser.gparser import Parser, Nonterminal, Terminal, Epsilon, IndentationTerminal, MagicTerminal
 from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Accept, Shift
 from stategraph import StateGraph
 from constants import LR0, LALR
 from astree import AST, TextNode, BOS, EOS
 from ip_plugins.plugin import PluginManager
 from error_recovery import RecoveryManager
+from autolboxdetector import NewAutoLboxDetector
 
 import logging
 
@@ -103,6 +104,9 @@ class IncParser(object):
 
         self.ooc = None
 
+        self.autolboxes = None
+        self.autodetector = None
+
     def is_valid_symbol(self, state, token):
         action = self.syntaxtable.lookup(state, token)
         if action:
@@ -128,6 +132,10 @@ class IncParser(object):
                 pickle.dump(self.syntaxtable, open(filename, "w"))
 
         self.whitespaces = whitespaces
+
+    def setup_autolbox(self, lang):
+        self.autodetector = NewAutoLboxDetector(self)
+        self.autodetector.preload(lang)
 
     def init_ast(self, magic_parent=None):
         bos = BOS(Terminal(""), 0, [])
@@ -340,6 +348,8 @@ class IncParser(object):
                 logging.debug("After breakdown: %s", self.stack[-1])
                 self.validating = False
             else:
+                if self.autodetector and self.autodetector.detect_lbox(la):
+                    pass # we can immediately apply the language box here in the future
                 self.error_nodes.append(la)
                 if self.rm.recover(la):
                     # recovered, continue parsing
@@ -521,6 +531,7 @@ class IncParser(object):
         temp_parser.syntaxtable = self.syntaxtable
         temp_parser.prev_version = self.prev_version
         temp_parser.reference_version = self.reference_version
+        temp_parser.lang = self.lang
 
         oldname = node.symbol.name
         oldleft = node.left
@@ -844,6 +855,7 @@ class IncParser(object):
         la.state = element.action
         la.exists = True
         la.position = self.stack[-1].position + self.stack[-1].textlen
+        la.autobox = None
         self.stack.append(la)
         self.current_state = la.state
 
@@ -965,3 +977,17 @@ class IncParser(object):
             else:
                 n = self.pop_lookahead(n)
         return n
+
+    def has_autolbox(self, node):
+        result = []
+        if self.autolboxes:
+            for (s, e, l) in self.autolboxes:
+                if node is s:
+                    result.append((s, e, l))
+        return result
+
+    def has_errors(self, root):
+        start = root.children[1]
+        if start.nested_errors:
+            return True
+        return False

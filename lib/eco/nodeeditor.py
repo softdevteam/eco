@@ -101,6 +101,8 @@ class NodeEditor(QFrame):
         self.hud_heat_map = False
         self.hud_types = False
 
+        self.autolboxlines = {}
+
     def hud_show_callgraph(self):
         self.hud_callgraph = True
         self.hud_eval = False
@@ -281,6 +283,7 @@ class NodeEditor(QFrame):
     def paintEvent(self, event):
         # Clear data in the visualisation overlay
         self.overlay.clear_data()
+        self.autolboxlines.clear()
 
         gfont = QApplication.instance().gfont
         self.font = gfont.font
@@ -539,6 +542,15 @@ class NodeEditor(QFrame):
                     cursor_pos = 0
                 self.draw_cursor(paint, draw_x + cursor_pos * self.fontwt, 4 + y * self.fontht)
 
+            # check if node is connected to auto lbox
+            if node.autobox:
+                if self.autolboxlines.has_key(line):
+                    for box in node.autobox:
+                        # XXX need to compare s, e with identity?
+                        if box not in self.autolboxlines[line]:
+                            self.autolboxlines[line].append(box)
+                else:
+                    self.autolboxlines[line] = list(node.autobox)
 
             if False and line == self.cursor.y and x/self.fontwt >= self.cursor.x and draw_cursor:
                 draw_cursor_at = QRect(0 + self.cursor.x * self.fontwt, 5 + y * self.fontht, 0, self.fontht - 3)

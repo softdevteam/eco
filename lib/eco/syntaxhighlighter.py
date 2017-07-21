@@ -145,6 +145,8 @@ class JavaHighlighter(SyntaxHighlighter):
         "BOOLEAN_LITERAL": "cyan",
         "STRING_LITERAL": "cyan",
         "INTEGER_LITERAL": "cyan",
+        "SINGLE_COMMENT": "grey",
+        "MULTI_COMMENT": "grey"
     }
     keyword_style = {
         "static": "italic",
