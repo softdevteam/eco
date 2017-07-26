@@ -723,6 +723,8 @@ class NodeEditor(QFrame):
             self.tm.input_log.append("self.selection_start = self.cursor.copy()")
             self.tm.input_log.append("self.selection_end = self.cursor.copy()")
             self.getWindow().showLookahead()
+            self.show_cursor = True
+            self.blinktimer.start()
             self.update()
 
     def mouseDoubleClickEvent(self, e):
