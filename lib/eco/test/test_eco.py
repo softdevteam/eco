@@ -1077,6 +1077,24 @@ def y():
 
         assert self.treemanager.cursor.node.symbol.name == "3"
 
+    def test_lexingerror_bug(self):
+        self.reset()
+
+        self.treemanager.pasteText("""def x():
+    x = 1\"\"\"
+    
+
+""")
+        assert self.parser.last_status is False
+
+        self.move(UP, 3)
+        self.treemanager.key_end()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+
+        assert self.parser.last_status is True
+
 class Test_NestedLboxWithIndentation():
     def setup_class(cls):
         parser, lexer = calc.load()
