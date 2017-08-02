@@ -1374,6 +1374,35 @@ class Test_Languageboxes(Test_Python):
         self.treemanager.key_normal("a")
         assert self.treemanager.export_as_text() == "abc:\n    def\n    def x():\n        pass\n    a"
 
+    def test_java_python_dont_lex_lboxes(self):
+        parser, lexer = javapy.load()
+        parser.setup_autolbox(javapy.name)
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, "")
+        p = """class X {
+    int x = 1 * 2;
+}"""
+        for c in p:
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+
+        treemanager.key_cursors(UP)
+        treemanager.key_end()
+
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_backspace()
+
+        treemanager.add_languagebox(lang_dict["Python expression"])
+        treemanager.key_normal("1")
+
+        assert treemanager.cursor.node.get_root().magic_backpointer.lookup == ""
+        assert len(treemanager.parsers) == 2
+        assert parser.last_status is True
+
 class Test_Backslash(Test_Python):
 
     def test_parse(self):
