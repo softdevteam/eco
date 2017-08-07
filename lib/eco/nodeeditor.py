@@ -945,8 +945,9 @@ class NodeEditor(QFrame):
         bf = QFont()
         bf.setBold(True)
         valid_langs = []
+        lalist = self.tm.getLookaheadList()
         for l in languages:
-            if "<%s>" % l in self.tm.getLookaheadList():
+            if "<%s>" % l in lalist:
                 valid_langs.append(l)
 
         if tmp:
