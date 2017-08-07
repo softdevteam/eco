@@ -891,6 +891,9 @@ class TreeManager(object):
         for c in node.children:
             self.undo(c)
         if not node.is_new(node.version):
+            if node.autobox and len(node.autobox) == 1:
+                # block this node for autolboxes in the future
+                node.autobox = False
             node.load(self.version)
             for c in node.children:
                 self.undo(c)

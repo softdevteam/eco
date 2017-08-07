@@ -4869,3 +4869,26 @@ class Test_AutoLanguageBoxDetection():
         treemanager.key_normal("d")
 
         assert len(treemanager.parsers) == 1
+
+    def test_python_html_deactivate_autobox_after_undo(self):
+        """Once an automatically inserted language box has been
+        undone, it shouldn't be inserted again on another change."""
+        parser, lexer = pythonhtmlsql.load()
+        parser.setup_autolbox(pythonhtmlsql.name)
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in "x = <html></html>":
+            treemanager.key_normal(c)
+
+        assert len(treemanager.parsers) == 2
+
+        treemanager.key_ctrl_z()
+
+        assert len(treemanager.parsers) == 1
+
+        treemanager.key_normal(" ")
+        assert len(treemanager.parsers) == 1
+
+        treemanager.key_normal(" ")
+        assert len(treemanager.parsers) == 1

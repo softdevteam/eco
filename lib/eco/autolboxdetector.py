@@ -189,6 +189,10 @@ class NewAutoLboxDetector(object):
                                 if self.parse_after_lbox(lbox, e, cut, errornode):
                                     valid.append((n, e, sub))
                 cut = cut - 1
+        if errornode.autobox is False:
+            # XXX might have to only limit certain (node, autobox) combinations to
+            # allow boxes with different content later on
+            return # don't use this node for autoboxes anymore
         if valid:
             errornode.autobox = valid
         else:
