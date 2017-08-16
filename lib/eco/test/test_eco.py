@@ -4892,3 +4892,35 @@ class Test_AutoLanguageBoxDetection():
 
         treemanager.key_normal(" ")
         assert len(treemanager.parsers) == 1
+
+    def test_php_python_whitespace_bug(self):
+        parser, lexer = phppython.load()
+        parser.setup_autolbox(phppython.name)
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, "")
+        p = """class X {
+    d();
+}"""
+        for c in p:
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 2
+
+        treemanager.key_cursors(UP)
+        treemanager.key_end()
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+
+        assert treemanager.parsers[0][0].last_status is True # PHP
+        assert treemanager.parsers[1][0].last_status is True # Python
+
+        treemanager.key_normal(" ")
+
+        assert treemanager.parsers[0][0].last_status is True
+        assert treemanager.parsers[1][0].last_status is False
+
+        treemanager.key_backspace()
+
+        assert treemanager.parsers[0][0].last_status is True
+        assert treemanager.parsers[1][0].last_status is True

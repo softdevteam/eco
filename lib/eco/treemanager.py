@@ -227,12 +227,14 @@ class Cursor(object):
             node = node.next_terminal()
         return node
 
-    def find_previous_visible(self, node):
+    def find_previous_visible(self, node, cross_lang=True):
         """Return the previous visible node in the parse tree."""
         if self.is_visible(node):
             node = node.previous_terminal() # XXX check for multiterm
         while not self.is_visible(node):
             if isinstance(node, BOS):
+                if not cross_lang: # don't cross language border
+                    return node
                 # leave lbox
                 root = node.get_root()
                 lbox = root.get_magicterminal()
@@ -1175,7 +1177,7 @@ class TreeManager(object):
                 if node.ismultichild():
                     repairnode = node.parent
                 else:
-                    repairnode = self.cursor.find_previous_visible(node)
+                    repairnode = self.cursor.find_previous_visible(node, cross_lang=False)
                     repairnode.mark_changed()
 
                 if not self.clean_empty_lbox(node):
