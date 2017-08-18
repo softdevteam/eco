@@ -404,6 +404,16 @@ class NodeEditor(QFrame):
         show_namebinding = self.getWindow().show_namebinding()
         while y < max_y:
 
+            # check if node is connected to auto lbox
+            if node.autobox:
+                if self.autolboxlines.has_key(line):
+                    for box in node.autobox:
+                        # XXX need to compare s, e with identity?
+                        if box not in self.autolboxlines[line]:
+                            self.autolboxlines[line].append(box)
+                else:
+                    self.autolboxlines[line] = list(node.autobox)
+
             # if we found a language box, continue drawing inside of it
             if isinstance(node.symbol, MagicTerminal):
                 lbox += 1
@@ -541,16 +551,6 @@ class NodeEditor(QFrame):
                     draw_x = x
                     cursor_pos = 0
                 self.draw_cursor(paint, draw_x + cursor_pos * self.fontwt, 4 + y * self.fontht)
-
-            # check if node is connected to auto lbox
-            if node.autobox:
-                if self.autolboxlines.has_key(line):
-                    for box in node.autobox:
-                        # XXX need to compare s, e with identity?
-                        if box not in self.autolboxlines[line]:
-                            self.autolboxlines[line].append(box)
-                else:
-                    self.autolboxlines[line] = list(node.autobox)
 
             if False and line == self.cursor.y and x/self.fontwt >= self.cursor.x and draw_cursor:
                 draw_cursor_at = QRect(0 + self.cursor.x * self.fontwt, 5 + y * self.fontht, 0, self.fontht - 3)

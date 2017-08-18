@@ -163,9 +163,13 @@ class NewAutoLboxDetector(object):
         for sub in self.langs:
             lbox = MagicTerminal("<{}>".format(sub))
             cut = len(self.op.stack) - 1
-            while cut > 0:
+            while cut >= 0:
                 top = self.op.stack[cut]
-                state = self.op.stack[cut].state
+                if isinstance(top, EOS):
+                    top = top.parent.children[0] # bos
+                    state = 0
+                else:
+                    state = self.op.stack[cut].state
                 # get all possible sublangs
                 element = self.op.syntaxtable.lookup(state, lbox)
                 if type(element) in [Reduce, Shift]:
@@ -184,10 +188,14 @@ class NewAutoLboxDetector(object):
                             for e in r.possible_ends:
                                 if e.lookup == "<ws>" or e.lookup == "<return>":
                                     continue
-                                if not self.contains_errornode(n, e, errornode):
-                                    continue
-                                if self.parse_after_lbox(lbox, e, cut, errornode):
-                                    valid.append((n, e, sub))
+                                if (self.contains_errornode(n, e, errornode) \
+                                    and self.parse_after_lbox(lbox, e, cut)) \
+                                    or self.parse_after_lbox(lbox, e, cut, errornode):
+                                        # Either the error was solved by
+                                        # moving it into the box or a box
+                                        # was created before it, allowing
+                                        # the error to be shifted
+                                        valid.append((n, e, sub))
                 cut = cut - 1
         if errornode.autobox is False:
             # XXX might have to only limit certain (node, autobox) combinations to
@@ -207,7 +215,7 @@ class NewAutoLboxDetector(object):
             return True
         return False
 
-    def parse_after_lbox(self, lbox, end, cut, errornode):
+    def parse_after_lbox(self, lbox, end, cut, errornode=None):
         # copy stack
         stack = []
         for i in range(cut+1):
@@ -231,12 +239,15 @@ class NewAutoLboxDetector(object):
                 stack.append(goto.action)
                 continue
             if type(element) is Shift:
+                if errornode and la is errornode:
+                    return True
                 # if whitespace continue
                 if la.lookup in ["<ws>", "<return>"] or la is lboxnode:
                     stack.append(element.action)
                     la = la.next_term
                     continue
-                return True
+                if not errornode:
+                    return True
             if type(element) is Accept:
                 return True
             return False
@@ -281,6 +292,7 @@ class Recognizer(object):
                 self.state.append(element.action)
                 if self.is_finished() and self.last_read:
                     self.possible_ends.append(self.last_read)
+                    self.last_read = None
                 token = self.next_token()
                 continue
             elif isinstance(element, Reduce):

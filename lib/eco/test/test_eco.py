@@ -4593,9 +4593,7 @@ class Test_AutoLanguageBoxDetection():
         assert len(treemanager.parsers) == 2
         assert parser.last_status == True
 
-    @pytest.mark.xfail
     def test_php_python5_first_line_box(self):
-        """Pythonbox not allowed at top level?"""
         parser, lexer = phppython.load()
         parser.setup_autolbox(phppython.name)
         treemanager = TreeManager()
@@ -4870,15 +4868,27 @@ class Test_AutoLanguageBoxDetection():
 
         assert len(treemanager.parsers) == 1
 
-    def test_python_html_deactivate_autobox_after_undo(self):
+    def test_deactivate_autobox_after_undo(self):
         """Once an automatically inserted language box has been
         undone, it shouldn't be inserted again on another change."""
-        parser, lexer = pythonhtmlsql.load()
-        parser.setup_autolbox(pythonhtmlsql.name)
+        parser, lexer = javapy.load()
+        parser.setup_autolbox(javapy.name)
         treemanager = TreeManager()
         treemanager.add_parser(parser, lexer, "")
 
-        for c in "x = <html></html>":
+        program = """class X {
+    int x = 12;
+}"""
+        for c in program:
+            treemanager.key_normal(c)
+
+        assert len(treemanager.parsers) == 1
+
+        treemanager.key_cursors(UP)
+        treemanager.key_end()
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        for c in " and ":
             treemanager.key_normal(c)
 
         assert len(treemanager.parsers) == 2
@@ -4887,10 +4897,9 @@ class Test_AutoLanguageBoxDetection():
 
         assert len(treemanager.parsers) == 1
 
-        treemanager.key_normal(" ")
-        assert len(treemanager.parsers) == 1
-
-        treemanager.key_normal(" ")
+        treemanager.key_cursors(RIGHT)
+        for c in " or 3":
+            treemanager.key_normal(c)
         assert len(treemanager.parsers) == 1
 
     def test_php_python_whitespace_bug(self):

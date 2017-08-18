@@ -161,6 +161,12 @@ javasqlchemical.add_alternative("unary_expression", sql_ref_java)
 python_expr = EcoFile("Python expression", "grammars/python275.eco", "Python")
 python_expr.change_start("simple_stmt")
 
+python_method = EcoFile("Python method", "grammars/python275.eco", "Python")
+python_method.change_start("funcdef")
+
+python_class = EcoFile("Python class", "grammars/python275.eco", "Python")
+python_class.change_start("classdef")
+
 phppython = EcoFile("PHP + Python", "grammars/php.eco", "Php")
 pythonphp = EcoFile("Python + PHP", "grammars/python275.eco", "Python")
 phppython.add_alternative("top_statement", pythonphp)
@@ -186,9 +192,43 @@ regex = EcoFile("Regex", "grammars/regex.eco", "Regex")
 
 javapy = EcoFile("Java + Python", "grammars/java15.eco", "Java")
 javapy.add_alternative("unary_expression", python_expr)
-javapy.add_alternative("class_body_declaration", python)
+javapy.add_alternative("class_body_declaration", python_method)
+javapy.add_alternative("class_body_declaration", python_class)
 
-languages = [calc, java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonhtmlsqlsingle, pythonprolog, pythonphp, prolog, sql, sql_single, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar, python_expr, ipython, pythonipython, simplelang, ruby, rubysl, rubyjs, javascript, regex, javapy]
+languages = [calc,
+             java,
+             javasqlchemical,
+             java_expr,
+             php,
+             phppython,
+             python,
+             pythonhtmlsql,
+             pythonhtmlsqlsingle,
+             pythonprolog,
+             pythonphp,
+             prolog,
+             sql,
+             sql_single,
+             sql_ref_java,
+             html,
+             htmlpythonsql,
+             eco,
+             scoping,
+             img,
+             chemical,
+             eco_grammar,
+             python_expr,
+             python_method,
+             python_class,
+             ipython,
+             pythonipython,
+             simplelang,
+             ruby,
+             rubysl,
+             rubyjs,
+             javascript,
+             regex,
+             javapy]
 newfile_langs = [java, javasqlchemical, php, phppython, python, pythonhtmlsql, pythonhtmlsqlsingle, pythonprolog, prolog, sql, html, htmlpythonsql, pythonipython, calc, ruby, simplelang, rubysl, rubyjs, javascript, regex, javapy]
 submenu_langs = [java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, python_expr, prolog, sql, sql_single, sql_ref_java, html, htmlpythonsql, img, chemical, ipython, ruby, simplelang, javascript, rubysl, rubyjs]
 
