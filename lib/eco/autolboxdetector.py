@@ -1,5 +1,5 @@
 from grammars.grammars import lang_dict
-from incparser.astree import BOS, EOS
+from incparser.astree import BOS, EOS, TextNode
 from grammar_parser.gparser import MagicTerminal, Terminal, Nonterminal, IndentationTerminal
 from incparser.syntaxtable import Shift, Reduce, Goto, Accept
 
@@ -15,123 +15,6 @@ def get_lookup(la):
     if isinstance(lookup_symbol, IndentationTerminal):
         lookup_symbol = Terminal(lookup_symbol.name)
     return lookup_symbol
-
-class AutoLBoxDetector(object):
-    """Automatic language box detection that runs after the parse has finished.
-    Uses text search to find a valid location for a language box that encloses
-    the error."""
-
-    def __init__(self):
-        self.langs = {}
-
-    def init_language(self, langname):
-        if langname in self.langs:
-            return
-
-        main = lang_dict[langname]
-        self.langs[langname] = main.load()
-
-        for sub in main.included_langs:
-            self.init_language(sub)
-
-    def detect_autoremove(self, lbox):
-        outer_root = lbox.get_root()
-        outer_lang = outer_root.name
-        outer_parser, outer_lexer = self.langs[outer_lang]
-        r = IncrementalRecognizer(outer_parser.syntaxtable, outer_lexer.lexer, outer_lang)
-        r.preparse(outer_root, lbox)
-        return r.parse(lbox.symbol.ast.children[0].next_term)
-
-    def detect_languagebox(self, node):
-        # Get current language
-        mainlang = node.get_root().name
-        parser, _ = self.langs[mainlang]
-
-        # Find beginning terminal
-        term = node
-        while True:
-            # get most left terminal
-            if type(term) is BOS:
-                break
-            if type(term) is EOS:
-                term = term.prev_term
-                continue
-            if  term.lookup == "<return>":
-                break
-
-            #XXX check if term is valid in any of the langs first? If not we don't need to increc
-            outer_root = term.get_root()
-            outer_lang = outer_root.name
-            outer_parser, outer_lexer = self.langs[outer_lang]
-            r = IncrementalRecognizer(outer_parser.syntaxtable, outer_lexer.lexer, outer_lang)
-            result = r.preparse(outer_root, term)
-            if result:
-                # Check if first token is valid in one of the autobox grammars
-                for langname in self.langs:
-                    magic = MagicTerminal("<%s>" % (langname,))
-                    if r.is_valid(magic):
-                        ends = self.detect_end(langname, term)
-                        ends = self.reduce_ends(r, ends, magic, term, node)
-                        if ends:
-                            return (term, ends, langname)
-                    else:
-                        #print("Language box {} not valid at position {} in {}\n".format(langname, term, outer_lang))
-                        pass
-            term = term.prev_term
-
-    def detect_end(self, lang, start):
-        parser, lexer = self.langs[lang]
-        #print("Language box valid. Find lbox end")
-        if lexer.indentation_based:
-            r = RecognizerIndent(parser.syntaxtable, lexer.lexer, lang)
-        else:
-            r = Recognizer(parser.syntaxtable, lexer.lexer, lang)
-        end = r.parse(start)
-        return r.possible_ends
-
-    def reduce_ends(self, r, possible_ends, magic, start, errornode):
-        """Remove unwanted language box boundaries from the results that
-        - do not span the error node
-        - end on whitespace/newline
-        - don't allow terminal following box to be parsed"""
-        tstates = list(r.state)
-        r.temp_parse(tstates, magic)
-        new = []
-        for p in possible_ends:
-            if p.lookup in ["<return>", "<ws>"]:
-                continue
-            la = get_lookup(p.next_term)
-            # XXX this will almost always success if la is whitespace as
-            # whitespace can always be shifted/reduced In theory we have to
-            # continue incrementally parsing the entire remaining tree. So GLR
-            # parsing is probably the proper way to do this
-            result = r.syntaxtable.lookup(tstates[-1], la)
-            if type(result) is Shift or type(result) is Reduce:
-                # Check if it spans the error
-                if self.contains_errornode(start, p, errornode):
-                    new.append(p)
-        return new
-
-    def adjust_end(self, end):
-        """Remove newlines/whitespace from end"""
-        if end is None:
-            return None
-        while True:
-            if end.lookup not in ["<ws>", "<return>"]:
-                break
-            end = end.prev_term
-        return end
-
-    def contains_errornode(self, start, end, error):
-        while True:
-            if start is error:
-                return True
-            if start is end:
-                break
-            start = start.next_term
-        return False
-
-from incparser.astree import TextNode
 
 class NewAutoLboxDetector(object):
     """Automatic languagebox detector that runs during parsing when an error
@@ -309,11 +192,6 @@ class Recognizer(object):
             elif isinstance(element, Accept):
                 return self.last_read
             else:
-                if not isinstance(token, FinishSymbol):
-                    if self.last_read:
-                        self.last_read = self.last_read.prev_term
-                    token = FinishSymbol()
-                    continue
                 return None
 
     def next_token(self):
@@ -331,21 +209,6 @@ class Recognizer(object):
         if token.name in ["<ws>", "<return>"]:
             return False
         return True
-       #if self.lang == "Python + PHP":
-       #    return token.name in ["def"]
-       #elif self.lang == "SQL":
-       #    return token.name in ["SELECT"]
-       #elif self.lang == "SQL Statement":
-       #    return token.name in ["SELECT"]
-       #elif self.lang == "Python expression":
-       #    return token.name in ["[", "NUMBER"]
-       #elif self.lang == "SimpleLanguage":
-       #    return token.name in ["function"]
-       #elif self.lang == "HTML":
-       #    return token.name.startswith("<") and token.name not in ["<ws>", "<return>"]
-       #elif self.lang.find("Python") > -1: # other Python derivatives
-       #    return token.name in ["def"]
-       #return False
 
     def is_finished(self):
         result = self.syntaxtable.lookup(self.state[-1], FinishSymbol())
@@ -517,28 +380,6 @@ class IncrementalRecognizer(Recognizer):
                     node = node.children[0]
                 else:
                     node = node.right
-
-    def is_valid(self, token):
-        """Checks if a token is valid in the current state."""
-        state = list(self.state)
-        while True:
-            element = self.syntaxtable.lookup(state[-1], token)
-            #print("Checking validity of {} in state {}: {}".format(token, state, element))
-            if type(element) is Shift:
-                state.append(element.action)
-                return True
-            elif type(element) is Reduce:
-                i = 0
-                while i < element.amount():
-                   state.pop()
-                   i += 1
-                goto = self.syntaxtable.lookup(state[-1], element.action.left)
-                assert isinstance(goto, Goto)
-                state.append(goto.action)
-            else:
-                #print("Error on", token, state)
-                return False
-        return False
 
     def parse(self, node):
         """Parse normally starting at `node`."""

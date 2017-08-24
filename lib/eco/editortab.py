@@ -115,8 +115,6 @@ class EditorTab(QWidget):
             incparser, inclexer = lang.load()
             self.editor.set_mainlanguage(incparser, inclexer, lang.name)
             incparser.setup_autolbox(lang.name)
-            # Create parsers for auto language box detection
-            self.editor.add_autobox_parsers(lang.name)
 
     def toggle_breakpoint(self, isTemp, number, from_click):
         self.emit(SIGNAL("breakpoint"), isTemp, number, from_click)

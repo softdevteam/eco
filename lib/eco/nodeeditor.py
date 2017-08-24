@@ -39,7 +39,6 @@ from incparser.annotation import Footnote, Heatmap, Railroad, ToolTip
 from incparser.annotation import HUDEval, HUDTypes, HUDCallgraph, HUDHeatmap
 from incparser.astree import TextNode
 
-from autolboxdetector import AutoLBoxDetector
 import syntaxhighlighter
 import renderers
 
@@ -182,11 +181,6 @@ class NodeEditor(QFrame):
     def set_mainlanguage(self, parser, lexer, lang_name):
         self.tm = TreeManager()
         self.tm.add_parser(parser, lexer, lang_name)
-
-    def add_autobox_parsers(self, main):
-        self.autolboxdetector = AutoLBoxDetector()
-        self.autolboxdetector.init_language(main)
-        self.tm.autolboxdetector = self.autolboxdetector
 
     def get_mainlanguage(self):
         return self.tm.parsers[0][2]
