@@ -4483,7 +4483,7 @@ class Test_TopDownReuse(Test_Python):
         assert E is E2
         assert Y is Y2
 
-from grammars.grammars import sql_single, javapy, javasqlchemical
+from grammars.grammars import sql_single, javapy, javasqlchemical, javasql
 
 # Add some more compositions that we only need inside the test environment
 pythonsql = EcoFile("Python + SQL", "grammars/python275.eco", "Python")
@@ -4933,3 +4933,47 @@ class Test_AutoLanguageBoxDetection():
 
         assert treemanager.parsers[0][0].last_status is True
         assert treemanager.parsers[1][0].last_status is True
+
+    def test_java_sql_skip_comments(self):
+        p = """public class Scribble {
+
+    public void init() {
+        // A comment
+        this.foo1(code.replace());
+
+        // Another comment
+        this.foo2();
+    }
+}"""
+
+        parser, lexer = javasql.load()
+        parser.setup_autolbox(javasql.name)
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in p:
+            treemanager.key_normal(c)
+
+        assert parser.last_status == True
+
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        treemanager.key_end()
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        for _ in range(14):
+            treemanager.key_backspace()
+
+        assert parser.last_status == True
+
+        p = """SELECT ProductName
+FROM Products
+WHERE ProductID = ANY (SELECT ProductID FROM OrderDetails WHERE Quantity = 10);"""
+        for c in p:
+            treemanager.key_normal(c)
+
+        assert len(treemanager.parsers) == 2
+        assert parser.last_status == True

@@ -3,6 +3,8 @@ from incparser.astree import BOS, EOS
 from grammar_parser.gparser import MagicTerminal, Terminal, Nonterminal, IndentationTerminal
 from incparser.syntaxtable import Shift, Reduce, Goto, Accept
 
+ws_tokens = ["<ws>", "<return>", "<slcomment>", "<mlcomment>"]
+
 def get_lookup(la):
     """Get the lookup symbol of a node. If no such lookup symbol exists use
     the nodes symbol instead."""
@@ -242,7 +244,7 @@ class NewAutoLboxDetector(object):
                 if errornode and la is errornode:
                     return True
                 # if whitespace continue
-                if la.lookup in ["<ws>", "<return>"] or la is lboxnode:
+                if la.lookup in ws_tokens or la is lboxnode:
                     stack.append(element.action)
                     la = la.next_term
                     continue
