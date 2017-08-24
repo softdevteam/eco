@@ -124,6 +124,7 @@ scoping = EcoFile("Scoping Rules (Ecofile)", "grammars/scoping_grammar.eco", "Sc
 eco = EcoFile("Eco Grammar (Ecofile)", "grammars/eco_grammar.eco", "Grammar") # based on eco_grammar
 html = EcoFile("HTML", "grammars/html.eco", "Html")
 sql = EcoFile("SQL", "grammars/sql.eco", "Sql")
+sqlfull = EcoFile("SQL (Full)", "grammars/sqlfull.eco", "Sql")
 img = EcoFile("Image", "grammars/img.eco", "Image")
 chemical = EcoFile("Chemicals", "grammars/chemicals.eco", "Chemicals")
 php = EcoFile("PHP", "grammars/php.eco", "Php")
@@ -154,6 +155,9 @@ java_expr.add_alternative("unary_expression", chemical)
 
 sql_ref_java = EcoFile("SQL ref. Java expression", "grammars/sql.eco", "Sql")
 sql_ref_java.add_alternative("y_condition", java_expr)
+
+javasql = EcoFile("Java + SQL", "grammars/java15.eco", "Java")
+javasql.add_alternative("unary_expression", sqlfull)
 
 javasqlchemical = EcoFile("Java + SQL + Chemical", "grammars/java15.eco", "Java")
 javasqlchemical.add_alternative("unary_expression", sql_ref_java)
@@ -197,6 +201,7 @@ javapy.add_alternative("class_body_declaration", python_class)
 
 languages = [calc,
              java,
+             javasql,
              javasqlchemical,
              java_expr,
              php,
@@ -208,6 +213,7 @@ languages = [calc,
              pythonphp,
              prolog,
              sql,
+             sqlfull,
              sql_single,
              sql_ref_java,
              html,
@@ -229,7 +235,7 @@ languages = [calc,
              javascript,
              regex,
              javapy]
-newfile_langs = [java, javasqlchemical, php, phppython, python, pythonhtmlsql, pythonhtmlsqlsingle, pythonprolog, prolog, sql, html, htmlpythonsql, pythonipython, calc, ruby, simplelang, rubysl, rubyjs, javascript, regex, javapy]
+newfile_langs = [java, javasql, javasqlchemical, php, phppython, python, pythonhtmlsql, pythonhtmlsqlsingle, pythonprolog, prolog, sql, sqlfull, html, htmlpythonsql, pythonipython, calc, ruby, simplelang, rubysl, rubyjs, javascript, regex, javapy]
 submenu_langs = [java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, python_expr, prolog, sql, sql_single, sql_ref_java, html, htmlpythonsql, img, chemical, ipython, ruby, simplelang, javascript, rubysl, rubyjs]
 
 lang_dict = {}

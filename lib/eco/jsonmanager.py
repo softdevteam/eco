@@ -19,7 +19,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-import json, gzip
+import json, gzip, sys
+sys.setrecursionlimit(2000)
 
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
