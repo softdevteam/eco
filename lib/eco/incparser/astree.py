@@ -114,6 +114,8 @@ class Node(object):
         self.prev_term = None
         self.next_term = None
         self.magic_parent = None
+        if children is None:
+            children = []
         self.set_children(children)
         self.log = {}
         self.max_version = None
