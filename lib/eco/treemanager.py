@@ -1339,7 +1339,7 @@ class TreeManager(object):
             newnode.insert_after(node2)
 
             self.relex(node)
-            #self.relex(node2)
+            self.relex(node2)
         self.edit_rightnode = True # writes next char into magic ast
         self.cursor.node = newnode.symbol.ast.children[0]
         self.cursor.pos = 0
