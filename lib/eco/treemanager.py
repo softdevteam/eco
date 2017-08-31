@@ -1564,6 +1564,8 @@ class TreeManager(object):
 
         text = text.replace("\r\n","\r")
         text = text.replace("\n","\r")
+        # while tabs are not supported, replace them with spaces
+        text = text.replace("\t", "    ")
 
         if self.cursor.inside():
             internal_position = self.cursor.pos
@@ -1738,6 +1740,7 @@ class TreeManager(object):
         self.version = self.global_version = 0
         text = text.replace("\r\n","\r")
         text = text.replace("\n","\r")
+        text = text.replace("\t","    ")
         parser = self.parsers[0][0]
         lexer = self.parsers[0][1]
         # lex text into tokens
