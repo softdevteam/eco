@@ -1634,6 +1634,10 @@ class TreeManager(object):
             if isinstance(node, BOS) or isinstance(node, EOS):
                 continue
             node.parent.remove_child(node)
+            # Remove MultiNode if all children have been deleted
+            if node.ismultichild():
+                if node.parent.children == []:
+                    node.parent.remove()
             self.clean_empty_lbox(node)
         while True: # in case first node was deleted
             if isinstance(repair_node.next_term, EOS):

@@ -692,7 +692,7 @@ class IncrementalLexerCF(object):
             if gen is None:
                 lengen = 0
             elif gen[0] == "new mt":
-                if read.ismultichild() and not read.parent in reused:
+                if read and read.ismultichild() and not read.parent in reused:
                     current_mt = read.parent # reuse
                 else:
                     current_mt = MultiTextNode() # create new
