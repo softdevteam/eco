@@ -5002,3 +5002,31 @@ WHERE ProductID = ANY (SELECT ProductID FROM OrderDetails WHERE Quantity = 10);"
         treemanager.key_normal(";")
         assert len(treemanager.parsers) == 1
         assert parser.last_status == True
+
+    @pytest.mark.xfail
+    def test_php_python_auto_bug(self):
+        """PHP equivalent to `test_java_python3`. Fails because `public` is
+        optional in PHP and thus can be used in a Python box without making the
+        PHP program invalid."""
+        parser, lexer = phppython.load()
+        parser.setup_autolbox(phppython.name)
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, "")
+        p = """class X {
+    public function x(){}
+}"""
+        for c in p:
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == True
+
+        treemanager.key_cursors(UP)
+        treemanager.key_home()
+        treemanager.key_cursors(RIGHT)
+        treemanager.key_cursors(RIGHT)
+        treemanager.key_cursors(RIGHT)
+        treemanager.key_cursors(RIGHT)
+        treemanager.key_normal("d")
+
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == False
