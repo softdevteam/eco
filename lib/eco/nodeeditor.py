@@ -887,8 +887,11 @@ class NodeEditor(QFrame):
         if self.sublanguage:
             if self.tm.hasSelection():
                 self.tm.surround_with_languagebox(self.sublanguage)
+                self.tm.reparse(self.tm.selection_start.node)
             else:
                 self.tm.add_languagebox(self.sublanguage)
+            self.getWindow().btReparse([])
+            self.update()
 
     def change_languagebox(self):
         if self.sublanguage:
