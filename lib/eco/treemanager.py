@@ -2009,12 +2009,16 @@ class TreeManager(object):
         TreeManager.version = self.version
 
         # Now check for auto language boxes
-        for temp in self.parsers:
+        if skipautolbox:
+            return
+
+        parsers = list(self.parsers) # copy to avoid processing newly added parsers
+        for temp in parsers:
             # remove language boxes that are not valid anymore
             p = temp[0]
             lbox = p.previous_version.parent.get_magicterminal()
-            if lbox and lbox.tbd and p.last_status is False:
-                result = self.lbox_autoremove_test(lbox)
+            if lbox and lbox.tbd:
+                result = self.lbox_autoremove_test(lbox, p.last_status)
                 if result:
                     self.remove_languagebox(lbox)
 
@@ -2032,14 +2036,21 @@ class TreeManager(object):
                     self.reparse(s.prev_term, skipautolbox=True)
                     self.undo_snapshot()
 
-    def lbox_autoremove_test(self, lbox):
+    def lbox_autoremove_test(self, lbox, status):
+        """An automatically inserted languagebox can be automatically removed if
+        one of the following is true (if in doubt always prioritise the outer language):
+        1) The languagebox contents are valid in the outside language's context (i.e.
+        the contents can be parsed as well as the nodes following the old box)
+        2) The languagebox is invalid and its contents can be parsed in the
+        outside language (note: the context doesn't have to be valid)"""
         from autolboxdetector import IncrementalRecognizer
         outer_root = lbox.get_root()
         outer_lang = outer_root.name
         outer_parser, outer_lexer = lang_dict[outer_lang].load() # get preloaded one
         r = IncrementalRecognizer(outer_parser.syntaxtable, outer_lexer.lexer, outer_lang)
         r.preparse(outer_root, lbox)
-        return r.parse(lbox.symbol.ast.children[0].next_term)
+        result =  r.parse(lbox.symbol.ast.children[0].next_term, lbox.next_term, status)
+        return result
 
     def delete_version(self, version, node):
         if ("parent", version) in node.log:

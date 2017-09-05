@@ -172,6 +172,8 @@ class Recognizer(object):
         if not ppmode and not self.valid_start(token):
             return None
         while True:
+            if ppmode and self.reached_eos:
+                return True
             element = self.syntaxtable.lookup(self.state[-1], token)
             if isinstance(element, Shift):
                 self.state.append(element.action)
@@ -381,17 +383,48 @@ class IncrementalRecognizer(Recognizer):
                 else:
                     node = node.right
 
-    def parse(self, node):
+    def parse(self, node, follow, status):
         """Parse normally starting at `node`."""
 
-        # parsing a language box is successful if the last token
-        # in the box has been processed without errors
+        # parsing a language box is successful if the last token in the box has
+        # been processed without errors and we can parse at least one terminal
+        # following the lbox contents. Unless the languagebox has errors
+        # in which we prioritise the outer language even if the following nodes
+        # (i.e. the context) can't be parsed
 
         # try parsing lbox content in outer language
-        result = Recognizer.parse(self, node, ppmode=True)
+        Recognizer.parse(self, node, ppmode=True)
         if self.reached_eos:
-            return True
+            if status is False:
+                return True
+            if self.parse_after(follow):
+                return True
         return False
+
+    def parse_after(self, la):
+        while True:
+            lookup = get_lookup(la)
+            element = self.syntaxtable.lookup(self.state[-1], lookup)
+
+            if type(element) is Reduce:
+                for i in range(element.amount()):
+                    self.state.pop()
+                goto = self.syntaxtable.lookup(self.state[-1], element.action.left)
+                assert goto is not None
+                self.state.append(goto.action)
+                continue
+
+            if type(element) is Shift:
+                # if whitespace continue
+                if la.lookup in ws_tokens:
+                    self.state.append(element.action)
+                    la = la.next_term
+                    continue
+                return True
+
+            if type(element) is Accept:
+                return True
+            return False
 
 def get_recognizer(lang):
         main = lang_dict[lang]

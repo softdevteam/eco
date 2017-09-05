@@ -4814,7 +4814,7 @@ class Test_AutoLanguageBoxDetection():
         for c in p:
             treemanager.key_normal(c)
 
-    def test_java_sql_autoremove(self):
+    def test_java_sql_autoremove_valid_boxes(self):
         parser, lexer = javasqlchemical.load()
         parser.setup_autolbox(javasqlchemical.name)
         treemanager = TreeManager()
@@ -4978,4 +4978,27 @@ WHERE ProductID = ANY (SELECT ProductID FROM OrderDetails WHERE Quantity = 10);"
             treemanager.key_normal(c)
 
         assert len(treemanager.parsers) == 2
+        assert parser.last_status == True
+
+    def test_php_python_autoremove(self):
+        """Sometimes automatically inserted boxes are valid in both languages.
+        Previously we only autoremoved boxes that were invalid. However, we
+        should always prioritise the outer language instead even if the language
+        box is a valid insertion."""
+        parser, lexer = phppython.load()
+        parser.setup_autolbox(phppython.name)
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, "")
+        treemanager.key_normal("f")
+        assert len(treemanager.parsers) == 2
+        treemanager.key_normal("o")
+        assert len(treemanager.parsers) == 2
+        treemanager.key_normal("o")
+        assert len(treemanager.parsers) == 2
+        treemanager.key_normal("(")
+        assert len(treemanager.parsers) == 1
+        treemanager.key_normal(")")
+        assert len(treemanager.parsers) == 2
+        treemanager.key_normal(";")
+        assert len(treemanager.parsers) == 1
         assert parser.last_status == True
