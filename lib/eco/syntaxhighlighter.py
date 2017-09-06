@@ -31,7 +31,6 @@ class SyntaxHighlighter(object):
         "cyan": "#2AA198",
         "yellow": "#B58900",
         "purple": "#D33682",
-        "default": "#333333"
     }
 
     gb_colors = {
@@ -56,10 +55,8 @@ class SyntaxHighlighter(object):
 
     def get_color(self, node):
         parent = node.parent
-        if parent and parent.lookup and parent.lookup in self.keyword_colors:
-            color = self.keyword_colors[parent.lookup]
-        elif parent and parent.symbol.name in self.parent_colors:
-            color = self.parent_colors[parent.symbol.name]
+        if (node.lookup, parent.symbol.name) in self.keyword_colors:
+            color = self.keyword_colors[(node.lookup, parent.symbol.name)]
         elif node.symbol.name in self.keyword_colors:
             color = self.keyword_colors[node.symbol.name]
         elif node.lookup in self.keyword_colors:
@@ -84,7 +81,10 @@ class SyntaxHighlighter(object):
         return "normal"
 
 class PythonHighlighter(SyntaxHighlighter):
+
     keyword_colors = {
+        ("NAME", "funcdef"): "red",
+        ("NAME", "classdef"): "red",
         "import": "red",
         "class": "green",
         "def": "green",
@@ -122,10 +122,6 @@ class PythonHighlighter(SyntaxHighlighter):
         "dstring":"cyan",
         "sstring":"cyan",
         "slcomment":"grey"
-    }
-
-    parent_colors = {
-        "slcomment": "grey"
     }
 
 class JavaHighlighter(SyntaxHighlighter):
@@ -174,12 +170,6 @@ class JavaScriptHighlighter(SyntaxHighlighter):
         "binary": "purple",
         "true": "purple",
         "false": "purple",
-    }
-
-    parent_colors = {
-        "single_string": "cyan",
-        "slcomment": "grey",
-        "mlcomment": "grey"
     }
 
 class SqlHighlighter(SyntaxHighlighter):
@@ -290,12 +280,6 @@ class PhpHighlighter(SyntaxHighlighter):
         "int": "bold"
     }
 
-    parent_colors = {
-        "string": "cyan",
-        "slcomment": "grey",
-        "mlcomment": "grey"
-    }
-
 class SLHighlighter(SyntaxHighlighter):
     keyword_colors = {
         "id": "green",
@@ -308,10 +292,6 @@ class SLHighlighter(SyntaxHighlighter):
         "return": "red",
         "break": "red",
         "continue": "red",
-    }
-
-    parent_colors = {
-        "comment": "grey"
     }
 
 class RubyHighlighter(SyntaxHighlighter):
@@ -345,9 +325,6 @@ class RubyHighlighter(SyntaxHighlighter):
         "self": "blue",
         "tIDENTIFIER": "yellow",
         "tCONSTANT": "green",
-    }
-    parent_colors = {
-        "comment": "grey"
     }
 
 def get_highlighter(parent, palette):
