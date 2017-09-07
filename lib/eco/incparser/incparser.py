@@ -230,6 +230,7 @@ class IncParser(object):
                         # state despite errors occuring during the parse.
                         if len(self.error_nodes) == 0:
                             self.last_status = True
+                            la.autobox = None
                             return True
                         self.last_status = False
                         return False
