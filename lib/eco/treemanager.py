@@ -128,6 +128,7 @@ class Cursor(object):
             if lbox:
                 node = lbox.previous_terminal()
             else:
+                self.node = node
                 return
         if not node is self.node:
             self.node = node
@@ -148,6 +149,8 @@ class Cursor(object):
         node = self.node
         if not self.is_visible(node):
             node = self.find_next_visible(self.node)
+            if type(node.symbol) is MagicTerminal:
+                node = node.symbol.ast.children[0]
         if isinstance(node, EOS):
             return
         if not node is self.node:
@@ -155,13 +158,15 @@ class Cursor(object):
             self.pos = 0
             if node.symbol.name == "\r":
                 self.line += 1
-        if self.pos < len(self.node.symbol.name):
+        if self.pos < len(node.symbol.name):
             self.pos += 1
         else:
             node = self.find_next_visible(node)
             if node.symbol.name == "\r":
                 self.line += 1
             if isinstance(node, EOS):
+                self.node = self.find_previous_visible(node)
+                self.pos = len(self.node.symbol.name)
                 return
             if type(node.symbol) is MagicTerminal:
                 node = node.symbol.ast.children[0]
