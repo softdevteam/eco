@@ -635,6 +635,11 @@ class TreeManager(object):
         else:
             include_start = False
 
+        if type(cur_end.node.symbol) is MagicTerminal:
+            cur_end = cur_end.copy()
+            cur_end.node = cur_end.node.symbol.ast.children[-1]
+            cur_end.pos = 0
+            cur_end.jump_left()
         end_node = cur_end.node
         diff_end = len(end_node.symbol.name)
 
@@ -672,7 +677,8 @@ class TreeManager(object):
                     continue
             nodes.append(node)
             node = node.next_terminal()
-        nodes.append(end)
+        if type(node) is not EOS:
+            nodes.append(end)
 
         return (nodes, diff_start, diff_end)
 

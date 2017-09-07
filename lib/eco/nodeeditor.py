@@ -374,6 +374,16 @@ class NodeEditor(QFrame):
         highlighter = self.get_highlighter(node)
         selection_start = min(self.tm.selection_start, self.tm.selection_end)
         selection_end = max(self.tm.selection_start, self.tm.selection_end)
+        if selection_start.node is not selection_end.node:
+            if type(selection_start.node.symbol) is MagicTerminal:
+                selection_start = selection_start.copy()
+                selection_start.node = selection_start.node.symbol.ast.children[0]
+                selection_start.pos = 0
+            if type(selection_end.node.symbol) is MagicTerminal:
+                selection_end = selection_end.copy()
+                selection_end.node = selection_end.node.symbol.ast.children[-1]
+                selection_end.pos = 0
+                selection_end.jump_left()
         draw_selection_start = (0,0,0)
         draw_selection_end = (0,0,0)
         start_lbox = self.get_languagebox(node)
