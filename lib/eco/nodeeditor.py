@@ -413,7 +413,7 @@ class NodeEditor(QFrame):
 
             if isinstance(node, EOS):
                 lbnode = self.get_languagebox(node)
-                if self.cursor.node is lbnode:
+                if self.cursor.node is lbnode and self.show_cursor:
                     self.draw_cursor(paint, x, 4 + y * self.fontht)
                 if lbnode:
                     color = colors[(lbox-1) % len(colors)]
