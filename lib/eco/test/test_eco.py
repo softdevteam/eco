@@ -669,7 +669,9 @@ class Test_Indentation(Test_Python):
         # undo
         for linenr in deleted:
             del_ws = deleted[linenr]
+            print("self.treemanager.cursor_reset()")
             self.treemanager.cursor_reset()
+            print("self.move(DOWN, %s)" % linenr)
             self.move(DOWN, linenr)
             for i in range(del_ws):
                 self.treemanager.key_normal(" ")
@@ -715,6 +717,31 @@ class Test_Indentation(Test_Python):
         self.move(DOWN, 7)
         # shouldn't cause AttributeError: 'NoneType' object has no attribute 'relex'
         self.treemanager.key_normal(" ")
+
+    def test_indentation_stresstest_bug_short(self):
+        self.reset()
+        self.treemanager.import_file("""class Connect4():
+    def __init__():
+       pass1
+       pass2
+       pass3
+
+    def _set_status_text():
+       pass4""")
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 3)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.key_delete()
 
     def test_indentation_stresstest_bug2_indentation(self):
         self.reset()
@@ -785,6 +812,92 @@ class Test_Indentation(Test_Python):
         self.move(RIGHT, 17)
         self.treemanager.key_delete()
 
+    def test_indentation_stresstest_bug_retain(self):
+        # In the `pass2` method `textlength` needs to check the yield of the
+        # previous version of the program. Wagner's thesis uses the current
+        # version, which is limited by the error and thus can never have a
+        # greater yield than the location of error
+        self.reset()
+
+        prog = """class Connect4(object):
+
+    def __init__():
+        top
+
+        # comment
+        turn
+
+        for colno in cols:
+            grid
+            append1
+            append2
+
+        grid2
+        grid3
+
+    def _turn():
+            if ai:
+                break
+            pass"""
+
+        self.treemanager.import_file(prog)
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 10)
+        self.move(RIGHT, 4)
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 5)
+        self.move(RIGHT, 1)
+        self.treemanager.key_backspace()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 17)
+        self.move(RIGHT, 11)
+        self.treemanager.key_backspace()
+        #assert False
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 14)
+        self.move(RIGHT, 2)
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 18)
+        self.move(RIGHT, 7)
+        self.treemanager.key_backspace()
+
+    def test_indentation_stresstest_bug_retain2(self):
+        # When retaining a subtree we need to enforce `mark_changed` on it to
+        # make sure the retained changes are being saved once parsing is
+        # complete
+        self.reset()
+        prog = """class Connect4():
+
+    def __init__():
+        pass1
+        pass2
+        pass3
+        pass4"""
+        self.treemanager.import_file(prog)
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 5)
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal('(')
+        self.treemanager.undo_snapshot()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal('!')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 4)
+        self.treemanager.key_normal('4')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 3)
+        self.treemanager.key_normal('%')
+
     def test_single_statement(self):
         self.reset()
         assert self.parser.last_status == True
@@ -800,7 +913,6 @@ class Test_Indentation(Test_Python):
         assert self.parser.last_status == True
 
         for i in range(13):
-            print self.treemanager.cursor
             self.treemanager.key_delete()
 
         assert self.parser.last_status == True
@@ -3922,7 +4034,6 @@ class Test_ErrorRecoverySurroundingContext:
         # without checking surrounding context this would be 'left'
         assert t.cursor.node.parent.symbol.name == "left2"
 
-@pytest.mark.xfail
 class Test_RetainSubtree:
 
     def test_simple(self):

@@ -37,6 +37,7 @@ from export.cpython import CPythonExporter
 from utils import arrow_keys, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT
 
 import math
+import logging
 
 def debug_trace():
   '''Set a tracepoint in the Python debugger that works with Qt'''
@@ -464,6 +465,7 @@ class TreeManager(object):
         else:
             im = None
         self.parsers.append((parser, lexer, language, analyser, im))
+        parser.reference_version = 0
         parser.inc_parse()
         if len(self.parsers) == 1:
             self.lines.append(Line(parser.previous_version.parent.children[0]))
@@ -947,6 +949,7 @@ class TreeManager(object):
 
     def save_and_textlen_rec(self, node, postparse):
         if node.has_changes() or node.new:
+            logging.debug("saving %s (%s)", node, id(node))
             if postparse:
                 node.changed = False
                 node.nested_changes = False
@@ -954,6 +957,8 @@ class TreeManager(object):
                 self.save_and_textlen_rec(c, postparse)
             node.calc_textlength()
             node.save(self.version)
+        else:
+            logging.debug("NOT saving %s (%s)", node, id(node))
 
     def key_home(self, shift=False):
         self.log_input("key_home", str(shift))
