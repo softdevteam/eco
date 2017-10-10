@@ -413,7 +413,7 @@ class NodeEditor(QFrame):
 
             if isinstance(node, EOS):
                 lbnode = self.get_languagebox(node)
-                if self.cursor.node is lbnode:
+                if self.cursor.node is lbnode and self.show_cursor:
                     self.draw_cursor(paint, x, 4 + y * self.fontht)
                 if lbnode:
                     color = colors[(lbox-1) % len(colors)]
@@ -723,6 +723,8 @@ class NodeEditor(QFrame):
             self.tm.input_log.append("self.selection_start = self.cursor.copy()")
             self.tm.input_log.append("self.selection_end = self.cursor.copy()")
             self.getWindow().showLookahead()
+            self.show_cursor = True
+            self.blinktimer.start()
             self.update()
 
     def mouseDoubleClickEvent(self, e):
@@ -943,8 +945,9 @@ class NodeEditor(QFrame):
         bf = QFont()
         bf.setBold(True)
         valid_langs = []
+        lalist = self.tm.getLookaheadList()
         for l in languages:
-            if "<%s>" % l in self.tm.getLookaheadList():
+            if "<%s>" % l in lalist:
                 valid_langs.append(l)
 
         if tmp:

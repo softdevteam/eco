@@ -564,6 +564,12 @@ class IncrementalLexerCF(object):
                         name = read[-1].symbol.name[-leftover:]
                         l = re.split("(\r)", name)
                         for e in l:
+                            if e == "":
+                                # Splitting consecutive newlines yields
+                                # additional empty strings in the result. Don't
+                                # add them into the tree. See
+                                # Test_Relexing::test_lexingerror_bug.
+                                continue
                             toks.append((e, "<E>", 1))
                     pairs.append((toks, read))
                 else:
