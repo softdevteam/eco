@@ -957,6 +957,7 @@ class TreeManager(object):
                 self.save_and_textlen_rec(c, postparse)
             node.calc_textlength()
             node.save(self.version)
+            node.exists = False
         else:
             logging.debug("NOT saving %s (%s)", node, id(node))
 

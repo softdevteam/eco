@@ -190,8 +190,8 @@ class Node(object):
                     matching.append(annotation)
         return matching
 
-    def mark_changed(self, force=False):
-        if not force and (self.changed or self.nested_changes):
+    def mark_changed(self):
+        if self.changed or self.nested_changes:
             # this has already been marked
             self.changed = True
             return

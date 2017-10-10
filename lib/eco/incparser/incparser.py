@@ -397,20 +397,26 @@ class IncParser(object):
         # for all children that come after the detection offset, we need
         # to analyse them using the normal incparser
         logging.debug("    Refine %s Offset: %s Error Offset: %s", node, offset, error_offset)
+        retain_set = set()
+        self.pass1(node, offset, error_offset, retain_set)
         node.load(self.prev_version)
         node.set_children(node.children) # reset sibling pointers
         node.local_error = node.nested_errors = False
-        self.pass2(node, offset, error_offset)
+        self.pass2(node, offset, error_offset, retain_set)
 
-    def pass1 (self, node, offset, error_offset):
+    def pass1 (self, node, offset, error_offset, retain_set):
+        if offset > error_offset:
+            # We don't have to check any other children
+            # that come after the error node
+            return
         for child in node.get_attr("children", self.prev_version):
             if (offset + child.textlength() <= error_offset):
-                find_retainable_subtrees(child)
+                self.find_retainable_subtrees(child, retain_set)
             else:
-                pass1(child, offset, error_offset)
+                self.pass1(child, offset, error_offset, retain_set)
             offset += child.textlength()
 
-    def pass2(self, node, offset, error_offset):
+    def pass2(self, node, offset, error_offset, retain_set):
         for c in node.children:
             if self.ooc and c is self.ooc[0]:
                 logging.debug("    Don't refine TempEOS nodes")
@@ -420,16 +426,24 @@ class IncParser(object):
                 logging.debug("out")
                 # XXX check if following terminal requires analysis
                 self.out_of_context_analysis(c)
-            elif offset + c.textlength(self.prev_version) <= error_offset:
+            elif offset + c.textlength() <= error_offset:
                 logging.debug("ret/disc")
-                self.retain_or_discard(c, node)
+                self.retain_or_discard(c, node, retain_set)
             else:
                 logging.debug("disc")
                 assert offset <= error_offset
-                assert offset + c.textlength(self.prev_version) > error_offset
+                assert offset + c.textlength() > error_offset
                 self.discard_changes(c)
-                self.pass2(c, offset, error_offset)
+                self.pass2(c, offset, error_offset, retain_set)
             offset += c.textlength()
+
+    def find_retainable_subtrees(self, node, retain_set):
+        if self.is_retainable_subtree(node):
+            logging.debug("pass1-retainable: %s %s", node, id(node))
+            retain_set.add(node)
+            return
+        for child in node.get_attr("children", self.prev_version):
+            self.find_retainable_subtrees(child, retain_set)
 
     def is_retainable_subtree(self, node):
         # XXX Theory: same_pos recalculates the current yield of a subtree
@@ -473,8 +487,9 @@ class IncParser(object):
         return False
 
 
-    def retain_or_discard(self, node, parent):
-        if self.is_retainable_subtree(node):
+    def retain_or_discard(self, node, parent, retain_set):
+        if node in retain_set:
+            retain_set.remove(node)
             logging.debug("    Retaining %s (%s). Set parent to %s (%s) (%s)", node, id(node), parent, id(parent), "SAME" if parent is node.parent else "DIFF")
             # Might have been assigned to a different parent in current version
             # that was removed during refinement. This makes sure this node is
@@ -483,11 +498,12 @@ class IncParser(object):
             # Also need to update siblings as they might have been changed by
             # the parser before nodes parent was reset
             node.update_siblings()
-            node.mark_changed(force=True) # make sure mark_changed, marks parents as well
+            if node.has_changes():
+                parent.mark_changed()
             return
         self.discard_changes(node)
         for c in node.children:
-            self.retain_or_discard(c, node)
+            self.retain_or_discard(c, node, retain_set)
         node.set_children(node.children) # reset links between children
 
     def out_of_context_analysis(self, node):
@@ -551,6 +567,7 @@ class IncParser(object):
         logging.debug("    TempEOS: %s", temp_eos)
         temp_root = Node(Nonterminal("TempRoot"), 0, [temp_bos, node, temp_eos])
         node.log[("parent", self.prev_version)] = temp_root
+        temp_root.save(self.prev_version)
         temp_bos.next_term = node
         temp_bos.state = oldleft.state
         temp_bos.save(node.version)
