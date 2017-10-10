@@ -501,7 +501,7 @@ class GraphRenderer:
         if node.shape == 'box':
             rect = (x-1, y-1, boxwidth+2, boxheight+2)
             def cmd():
-                self.screen.fill(bgcolor, rect)
+                pygame.draw.rect(self.screen, bgcolor, rect)
             bkgndcommands.append(cmd)
             def cmd():
                 pygame.draw.rect(self.screen, fgcolor, rect, 1)
