@@ -227,15 +227,15 @@ class IncParser(object):
                     elif result != None:
                         la = result
 
-            #XXX Larcheveque 1995: mark as reused/diposable during incparse
             else: # Nonterminal
                 if la.has_changes() or needs_reparse or la.has_errors() or self.iso_context_changed(la):
                     la = self.left_breakdown(la)
                 else:
                     if USE_OPT:
                         goto = self.syntaxtable.lookup(self.current_state, la.symbol)
-                        # only opt-shift if the nonterminal has children to
-                        # avoid a bug in the retainability algorithm
+                        # Only opt-shift if the nonterminal has children to
+                        # avoid a bug in the retainability algorithm. See
+                        # test/test_eco.py::Test_RetainSubtree::test_bug1
                         if goto and la.children: # can we shift this Nonterminal in the current state?
                             logging.debug("OPTShift: %s in state %s -> %s", la.symbol, self.current_state, goto)
                             follow_id = goto.action
@@ -410,7 +410,7 @@ class IncParser(object):
             # that come after the error node
             return
         for child in node.get_attr("children", self.prev_version):
-            if (offset + child.textlength() <= error_offset):
+            if offset + child.textlength() <= error_offset:
                 self.find_retainable_subtrees(child, retain_set)
             else:
                 self.pass1(child, offset, error_offset, retain_set)
@@ -421,16 +421,12 @@ class IncParser(object):
             if self.ooc and c is self.ooc[0]:
                 logging.debug("    Don't refine TempEOS nodes")
                 return
-            logging.debug("pass2: %s %s %s %s", c.symbol, id(c), offset, error_offset)
             if offset > error_offset:
-                logging.debug("out")
                 # XXX check if following terminal requires analysis
                 self.out_of_context_analysis(c)
             elif offset + c.textlength() <= error_offset:
-                logging.debug("ret/disc")
                 self.retain_or_discard(c, node, retain_set)
             else:
-                logging.debug("disc")
                 assert offset <= error_offset
                 assert offset + c.textlength() > error_offset
                 self.discard_changes(c)
@@ -439,50 +435,27 @@ class IncParser(object):
 
     def find_retainable_subtrees(self, node, retain_set):
         if self.is_retainable_subtree(node):
-            logging.debug("pass1-retainable: %s %s", node, id(node))
             retain_set.add(node)
             return
         for child in node.get_attr("children", self.prev_version):
             self.find_retainable_subtrees(child, retain_set)
 
     def is_retainable_subtree(self, node):
-        # XXX Theory: same_pos recalculates the current yield of a subtree
-        # removing nodes from the yield that have been reassigned to new parents
-        # (and thus their old parents don't have references to them anymore).
-        # This would solve our current problem when isolating the root. Most of
-        # the nodes will have been reduces and are on the stack, so the root has
-        # no path to them, siginificantly reducing it's yield size. Only if all
-        # all reductions could properly be incorprorated in to the old tree by
-        # reusing old parents and the subtree still holds the same yield (i.e.
-        # no nodes have been moved outside, only it's internal structure has
-        # changed) it can be retained
-        # Subtrees are currently always unretainable due to a potential bug in
-        # Wagners algorithm. See test/test_eco.py::Test_RetainSubtree::test_bug1
         if node.new:
-            logging.debug("    Is retainable: %s => New", node)
             return False
 
         if not node.does_exist():
-            logging.debug("    Is retainable: %s => Doesn't exist in current version", node)
             return False
 
         if not node.has_changes():
-            logging.debug("    Is retainable: %s => No changes", node)
             # if no changes, discarding doesn't do anything anyways so why check?
             return True
 
-        #XXX currently broken so don't retain anything until we can fix it
-
-        #XXX also needs to check offset
-        logging.debug("    Textlength before: %s NOW: %s", node.textlength(self.prev_version), node.textlength())
+        # XXX This is equivalent to Wagner's `same_pos` function. His
+        # description suggests we also need to check for changed offsets.
+        # Unfortunately, we currently don't have this information at this point.
         if node.textlength(self.prev_version) == node.textlength():
-            # Root node might not have changed text pos/len but some of the
-            # siblings could. So checking the root is not enough? Only if errors
-            # before all reductions finished?
-            logging.debug("    Is retainable: %s => YES", node)
             return True
-
-        logging.debug("    Is retainable: %s (%s) => Reached end", node, id(node))
 
         return False
 
