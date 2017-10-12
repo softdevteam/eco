@@ -464,6 +464,7 @@ class TreeManager(object):
         else:
             im = None
         self.parsers.append((parser, lexer, language, analyser, im))
+        parser.reference_version = 0
         parser.inc_parse()
         if len(self.parsers) == 1:
             self.lines.append(Line(parser.previous_version.parent.children[0]))
@@ -954,6 +955,7 @@ class TreeManager(object):
                 self.save_and_textlen_rec(c, postparse)
             node.calc_textlength()
             node.save(self.version)
+            node.exists = False
 
     def key_home(self, shift=False):
         self.log_input("key_home", str(shift))

@@ -178,7 +178,7 @@ class IncParser(object):
             # node that is being analyses and the lookahead matches the nodes
             # lookahead from the previous parse, we are done
             if self.ooc:
-                logging.debug("ooc %s", self.ooc)
+                logging.debug("ooc %s", self.ooc, id(self.ooc))
                 logging.debug("la %s", la)
                 logging.debug("cs %s", self.current_state)
                 if la is self.ooc[0]:
@@ -233,12 +233,16 @@ class IncParser(object):
                 else:
                     if USE_OPT:
                         goto = self.syntaxtable.lookup(self.current_state, la.symbol)
-                        if goto: # can we shift this Nonterminal in the current state?
+                        # Only opt-shift if the nonterminal has children to
+                        # avoid a bug in the retainability algorithm. See
+                        # test/test_eco.py::Test_RetainSubtree::test_bug1
+                        if goto and la.children: # can we shift this Nonterminal in the current state?
                             logging.debug("OPTShift: %s in state %s -> %s", la.symbol, self.current_state, goto)
                             follow_id = goto.action
                             self.stack.append(la)
                             la.deleted = False
                             la.state = follow_id #XXX this fixed goto error (I should think about storing the states on the stack instead of inside the elements)
+                            la.exists = True
                             self.current_state = follow_id
                             logging.debug("USE_OPT: set state to %s", self.current_state)
                             if la.isolated:
@@ -256,6 +260,7 @@ class IncParser(object):
                             lookup_symbol = self.get_lookup(first_term)
                             element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
                             if isinstance(element, Reduce):
+                                logging.debug("OPT Reduce: %s", element)
                                 self.reduce(element)
                             else:
                                 la = self.left_breakdown(la)
@@ -392,51 +397,73 @@ class IncParser(object):
         # for all children that come after the detection offset, we need
         # to analyse them using the normal incparser
         logging.debug("    Refine %s Offset: %s Error Offset: %s", node, offset, error_offset)
+        retain_set = set()
+        self.pass1(node, offset, error_offset, retain_set)
         node.load(self.prev_version)
+        node.set_children(node.children) # reset sibling pointers
         node.local_error = node.nested_errors = False
-        self.pass2(node, offset, error_offset)
+        self.pass2(node, offset, error_offset, retain_set)
 
-    def pass2(self, node, offset, error_offset):
+    def pass1 (self, node, offset, error_offset, retain_set):
+        if offset > error_offset:
+            # We don't have to check any other children
+            # that come after the error node
+            return
+        for child in node.get_attr("children", self.prev_version):
+            if offset + child.textlength() <= error_offset:
+                self.find_retainable_subtrees(child, retain_set)
+            else:
+                self.pass1(child, offset, error_offset, retain_set)
+            offset += child.textlength()
+
+    def pass2(self, node, offset, error_offset, retain_set):
         for c in node.children:
+            if self.ooc and c is self.ooc[0]:
+                logging.debug("    Don't refine TempEOS nodes")
+                return
             if offset > error_offset:
                 # XXX check if following terminal requires analysis
                 self.out_of_context_analysis(c)
             elif offset + c.textlength() <= error_offset:
-                self.retain_or_discard(c, node)
+                self.retain_or_discard(c, node, retain_set)
             else:
                 assert offset <= error_offset
                 assert offset + c.textlength() > error_offset
                 self.discard_changes(c)
-                self.pass2(c, offset, error_offset)
+                self.pass2(c, offset, error_offset, retain_set)
             offset += c.textlength()
 
+    def find_retainable_subtrees(self, node, retain_set):
+        if self.is_retainable_subtree(node):
+            retain_set.add(node)
+            return
+        for child in node.get_attr("children", self.prev_version):
+            self.find_retainable_subtrees(child, retain_set)
+
     def is_retainable_subtree(self, node):
-        # Subtrees are currently always unretainable due to a potential bug in
-        # Wagners algorithm. See test/test_eco.py::Test_RetainSubtree::test_bug1
-        return False
         if node.new:
             return False
 
-        if not node.exists():
+        if not node.does_exist():
             return False
 
         if not node.has_changes():
             # if no changes, discarding doesn't do anything anyways so why check?
             return True
 
-        #XXX currently broken so don't retain anything until we can fix it
-        return False
-
-        #XXX also needs to check offset
-        if node.textlength(self.previous_version) == node.textlength():
+        # XXX This is equivalent to Wagner's `same_pos` function. His
+        # description suggests we also need to check for changed offsets.
+        # Unfortunately, we currently don't have this information at this point.
+        if node.textlength(self.prev_version) == node.textlength():
             return True
 
         return False
 
 
-    def retain_or_discard(self, node, parent):
-        if self.is_retainable_subtree(node):
-            logging.debug("    Retaining %s (%s). Set parent to %s (%s)", node, id(node), parent, id(parent))
+    def retain_or_discard(self, node, parent, retain_set):
+        if node in retain_set:
+            retain_set.remove(node)
+            logging.debug("    Retaining %s (%s). Set parent to %s (%s) (%s)", node, id(node), parent, id(parent), "SAME" if parent is node.parent else "DIFF")
             # Might have been assigned to a different parent in current version
             # that was removed during refinement. This makes sure this node is
             # assigned to the right parent. See test_eco.py:Test_RetainSubtree
@@ -444,11 +471,13 @@ class IncParser(object):
             # Also need to update siblings as they might have been changed by
             # the parser before nodes parent was reset
             node.update_siblings()
-            node.mark_changed()
+            if node.has_changes():
+                parent.mark_changed()
             return
         self.discard_changes(node)
         for c in node.children:
-            self.retain_or_discard(c, node)
+            self.retain_or_discard(c, node, retain_set)
+        node.set_children(node.children) # reset links between children
 
     def out_of_context_analysis(self, node):
         logging.debug("    Attempting out of context analysis on %s (%s)", node, id(node))
@@ -511,6 +540,7 @@ class IncParser(object):
         logging.debug("    TempEOS: %s", temp_eos)
         temp_root = Node(Nonterminal("TempRoot"), 0, [temp_bos, node, temp_eos])
         node.log[("parent", self.prev_version)] = temp_root
+        temp_root.save(self.prev_version)
         temp_bos.next_term = node
         temp_bos.state = oldleft.state
         temp_bos.save(node.version)
@@ -633,6 +663,7 @@ class IncParser(object):
         new_node.calc_textlength()
         logging.debug("   Add %s to stack and goto state %s", new_node.symbol, new_node.state)
         self.stack.append(new_node)
+        new_node.exists = True
         self.current_state = new_node.state # = goto.action
         logging.debug("Reduce: set state to %s (%s)", self.current_state, new_node.symbol)
         if getattr(element.action.annotation, "interpret", None):
@@ -672,6 +703,7 @@ class IncParser(object):
         return True
 
     def left_breakdown(self, la):
+        la.exists = False
         if len(la.children) > 0:
             return la.children[0]
         else:
@@ -689,6 +721,7 @@ class IncParser(object):
             # subsequent reductions. These reductions may contain nodes that
             # have been reused. Reverting the reduction also means we need to
             # undo the reusing of that node to free it up for future reusing.
+            node.exists = False
             self.reused_nodes.discard(node)
             # This bit of code is necessary to avoid a bug that occurs with the
             # default Wagner implementation if we isolate a subtree and
@@ -728,6 +761,7 @@ class IncParser(object):
             element = self.syntaxtable.lookup(self.current_state, lookup_symbol)
         logging.debug("\x1b[32m" + "%sShift(%s)" + "\x1b[0m" + ": %s -> %s", "rb" if rb else "", self.current_state, la, element)
         la.state = element.action
+        la.exists = True
         self.stack.append(la)
         self.current_state = la.state
 
