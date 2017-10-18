@@ -3336,6 +3336,31 @@ class Test_Undo(Test_Python):
         self.move(RIGHT, 2)
         self.treemanager.key_normal('2')
 
+    def test_undo_random_insertdeleteundo_bug7_retain(self):
+        self.reset()
+        prog = """def __init__():
+        pass1
+        # controls cpu/human players
+        pass2"""
+
+        self.treemanager.import_file(prog)
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 1)
+        self.treemanager.key_normal('m')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal('f')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 1)
+        self.treemanager.key_normal('=')
+
     def random_insert_delete_undo(self, program):
         import random
         self.reset()
