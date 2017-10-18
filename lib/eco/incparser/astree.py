@@ -224,8 +224,12 @@ class Node(object):
             if c is self:
                 if i > 0:
                     c.left = self.parent.children[i-1]
+                else:
+                    c.left = None
                 if i < len(self.parent.children) - 1:
                     c.right = self.parent.children[i+1]
+                else:
+                    c.right = None
                 break
 
     def save(self, version):

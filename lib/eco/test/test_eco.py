@@ -2569,13 +2569,18 @@ class Test_Undo(Test_Python):
             cols = range(20)
             random.shuffle(cols)
             for col in cols:
+                print("self.treemanager.cursor_reset()")
+                print("self.move(DOWN, %s)" % linenr)
+                print("self.move(RIGHT, %s)" % col)
                 self.treemanager.cursor_reset()
                 self.move(DOWN, linenr)
                 self.move(RIGHT, col)
                 k = self.get_random_key()
+                print("self.treemanager.key_normal(%s)" % repr(k))
                 x = self.treemanager.key_normal(k)
                 if x == "eos":
                     continue
+            print("self.treemanager.undo_snapshot()")
             self.treemanager.undo_snapshot()
 
         end_version = self.treemanager.version
@@ -2726,6 +2731,28 @@ class Test_Undo(Test_Python):
 
         for i in range(20):
             self.treemanager.key_ctrl_z()
+
+    def test_undo_random_insertion_retain_bug(self):
+        self.reset()
+        self.treemanager.import_file("""class Connect4():
+    UI_DEPTH = 5""")
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 1)
+        self.move(RIGHT, 14)
+        self.treemanager.key_normal('b')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 1)
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal('w')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 1)
+        self.move(RIGHT, 5)
+        self.treemanager.key_normal('^')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 1)
+        self.move(RIGHT, 8)
+        self.treemanager.key_normal('!')
 
     def test_undo_random_newlines(self):
         import random
@@ -3308,6 +3335,31 @@ class Test_Undo(Test_Python):
         self.move(DOWN, 1)
         self.move(RIGHT, 2)
         self.treemanager.key_normal('2')
+
+    def test_undo_random_insertdeleteundo_bug7_retain(self):
+        self.reset()
+        prog = """def __init__():
+        pass1
+        # controls cpu/human players
+        pass2"""
+
+        self.treemanager.import_file(prog)
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 1)
+        self.treemanager.key_normal('m')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 0)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal('f')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 2)
+        self.move(RIGHT, 1)
+        self.treemanager.key_normal('=')
 
     def random_insert_delete_undo(self, program):
         import random

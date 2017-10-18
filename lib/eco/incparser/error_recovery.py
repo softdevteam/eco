@@ -1,4 +1,4 @@
-from astree import FinishSymbol, BOS, EOS
+from astree import FinishSymbol, BOS, EOS, Nonterminal
 from syntaxtable import Goto
 import logging
 
@@ -125,7 +125,7 @@ class RecoveryManager(object):
                 # Reached end of stack. Isolation tree can't be pushed here.
                 return False
 
-            while len(self.stack[temp_cp].children) == 0:
+            while isinstance(self.stack[temp_cp].symbol, Nonterminal) and len(self.stack[temp_cp].children) == 0:
                 element = self.syntaxtable.lookup(self.stack[temp_cp].state, node.symbol)
                 if isinstance(element, Goto):
                     cut = temp_cp
