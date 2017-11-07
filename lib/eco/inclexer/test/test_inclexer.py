@@ -366,7 +366,9 @@ class Test_CalcLexer(Test_IncrementalLexer):
         lexer.relex(ast.parent.children[3])
 
         assert ast.parent.children[2].symbol.name == "aaa"
-        assert ast.parent.children[3].symbol.name == "b"
+        assert ast.parent.children[3].symbol.name == "aa"
+        assert ast.parent.children[3].deleted is True
+        assert ast.parent.children[4].symbol.name == "b"
 
     def test_stringwrapper(self):
         ast = AST()
