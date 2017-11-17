@@ -638,24 +638,14 @@ class IncrementalLexerCF(object):
         return node in self.relexed
 
     def iter_gen(self, tokens):
-        r2 = re.compile("([\r])")
         for t in tokens:
             if type(t[0]) is list:
                 yield ("new mt", t[1], t[2])
                 for x in t[0]:
-                    if type(x) is TextNode:
-                        # It doesn't matter what we return here as it will be
-                        # replaced with the TextNode in merge_pair. Just make
-                        # sure it's 1 character long
-                        yield ("L", t[1], t[2])
-                    else:
-                        yield (x, t[1], t[2])
+                    yield (x, t[1], t[2])
                 yield ("finish mt", None, None)
             else:
-                if type(t[0]) is TextNode:
-                    yield ("L", t[1], t[2])
-                else:
-                    yield t
+                yield t
         while True:
             yield None
 
@@ -940,7 +930,10 @@ class StringWrapper(object):
                         mtokens.append("".join(text)[start-skip:])
                     else:
                         mtokens.append("".join(text))
-                mtokens.append(node)
+                # It doesn't matter what we return here as it will be replaced
+                # with the lbox node in merge_pair. Just make sure it's 1
+                # character long
+                mtokens.append("L")
                 if type(node.parent) is MultiTextNode:
                     if node.parent not in read:
                         read.append(node.parent)

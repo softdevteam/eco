@@ -122,7 +122,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         sw = StringWrapper(new, new)
         next_token = lexer.lexer.get_token_iter(sw)
         assert next_token() == ("12", "INT", 1, [TextNode(Terminal("12"))], 2)
-        assert next_token() == (TextNode(MagicTerminal("<SQL>")), "LBOX", 0, [TextNode(MagicTerminal("<SQL>"))], 1)
+        assert next_token() == ("L", "LBOX", 0, [TextNode(MagicTerminal("<SQL>"))], 1)
         assert next_token() == ("34", "INT", 1, [TextNode(Terminal("34"))], 2)
 
     def test_token_iter_lbox_multi(self):
@@ -144,7 +144,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         from inclexer.inclexer import StringWrapper
         sw = StringWrapper(new, new)
         next_token = lexer.lexer.get_token_iter(sw)
-        assert next_token() == (["\"abc",TextNode(MagicTerminal("<SQL>")),"def\""], "STRING", 0, [TextNode(Terminal("\"abc")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("def\""))], 9)
+        assert next_token() == (["\"abc","L","def\""], "STRING", 0, [TextNode(Terminal("\"abc")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("def\""))], 9)
 
     def test_token_iter_lbox_x80(self):
         lexer = IncrementalLexer("""
