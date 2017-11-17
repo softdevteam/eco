@@ -520,8 +520,8 @@ class IncrementalLexerCF(object):
                         if temp is startnode:
                             past_startnode = True
                             break
-                toks.append(token[:3])
-                tokenslength += len(token[0])
+                toks.append([x for i,x in enumerate(token) if i != 3])
+                tokenslength += token[4]
                 for r in token[3]:
                     if not read or r is not read[-1]: # skip already read nodes from previous tokens
                         read.append(r)
@@ -586,31 +586,42 @@ class IncrementalLexerCF(object):
                 return False
 
         changed = False
-        node_before_changes = None # remember where we started relexing
+        node_before_changes = None
         for tokens, read in pairs:
             # merge new tokens into the parse tree
             if not node_before_changes:
+                # remember the location just before we started relexing so we
+                # can afterwards update all lookback values even if we inserted
+                # nodes before the initial starting node or `node` has been
+                # moved into a multitext node
                 node_before_changes = read[0].prev_term
             if self.merge_pair(tokens, read):
                 changed = True
 
         # update lookback counts using lookaheads
-        self.update_lookback(node_before_changes.next_term)
+        self.update_lookback(node_before_changes.next_term, startnode)
 
         if error:
             raise error
         return changed
 
-    def update_lookback(self, node):
-        # XXX Use lookback to determine how far back we need to initiate
-        # the update procedure
-        la_list = []
+    def update_lookback(self, node, startnode):
         n = node
+        la_list = []
+        past_node = False
         while True:
+            if n is startnode:
+                past_node = True
+            # indentation tokens are skipped in StringWrapper, so skip them here
+            # as well
+            while isinstance(n.symbol, IndentationTerminal):
+                n = n.next_term
+            if isinstance(n, EOS):
+                break
             # compute lookback (removes old lookbacks)
             la_list = [(name, la, cnt) for name, la, cnt in la_list if la > 0]
             newlookback = max(la_list, key=lambda item:item[2])[2] if la_list else 0
-            if not self.was_relexed(n) and n.lookback == newlookback:
+            if not self.was_relexed(n) and n.lookback == newlookback and past_node:
                 break
             n.lookback = newlookback
 
@@ -622,25 +633,29 @@ class IncrementalLexerCF(object):
             la_list.append((n.symbol.name, n.lookahead, 1))
 
             n = n.next_term
-            if isinstance(n, EOS):
-                break
 
     def was_relexed(self, node):
         return node in self.relexed
 
     def iter_gen(self, tokens):
-        r = re.compile("([\r\x80])")
+        r2 = re.compile("([\r])")
         for t in tokens:
-            if len(t[0]) > 1 and r.search(t[0]):
+            if type(t[0]) is list:
                 yield ("new mt", t[1], t[2])
-                for x in r.split(t[0]):
-                    if x != "":
-                        # if the lbox is at the end of the line, split produces
-                        # an empty string at the end
+                for x in t[0]:
+                    if type(x) is TextNode:
+                        # It doesn't matter what we return here as it will be
+                        # replaced with the TextNode in merge_pair. Just make
+                        # sure it's 1 character long
+                        yield ("L", t[1], t[2])
+                    else:
                         yield (x, t[1], t[2])
                 yield ("finish mt", None, None)
             else:
-                yield t
+                if type(t[0]) is TextNode:
+                    yield ("L", t[1], t[2])
+                else:
+                    yield t
         while True:
             yield None
 
@@ -795,7 +810,18 @@ class IncrementalLexerCF(object):
         return changed
 
     def find_preceeding_node(self, node):
+        original = node
+        if node.lookback == -1:
+            node = node.prev_term
+            while isinstance(node.symbol, IndentationTerminal):
+                node = node.prev_term
+        if isinstance(node.symbol, MagicTerminal) and node.lookback <= 0:
+            # Token was created next to a language box and the language box is
+            # not part of an in-progress string/comment.
+            return original
         for i in range(node.lookback):
+            while isinstance(node.symbol, IndentationTerminal):
+                node = node.prev_term
             node = node.prev_term
         return node
 
@@ -886,14 +912,17 @@ class StringWrapper(object):
         if end == -1:
             end = sys.maxint
 
-        while i < end:
+        mtokens = []
+
+        for node in iter_tree(node):
+            if i >= end:
+                break
             if node is self.relexnode:
                 past_relexnode = True
             if isinstance(node.symbol, IndentationTerminal):
                 if i > start:
                     # only add if it is relevant
                     read.append(node)
-                node = node.next_term
                 continue
             if isinstance(node, EOS):
                 break
@@ -901,12 +930,40 @@ class StringWrapper(object):
             i += len(name)
             if i <= start:
                 skip = i
-                node = node.next_term
+                continue
+
+            # split token at language box
+            if isinstance(node.symbol, MagicTerminal):
+                if text:
+                    if len(mtokens) == 0:
+                        # first token: slice at start
+                        mtokens.append("".join(text)[start-skip:])
+                    else:
+                        mtokens.append("".join(text))
+                mtokens.append(node)
+                if type(node.parent) is MultiTextNode:
+                    if node.parent not in read:
+                        read.append(node.parent)
+                else:
+                    read.append(node)
+                text = []
                 continue
 
             text.append(name)
-            read.append(node)
-            node = node.next_term
+            # when adding children of a MultiTextNode, add the MultiTextNode to
+            # read instead so merge_pair can merge everything properly later
+            if type(node.parent) is MultiTextNode:
+                if node.parent not in read:
+                    read.append(node.parent)
+            else:
+                read.append(node)
+
+        # last token: slice at end
+        if text:
+            if len(mtokens) == 0:
+                mtokens.append("".join(text)[start-skip:end-skip])
+            else:
+                mtokens.append("".join(text)[:end-i])
 
         self.last_node = node.prev_term
 
@@ -916,7 +973,21 @@ class StringWrapper(object):
             read.pop()
 
         tokenname = "".join(text)[(start-skip):(end-skip)]
-        return (tokenname, read)
+
+        # split newlines and calculate length
+        newmtokens = []
+        r = re.compile("([\r])")
+        length = 0
+        for t in mtokens:
+            if type(t) == str:
+                newmtokens.extend(filter(None, r.split(t)))
+            else:
+                newmtokens.append(t)
+            length += getlength(t)
+
+        if len(newmtokens) == 1:
+            return (newmtokens[0], read, length)
+        return (newmtokens, read, length)
 
 def getname(node):
     if type(node.symbol) is MagicTerminal:
@@ -937,3 +1008,14 @@ def getlength(node):
     if isinstance(node, TextNode):
         return len(getname(node))
     return len(node)
+
+def iter_tree(node):
+    while True:
+        if type(node) is EOS:
+            raise StopIteration
+        if type(node) is MultiTextNode:
+            for c in node.children:
+                yield c
+        else:
+            yield node
+        node = node.next_term

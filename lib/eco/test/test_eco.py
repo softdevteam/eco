@@ -23,7 +23,7 @@ from grammars.grammars import calc, java, python, Language, sql, pythonprolog, l
 from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
-from incparser.astree import BOS, EOS, TextNode
+from incparser.astree import BOS, EOS, TextNode, MultiTextNode
 from grammar_parser.gparser import MagicTerminal, Terminal
 from utils import KEY_UP as UP, KEY_DOWN as DOWN, KEY_LEFT as LEFT, KEY_RIGHT as RIGHT
 
@@ -1187,7 +1187,11 @@ def y():
         self.treemanager.key_normal("+")
         self.treemanager.key_normal("3")
 
-        assert self.treemanager.cursor.node.symbol.name == "3"
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+        self.treemanager.key_normal("\"")
+
+        assert type(self.treemanager.cursor.node.parent) is MultiTextNode
 
     def test_lexingerror_bug(self):
         self.reset()
