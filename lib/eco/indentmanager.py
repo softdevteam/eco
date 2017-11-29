@@ -62,6 +62,8 @@ class IndentationManager:
         self.calculate_indentation(bol)
         self.fix_tokens(bol)
         after = self.get_whitespace(bol)
+        # XXX we don't need to update following lines if no indent tokens were
+        # inserted in `fix_tokens(bol)`
 
         # update following lines that dependant
         search_threshold = min(before, after)
