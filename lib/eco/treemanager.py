@@ -1383,7 +1383,7 @@ class TreeManager(object):
             # traverse parsetree for changes
             # for every node that has changes, find it's newline and run
             # im.repair if it hasn't already been repaired
-            node = root.children[0]
+            node = root.children[1] # skip BOS
             while type(node) is not EOS:
                 if node.deleted:
                     node = self.next_node(node)
@@ -1391,7 +1391,11 @@ class TreeManager(object):
                 if node.has_changes() and isinstance(node.symbol, Nonterminal) and node.children:
                     node = node.children[0]
                     continue
-                elif node.symbol.name == "\r" or type(node) is BOS:
+                # XXX This code currently repairs any line that has changes.
+                # However, we only need to repair lines where the changed node
+                # is a newline or the first terminal (excluding indentation
+                # nodes and whitespace) after a newline
+                if node.has_changes() and type(node.symbol) is Terminal:
                     changed |= im.repair(node)
                 node = self.next_node(node)
         return changed
@@ -1524,7 +1528,6 @@ class TreeManager(object):
                 continue
             repair_node = repair_node.next_term
             break
-        repair_node.changed = True
         self.relex(repair_node)
         cur_start = min(self.selection_start, self.selection_end)
         cur_end = max(self.selection_start, self.selection_end)

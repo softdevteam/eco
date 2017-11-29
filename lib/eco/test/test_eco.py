@@ -952,6 +952,18 @@ if b:
         self.treemanager.key_normal(" ")
         assert self.parser.last_status == True
 
+    def test_bug2(self):
+        self.reset()
+        inputstring = """a = 3
+while True:
+    a = 4"""
+        for c in inputstring:
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
+        self.treemanager.key_normal("\r")
+        self.treemanager.key_normal("x")
+        assert self.parser.last_status == True
+
     def test_opt_push_last_before_eos_1(self):
         self.reset()
         inputstring = """class X:\r    def x():\r        pass\r    def y():\r        pass"""
