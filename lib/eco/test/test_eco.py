@@ -3060,8 +3060,10 @@ class Test_Undo(Test_Python):
     def test_undo_random_insertdelete(self):
         import random
         self.reset()
+        print("self.reset()")
         #self.save()
 
+        print("self.treemanager.import_file(programs.connect4)")
         self.treemanager.import_file(programs.connect4)
         assert self.parser.last_status == True
         #self.save()
@@ -3077,17 +3079,24 @@ class Test_Undo(Test_Python):
             cols = range(20)
             random.shuffle(cols)
             for col in cols:
+                print("self.treemanager.cursor_reset()")
+                print("self.move(%s, %s)" % (DOWN, linenr))
+                print("self.move(%s, %s)" % (RIGHT, col))
                 self.treemanager.cursor_reset()
                 self.move(DOWN, linenr)
                 self.move(RIGHT, col)
                 k = self.get_random_key()
                 if k in ["a", "c", "e", "g", "i", "k", "m", "1", "3", "5", "7"]:
                     # for a few characters DELETE instead of INSERT
+                    print("self.treemanager.key_delete()")
                     x = self.treemanager.key_delete()
                 else:
-                    x = self.treemanager.key_normal(self.get_random_key())
+                    rk = self.get_random_key()
+                    print("self.treemanager.key_normal(%s)" % rk)
+                    x = self.treemanager.key_normal(rk)
                 if x == "eos":
                     continue
+            print("self.treemanager.undo_snapshot()")
             self.treemanager.undo_snapshot()
 
         end_version = self.treemanager.version
