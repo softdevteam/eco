@@ -532,16 +532,14 @@ class IncrementalLexerCF(object):
                     # passed `startnode`. This way we avoid relexing nodes that
                     # don't need to be relexed.
                     if past_startnode and read[-1] is not startnode:
-                        if len(read) == len(toks) and len(read) == 1:
-                            if read[0].symbol.name == toks[0][0] and read[0].lookup == toks[0][1]:
+                        if len(token[3]) == 1:
+                            assert r is token[3][0]
+                            if r.symbol.name == token[0] and r.lookup == token[1]:
+                                toks.pop()
+                                read.pop()
                                 break
 
                     # if new generated tokens match the read tokens, we have a pair
-                    pairs.append((toks, read))
-                    toks = []
-                    read = []
-                    tokenslength = 0
-                    readlength = 0
             except StopIteration:
                 break
             except LexingError as e:
@@ -577,7 +575,7 @@ class IncrementalLexerCF(object):
                     startnode.changed = True
                 break
 
-        if not pairs:
+        if not toks:
             # If there is nothing to merge either re-raise the LexingError if
             # there was one or return False (=no changes)
             if error:
@@ -586,17 +584,13 @@ class IncrementalLexerCF(object):
                 return False
 
         changed = False
-        node_before_changes = None
-        for tokens, read in pairs:
-            # merge new tokens into the parse tree
-            if not node_before_changes:
-                # remember the location just before we started relexing so we
-                # can afterwards update all lookback values even if we inserted
-                # nodes before the initial starting node or `node` has been
-                # moved into a multitext node
-                node_before_changes = read[0].prev_term
-            if self.merge_pair(tokens, read):
-                changed = True
+        # We have to remember the location at which we started relexing. This
+        # allows us to properly update all lookback values, even if nodes have
+        # been inserted before the starting node or nodes were moved into a
+        # multitext node. Otherwise we might only update some of the nodes.
+        node_before_changes = read[0].prev_term
+        if self.merge_back(toks, read):
+            changed = True
 
         # update lookback counts using lookaheads
         self.update_lookback(node_before_changes.next_term, startnode)
@@ -668,7 +662,7 @@ class IncrementalLexerCF(object):
             else:
                 node.parent.update_children()
 
-    def merge_pair(self, tokens, read):
+    def merge_back(self, tokens, read):
         if len(tokens) == 1 and tokens[0][0] == "\x81":
             return False
 
@@ -931,7 +925,7 @@ class StringWrapper(object):
                     else:
                         mtokens.append("".join(text))
                 # It doesn't matter what we return here as it will be replaced
-                # with the lbox node in merge_pair. Just make sure it's 1
+                # with the lbox node in merge_back. Just make sure it's 1
                 # character long
                 mtokens.append("L")
                 if type(node.parent) is MultiTextNode:
@@ -944,7 +938,7 @@ class StringWrapper(object):
 
             text.append(name)
             # when adding children of a MultiTextNode, add the MultiTextNode to
-            # read instead so merge_pair can merge everything properly later
+            # read instead so merge_back can merge everything properly later
             if type(node.parent) is MultiTextNode:
                 if node.parent not in read:
                     read.append(node.parent)
