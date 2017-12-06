@@ -40,55 +40,6 @@ class AST(object):
     def get_bos(self):
         return self.parent.children[0]
 
-    def get_nodes_at_position(self, pos, a=None, b=None):
-        """
-        Searches all nodes that match the current cursor position in the TextField.
-        As a side effect all passed nodes are updated with their position in the document.
-        """
-        print("================== get nodes at pos ================== ")
-        progress = 0
-        node = self.parent.children[0]
-        while node is not None:
-            node.position = progress
-            progress += len(node.symbol.name)
-
-            print("node", node)
-            if pos < progress:
-                return [node, None]
-
-            if pos == progress:
-                print("pos == progress")
-                other = node.next_terminal()
-                print("other", other)
-                other.position = progress
-                return [node, other]
-
-            node = node.next_terminal()
-        print ("================ end get nodes at pos ================ ")
-
-
-    def get_nodes_at_position_old(self, pos, node=None, bla=0):
-        print("Progress:", self.progress, "Node", node)
-        if node is None:
-           node = self.parent#.children[1]
-
-        if isinstance(node.symbol, Nonterminal):
-            for child in node.children:
-                result = self.get_nodes_at_position(pos, child, self.progress)
-                if result != []:
-                    self.progress = 0
-                    return result
-        else:
-            nodes = []
-            if pos <= self.progress + len(node.symbol.name):
-                nodes.append(node)
-
-            if pos == self.progress + len(node.symbol.name):
-                nodes.append(node.next_terminal())
-
-            self.progress += len(node.symbol.name)
-            return nodes
-
     def find_node_at_pos(self, pos, node=None): #recursive
         if node is None:
            node = self.parent.children[1]
