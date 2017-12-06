@@ -3060,8 +3060,10 @@ class Test_Undo(Test_Python):
     def test_undo_random_insertdelete(self):
         import random
         self.reset()
+        print("self.reset()")
         #self.save()
 
+        print("self.treemanager.import_file(programs.connect4)")
         self.treemanager.import_file(programs.connect4)
         assert self.parser.last_status == True
         #self.save()
@@ -3077,17 +3079,24 @@ class Test_Undo(Test_Python):
             cols = range(20)
             random.shuffle(cols)
             for col in cols:
+                print("self.treemanager.cursor_reset()")
+                print("self.move(%s, %s)" % (DOWN, linenr))
+                print("self.move(%s, %s)" % (RIGHT, col))
                 self.treemanager.cursor_reset()
                 self.move(DOWN, linenr)
                 self.move(RIGHT, col)
                 k = self.get_random_key()
                 if k in ["a", "c", "e", "g", "i", "k", "m", "1", "3", "5", "7"]:
                     # for a few characters DELETE instead of INSERT
+                    print("self.treemanager.key_delete()")
                     x = self.treemanager.key_delete()
                 else:
-                    x = self.treemanager.key_normal(self.get_random_key())
+                    rk = self.get_random_key()
+                    print("self.treemanager.key_normal(%s)" % rk)
+                    x = self.treemanager.key_normal(rk)
                 if x == "eos":
                     continue
+            print("self.treemanager.undo_snapshot()")
             self.treemanager.undo_snapshot()
 
         end_version = self.treemanager.version
@@ -3372,6 +3381,201 @@ class Test_Undo(Test_Python):
         self.move(DOWN, 2)
         self.move(RIGHT, 1)
         self.treemanager.key_normal('=')
+
+    def test_undo_random_insertdeleteundo_bug8(self):
+        self.reset()
+        self.treemanager.import_file("""class Connect4():
+    UI_DEPTH = 5
+
+    def __init__():
+        self.top = tk.Tk()
+        self.top.title()
+
+        self.turn = None
+        self.ai_players = 1
+
+        pass""")
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 18)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 6)
+        self.treemanager.key_normal('4')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 11)
+        self.treemanager.key_normal(')')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 13)
+        self.treemanager.key_normal('n')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal('9')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal('&')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 3)
+        self.treemanager.key_normal('+')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 14)
+        self.treemanager.key_normal('5')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 0)
+        self.treemanager.key_normal(',')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 0)
+        self.treemanager.key_normal('1')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 7)
+        self.treemanager.key_normal('c')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 9)
+        self.treemanager.key_normal('(')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 15)
+        self.treemanager.key_normal('*')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 6)
+        self.treemanager.key_normal('}')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 4)
+        self.treemanager.key_normal('v')
+
+    def test_undo_random_insertdeleteundo_bug8_loop(self):
+        self.reset()
+        self.treemanager.import_file("""class Connect4():
+    UI_DEPTH = 5
+
+    def __init__():
+        self.top = tk.Tk()
+        self.top.title()
+
+        self.turn = None
+        self.ai_players = 1
+
+        pass""")
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 18)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 6)
+        self.treemanager.key_normal('4')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 11)
+        self.treemanager.key_normal(')')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 13)
+        self.treemanager.key_normal('n')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal('9')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 2)
+        self.treemanager.key_normal('&')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 3)
+        self.treemanager.key_normal('+')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 14)
+        self.treemanager.key_normal('5')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 0)
+        self.treemanager.key_normal(',')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 0)
+        self.treemanager.key_normal('1')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 7)
+        self.treemanager.key_normal('c')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 15)
+        self.treemanager.key_normal('*')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 8)
+        self.move(RIGHT, 9)
+        self.treemanager.key_normal('(')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 6)
+        self.treemanager.key_normal('}')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 4)
+        self.treemanager.key_normal('v')
+
+    def test_undo_random_insertdeleteundo_bug9(self):
+        """This test fails if the retainablity check doesn't include a same_pos
+        check as described by Wagner. The node `(` which pre-parse is a child of
+        `atom` is moved outside of (and before) `atom` during the parse. Then
+        error recovery happens and `atom` is checked for retainablity, but now
+        it does not contain `(` but instead has gained a newline. This means the
+        textlength-check succeeds, but it's position has changed due to `(` now
+        being before `atom`. So the retain check must fail."""
+        self.reset()
+        self.treemanager.import_file("""class Connect4():
+    def __init__():
+        self.top
+
+        self.newgamebutton
+        self.new""")
+
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 9)
+        self.treemanager.key_normal('(')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 13)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 8)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 9)
+        self.treemanager.key_normal(' ')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 6)
+        self.treemanager.key_delete()
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 4)
+        self.treemanager.key_normal('=')
+        self.treemanager.cursor_reset()
+        self.move(DOWN, 4)
+        self.move(RIGHT, 3)
+        self.treemanager.key_normal('[')
 
     def random_insert_delete_undo(self, program):
         import random

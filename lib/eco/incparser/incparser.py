@@ -451,10 +451,9 @@ class IncParser(object):
             # if no changes, discarding doesn't do anything anyways so why check?
             return True
 
-        # XXX This is equivalent to Wagner's `same_pos` function. His
-        # description suggests we also need to check for changed offsets.
-        # Unfortunately, we currently don't have this information at this point.
-        if node.textlength(self.prev_version) == node.textlength():
+        # This is equivalent to Wagner's `same_pos` function.
+        if node.textlength(self.prev_version) == node.textlength() and \
+                node.get_attr("position", self.prev_version) == node.position:
             return True
 
         return False
@@ -661,6 +660,7 @@ class IncParser(object):
             logging.debug("   No reuse parent. Make new %s (%s)", new_node, id(new_node))
         new_node.nested_errors = has_errors
         new_node.calc_textlength()
+        new_node.position = self.stack[-1].position + self.stack[-1].textlen
         logging.debug("   Add %s to stack and goto state %s", new_node.symbol, new_node.state)
         self.stack.append(new_node)
         new_node.exists = True
@@ -762,6 +762,7 @@ class IncParser(object):
         logging.debug("\x1b[32m" + "%sShift(%s)" + "\x1b[0m" + ": %s -> %s", "rb" if rb else "", self.current_state, la, element)
         la.state = element.action
         la.exists = True
+        la.position = self.stack[-1].position + self.stack[-1].textlen
         self.stack.append(la)
         self.current_state = la.state
 
