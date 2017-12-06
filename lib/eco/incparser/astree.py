@@ -201,6 +201,7 @@ class Node(object):
         self.log[("nested_errors", version)] = self.nested_errors
         self.log[("local_error", version)] = self.local_error
         self.log[("textlen", version)] = self.textlen
+        self.log[("position", version)] = self.position
         self.log[("isolated", version)] = self.isolated
         self.log[("version", version)] = version
         if self.new:
@@ -225,6 +226,7 @@ class Node(object):
                 self.local_error = self.log[("local_error", version)]
                 self.nested_errors = self.log[("nested_errors", version)]
                 self.textlen = self.log[("textlen", version)]
+                self.position = self.log[("position", version)]
                 self.isolated = self.log[("isolated", version)]
                 self.version = version
                 return
