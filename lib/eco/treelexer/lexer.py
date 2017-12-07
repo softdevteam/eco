@@ -26,17 +26,24 @@ class RE_PLUS(RE_DEFAULT): pass
 
 class PatternMatcher(object):
 
+    def __init__(self):
+        self.pos = 0
+
     def match_one(self, pattern, text):
         if not pattern:
             # Empty pattern always matches
             return True
-        if not text:
+        if self.pos >= len(text):
             # Existing pattern can't match empty input
             return False
-        if pattern[0] == ".":
+        if pattern.c == ".":
             # Wild card always matches
+            self.pos += 1
             return True
-        return pattern[0] == text[0]
+        if pattern.c == text[self.pos]:
+            self.pos += 1
+            return True
+        return False
 
     def match_question(self, pattern, text):
         if not text:
@@ -49,25 +56,50 @@ class PatternMatcher(object):
         return self.match(pattern[2:], text)
 
     def match_star(self, pattern, text):
-        if self.match_one(pattern, text):
-            # matched one, continue matching *
-            return self.match(pattern, text[1:])
-        # couldn't match star, remove star regex and continue
-        return self.match(pattern[2:], text)
+        while True:
+            if not self.match(pattern.c, text):
+                break
+        return True
+
+    def match_plus(self, pattern, text):
+        if not self.match(pattern.c, text):
+            # we have to at least match one
+            return False
+        while True:
+            if not self.match(pattern.c, text):
+                break
+        return True
+
+    def match_list(self, pattern, text):
+        for p in pattern:
+            if not self.match(p, text):
+                return False
+        return True
+
+    def match_or(self, pattern, text):
+        tmp = self.pos
+        if self.match(pattern.lhs, text):
+            return True
+        self.pos = tmp # backtrack
+        return self.match(pattern.rhs, text)
 
     def match(self, pattern, text):
+        print("match", pattern, text)
         if not pattern:
             return True
-        if len(pattern) > 1 and pattern[1] == "?":
-            return self.match_question(pattern, text)
-        if len(pattern) > 1 and pattern[1] == "*":
+        if type(pattern) is list:
+            return self.match_list(pattern, text)
+        if type(pattern) is RE_CHAR:
+            return self.match_one(pattern, text)
+        if type(pattern) is RE_STAR:
             return self.match_star(pattern, text)
-        if len(pattern) > 1 and pattern[1] == "+":
-            if self.match_one(pattern, text):
-                # rewrite pattern from + to *
-                return self.match_star(pattern[0] + "*" + pattern[2:], text[1:])
-            return False
-        return self.match_one(pattern, text) and self.match(pattern[1:], text[1:])
+        if type(pattern) is RE_STAR:
+            return self.match_star(pattern, text)
+        if type(pattern) is RE_PLUS:
+            return self.match_plus(pattern, text)
+        if type(pattern) is RE_OR:
+            return self.match_or(pattern, text)
+        raise NotImplementedError(pattern)
 
 class RegexParser(object):
 
@@ -87,7 +119,7 @@ class RegexParser(object):
         self.incparser.reparse()
         return self.incparser.last_status
 
-    def ast(self, pattern):
+    def compile(self, pattern):
         self.load(pattern)
         start = self.incparser.previous_version.parent.children[1].alternate
         return self.parse(start)
