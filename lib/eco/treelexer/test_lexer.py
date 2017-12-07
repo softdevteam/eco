@@ -1,4 +1,32 @@
-from lexer import PatternMatcher
+from lexer import PatternMatcher, RegexParser, RE_CHAR, RE_OR, RE_STAR, RE_PLUS
+
+class Test_RegexParser(object):
+
+    def setup_class(cls):
+        cls.regparse = RegexParser()
+
+    def test_simple(self):
+        assert self.regparse.load("ab|cd") is True
+        assert self.regparse.load("ab|(cd") is False
+
+    def test_ast(self):
+        assert self.regparse.ast("ab") == [RE_CHAR("a"), RE_CHAR("b")]
+        assert self.regparse.ast("a|b") == RE_OR(RE_CHAR("a"), RE_CHAR("b"))
+        assert self.regparse.ast("a*") == RE_STAR(RE_CHAR("a"))
+        assert self.regparse.ast("a+") == RE_PLUS(RE_CHAR("a"))
+        assert self.regparse.ast("(a)") == RE_CHAR("a")
+        assert self.regparse.ast("(ab)") == [RE_CHAR("a"), RE_CHAR("b")]
+        assert self.regparse.ast("(ab)*") == RE_STAR([RE_CHAR("a"), RE_CHAR("b")])
+
+        assert self.regparse.ast("(a|b)*|c+") == RE_OR(\
+                                                   RE_STAR(\
+                                                     RE_OR(\
+                                                       RE_CHAR("a"),
+                                                       RE_CHAR("b")
+                                                     )
+                                                   ),
+                                                   RE_PLUS(RE_CHAR("c"))
+                                                 )
 
 class Test_PatternMatcher(object):
 
