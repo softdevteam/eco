@@ -93,3 +93,7 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "bbcdd") is False
         assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "abc") is True # but 'd' left over
 
+    def test_charrange(self):
+        assert PatternMatcher().match(self.cmp("[a-z]"), "b") is True
+        assert PatternMatcher().match(self.cmp("[a-z]"), "x") is True
+        assert PatternMatcher().match(self.cmp("[a-z]+"), "foobar") is True
