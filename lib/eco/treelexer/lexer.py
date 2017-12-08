@@ -85,18 +85,18 @@ class PatternMatcher(object):
         return self.match(pattern.rhs, text)
 
     def match_range(self, pattern, text):
-        if self.pos >= len(text):
-            return False
+        for r in pattern.c:
+            if self.pos >= len(text):
+                return False
 
-        s = ord(pattern.c[0])
-        e = ord(pattern.c[2])
-        if s <= ord(text[self.pos]) <= e:
-            self.pos += 1
-            return True
+            s = ord(r[0])
+            e = ord(r[2])
+            if s <= ord(text[self.pos]) <= e:
+                self.pos += 1
+                return True
         return False
 
     def match(self, pattern, text):
-        print("match", pattern, text)
         if not pattern:
             return True
         if type(pattern) is list:
@@ -170,7 +170,7 @@ class RegexParser(object):
         return RE_CHAR(node.get("value").symbol.name)
 
     def parse_range(self, node):
-        return RE_RANGE(node.get("value").symbol.name)
+        return RE_RANGE([n.symbol.name for n in node.get("value").children])
 
     def parse_star(self, node):
         content = self.parse(node.get("value"))
