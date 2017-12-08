@@ -106,3 +106,11 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("[^abcd]"), "e") is True
         assert PatternMatcher().match(self.cmp("[^a-z]+"), "ABCD") is True
         assert PatternMatcher().match(self.cmp("[^a-z]+"), "abcd") is False
+
+    def test_escaped(self):
+        assert PatternMatcher().match(self.cmp("[a-z]"), "-") is False
+        assert PatternMatcher().match(self.cmp("[a\-z]"), "-") is True
+        assert PatternMatcher().match(self.cmp("#[^\-]*"), "-") is False
+        assert PatternMatcher().match(self.cmp("[\[]*"), "[") is True
+
+    def test_realworld_regex(self):

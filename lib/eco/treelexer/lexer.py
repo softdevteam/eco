@@ -184,14 +184,15 @@ class RegexParser(object):
     def parse_range(self, node, neg=False):
         l = []
         for n in node.get("value").children:
-            if len(n.symbol.name) > 1:
-                assert n.symbol.name[1] == "-"
+            if n.lookup == "rangetype":
                 a = ord(n.symbol.name[0])
                 b = ord(n.symbol.name[2])
                 if a > b:
                     l.extend(range(b, a+1))
                 else:
                     l.extend(range(a, b+1))
+            elif len(n.symbol.name) == 2: # escaped
+                l.append(ord(n.symbol.name[1]))
             else:
                 l.append(ord(n.symbol.name))
         if neg:
