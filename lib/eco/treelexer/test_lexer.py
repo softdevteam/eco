@@ -1,4 +1,4 @@
-from lexer import PatternMatcher, RegexParser, RE_CHAR, RE_OR, RE_STAR, RE_PLUS
+from lexer import Lexer, PatternMatcher, RegexParser, RE_CHAR, RE_OR, RE_STAR, RE_PLUS
 import pytest
 
 class Test_RegexParser(object):
@@ -97,6 +97,7 @@ class Test_PatternMatcher(object):
     def test_charrange(self):
         assert PatternMatcher().match(self.cmp("[a-z]"), "b") is True
         assert PatternMatcher().match(self.cmp("[a-z]"), "x") is True
+        assert PatternMatcher().match(self.cmp("[a-z]+"), "123") is False
         assert PatternMatcher().match(self.cmp("[a-z]+"), "foobar") is True
         assert PatternMatcher().match(self.cmp("[a-zA-Z0-9]+"), "fooBAR123") is True
         assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z0-9_]"), "_fooBAR123_") is True
@@ -133,3 +134,10 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "1e23") is True
         assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a string 123!'") is True
         assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a with a newline \r string 123!'") is False
+
+class Test_Lexer(object):
+
+    def test_simple(self):
+        l = Lexer([("name", "[a-z]+"), ("num", "[0-9]+")])
+        assert l.lex("abc123") == [("abc", "name"), ("123", "num")]
+        assert l.lex("456foobar9") == [("456", "num"), ("foobar", "name"), ("9", "num")]

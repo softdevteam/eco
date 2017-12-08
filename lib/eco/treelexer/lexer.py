@@ -35,6 +35,9 @@ class PatternMatcher(object):
     def __init__(self):
         self.pos = 0
 
+    def reset(self):
+        self.pos = 0
+
     def match_one(self, pattern, text):
         if not pattern:
             # Empty pattern always matches
@@ -212,3 +215,24 @@ class RegexParser(object):
     def parse_question(self, node):
         content = self.parse(node.get("value"))
         return RE_QUESTION(content)
+
+class Lexer(object):
+
+    def __init__(self, rules):
+        rp = RegexParser()
+        self.patterns = []
+        for name, rule in rules:
+            pattern = rp.compile(rule)
+            self.patterns.append((pattern, name))
+
+    def lex(self, text):
+        pm = PatternMatcher()
+        self.pos = 0
+        result = []
+        while self.pos < len(text):
+            pm.reset()
+            for p, n in self.patterns:
+                if pm.match(p, text[self.pos:]):
+                    result.append((text[self.pos:self.pos + pm.pos], n))
+                    self.pos += pm.pos
+        return result
