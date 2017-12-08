@@ -23,7 +23,11 @@ class RE_DEFAULT(object):
 class RE_CHAR(RE_DEFAULT): pass
 class RE_STAR(RE_DEFAULT): pass
 class RE_PLUS(RE_DEFAULT): pass
-class RE_RANGE(RE_DEFAULT): pass
+
+class RE_RANGE(RE_DEFAULT):
+    def __init__(self, c, neg=False):
+        RE_DEFAULT.__init__(self, c)
+        self.neg = neg
 
 class PatternMatcher(object):
 
@@ -87,7 +91,8 @@ class PatternMatcher(object):
     def match_range(self, pattern, text):
         if self.pos >= len(text):
             return False
-        if ord(text[self.pos]) in pattern.c:
+        if (pattern.neg and ord(text[self.pos]) not in pattern.c) \
+                    or (not pattern.neg and ord(text[self.pos]) in pattern.c):
             self.pos += 1
             return True
         return False
@@ -150,6 +155,8 @@ class RegexParser(object):
             return self.parse_char(node)
         elif node.name == "RANGE":
             return self.parse_range(node)
+        elif node.name == "NRANGE":
+            return self.parse_range(node, True)
         raise NotImplementedError(node)
 
     def parse_list(self, node):
@@ -165,7 +172,7 @@ class RegexParser(object):
     def parse_char(self, node):
         return RE_CHAR(node.get("value").symbol.name)
 
-    def parse_range(self, node):
+    def parse_range(self, node, neg=False):
         l = []
         for n in node.get("value").children:
             if len(n.symbol.name) > 1:
@@ -178,6 +185,8 @@ class RegexParser(object):
                     l.extend(range(a, b+1))
             else:
                 l.append(ord(n.symbol.name))
+        if neg:
+            return RE_RANGE(l, True)
         return RE_RANGE(l)
 
     def parse_star(self, node):

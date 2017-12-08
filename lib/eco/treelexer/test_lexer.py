@@ -99,3 +99,9 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("[a-z]+"), "foobar") is True
         assert PatternMatcher().match(self.cmp("[a-zA-Z0-9]+"), "fooBAR123") is True
         assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z0-9_]"), "_fooBAR123_") is True
+
+    def test_negatedcharrange(self):
+        assert PatternMatcher().match(self.cmp("[^abcd]"), "a") is False
+        assert PatternMatcher().match(self.cmp("[^abcd]"), "e") is True
+        assert PatternMatcher().match(self.cmp("[^a-z]+"), "ABCD") is True
+        assert PatternMatcher().match(self.cmp("[^a-z]+"), "abcd") is False
