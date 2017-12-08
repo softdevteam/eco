@@ -85,15 +85,11 @@ class PatternMatcher(object):
         return self.match(pattern.rhs, text)
 
     def match_range(self, pattern, text):
-        for r in pattern.c:
-            if self.pos >= len(text):
-                return False
-
-            s = ord(r[0])
-            e = ord(r[2])
-            if s <= ord(text[self.pos]) <= e:
-                self.pos += 1
-                return True
+        if self.pos >= len(text):
+            return False
+        if ord(text[self.pos]) in pattern.c:
+            self.pos += 1
+            return True
         return False
 
     def match(self, pattern, text):
@@ -170,7 +166,19 @@ class RegexParser(object):
         return RE_CHAR(node.get("value").symbol.name)
 
     def parse_range(self, node):
-        return RE_RANGE([n.symbol.name for n in node.get("value").children])
+        l = []
+        for n in node.get("value").children:
+            if len(n.symbol.name) > 1:
+                assert n.symbol.name[1] == "-"
+                a = ord(n.symbol.name[0])
+                b = ord(n.symbol.name[2])
+                if a > b:
+                    l.extend(range(b, a+1))
+                else:
+                    l.extend(range(a, b+1))
+            else:
+                l.append(ord(n.symbol.name))
+        return RE_RANGE(l)
 
     def parse_star(self, node):
         content = self.parse(node.get("value"))

@@ -98,3 +98,4 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("[a-z]"), "x") is True
         assert PatternMatcher().match(self.cmp("[a-z]+"), "foobar") is True
         assert PatternMatcher().match(self.cmp("[a-zA-Z0-9]+"), "fooBAR123") is True
+        assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z0-9_]"), "_fooBAR123_") is True
