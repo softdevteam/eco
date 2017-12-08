@@ -112,5 +112,24 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("[a\-z]"), "-") is True
         assert PatternMatcher().match(self.cmp("#[^\-]*"), "-") is False
         assert PatternMatcher().match(self.cmp("[\[]*"), "[") is True
+        assert PatternMatcher().match(self.cmp("[\.]"), ".") is True
+        assert PatternMatcher().match(self.cmp("\."), ".") is True
+        assert PatternMatcher().match(self.cmp("\["), "[") is True
 
-    def test_realworld_regex(self):
+    def test_realworld_examples(self):
+        assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z_0-9]*"), "abc123_") is True
+        assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z_0-9]*"), "123abc123_") is False
+
+        p = PatternMatcher()
+        assert p.match(self.cmp("#[^\\r]*"), "# abc") is True
+        assert p.pos == 5
+
+        p = PatternMatcher()
+        assert p.match(self.cmp("#[^\r]*"), "# abc \r") is True
+        assert p.pos == 6
+
+
+        assert PatternMatcher().match(self.cmp("([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "123.456") is True
+        assert PatternMatcher().match(self.cmp("([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "1e23") is True
+        assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a string 123!'") is True
+        assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a with a newline \r string 123!'") is False

@@ -49,6 +49,8 @@ class PatternMatcher(object):
         if pattern.c == text[self.pos]:
             self.pos += 1
             return True
+        if pattern.c[0] == "\\" and pattern.c[1] == text[self.pos]:
+            return True
         return False
 
     def match_question(self, pattern, text):
@@ -71,10 +73,7 @@ class PatternMatcher(object):
         if not self.match(pattern.c, text):
             # we have to at least match one
             return False
-        while True:
-            if not self.match(pattern.c, text):
-                break
-        return True
+        return self.match_star(pattern, text)
 
     def match_question(self, pattern, text):
         self.match(pattern.c, text)
