@@ -51,10 +51,11 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("a.b"), "axb") is True
 
     def test_match_question(self):
-        pytest.skip("Currently not implemented.")
-        assert self.pmatch.match("ab?", "a") is True
-        assert self.pmatch.match("ab?", "ab") is True
-        assert self.pmatch.match("ab?", "ac") is True # but 'c' is left over
+        assert PatternMatcher().match(self.cmp("ab?"), "a") is True
+        assert PatternMatcher().match(self.cmp("ab?"), "ab") is True
+        assert PatternMatcher().match(self.cmp("ab?"), "ac") is True # but 'c' is left over
+        assert PatternMatcher().match(self.cmp("ab(cdef)?"), "ab") is True
+        assert PatternMatcher().match(self.cmp("ab(cdef)?"), "abcdef") is True
 
     def test_match_or(self):
         assert PatternMatcher().match(self.cmp("a|b"), "a") is True

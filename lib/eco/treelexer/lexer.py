@@ -23,6 +23,7 @@ class RE_DEFAULT(object):
 class RE_CHAR(RE_DEFAULT): pass
 class RE_STAR(RE_DEFAULT): pass
 class RE_PLUS(RE_DEFAULT): pass
+class RE_QUESTION(RE_DEFAULT): pass
 
 class RE_RANGE(RE_DEFAULT):
     def __init__(self, c, neg=False):
@@ -75,6 +76,10 @@ class PatternMatcher(object):
                 break
         return True
 
+    def match_question(self, pattern, text):
+        self.match(pattern.c, text)
+        return True
+
     def match_list(self, pattern, text):
         for p in pattern:
             if not self.match(p, text):
@@ -114,6 +119,8 @@ class PatternMatcher(object):
             return self.match_or(pattern, text)
         if type(pattern) is RE_RANGE:
             return self.match_range(pattern, text)
+        if type(pattern) is RE_QUESTION:
+            return self.match_question(pattern, text)
         raise NotImplementedError(pattern)
 
 class RegexParser(object):
@@ -157,6 +164,8 @@ class RegexParser(object):
             return self.parse_range(node)
         elif node.name == "NRANGE":
             return self.parse_range(node, True)
+        elif node.name == "QST":
+            return self.parse_question(node)
         raise NotImplementedError(node)
 
     def parse_list(self, node):
@@ -199,3 +208,7 @@ class RegexParser(object):
     def parse_plus(self, node):
         content = self.parse(node.get("value"))
         return RE_PLUS(content)
+
+    def parse_question(self, node):
+        content = self.parse(node.get("value"))
+        return RE_QUESTION(content)
