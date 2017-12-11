@@ -119,6 +119,7 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("[\.]"), ".") is True
         assert PatternMatcher().match(self.cmp("\."), ".") is True
         assert PatternMatcher().match(self.cmp("\["), "[") is True
+        assert PatternMatcher().match(self.cmp("\[\]"), "[]") is True
 
     def test_realworld_examples(self):
         assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z_0-9]*"), "abc123_") is True

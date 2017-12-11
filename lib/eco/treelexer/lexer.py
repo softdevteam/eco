@@ -55,6 +55,7 @@ class PatternMatcher(object):
             self.pos += 1
             return True
         if pattern.c[0] == "\\" and pattern.c[1] == text[self.pos]:
+            self.pos += 1
             return True
         self.exactmatch = False
         return False
