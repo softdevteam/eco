@@ -101,6 +101,9 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("[a-z]+"), "foobar") is True
         assert PatternMatcher().match(self.cmp("[a-zA-Z0-9]+"), "fooBAR123") is True
         assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z0-9_]"), "_fooBAR123_") is True
+        pm = PatternMatcher()
+        assert pm.match(self.cmp("[a-z]"), "abc") is True
+        assert pm.pos == 1
 
     def test_negatedcharrange(self):
         assert PatternMatcher().match(self.cmp("[^abcd]"), "a") is False
@@ -135,9 +138,39 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a string 123!'") is True
         assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a with a newline \r string 123!'") is False
 
+    def test_exactmatch(self):
+        pm = PatternMatcher()
+        pm.match(self.cmp("abc"), "abcd")
+        assert pm.exactmatch is True
+
+        pm.reset()
+        pm.match(self.cmp("[abcd]+"), "abcdx")
+        assert pm.exactmatch is False
+
+        pm.reset()
+        pm.match(self.cmp("a[bcd]+"), "abc")
+        assert pm.exactmatch is True
+
+        pm.reset()
+        pm.match(self.cmp("a[abcd]+"), "abx")
+        assert pm.exactmatch is False
+
+        pm.reset()
+        pm.match(self.cmp("as"), "abx")
+        assert pm.exactmatch is False
+
+        pm.reset()
+        pm.match(self.cmp("[abc]"), "aclass")
+        assert pm.exactmatch is True
+
 class Test_Lexer(object):
 
     def test_simple(self):
         l = Lexer([("name", "[a-z]+"), ("num", "[0-9]+")])
-        assert l.lex("abc123") == [("abc", "name"), ("123", "num")]
-        assert l.lex("456foobar9") == [("456", "num"), ("foobar", "name"), ("9", "num")]
+        assert l.lex("abc123") == [("abc", "name", 1), ("123", "num", 0)]
+        assert l.lex("456foobar9") == [("456", "num", 1), ("foobar", "name", 1), ("9", "num", 0)]
+
+    def test_lookahead(self):
+        l = Lexer([("cls", "class"), ("as", "as"), ("chr", "[a-z]")])
+        assert l.lex("aclasxy") == [("a", "chr", 1), ("c", "chr", 4), ("l", "chr", 0), \
+                                    ("as", "as", 0), ("x", "chr", 0), ("y", "chr", 0)]

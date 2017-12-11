@@ -34,9 +34,11 @@ class PatternMatcher(object):
 
     def __init__(self):
         self.pos = 0
+        self.exactmatch = True
 
     def reset(self):
         self.pos = 0
+        self.exactmatch = True
 
     def match_one(self, pattern, text):
         if not pattern:
@@ -54,6 +56,7 @@ class PatternMatcher(object):
             return True
         if pattern.c[0] == "\\" and pattern.c[1] == text[self.pos]:
             return True
+        self.exactmatch = False
         return False
 
     def match_question(self, pattern, text):
@@ -102,6 +105,7 @@ class PatternMatcher(object):
                     or (not pattern.neg and ord(text[self.pos]) in pattern.c):
             self.pos += 1
             return True
+        self.exactmatch = False
         return False
 
     def match(self, pattern, text):
@@ -226,13 +230,27 @@ class Lexer(object):
             self.patterns.append((pattern, name))
 
     def lex(self, text):
+        """Lexes a given string by trying all patterns. When a match is found a
+        token is created, and the lexing continues with the remainder of the
+        string. Lookahead is calculated by observing how far the patternmatcher
+        got before returning 'no match'. If a token was matched by a plus or
+        star rule (e.g. [a-z]+), then the generated token is not an exact match,
+        as it could potentially be longer. This means its lookahead is one
+        character longer (and at least 1), since the pattern matcher had to look
+        ahead one character to decide that the token is complete."""
         pm = PatternMatcher()
         self.pos = 0
         result = []
         while self.pos < len(text):
-            pm.reset()
+            lookahead = 0
             for p, n in self.patterns:
+                pm.reset()
                 if pm.match(p, text[self.pos:]):
-                    result.append((text[self.pos:self.pos + pm.pos], n))
+                    if not pm.exactmatch:
+                        lookahead += 1
+                    result.append((text[self.pos:self.pos + pm.pos], n, lookahead))
                     self.pos += pm.pos
+                    lookahead = 0
+                else:
+                    lookahead = max(pm.pos, lookahead)
         return result
