@@ -94,9 +94,11 @@ class PatternMatcher(object):
 
     def match_or(self, pattern, text):
         tmp = self.pos
+        tmp2 = self.exactmatch
         if self.match(pattern.lhs, text):
             return True
         self.pos = tmp # backtrack
+        self.exactmatch = tmp2
         return self.match(pattern.rhs, text)
 
     def match_range(self, pattern, text):
@@ -244,6 +246,7 @@ class Lexer(object):
         result = []
         while self.pos < len(text):
             lookahead = 0
+            oldpos = self.pos
             for p, n in self.patterns:
                 pm.reset()
                 if pm.match(p, text[self.pos:]):
@@ -254,4 +257,9 @@ class Lexer(object):
                     lookahead = 0
                 else:
                     lookahead = max(pm.pos, lookahead)
+            if self.pos == oldpos:
+                # no more matches
+                if self.pos < len(text):
+                    result.append((text[self.pos:], None, 0))
+                break
         return result

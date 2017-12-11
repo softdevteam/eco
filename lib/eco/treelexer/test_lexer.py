@@ -65,6 +65,18 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("a|bd|c"), "c") is True
         assert PatternMatcher().match(self.cmp("ab|ac"), "ac") is True
 
+        pm = PatternMatcher()
+        assert pm.match(self.cmp("abc|abcde"), "abcde") is True
+        assert pm.pos == 3
+
+        pm = PatternMatcher()
+        assert pm.match(self.cmp("abc|abcde"), "abc") is True
+        assert pm.pos == 3
+
+        pm = PatternMatcher()
+        assert pm.match(self.cmp("abcde|abc"), "abc") is True
+        assert pm.pos == 3
+
     def test_match_star(self):
         assert PatternMatcher().match(self.cmp("a*"), "") is True
         assert PatternMatcher().match(self.cmp("a*"), "aaaaaa") is True
@@ -164,6 +176,22 @@ class Test_PatternMatcher(object):
         pm.match(self.cmp("[abc]"), "aclass")
         assert pm.exactmatch is True
 
+        pm.reset()
+        pm.match(self.cmp("abc|abcde"), "abcde")
+        assert pm.exactmatch is True
+
+        pm.reset()
+        pm.match(self.cmp("abcde|abc"), "abcde")
+        assert pm.exactmatch is True
+
+        pm.reset()
+        pm.match(self.cmp("abcx|abcde"), "abcx")
+        assert pm.exactmatch is True
+
+        pm.reset()
+        pm.match(self.cmp("abcde|abcx"), "abcx")
+        assert pm.exactmatch is True
+
 class Test_Lexer(object):
 
     def test_simple(self):
@@ -175,3 +203,12 @@ class Test_Lexer(object):
         l = Lexer([("cls", "class"), ("as", "as"), ("chr", "[a-z]")])
         assert l.lex("aclasxy") == [("a", "chr", 1), ("c", "chr", 4), ("l", "chr", 0), \
                                     ("as", "as", 0), ("x", "chr", 0), ("y", "chr", 0)]
+    def test_leftover(self):
+        l = Lexer([("test", "abcde|abcx")])
+        assert l.lex("abcx") == [("abcx", "test", 0)]
+
+        l = Lexer([("test", "abcde|abc")])
+        assert l.lex("abcx") == [("abc", "test", 0), ("x", None, 0)]
+
+        l = Lexer([("test", "abc|abcde")])
+        assert l.lex("abcx") == [("abc", "test", 0), ("x", None, 0)]
