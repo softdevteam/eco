@@ -40,155 +40,131 @@ class Test_PatternMatcher(object):
         return self.rp.compile(pattern)
 
     def test_match_one(self):
-        assert PatternMatcher().match(RE_CHAR("a"), "a") is True
-        assert PatternMatcher().match(RE_CHAR("."), "c") is True
-        assert PatternMatcher().match(RE_CHAR("x"), "c") is False
-        assert PatternMatcher().match(None, "c") is True
-        assert PatternMatcher().match(RE_CHAR("c"), "") is False
+        assert PatternMatcher().match(RE_CHAR("a"), "a") == "a"
+        assert PatternMatcher().match(RE_CHAR("."), "c") == "c"
+        assert PatternMatcher().match(RE_CHAR("x"), "c") is None
+        assert PatternMatcher().match(None, "c") == "c"
+        assert PatternMatcher().match(RE_CHAR("c"), "") is None
 
     def test_match_more(self):
-        assert PatternMatcher().match(self.cmp("aa"), "aa") is True
-        assert PatternMatcher().match(self.cmp("a.b"), "axb") is True
+        assert PatternMatcher().match(self.cmp("aa"), "aa") == "aa"
+        assert PatternMatcher().match(self.cmp("a.b"), "axb") == "axb"
 
     def test_match_question(self):
-        assert PatternMatcher().match(self.cmp("ab?"), "a") is True
-        assert PatternMatcher().match(self.cmp("ab?"), "ab") is True
-        assert PatternMatcher().match(self.cmp("ab?"), "ac") is True # but 'c' is left over
-        assert PatternMatcher().match(self.cmp("ab(cdef)?"), "ab") is True
-        assert PatternMatcher().match(self.cmp("ab(cdef)?"), "abcdef") is True
+        assert PatternMatcher().match(self.cmp("ab?"), "a") == "a"
+        assert PatternMatcher().match(self.cmp("ab?"), "ab") == "ab"
+        assert PatternMatcher().match(self.cmp("ab?"), "ac") == "a"
+        assert PatternMatcher().match(self.cmp("ab(cdef)?"), "ab") == "ab"
+        assert PatternMatcher().match(self.cmp("ab(cdef)?"), "abcdef") == "abcdef"
 
     def test_match_or(self):
-        assert PatternMatcher().match(self.cmp("a|b"), "a") is True
-        assert PatternMatcher().match(self.cmp("a|b"), "b") is True
-        assert PatternMatcher().match(self.cmp("a|bd|c"), "a") is True
-        assert PatternMatcher().match(self.cmp("a|bd|c"), "bd") is True
-        assert PatternMatcher().match(self.cmp("a|bd|c"), "c") is True
-        assert PatternMatcher().match(self.cmp("ab|ac"), "ac") is True
+        assert PatternMatcher().match(self.cmp("a|b"), "a") == "a"
+        assert PatternMatcher().match(self.cmp("a|b"), "b") == "b"
+        assert PatternMatcher().match(self.cmp("a|bd|c"), "a") == "a"
+        assert PatternMatcher().match(self.cmp("a|bd|c"), "bd") == "bd"
+        assert PatternMatcher().match(self.cmp("a|bd|c"), "c") == "c"
+        assert PatternMatcher().match(self.cmp("ab|ac"), "ac") == "ac"
 
-        pm = PatternMatcher()
-        assert pm.match(self.cmp("abc|abcde"), "abcde") is True
-        assert pm.pos == 3
-
-        pm = PatternMatcher()
-        assert pm.match(self.cmp("abc|abcde"), "abc") is True
-        assert pm.pos == 3
-
-        pm = PatternMatcher()
-        assert pm.match(self.cmp("abcde|abc"), "abc") is True
-        assert pm.pos == 3
+        assert PatternMatcher().match(self.cmp("abc|abcde"), "abcde") == "abc"
+        assert PatternMatcher().match(self.cmp("abc|abcde"), "abc") == "abc"
+        assert PatternMatcher().match(self.cmp("abcde|abc"), "abc") == "abc"
 
     def test_match_star(self):
-        assert PatternMatcher().match(self.cmp("a*"), "") is True
-        assert PatternMatcher().match(self.cmp("a*"), "aaaaaa") is True
-        assert PatternMatcher().match(self.cmp("a*"), "bbbbb") is True
-        assert PatternMatcher().match(self.cmp("ab*"), "abbbbbb") is True
-        assert PatternMatcher().match(self.cmp("a*b*"), "aaaaaabbbbbbbbbb") is True
-        assert PatternMatcher().match(self.cmp(".*"), "absakljsadklajd") is True
+        assert PatternMatcher().match(self.cmp("a*"), "") == ""
+        assert PatternMatcher().match(self.cmp("a*"), "aaaaaa") == "aaaaaa"
+        assert PatternMatcher().match(self.cmp("a*"), "bbbbb") == ""
+        assert PatternMatcher().match(self.cmp("ab*"), "abbbbbb") == "abbbbbb"
+        assert PatternMatcher().match(self.cmp("a*b*"), "aaaaaabbbbbbbbbb") == "aaaaaabbbbbbbbbb"
+        assert PatternMatcher().match(self.cmp(".*"), "absakljsadklajd") == "absakljsadklajd"
 
     def test_match_plus(self):
-        assert PatternMatcher().match(self.cmp("a+"), "aaaaaa") is True
-        assert PatternMatcher().match(self.cmp("a+"), "bbbbb") is False
-        assert PatternMatcher().match(self.cmp("ab+"), "abbbbbb") is True
-        assert PatternMatcher().match(self.cmp("a+b+"), "aaaaaabbbbbbbbbb") is True
-        assert PatternMatcher().match(self.cmp("a+b+"), "bbbbbbbbbb") is False
-        assert PatternMatcher().match(self.cmp("a+b+"), "aaaaaaa") is False
-        assert PatternMatcher().match(self.cmp("(ab)+"), "abababab") is True
-        assert PatternMatcher().match(self.cmp("(ab)+"), "aaabbb") is False
+        assert PatternMatcher().match(self.cmp("a+"), "aaaaaa") == "aaaaaa"
+        assert PatternMatcher().match(self.cmp("a+"), "bbbbb") is None
+        assert PatternMatcher().match(self.cmp("ab+"), "abbbbbb") == "abbbbbb"
+        assert PatternMatcher().match(self.cmp("a+b+"), "aaaaaabbbbbbbbbb") == "aaaaaabbbbbbbbbb"
+        assert PatternMatcher().match(self.cmp("a+b+"), "bbbbbbbbbb") is None
+        assert PatternMatcher().match(self.cmp("a+b+"), "aaaaaaa") is None
+        assert PatternMatcher().match(self.cmp("(ab)+"), "abababab") == "abababab"
+        assert PatternMatcher().match(self.cmp("(ab)+"), "aaabbb") is None
 
     def test_mixed(self):
-        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "aabbc") is True
-        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "aabbdd") is True
-        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "aadd") is True
-        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "aabbc") is True
-        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "aac") is True
-        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "aad") is True
-        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "cdd") is False
-        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "bbcdd") is False
-        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "abc") is True # but 'd' left over
+        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "aabbc") == "aabbc"
+        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "aabbdd") == "aabbdd"
+        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "aadd") == "aadd"
+        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "aabbc") == "aabbc"
+        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "aac") == "aac"
+        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "aad") == "aad"
+        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "cdd") is None
+        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "bbcdd") is None
+        assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "abc") == "abc"
 
     def test_charrange(self):
-        assert PatternMatcher().match(self.cmp("[a-z]"), "b") is True
-        assert PatternMatcher().match(self.cmp("[a-z]"), "x") is True
-        assert PatternMatcher().match(self.cmp("[a-z]+"), "123") is False
-        assert PatternMatcher().match(self.cmp("[a-z]+"), "foobar") is True
-        assert PatternMatcher().match(self.cmp("[a-zA-Z0-9]+"), "fooBAR123") is True
-        assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z0-9_]"), "_fooBAR123_") is True
-        pm = PatternMatcher()
-        assert pm.match(self.cmp("[a-z]"), "abc") is True
-        assert pm.pos == 1
+        assert PatternMatcher().match(self.cmp("[a-z]"), "b") == "b"
+        assert PatternMatcher().match(self.cmp("[a-z]"), "x") == "x"
+        assert PatternMatcher().match(self.cmp("[a-z]+"), "123") is None
+        assert PatternMatcher().match(self.cmp("[a-z]+"), "foobar") == "foobar"
+        assert PatternMatcher().match(self.cmp("[a-zA-Z0-9]+"), "fooBAR123") == "fooBAR123"
+        assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z0-9_]*"), "_fooBAR123_") == "_fooBAR123_"
+        assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z0-9_]*"), "123foobar") is None
+        assert PatternMatcher().match(self.cmp("[a-z]"), "abc") == "a"
 
     def test_negatedcharrange(self):
-        assert PatternMatcher().match(self.cmp("[^abcd]"), "a") is False
-        assert PatternMatcher().match(self.cmp("[^abcd]"), "e") is True
-        assert PatternMatcher().match(self.cmp("[^a-z]+"), "ABCD") is True
-        assert PatternMatcher().match(self.cmp("[^a-z]+"), "abcd") is False
+        assert PatternMatcher().match(self.cmp("[^abcd]"), "a") is None
+        assert PatternMatcher().match(self.cmp("[^abcd]"), "e") == "e"
+        assert PatternMatcher().match(self.cmp("[^a-z]+"), "ABCD") == "ABCD"
+        assert PatternMatcher().match(self.cmp("[^a-z]+"), "abcd") is None
 
     def test_escaped(self):
-        assert PatternMatcher().match(self.cmp("[a-z]"), "-") is False
-        assert PatternMatcher().match(self.cmp("[a\-z]"), "-") is True
-        assert PatternMatcher().match(self.cmp("#[^\-]*"), "-") is False
-        assert PatternMatcher().match(self.cmp("[\[]*"), "[") is True
-        assert PatternMatcher().match(self.cmp("[\.]"), ".") is True
-        assert PatternMatcher().match(self.cmp("\."), ".") is True
-        assert PatternMatcher().match(self.cmp("\["), "[") is True
-        assert PatternMatcher().match(self.cmp("\[\]"), "[]") is True
+        assert PatternMatcher().match(self.cmp("[a-z]"), "-") is None
+        assert PatternMatcher().match(self.cmp("[a\-z]"), "-") == "-"
+        assert PatternMatcher().match(self.cmp("#[^\-]*"), "-") is None
+        assert PatternMatcher().match(self.cmp("[\[]*"), "[") == "["
+        assert PatternMatcher().match(self.cmp("[\.]"), ".") == "."
+        assert PatternMatcher().match(self.cmp("\."), ".") == "."
+        assert PatternMatcher().match(self.cmp("\["), "[") == "["
+        assert PatternMatcher().match(self.cmp("\[\]"), "[]") == "[]"
 
     def test_realworld_examples(self):
-        assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z_0-9]*"), "abc123_") is True
-        assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z_0-9]*"), "123abc123_") is False
+        assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z_0-9]*"), "abc123_") == "abc123_"
+        assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z_0-9]*"), "123abc123_") is None
 
-        p = PatternMatcher()
-        assert p.match(self.cmp("#[^\\r]*"), "# abc") is True
-        assert p.pos == 5
+        assert PatternMatcher().match(self.cmp("#[^\\r]*"), "# abc") == "# abc"
+        assert PatternMatcher().match(self.cmp("#[^\r]*"), "# abc \r") == "# abc "
 
-        p = PatternMatcher()
-        assert p.match(self.cmp("#[^\r]*"), "# abc \r") is True
-        assert p.pos == 6
-
-
-        assert PatternMatcher().match(self.cmp("([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "123.456") is True
-        assert PatternMatcher().match(self.cmp("([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "1e23") is True
-        assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a string 123!'") is True
-        assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a with a newline \r string 123!'") is False
+        assert PatternMatcher().match(self.cmp("([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "123.456") == "123.456"
+        assert PatternMatcher().match(self.cmp("([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "1e23") == "1e23"
+        assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a string 123!'") == "'this is a string 123!'"
+        assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a with a newline \r string 123!'") is None
 
     def test_exactmatch(self):
         pm = PatternMatcher()
         pm.match(self.cmp("abc"), "abcd")
         assert pm.exactmatch is True
 
-        pm.reset()
         pm.match(self.cmp("[abcd]+"), "abcdx")
         assert pm.exactmatch is False
 
-        pm.reset()
         pm.match(self.cmp("a[bcd]+"), "abc")
         assert pm.exactmatch is True
 
-        pm.reset()
         pm.match(self.cmp("a[abcd]+"), "abx")
         assert pm.exactmatch is False
 
-        pm.reset()
         pm.match(self.cmp("as"), "abx")
         assert pm.exactmatch is False
 
-        pm.reset()
         pm.match(self.cmp("[abc]"), "aclass")
         assert pm.exactmatch is True
 
-        pm.reset()
         pm.match(self.cmp("abc|abcde"), "abcde")
         assert pm.exactmatch is True
 
-        pm.reset()
         pm.match(self.cmp("abcde|abc"), "abcde")
         assert pm.exactmatch is True
 
-        pm.reset()
         pm.match(self.cmp("abcx|abcde"), "abcx")
         assert pm.exactmatch is True
 
-        pm.reset()
         pm.match(self.cmp("abcde|abcx"), "abcx")
         assert pm.exactmatch is True
 

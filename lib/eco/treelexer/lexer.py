@@ -41,9 +41,6 @@ class PatternMatcher(object):
         self.exactmatch = True
 
     def match_one(self, pattern, text):
-        if not pattern:
-            # Empty pattern always matches
-            return True
         if self.pos >= len(text):
             # Existing pattern can't match empty input
             return False
@@ -60,46 +57,36 @@ class PatternMatcher(object):
         self.exactmatch = False
         return False
 
-    def match_question(self, pattern, text):
-        if not text:
-            # No more text, so ? is automatically true
-            return True
-        if self.match_one(pattern, text):
-            # character appears 1 time. Remove question pattern and continue
-            return self.match(pattern[2:], text[1:])
-        # character appears zero times
-        return self.match(pattern[2:], text)
-
     def match_star(self, pattern, text):
         while True:
-            if not self.match(pattern.c, text):
+            if not self._match(pattern.c, text):
                 break
         return True
 
     def match_plus(self, pattern, text):
-        if not self.match(pattern.c, text):
+        if not self._match(pattern.c, text):
             # we have to at least match one
             return False
         return self.match_star(pattern, text)
 
     def match_question(self, pattern, text):
-        self.match(pattern.c, text)
+        self._match(pattern.c, text)
         return True
 
     def match_list(self, pattern, text):
         for p in pattern:
-            if not self.match(p, text):
+            if not self._match(p, text):
                 return False
         return True
 
     def match_or(self, pattern, text):
         tmp = self.pos
         tmp2 = self.exactmatch
-        if self.match(pattern.lhs, text):
+        if self._match(pattern.lhs, text):
             return True
         self.pos = tmp # backtrack
         self.exactmatch = tmp2
-        return self.match(pattern.rhs, text)
+        return self._match(pattern.rhs, text)
 
     def match_range(self, pattern, text):
         if self.pos >= len(text):
@@ -111,8 +98,9 @@ class PatternMatcher(object):
         self.exactmatch = False
         return False
 
-    def match(self, pattern, text):
+    def _match(self, pattern, text):
         if not pattern:
+            self.pos = len(text)
             return True
         if type(pattern) is list:
             return self.match_list(pattern, text)
@@ -131,6 +119,12 @@ class PatternMatcher(object):
         if type(pattern) is RE_QUESTION:
             return self.match_question(pattern, text)
         raise NotImplementedError(pattern)
+
+    def match(self, pattern, text):
+        self.reset()
+        if self._match(pattern, text):
+            return text[:self.pos]
+        return None
 
 class RegexParser(object):
 
