@@ -40,91 +40,142 @@ class PatternMatcher(object):
         self.pos = 0
         self.exactmatch = True
 
-    def match_one(self, pattern, text):
-        if self.pos >= len(text):
+    def inc(self):
+        self.pos += 1
+
+    def char(self):
+        return self.text[self.pos]
+
+    def isend(self):
+        return self.pos >= len(self.text)
+
+    def textlength(self):
+        return len(self.text)
+
+    def load_state(self, state):
+        self.pos = state[0]
+        self.exactmatch = state[1]
+        self.result = state[2]
+
+    def save_state(self):
+        return (self.pos, self.exactmatch, list(self.result))
+
+    def match_one(self, pattern):
+        if self.isend():
             # Existing pattern can't match empty input
             return False
+        char = self.char()
         if pattern.c == ".":
             # Wild card always matches
-            self.pos += 1
             return True
-        if pattern.c == text[self.pos]:
-            self.pos += 1
+        if pattern.c == char:
             return True
-        if pattern.c[0] == "\\" and pattern.c[1] == text[self.pos]:
-            self.pos += 1
+        if pattern.c[0] == "\\" and pattern.c[1] == char:
             return True
         self.exactmatch = False
         return False
 
-    def match_star(self, pattern, text):
-        while True:
-            if not self._match(pattern.c, text):
-                break
+    def match_star(self, pattern):
+        while self._match(pattern.c):
+             pass
         return True
 
-    def match_plus(self, pattern, text):
-        if not self._match(pattern.c, text):
+    def match_plus(self, pattern):
+        if not self._match(pattern.c):
             # we have to at least match one
             return False
-        return self.match_star(pattern, text)
+        return self.match_star(pattern)
 
-    def match_question(self, pattern, text):
-        self._match(pattern.c, text)
+    def match_question(self, pattern):
+        self._match(pattern.c)
         return True
 
-    def match_list(self, pattern, text):
+    def match_list(self, pattern):
         for p in pattern:
-            if not self._match(p, text):
+            if not self._match(p):
                 return False
         return True
 
-    def match_or(self, pattern, text):
-        tmp = self.pos
-        tmp2 = self.exactmatch
-        if self._match(pattern.lhs, text):
+    def match_or(self, pattern):
+        tmp = self.save_state()
+        if self._match(pattern.lhs):
             return True
-        self.pos = tmp # backtrack
-        self.exactmatch = tmp2
-        return self._match(pattern.rhs, text)
+        self.load_state(tmp)
+        return self._match(pattern.rhs)
 
-    def match_range(self, pattern, text):
-        if self.pos >= len(text):
+    def match_range(self, pattern):
+        if self.isend():
             return False
-        if (pattern.neg and ord(text[self.pos]) not in pattern.c) \
-                    or (not pattern.neg and ord(text[self.pos]) in pattern.c):
-            self.pos += 1
+        if (pattern.neg and ord(self.char()) not in pattern.c) \
+                    or (not pattern.neg and ord(self.char()) in pattern.c):
             return True
         self.exactmatch = False
         return False
 
-    def _match(self, pattern, text):
+    def _match(self, pattern):
         if not pattern:
-            self.pos = len(text)
+            self.pos = self.textlength()
             return True
         if type(pattern) is list:
-            return self.match_list(pattern, text)
+            return self.match_list(pattern)
         if type(pattern) is RE_CHAR:
-            return self.match_one(pattern, text)
+            if self.match_one(pattern):
+                self.result.append(self.char())
+                self.inc()
+                return True
+            return False
         if type(pattern) is RE_STAR:
-            return self.match_star(pattern, text)
+            return self.match_star(pattern)
         if type(pattern) is RE_STAR:
-            return self.match_star(pattern, text)
+            return self.match_star(pattern)
         if type(pattern) is RE_PLUS:
-            return self.match_plus(pattern, text)
+            return self.match_plus(pattern)
         if type(pattern) is RE_OR:
-            return self.match_or(pattern, text)
+            return self.match_or(pattern)
         if type(pattern) is RE_RANGE:
-            return self.match_range(pattern, text)
+            if self.match_range(pattern):
+                self.result.append(self.char())
+                self.inc()
+                return True
+            return False
         if type(pattern) is RE_QUESTION:
-            return self.match_question(pattern, text)
+            return self.match_question(pattern)
         raise NotImplementedError(pattern)
 
-    def match(self, pattern, text):
+    def match(self, pattern, text, pos=0):
         self.reset()
-        if self._match(pattern, text):
-            return text[:self.pos]
+        self.pos = pos
+        self.text = text
+        self.result = []
+        if self._match(pattern):
+            return "".join(self.result)
         return None
+
+from incparser.astree import TextNode, BOS, EOS
+
+class TreePatternMatcher(PatternMatcher):
+    def char(self):
+        return self.text.symbol.name[self.pos]
+
+    def inc(self):
+        self.pos += 1
+        if self.pos >= len(self.text.symbol.name):
+            self.text = self.text.next_term
+            self.pos = 0
+
+    def isend(self):
+        if type(self.text) is EOS:
+            return True
+        return False
+
+    def load_state(self, state):
+        self.pos = state[0]
+        self.text = state[1]
+        self.exactmatch = state[2]
+        self.result = state[3]
+
+    def save_state(self):
+        return (self.pos, self.text, self.exactmatch, list(self.result))
 
 class RegexParser(object):
 
@@ -238,7 +289,7 @@ class Lexer(object):
         pm = PatternMatcher()
         self.pos = 0
         result = []
-        while self.pos < len(text):
+        while True:
             lookahead = 0
             oldpos = self.pos
             for p, n in self.patterns:
@@ -255,5 +306,29 @@ class Lexer(object):
                 # no more matches
                 if self.pos < len(text):
                     result.append((text[self.pos:], None, 0))
+                break
+        return result
+
+    def treelex(self, node):
+        pm = TreePatternMatcher()
+        pos = 0
+        result = []
+        while True:
+            lookahead = 0
+            oldpos = pos
+            oldnode = node
+            for p, n in self.patterns:
+                pm.reset()
+                token = pm.match(p, node)
+                if token:
+                    lookahead = lookahead + (1 if not pm.exactmatch else 0)
+                    result.append((token, n, lookahead))
+                    pos = pm.pos
+                    node = pm.text
+                    lookahead = 0
+                else:
+                    lookahead = max(pm.pos, lookahead)
+            if pos == oldpos and oldnode is node:
+                # no more matches
                 break
         return result

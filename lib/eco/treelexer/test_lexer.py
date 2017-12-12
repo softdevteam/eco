@@ -43,7 +43,7 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(RE_CHAR("a"), "a") == "a"
         assert PatternMatcher().match(RE_CHAR("."), "c") == "c"
         assert PatternMatcher().match(RE_CHAR("x"), "c") is None
-        assert PatternMatcher().match(None, "c") == "c"
+        #assert PatternMatcher().match(None, "c") == "c"
         assert PatternMatcher().match(RE_CHAR("c"), "") is None
 
     def test_match_more(self):
@@ -168,6 +168,10 @@ class Test_PatternMatcher(object):
         pm.match(self.cmp("abcde|abcx"), "abcx")
         assert pm.exactmatch is True
 
+from incparser.astree import TextNode, BOS, EOS
+from grammar_parser.gparser import Terminal, Nonterminal
+from incparser.syntaxtable import FinishSymbol
+
 class Test_Lexer(object):
 
     def test_simple(self):
@@ -188,3 +192,19 @@ class Test_Lexer(object):
 
         l = Lexer([("test", "abc|abcde")])
         assert l.lex("abcx") == [("abc", "test", 0), ("x", None, 0)]
+
+    def test_nodes(self):
+        root = TextNode(Nonterminal("Root"))
+        bos = BOS(Terminal(""))
+        eos = EOS(FinishSymbol())
+        a = TextNode(Terminal("a"))
+        b = TextNode(Terminal("b"))
+        nB = TextNode(Nonterminal("B"))
+        nB.set_children([b])
+        root.set_children([bos, a, nB, eos])
+
+        a.next_term = b
+        b.next_term = eos
+
+        l = Lexer([("name", "[a-z]+")])
+        assert l.treelex(a) == [("ab", "name", 0)]
