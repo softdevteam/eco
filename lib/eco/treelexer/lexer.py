@@ -36,15 +36,18 @@ class PatternMatcher(object):
         self.pos = 0
         self.exactmatch = True
 
-    def reset(self):
-        self.pos = 0
-        self.exactmatch = True
-
     def inc(self):
         self.pos += 1
 
     def char(self):
         return self.text[self.pos]
+
+    def append(self):
+        self.result.append(self.char())
+
+    def get_token(self):
+        """Rejoins all matched characters back to a single token string"""
+        return "".join(self.result)
 
     def isend(self):
         return self.pos >= len(self.text)
@@ -120,7 +123,7 @@ class PatternMatcher(object):
             return self.match_list(pattern)
         if type(pattern) is RE_CHAR:
             if self.match_one(pattern):
-                self.result.append(self.char())
+                self.append()
                 self.inc()
                 return True
             return False
@@ -134,7 +137,7 @@ class PatternMatcher(object):
             return self.match_or(pattern)
         if type(pattern) is RE_RANGE:
             if self.match_range(pattern):
-                self.result.append(self.char())
+                self.append()
                 self.inc()
                 return True
             return False
@@ -143,25 +146,56 @@ class PatternMatcher(object):
         raise NotImplementedError(pattern)
 
     def match(self, pattern, text, pos=0):
-        self.reset()
+        # reset
+        self.exactmatch = True
         self.pos = pos
         self.text = text
         self.result = []
         if self._match(pattern):
-            return "".join(self.result)
+            return self.get_token()
         return None
 
 from incparser.astree import TextNode, BOS, EOS
+from grammar_parser.gparser import MagicTerminal
 
 class TreePatternMatcher(PatternMatcher):
+
     def char(self):
         return self.text.symbol.name[self.pos]
 
     def inc(self):
         self.pos += 1
+        if self.read_nodes[-1] is not self.text:
+            self.read_nodes.append(self.text)
+        if type(self.text.symbol) is MagicTerminal:
+            self.pos = 0
+            self.text = self.text.next_term
         if self.pos >= len(self.text.symbol.name):
             self.text = self.text.next_term
             self.pos = 0
+
+    def append(self):
+        if type(self.text.symbol) is MagicTerminal:
+            self.result.append(None)
+        else:
+            self.result.append(self.char())
+
+    def get_token(self):
+        """Rejoins all matched characters back to a single token string. If the
+        matched token contains newlines or language boxes, the token is split
+        into a list of subtokens."""
+        try:
+            return "".join(self.result)
+        except TypeError:
+            # multi token
+            l = []
+            j = 0
+            for i in xrange(len(self.result)):
+                if self.result[i] is None:
+                    l.append("".join(self.result[j:i]))
+                    j = i + 1
+            l.append("".join(self.result[j:]))
+            return l
 
     def isend(self):
         if type(self.text) is EOS:
@@ -173,9 +207,30 @@ class TreePatternMatcher(PatternMatcher):
         self.text = state[1]
         self.exactmatch = state[2]
         self.result = state[3]
+        self.read_nodes = state[4]
 
     def save_state(self):
-        return (self.pos, self.text, self.exactmatch, list(self.result))
+        return (self.pos, self.text, self.exactmatch, list(self.result), list(self.read_nodes))
+
+    def match_one(self, pattern):
+        if type(self.text.symbol) is MagicTerminal:
+            if pattern.c == ".":
+                return True
+            return False
+        return PatternMatcher.match_one(self, pattern)
+
+    def match_range(self, pattern):
+        if type(self.text.symbol) is MagicTerminal:
+            if pattern.neg:
+                # Negated char ranges can never exclude a language box
+                return True
+            self.exactmatch = False
+            return False
+        return PatternMatcher.match_range(self, pattern)
+
+    def match(self, pattern, text, pos=0):
+        self.read_nodes = [text]
+        return PatternMatcher.match(self, pattern, text, pos)
 
 class RegexParser(object):
 
@@ -293,7 +348,6 @@ class Lexer(object):
             lookahead = 0
             oldpos = self.pos
             for p, n in self.patterns:
-                pm.reset()
                 if pm.match(p, text[self.pos:]):
                     if not pm.exactmatch:
                         lookahead += 1
@@ -318,7 +372,6 @@ class Lexer(object):
             oldpos = pos
             oldnode = node
             for p, n in self.patterns:
-                pm.reset()
                 token = pm.match(p, node)
                 if token:
                     lookahead = lookahead + (1 if not pm.exactmatch else 0)
@@ -332,3 +385,25 @@ class Lexer(object):
                 # no more matches
                 break
         return result
+
+    def get_token_iter(self, node):
+        pm = TreePatternMatcher()
+        pos = 0
+        result = []
+        while True:
+            lookahead = 0
+            oldpos = pos
+            oldnode = node
+            for p, n in self.patterns:
+                token = pm.match(p, node, pos)
+                if token:
+                    lookahead = lookahead + (1 if not pm.exactmatch else 0)
+                    yield (token, n, lookahead, pm.read_nodes)
+                    pos = pm.pos
+                    node = pm.text
+                    lookahead = 0
+                else:
+                    lookahead = max(pm.pos - pos, lookahead)
+            if pos == oldpos and oldnode is node:
+                # no more matches
+                break
