@@ -1,4 +1,4 @@
-from lexer import Lexer, PatternMatcher, RegexParser, RE_CHAR, RE_OR, RE_STAR, RE_PLUS
+from lexer import Lexer, PatternMatcher, RegexParser, LexingError, RE_CHAR, RE_OR, RE_STAR, RE_PLUS
 import pytest
 
 class Test_RegexParser(object):
@@ -234,6 +234,20 @@ class Test_IncrementalLexing(object):
         assert it.next() == ("2", "INT", 1, [TextNode(Terminal("1+2*3"))])
         assert it.next() == ("*", "mul", 0, [TextNode(Terminal("1+2*3"))])
         assert it.next() == ("3", "INT", 0, [TextNode(Terminal("1+2*3"))])
+        with pytest.raises(StopIteration):
+            it.next()
+
+    def test_lexingerror(self):
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        new = TextNode(Terminal("1b"))
+        bos.insert_after(new)
+
+        it = self.lexer.get_token_iter(new)
+        assert it.next() == ("1", "INT", 1, [TextNode(Terminal("1b"))])
+        with pytest.raises(LexingError):
+            it.next()
 
     def test_token_iter_lbox(self):
         ast = AST()
@@ -248,7 +262,7 @@ class Test_IncrementalLexing(object):
 
         it = self.lexer.get_token_iter(new)
         assert it.next() == ("12", "INT", 1, [TextNode(Terminal("12"))])
-        with pytest.raises(StopIteration):
+        with pytest.raises(Exception):
             it.next()
 
     def test_token_iter_lbox2(self):

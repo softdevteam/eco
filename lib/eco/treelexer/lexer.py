@@ -327,6 +327,9 @@ class RegexParser(object):
         content = self.parse(node.get("value"))
         return RE_QUESTION(content)
 
+class LexingError(Exception):
+    pass
+
 class Lexer(object):
 
     def __init__(self, rules):
@@ -398,6 +401,8 @@ class Lexer(object):
             lookahead = 0
             oldpos = pos
             oldnode = node
+            if type(node) is EOS:
+                break
             for p, n in self.patterns:
                 token = pm.match(p, node, pos)
                 if token:
@@ -408,6 +413,6 @@ class Lexer(object):
                     lookahead = 0
                 else:
                     lookahead = max(pm.pos - pos, lookahead)
-            if pos == oldpos and oldnode is node:
-                # no more matches
-                break
+            if oldnode is node and oldpos == pos:
+                # no progress means we failed to lex something
+                raise LexingError("Failed to lex node '{}' at position {})".format(node, pos))
