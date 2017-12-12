@@ -184,18 +184,22 @@ class TreePatternMatcher(PatternMatcher):
         """Rejoins all matched characters back to a single token string. If the
         matched token contains newlines or language boxes, the token is split
         into a list of subtokens."""
-        try:
-            return "".join(self.result)
-        except TypeError:
-            # multi token
-            l = []
-            j = 0
-            for i in xrange(len(self.result)):
-                if self.result[i] is None:
-                    l.append("".join(self.result[j:i]))
-                    j = i + 1
-            l.append("".join(self.result[j:]))
-            return l
+        l = []
+        sub = []
+        for c in self.result:
+            if c is None:
+                l.append("".join(sub))
+                sub = []
+            elif c == "\r":
+                l.append("".join(sub))
+                l.append(c)
+                sub = []
+            else:
+                sub.append(c)
+        l.append("".join(sub))
+        if len(l) == 1:
+            return l[0]
+        return l
 
     def isend(self):
         if type(self.text) is EOS:

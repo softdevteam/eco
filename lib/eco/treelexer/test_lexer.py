@@ -218,7 +218,7 @@ class Test_IncrementalLexing(object):
         rules.append(("INT", "[0-9]+"))
         rules.append(("plus", "\+"))
         rules.append(("mul", "\*"))
-        rules.append(("string", "\'[^\'\r]*\'"))
+        rules.append(("string", "\'[^\']*\'"))
         cls.lexer = Lexer(rules)
 
     def test_token_iter(self):
@@ -287,5 +287,41 @@ class Test_IncrementalLexing(object):
 
         it = self.lexer.get_token_iter(new1)
         assert it.next() == (["'a", "b", "c'"], "string", 1, [TextNode(Terminal("'a")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))])
+        with pytest.raises(StopIteration):
+            it.next()
+
+    def test_token_iter_newline(self):
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        new1 = TextNode(Terminal("'a"))
+        new2 = TextNode(Terminal("\r"))
+        new3 = TextNode(Terminal("b'"))
+        bos.insert_after(new1)
+        new1.insert_after(new2)
+        new2.insert_after(new3)
+
+        it = self.lexer.get_token_iter(new1)
+        assert it.next() == (["'a", "\r", "b'"], "string", 1, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b'"))])
+        with pytest.raises(StopIteration):
+            it.next()
+
+    def test_token_iter_newline_lbox(self):
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        new1 = TextNode(Terminal("'a"))
+        new2 = TextNode(Terminal("\r"))
+        new3 = TextNode(Terminal("b"))
+        new4 = TextNode(MagicTerminal("<SQL>"))
+        new5 = TextNode(Terminal("c'"))
+        bos.insert_after(new1)
+        new1.insert_after(new2)
+        new2.insert_after(new3)
+        new3.insert_after(new4)
+        new4.insert_after(new5)
+
+        it = self.lexer.get_token_iter(new1)
+        assert it.next() == (["'a", "\r", "b", "c'"], "string", 1, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))])
         with pytest.raises(StopIteration):
             it.next()
