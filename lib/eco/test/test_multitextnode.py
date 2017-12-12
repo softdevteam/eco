@@ -1,5 +1,6 @@
-from grammars.grammars import calc, python
+from grammars.grammars import calc, python, lang_dict
 from treemanager import TreeManager
+from grammar_parser.gparser import MagicTerminal
 from utils import KEY_UP as UP, KEY_DOWN as DOWN, KEY_LEFT as LEFT, KEY_RIGHT as RIGHT
 from grammars.grammars import EcoFile
 
@@ -255,14 +256,28 @@ y = 2"""
         for i in inputstring:
             self.treemanager.key_normal(i)
 
+        bos = self.parser.previous_version.parent.children[0]
+        assert bos.next_term.symbol.name == "x"
+        assert bos.next_term.next_term.symbol.name == "="
+        assert bos.next_term.next_term.next_term.symbol.name == '"""abc"""'
+
         self.treemanager.cursor_movement(LEFT)
         self.treemanager.cursor_movement(LEFT)
         self.treemanager.cursor_movement(LEFT)
         self.treemanager.cursor_movement(LEFT)
-        self.treemanager.key_normal("\"")
         self.treemanager.key_normal("\"")
 
-        bos = self.parser.previous_version.parent.children[0]
+        assert bos.next_term.symbol.name == "x"
+        assert bos.next_term.next_term.symbol.name == "="
+        assert bos.next_term.next_term.next_term.symbol.name == '""'
+        assert bos.next_term.next_term.next_term.next_term.symbol.name == '"ab"'
+        assert bos.next_term.next_term.next_term.next_term.lookback == 1
+        assert bos.next_term.next_term.next_term.next_term.next_term.symbol.name == 'c'
+        assert bos.next_term.next_term.next_term.next_term.next_term.lookback == 2
+        assert bos.next_term.next_term.next_term.next_term.next_term.next_term.symbol.name == '""'
+        assert bos.next_term.next_term.next_term.next_term.next_term.next_term.next_term.symbol.name == '"'
+
+        self.treemanager.key_normal("\"")
 
         assert bos.next_term.symbol.name == "x"
         assert bos.next_term.next_term.symbol.name == "="
@@ -293,3 +308,81 @@ y = 2"""
         assert bos.next_term.next_term.next_term.symbol.name == '"""ab"""'
         assert bos.next_term.next_term.next_term.next_term.symbol.name == 'c'
         assert bos.next_term.next_term.next_term.next_term.next_term.symbol.name == '""'
+
+    def test_ignore_nonlbox_x80(self):
+
+        self.reset()
+        inputstring = 'x="""ab\x80c"""'
+
+        for i in inputstring:
+            self.treemanager.key_normal(i)
+
+        bos = self.parser.previous_version.parent.children[0]
+        assert bos.next_term.symbol.name == "x"
+        assert bos.next_term.next_term.symbol.name == "="
+        assert bos.next_term.next_term.next_term.symbol.name == '"""ab\x80c"""'
+
+    def test_multinode_from_the_start(self):
+
+        self.reset()
+        inputstring = '''x="""a\rbc"""'''
+
+        for i in inputstring:
+            self.treemanager.key_normal(i)
+
+        bos = self.parser.previous_version.parent.children[0]
+        assert bos.next_term.symbol.name == "x"
+        assert bos.next_term.next_term.symbol.name == "="
+        assert bos.next_term.next_term.next_term.symbol.name == '<Multinode>'
+
+    def test_multinode_and_nonlbox_x80(self):
+
+        self.reset()
+        inputstring = '''x="""a\x80bc"""'''
+
+        for i in inputstring:
+            self.treemanager.key_normal(i)
+
+        bos = self.parser.previous_version.parent.children[0]
+        assert bos.next_term.symbol.name == "x"
+        assert bos.next_term.next_term.symbol.name == "="
+        assert bos.next_term.next_term.next_term.symbol.name == '"""a\x80bc"""'
+
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+
+        self.treemanager.key_normal("\r")
+        bos = self.parser.previous_version.parent.children[0]
+        assert bos.next_term.symbol.name == "x"
+        assert bos.next_term.next_term.symbol.name == "="
+        assert bos.next_term.next_term.next_term.symbol.name == '<Multinode>'
+
+    def test_multinode_nonlbox_and_lbox(self):
+        self.reset()
+        inputstring = '''x="""a\x80bc"""'''
+
+        for i in inputstring:
+            self.treemanager.key_normal(i)
+
+        bos = self.parser.previous_version.parent.children[0]
+        assert bos.next_term.symbol.name == "x"
+        assert bos.next_term.next_term.symbol.name == "="
+        assert bos.next_term.next_term.next_term.symbol.name == '"""a\x80bc"""'
+
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+
+        self.treemanager.add_languagebox(lang_dict["SQL"])
+        self.treemanager.key_normal("S")
+        bos = self.parser.previous_version.parent.children[0]
+        assert bos.next_term.symbol.name == "x"
+        assert bos.next_term.next_term.symbol.name == "="
+        assert bos.next_term.next_term.next_term.symbol.name == '<Multinode>'
+        multi = bos.next_term.next_term.next_term
+        assert multi.children[0].symbol.name == "\"\"\"a\x80b"
+        assert type(multi.children[1].symbol) is MagicTerminal
+        assert multi.children[2].symbol.name == "c\"\"\""

@@ -261,8 +261,8 @@ class LexingDFARunner(AbstractLexingDFARunner):
                     text, source_pos, lookahead)
         else:
             # lexing nodes using stringwrapper
-            token, read = self.text.make_token(start, stop, tokentype)
-            return token, tokentype, lookahead, read
+            token, read, length = self.text.make_token(start, stop, tokentype)
+            return token, tokentype, lookahead, read, length
 
 class LexingError(Exception):
     pass

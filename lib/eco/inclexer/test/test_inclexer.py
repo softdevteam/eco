@@ -83,11 +83,11 @@ class Test_CalcLexer(Test_IncrementalLexer):
         from inclexer.inclexer import StringWrapper
         sw = StringWrapper(new, new)
         next_token = self.lexer.lexer.get_token_iter(sw)
-        assert next_token() == ("1", "INT", 1, [TextNode(Terminal("1+2*3"))])
-        assert next_token() == ("+", "plus", 0, [TextNode(Terminal("1+2*3"))])
-        assert next_token() == ("2", "INT", 1, [TextNode(Terminal("1+2*3"))])
-        assert next_token() == ("*", "mul", 1, [TextNode(Terminal("1+2*3"))])
-        assert next_token() == ("3", "INT", 1, [TextNode(Terminal("1+2*3"))])
+        assert next_token() == ("1", "INT", 1, [TextNode(Terminal("1+2*3"))], 1)
+        assert next_token() == ("+", "plus", 0, [TextNode(Terminal("1+2*3"))], 1)
+        assert next_token() == ("2", "INT", 1, [TextNode(Terminal("1+2*3"))], 1)
+        assert next_token() == ("*", "mul", 1, [TextNode(Terminal("1+2*3"))], 1)
+        assert next_token() == ("3", "INT", 1, [TextNode(Terminal("1+2*3"))], 1)
 
     def test_token_iter2(self):
         ast = AST()
@@ -101,7 +101,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         from inclexer.inclexer import StringWrapper
         sw = StringWrapper(new, new)
         next_token = self.lexer.lexer.get_token_iter(sw)
-        assert next_token() == ("1234", "INT", 1, [TextNode(Terminal("12")), TextNode(Terminal("34"))])
+        assert next_token() == ("1234", "INT", 1, [TextNode(Terminal("12")), TextNode(Terminal("34"))], 4)
 
     def test_token_iter_lbox(self):
         lexer = IncrementalLexer("""
@@ -120,10 +120,52 @@ class Test_CalcLexer(Test_IncrementalLexer):
 
         from inclexer.inclexer import StringWrapper
         sw = StringWrapper(new, new)
-        next_token = lexer.lexer.get_token_iter(sw) 
-        assert next_token() == ("12", "INT", 1, [TextNode(Terminal("12"))])
-        assert next_token() == ("\x80", "LBOX", 0, [TextNode(MagicTerminal("<SQL>"))])
-        assert next_token() == ("34", "INT", 1, [TextNode(Terminal("34"))])
+        next_token = lexer.lexer.get_token_iter(sw)
+        assert next_token() == ("12", "INT", 1, [TextNode(Terminal("12"))], 2)
+        assert next_token() == ("L", "LBOX", 0, [TextNode(MagicTerminal("<SQL>"))], 1)
+        assert next_token() == ("34", "INT", 1, [TextNode(Terminal("34"))], 2)
+
+    def test_token_iter_lbox_multi(self):
+        lexer = IncrementalLexer("""
+"[0-9]+":INT
+"\"[^\"]*\"":STRING
+"\x80":LBOX
+        """)
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        new = TextNode(Terminal("\"abc"))
+        new2 = TextNode(MagicTerminal("<SQL>"))
+        new3 = TextNode(Terminal("def\""))
+        bos.insert_after(new)
+        new.insert_after(new2)
+        new2.insert_after(new3)
+
+        from inclexer.inclexer import StringWrapper
+        sw = StringWrapper(new, new)
+        next_token = lexer.lexer.get_token_iter(sw)
+        assert next_token() == (["\"abc","L","def\""], "STRING", 0, [TextNode(Terminal("\"abc")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("def\""))], 9)
+
+    def test_token_iter_lbox_x80(self):
+        lexer = IncrementalLexer("""
+"[0-9]+":INT
+"\"[^\"]*\"":STRING
+"\x80":LBOX
+        """)
+        ast = AST()
+        ast.init()
+        bos = ast.parent.children[0]
+        new = TextNode(Terminal("\"abc"))
+        new2 = TextNode(Terminal("\x80"))
+        new3 = TextNode(Terminal("def\""))
+        bos.insert_after(new)
+        new.insert_after(new2)
+        new2.insert_after(new3)
+
+        from inclexer.inclexer import StringWrapper
+        sw = StringWrapper(new, new)
+        next_token = lexer.lexer.get_token_iter(sw)
+        assert next_token() == ("\"abc\x80def\"", "STRING", 0, [TextNode(Terminal("\"abc")), TextNode(Terminal("\x80")), TextNode(Terminal("def\""))], 9)
 
     def test_relex(self):
         ast = AST()
@@ -208,7 +250,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         new1.insert_after(new2)
         new2.insert_after(new3)
         self.relex(new1)
-        
+
         twelve = bos.next_term
         assert twelve.symbol == Terminal("12")
         assert twelve is new1
@@ -361,12 +403,14 @@ class Test_CalcLexer(Test_IncrementalLexer):
         assert ast.parent.children[2].symbol.name == "a"
         assert ast.parent.children[3].symbol.name == "a"
         assert ast.parent.children[4].symbol.name == "b"
-        ast.parent.children[1].symbol = None
+        ast.parent.children[1].symbol = None # Check that lookback doesn't overreach
         ast.parent.children[3].symbol.name = "aa"
         lexer.relex(ast.parent.children[3])
 
         assert ast.parent.children[2].symbol.name == "aaa"
-        assert ast.parent.children[3].symbol.name == "b"
+        assert ast.parent.children[3].symbol.name == "aa"
+        assert ast.parent.children[3].deleted is True
+        assert ast.parent.children[4].symbol.name == "b"
 
     def test_stringwrapper(self):
         ast = AST()
@@ -1114,7 +1158,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         text6.lookahead = 3
         text7.lookahead = 0
 
-        lexer.update_lookback(text1)
+        lexer.update_lookback(text1, text1)
 
         assert text1.lookback == 0
         assert text2.lookback == 1
@@ -1164,7 +1208,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         text5.lookahead = 1
         text6.lookahead = 0
 
-        lexer.update_lookback(text1)
+        lexer.update_lookback(text1, text1)
 
         assert text2.lookback == 1
         assert text3.lookback == 2
