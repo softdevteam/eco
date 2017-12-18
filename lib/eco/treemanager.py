@@ -21,7 +21,7 @@
 
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
-from cflexer.lexer import LexingError
+from treelexer.lexer import LexingError
 from incparser.astree import TextNode, BOS, EOS, MultiTextNode
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from PyQt4.QtGui import QApplication

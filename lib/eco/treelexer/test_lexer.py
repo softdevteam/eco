@@ -125,6 +125,16 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("\[\]"), "[]") == "[]"
         assert PatternMatcher().match(self.cmp("\*"), "*") == "*"
         assert PatternMatcher().match(self.cmp("\+"), "+") == "+"
+        assert PatternMatcher().match(self.cmp("\\+"), "+") == "+"
+        assert PatternMatcher().match(self.cmp("\'"), "\'") == "'"
+        assert PatternMatcher().match(self.cmp("\\'"), "\'") == "'"
+        assert PatternMatcher().match(self.cmp("\r"), "\r") == "\r"
+        assert PatternMatcher().match(self.cmp("\\r"), "\r") == "\r"
+        assert PatternMatcher().match(self.cmp("\r"), "\\r") is None
+        assert PatternMatcher().match(self.cmp("\\r"), "\\r") is None
+        assert PatternMatcher().match(self.cmp("\\r"), "\\r") is None
+        assert PatternMatcher().match(self.cmp("[\\r\\n]"), "\r") == "\r"
+        assert PatternMatcher().match(self.cmp("[\\r\\n]"), "\n") == "\n"
 
     def test_realworld_examples(self):
         assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z_0-9]*"), "abc123_") == "abc123_"
@@ -137,6 +147,20 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "1e23") == "1e23"
         assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a string 123!'") == "'this is a string 123!'"
         assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a with a newline \r string 123!'") is None
+
+        assert PatternMatcher().match(self.cmp("#[^\\r]*"), "# hello world") == "# hello world"
+        assert PatternMatcher().match(self.cmp('\\"\\"\\"[^\\"]*\\"\\"\\"'), '"""this is a test string 123"""') == '"""this is a test string 123"""'
+        assert PatternMatcher().match(self.cmp("\\'[^\\'\\r]*\\'"), "'single quoted string'") == "'single quoted string'"
+        assert PatternMatcher().match(self.cmp('\\"[^\\"\\r]*\\"'), '"double quoted string"') == '"double quoted string"'
+        assert PatternMatcher().match(self.cmp("[ \\t]+"), "    ") == "    "
+        assert PatternMatcher().match(self.cmp("\\"), "\\") == "\\"
+        assert PatternMatcher().match(self.cmp("\\"), "range") is None
+        assert PatternMatcher().match(self.cmp("[\\n\\r]"), "\r") == "\r"
+        assert PatternMatcher().match(self.cmp("\."), ".") == "."
+        assert PatternMatcher().match(self.cmp("&="), "&=") == "&="
+        assert PatternMatcher().match(self.cmp("0[xX][\da-fA-F]+"), "0xAB") == "0xAB"
+        assert PatternMatcher().match(self.cmp("0[oO][0-7]+"), "0o67") == "0o67"
+        assert PatternMatcher().match(self.cmp("0[bB][01]+"), "0b10101") == "0b10101"
 
     def test_exactmatch(self):
         pm = PatternMatcher()
@@ -233,7 +257,7 @@ class Test_IncrementalLexing(object):
         assert it.next() == ("+", "plus", 0, [TextNode(Terminal("1+2*3"))])
         assert it.next() == ("2", "INT", 1, [TextNode(Terminal("1+2*3"))])
         assert it.next() == ("*", "mul", 0, [TextNode(Terminal("1+2*3"))])
-        assert it.next() == ("3", "INT", 0, [TextNode(Terminal("1+2*3"))])
+        assert it.next() == ("3", "INT", 1, [TextNode(Terminal("1+2*3"))])
         with pytest.raises(StopIteration):
             it.next()
 
@@ -339,3 +363,15 @@ class Test_IncrementalLexing(object):
         assert it.next() == (["'a", "\r", "b", "c'"], "string", 1, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))])
         with pytest.raises(StopIteration):
             it.next()
+
+class Test_Keyword(object):
+
+    def setup_class(cls):
+        rules = []
+        rules.append(("as", "as"))
+        rules.append(("NAME", "[a-z]+"))
+        cls.lexer = Lexer(rules)
+
+    def test_simple(self):
+        it = self.lexer.get_token_iter(TextNode(Terminal("asd")))
+        assert it.next() == ("asd", "NAME", 1, [TextNode(Terminal("asd"))])

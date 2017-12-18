@@ -49,7 +49,7 @@ class EcoFile(object):
         self.alts = {}
         self.extract = None
 
-    def load(self):
+    def load(self, buildlexer=True):
         from grammar_parser.bootstrap import BootstrapParser
         from jsonmanager import JsonManager
         from incparser.incparser import IncParser
@@ -79,7 +79,7 @@ class EcoFile(object):
 
             bootstrap.parse_both()
             bootstrap.create_parser(pickle_id)
-            bootstrap.create_lexer()
+            bootstrap.create_lexer(buildlexer)
             whitespace = bootstrap.implicit_ws()
 
             _cache[self.name + "::lexer"] = bootstrap.inclexer

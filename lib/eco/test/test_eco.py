@@ -22,7 +22,7 @@
 from grammars.grammars import calc, java, python, Language, sql, pythonprolog, lang_dict, phppython, pythonphp
 from treemanager import TreeManager
 from incparser.incparser import IncParser
-from inclexer.inclexer import IncrementalLexer
+from inclexer.inclexer import IncrementalLexer, IncrementalLexerCF
 from incparser.astree import BOS, EOS, TextNode, MultiTextNode
 from grammar_parser.gparser import MagicTerminal, Terminal
 from utils import KEY_UP as UP, KEY_DOWN as DOWN, KEY_LEFT as LEFT, KEY_RIGHT as RIGHT
@@ -141,7 +141,10 @@ S ::= "a" "assign" "b"
 ":":colon
 "=":equal
 """)
-        lexer = IncrementalLexer(grammar.priorities)
+        names = ["a","b","assign", "colon", "equal"]
+        regex = ["a", "b", "::=", ":", "="]
+        lexer = IncrementalLexerCF()
+        lexer.from_name_and_regex(names, regex)
         parser = IncParser(grammar.grammar, 1, True)
         parser.init_ast()
         ast = parser.previous_version
@@ -175,7 +178,10 @@ S ::= "brack" "htm"
 "htm":htm
 "<html":html
 """)
-        lexer = IncrementalLexer(grammar.priorities)
+        names = ["html","htm","brack"]
+        regex = ["<html", "htm", "<",]
+        lexer = IncrementalLexerCF()
+        lexer.from_name_and_regex(names, regex)
         parser = IncParser(grammar.grammar, 1, True)
         parser.init_ast()
         ast = parser.previous_version
@@ -184,6 +190,8 @@ S ::= "brack" "htm"
         treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
 
         treemanager.key_normal("<")
+        assert treemanager.cursor.node.symbol.name == "<"
+        assert treemanager.cursor.node.lookahead == 1
         treemanager.key_normal("h")
         treemanager.key_normal("t")
         treemanager.key_normal("m")

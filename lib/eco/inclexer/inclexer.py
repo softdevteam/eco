@@ -24,7 +24,7 @@ from grammar_parser.gparser import MagicTerminal, Terminal, IndentationTerminal
 from incparser.astree import BOS, EOS, TextNode, ImageNode, MultiTextNode
 from PyQt4.QtGui import QImage
 import re, os
-from cflexer.lexer import LexingError
+#from cflexer.lexer import LexingError
 
 class IncrementalLexer(object):
     """Deprecated incremental lexer."""
@@ -357,8 +357,8 @@ class IncrementalLexer(object):
         eos.left = last_node
         eos.prev_term = last_node
 
-from cflexer.regexparse import parse_regex
-from cflexer.lexer import Lexer
+from treelexer.lexer import Lexer, LexingError
+
 class IncrementalLexerCF(object):
     """
     Incrementally relexes nodes within the parse tree that have been changed.
@@ -393,11 +393,7 @@ class IncrementalLexerCF(object):
                 self.indentation_based = True
 
     def from_name_and_regex(self, names, regexs):
-        parsed_regexs = []
-        for regex in regexs:
-            r = parse_regex(regex)
-            parsed_regexs.append(r)
-        self.lexer = Lexer(parsed_regexs, names)
+        self.lexer = Lexer(zip(names, regexs))
 
     def createDFA(self, rules):
         # lex lexing rules
@@ -497,7 +493,7 @@ class IncrementalLexerCF(object):
         read = 0 # generated tokens
         current_node = node
         sw = StringWrapper(node, startnode)
-        next_token = self.lexer.get_token_iter(sw)
+        next_token = self.lexer.get_token_iter(node).next
 
         combos = []
         last_read = None
@@ -521,7 +517,7 @@ class IncrementalLexerCF(object):
                             past_startnode = True
                             break
                 toks.append([x for i,x in enumerate(token) if i != 3])
-                tokenslength += token[4]
+                tokenslength += len(token[0])
                 for r in token[3]:
                     if not read or r is not read[-1]: # skip already read nodes from previous tokens
                         read.append(r)
@@ -550,7 +546,7 @@ class IncrementalLexerCF(object):
                 # Lexer failed to repair everything. See if it managed to lex
                 # parts of the changes (toks contains tokens) and if so
                 # integrate them into the parse tree. The partly lexed tokens
-                # will have bigger lookaheads than usual as the depend on the
+                # will have bigger lookaheads than usual as they depend on the
                 # text parts that couldn't be relexed.
                 # Might involve splitting up a node resulting in leftover text
                 # that couldn't be lexed as this point. Put that text into a new
@@ -807,6 +803,8 @@ class IncrementalLexerCF(object):
             while isinstance(node.symbol, IndentationTerminal):
                 node = node.prev_term
             node = node.prev_term
+        if type(node) is BOS:
+            node = node.next_term
         return node
 
 IncrementalLexer = IncrementalLexerCF
@@ -978,14 +976,14 @@ class StringWrapper(object):
 
 def getname(node):
     if type(node.symbol) is MagicTerminal:
-        return "\x80"
+        return ""
     if type(node.symbol) is IndentationTerminal:
-        return "\x81"
+        return ""
     if type(node) is MultiTextNode:
         l = []
         for x in node.children:
             if type(x.symbol) is MagicTerminal:
-                l.append("\x80")
+                l.append("")
             else:
                 l.append(x.symbol.name)
         return "".join(l)
