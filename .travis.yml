@@ -21,7 +21,7 @@ install:
 script:
 - if [ "${TRAVIS_PULL_REQUEST}" == "false" ] && [ "${TRAVIS_BRANCH}" == "master" ] ;
   then
-     cd lib/eco; py.test test/test_eco.py --runslow ;
+     cd lib/eco; travis_wait 30 py.test test/test_eco.py --runslow ;
    else
      cd lib/eco; py.test test/test_eco.py ;
   fi
