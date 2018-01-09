@@ -1,4 +1,4 @@
-from lexer import Lexer, PatternMatcher, RegexParser, LexingError, RE_CHAR, RE_OR, RE_STAR, RE_PLUS
+from lexer import Lexer, PatternMatcher, RegexParser, LexingError, RE_CHAR, RE_OR, RE_STAR, RE_PLUS, lbph
 import pytest
 
 class Test_RegexParser(object):
@@ -107,6 +107,7 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z0-9_]*"), "_fooBAR123_") == "_fooBAR123_"
         assert PatternMatcher().match(self.cmp("[a-zA-Z_][a-zA-Z0-9_]*"), "123foobar") is None
         assert PatternMatcher().match(self.cmp("[a-z]"), "abc") == "a"
+        assert PatternMatcher().match(self.cmp("[+-]"), "+") == "+"
 
     def test_negatedcharrange(self):
         assert PatternMatcher().match(self.cmp("[^abcd]"), "a") is None
@@ -148,6 +149,7 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a string 123!'") == "'this is a string 123!'"
         assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a with a newline \r string 123!'") is None
 
+        # Python
         assert PatternMatcher().match(self.cmp("#[^\\r]*"), "# hello world") == "# hello world"
         assert PatternMatcher().match(self.cmp('\\"\\"\\"[^\\"]*\\"\\"\\"'), '"""this is a test string 123"""') == '"""this is a test string 123"""'
         assert PatternMatcher().match(self.cmp("\\'[^\\'\\r]*\\'"), "'single quoted string'") == "'single quoted string'"
@@ -161,6 +163,26 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("0[xX][\da-fA-F]+"), "0xAB") == "0xAB"
         assert PatternMatcher().match(self.cmp("0[oO][0-7]+"), "0o67") == "0o67"
         assert PatternMatcher().match(self.cmp("0[bB][01]+"), "0b10101") == "0b10101"
+
+        # Prolog
+        assert PatternMatcher().match(self.cmp("/"), "/") == "/"
+        assert PatternMatcher().match(self.cmp("/\\"), "/\\") == "/\\"
+        assert PatternMatcher().match(self.cmp("(%[^\\n\\r]*)"), "% comment") == "% comment"
+        assert PatternMatcher().match(self.cmp("[A-Z_]([a-zA-Z0-9]|_)*|_"), "Variable_") == "Variable_"
+        assert PatternMatcher().match(self.cmp("[A-Z_]([a-zA-Z0-9]|_)*|_"), "VAR") == "VAR"
+        assert PatternMatcher().match(self.cmp("[A-Z_]([a-zA-Z0-9]|_)*|_"), "var") is None
+        assert PatternMatcher().match(self.cmp("(0|[1-9][0-9]*)"), "0") == "0"
+        assert PatternMatcher().match(self.cmp("(0|[1-9][0-9]*)"), "12345") == "12345"
+        assert PatternMatcher().match(self.cmp("(0|[1-9][0-9]*)(\.[0-9]+)([eE][-+]?[0-9]+)?"), "1213.89e+23") == "1213.89e+23"
+        assert PatternMatcher().match(self.cmp("([a-z]([a-zA-Z0-9]|_)*)"), "aH8_") == "aH8_"
+        assert PatternMatcher().match(self.cmp("('[^']*')"), "'quoted'") == "'quoted'"
+        assert PatternMatcher().match(self.cmp("\[\]"), "[]") == "[]"
+        assert PatternMatcher().match(self.cmp("!"), "!") == "!"
+        assert PatternMatcher().match(self.cmp("\+"), "+") == "+"
+        assert PatternMatcher().match(self.cmp("\-"), "-") == "-"
+        assert PatternMatcher().match(self.cmp("\{\}"), "{}") == "{}"
+        assert PatternMatcher().match(self.cmp("([a-z]([a-zA-Z0-9]|_)*)|('[^']*')|\[\]|!|\+|\-|\{\}"), "aH8_") == "aH8_"
+        assert PatternMatcher().match(self.cmp("\"[^\"]*\""), '"a string"') == '"a string"'
 
     def test_exactmatch(self):
         pm = PatternMatcher()
@@ -286,6 +308,8 @@ class Test_IncrementalLexing(object):
 
         it = self.lexer.get_token_iter(new)
         assert it.next() == ("12", "INT", 1, [TextNode(Terminal("12"))])
+        assert it.next() == (lbph, "", 0, [TextNode(MagicTerminal("<SQL>"))])
+        assert it.next() == ("34", "INT", 1, [TextNode(Terminal("34"))])
         with pytest.raises(Exception):
             it.next()
 
@@ -304,7 +328,7 @@ class Test_IncrementalLexing(object):
 
         it = self.lexer.get_token_iter(new)
         assert it.next() == ("12", "INT", 1, [TextNode(Terminal("12"))])
-        assert it.next() == (["'string with", "inside'"], "string", 1, [TextNode(Terminal("'string with")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("inside'"))])
+        assert it.next() == (["'string with", lbph, "inside'"], "string", 1, [TextNode(Terminal("'string with")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("inside'"))])
         with pytest.raises(StopIteration):
             it.next()
 
@@ -324,7 +348,7 @@ class Test_IncrementalLexing(object):
         new4.insert_after(new5)
 
         it = self.lexer.get_token_iter(new1)
-        assert it.next() == (["'a", "b", "c'"], "string", 1, [TextNode(Terminal("'a")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))])
+        assert it.next() == (["'a", lbph, "b", lbph, "c'"], "string", 1, [TextNode(Terminal("'a")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))])
         with pytest.raises(StopIteration):
             it.next()
 
@@ -360,7 +384,7 @@ class Test_IncrementalLexing(object):
         new4.insert_after(new5)
 
         it = self.lexer.get_token_iter(new1)
-        assert it.next() == (["'a", "\r", "b", "c'"], "string", 1, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))])
+        assert it.next() == (["'a", "\r", "b", lbph, "c'"], "string", 1, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))])
         with pytest.raises(StopIteration):
             it.next()
 
@@ -373,5 +397,9 @@ class Test_Keyword(object):
         cls.lexer = Lexer(rules)
 
     def test_simple(self):
-        it = self.lexer.get_token_iter(TextNode(Terminal("asd")))
+        ast = AST()
+        ast.init()
+        new = TextNode(Terminal("asd"))
+        ast.parent.children[0].insert_after(new)
+        it = self.lexer.get_token_iter(new)
         assert it.next() == ("asd", "NAME", 1, [TextNode(Terminal("asd"))])

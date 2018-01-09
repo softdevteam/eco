@@ -386,3 +386,91 @@ y = 2"""
         assert multi.children[0].symbol.name == "\"\"\"a\x80b"
         assert type(multi.children[1].symbol) is MagicTerminal
         assert multi.children[2].symbol.name == "c\"\"\""
+
+    def test_multinode_merged_first(self):
+        self.reset()
+        inputstring = '''"""a\rbc"""'''
+
+        for i in inputstring:
+            self.treemanager.key_normal(i)
+
+        for i in 'def"""':
+            self.treemanager.key_normal(i)
+
+        bos = self.parser.previous_version.parent.children[0]
+        assert bos.next_term.symbol.name == "<Multinode>"
+        assert bos.next_term.next_term.symbol.name == 'def'
+        assert bos.next_term.next_term.next_term.symbol.name == '""'
+        assert bos.next_term.next_term.next_term.next_term.symbol.name == '"'
+
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+
+        assert bos.next_term.symbol.name == "<Multinode>"
+        assert bos.next_term.next_term.symbol.name == "NEWLINE"
+        assert bos.next_term.next_term.next_term.symbol.name == "eos"
+
+    def test_multinode_string_bug(self):
+        self.reset()
+        inputstring = '''x="abc"'''
+        for i in inputstring:
+            self.treemanager.key_normal(i)
+
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.add_languagebox(lang_dict["SQL"])
+        self.treemanager.key_normal("x")
+
+        bos = self.parser.previous_version.parent.children[0]
+        x = bos.next_term
+        assert x.symbol.name == "x"
+        eq = x.next_term
+        assert eq.symbol.name == "="
+        multi = eq.next_term
+        assert multi.lookup == "dstring"
+        assert multi.symbol.name == "<Multinode>"
+
+        self.treemanager.cursor_movement(RIGHT)
+        self.treemanager.key_backspace()
+
+        # removing the ending quote results in a lexingerror,
+        # so the multinode remains
+        assert eq.next_term.symbol.name == "<Multinode>"
+
+        # now remove the first quote, which should lead to the destruction of
+        # the multinode
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.key_backspace()
+        assert eq.next_term.symbol.name == "abc"
+
+    def test_multinode_string_bug2(self):
+        self.reset()
+        inputstring = '''x="abc"'''
+        for i in inputstring:
+            self.treemanager.key_normal(i)
+
+        self.treemanager.cursor_movement(LEFT)
+        self.treemanager.add_languagebox(lang_dict["SQL"])
+        self.treemanager.key_normal("x")
+
+        self.treemanager.leave_languagebox()
+        self.treemanager.key_normal("z")
+        bos = self.parser.previous_version.parent.children[0]
+        x = bos.next_term
+        assert x.symbol.name == "x"
+        eq = x.next_term
+        assert eq.symbol.name == "="
+        multi = eq.next_term
+        assert multi.children[0].symbol.name == "\"abc"
+        assert multi.children[1].symbol.name == "<SQL>"
+        assert multi.children[2].symbol.name == "z\""

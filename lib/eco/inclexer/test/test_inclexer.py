@@ -19,14 +19,16 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from inclexer.inclexer import IncrementalLexer, StringWrapper
+from inclexer.inclexer import IncrementalLexerCF
 from incparser.astree import AST
 from grammars.grammars import calc
 from incparser.astree import TextNode, BOS, EOS, MultiTextNode
 from grammar_parser.gparser import Terminal, Nonterminal, MagicTerminal
 
 import pytest
-from cflexer.lexer import LexingError
+from treelexer.lexer import LexingError, lbph
+
+IncrementalLexer = IncrementalLexerCF
 
 class Test_IncrementalLexer:
 
@@ -42,6 +44,7 @@ class Test_IncrementalLexer:
 def mk_multitextnode(l):
     mt = MultiTextNode()
     mt.set_children([TextNode(x) for x in l])
+    mt.update_children()
     return mt
 
 class Test_CalcLexer(Test_IncrementalLexer):
@@ -71,7 +74,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         assert tokens == expected
 
     def test_lex_no_valid_token(self):
-        pytest.raises(LexingError, self.lex, "abc") # shouldn't loop forever
+        assert self.lex("abc") == [("abc", None)]
 
     def test_token_iter(self):
         ast = AST()
@@ -80,14 +83,12 @@ class Test_CalcLexer(Test_IncrementalLexer):
         new = TextNode(Terminal("1+2*3"))
         bos.insert_after(new)
 
-        from inclexer.inclexer import StringWrapper
-        sw = StringWrapper(new, new)
-        next_token = self.lexer.lexer.get_token_iter(sw)
-        assert next_token() == ("1", "INT", 1, [TextNode(Terminal("1+2*3"))], 1)
-        assert next_token() == ("+", "plus", 0, [TextNode(Terminal("1+2*3"))], 1)
-        assert next_token() == ("2", "INT", 1, [TextNode(Terminal("1+2*3"))], 1)
-        assert next_token() == ("*", "mul", 1, [TextNode(Terminal("1+2*3"))], 1)
-        assert next_token() == ("3", "INT", 1, [TextNode(Terminal("1+2*3"))], 1)
+        next_token = self.lexer.lexer.get_token_iter(new).next
+        assert next_token() == ("1", "INT", 1, [TextNode(Terminal("1+2*3"))])
+        assert next_token() == ("+", "plus", 0, [TextNode(Terminal("1+2*3"))])
+        assert next_token() == ("2", "INT", 1, [TextNode(Terminal("1+2*3"))])
+        assert next_token() == ("*", "mul", 0, [TextNode(Terminal("1+2*3"))])
+        assert next_token() == ("3", "INT", 1, [TextNode(Terminal("1+2*3"))])
 
     def test_token_iter2(self):
         ast = AST()
@@ -98,15 +99,12 @@ class Test_CalcLexer(Test_IncrementalLexer):
         bos.insert_after(new)
         new.insert_after(new2)
 
-        from inclexer.inclexer import StringWrapper
-        sw = StringWrapper(new, new)
-        next_token = self.lexer.lexer.get_token_iter(sw)
-        assert next_token() == ("1234", "INT", 1, [TextNode(Terminal("12")), TextNode(Terminal("34"))], 4)
+        next_token = self.lexer.lexer.get_token_iter(new).next
+        assert next_token() == ("1234", "INT", 1, [TextNode(Terminal("12")), TextNode(Terminal("34"))])
 
     def test_token_iter_lbox(self):
         lexer = IncrementalLexer("""
 "[0-9]+":INT
-"\x80":LBOX
         """)
         ast = AST()
         ast.init()
@@ -118,18 +116,15 @@ class Test_CalcLexer(Test_IncrementalLexer):
         new.insert_after(new2)
         new2.insert_after(new3)
 
-        from inclexer.inclexer import StringWrapper
-        sw = StringWrapper(new, new)
-        next_token = lexer.lexer.get_token_iter(sw)
-        assert next_token() == ("12", "INT", 1, [TextNode(Terminal("12"))], 2)
-        assert next_token() == ("L", "LBOX", 0, [TextNode(MagicTerminal("<SQL>"))], 1)
-        assert next_token() == ("34", "INT", 1, [TextNode(Terminal("34"))], 2)
+        next_token = lexer.lexer.get_token_iter(new).next
+        assert next_token() == ("12", "INT", 1, [TextNode(Terminal("12"))])
+        assert next_token() == (lbph, "", 0, [TextNode(MagicTerminal("<SQL>"))])
+        assert next_token() == ("34", "INT", 1, [TextNode(Terminal("34"))])
 
     def test_token_iter_lbox_multi(self):
         lexer = IncrementalLexer("""
 "[0-9]+":INT
 "\"[^\"]*\"":STRING
-"\x80":LBOX
         """)
         ast = AST()
         ast.init()
@@ -141,16 +136,13 @@ class Test_CalcLexer(Test_IncrementalLexer):
         new.insert_after(new2)
         new2.insert_after(new3)
 
-        from inclexer.inclexer import StringWrapper
-        sw = StringWrapper(new, new)
-        next_token = lexer.lexer.get_token_iter(sw)
-        assert next_token() == (["\"abc","L","def\""], "STRING", 0, [TextNode(Terminal("\"abc")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("def\""))], 9)
+        next_token = lexer.lexer.get_token_iter(new).next
+        assert next_token() == (["\"abc",lbph,"def\""], "STRING", 1, [TextNode(Terminal("\"abc")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("def\""))])
 
     def test_token_iter_lbox_x80(self):
         lexer = IncrementalLexer("""
 "[0-9]+":INT
 "\"[^\"]*\"":STRING
-"\x80":LBOX
         """)
         ast = AST()
         ast.init()
@@ -162,10 +154,8 @@ class Test_CalcLexer(Test_IncrementalLexer):
         new.insert_after(new2)
         new2.insert_after(new3)
 
-        from inclexer.inclexer import StringWrapper
-        sw = StringWrapper(new, new)
-        next_token = lexer.lexer.get_token_iter(sw)
-        assert next_token() == ("\"abc\x80def\"", "STRING", 0, [TextNode(Terminal("\"abc")), TextNode(Terminal("\x80")), TextNode(Terminal("def\""))], 9)
+        next_token = lexer.lexer.get_token_iter(new).next
+        assert next_token() == ("\"abc\x80def\"", "STRING", 1, [TextNode(Terminal("\"abc")), TextNode(Terminal("\x80")), TextNode(Terminal("def\""))])
 
     def test_relex(self):
         ast = AST()
@@ -412,40 +402,9 @@ class Test_CalcLexer(Test_IncrementalLexer):
         assert ast.parent.children[3].deleted is True
         assert ast.parent.children[4].symbol.name == "b"
 
-    def test_stringwrapper(self):
-        ast = AST()
-        ast.init()
-        bos = ast.parent.children[0]
-        eos = ast.parent.children[1]
-        text1 = TextNode(Terminal("abc"))
-        text2 = TextNode(Terminal("+"))
-        text3 = TextNode(Terminal("1"))
-        text4 = TextNode(Terminal("*"))
-        text5 = TextNode(Terminal("3456"))
-        bos.insert_after(text1)
-        text1.insert_after(text2)
-        text2.insert_after(text3)
-        text3.insert_after(text4)
-        text4.insert_after(text5)
-
-        wrapper = StringWrapper(text1, text1)
-        assert wrapper[0] == "a"
-        assert wrapper[2] == "c"
-        assert wrapper[3] == "+"
-        assert wrapper[4] == "1"
-        assert wrapper[5] == "*"
-        assert wrapper[6] == "3"
-        assert wrapper[9] == "6"
-
-        s = "abc+1*3456"
-        for i in range(len(s)):
-            for j in range(len(s)):
-                assert wrapper[i:j] == s[i:j]
-                print(i,j,wrapper[i:j])
-
     def test_multitoken_normal_to_multi(self):
         lexer = IncrementalLexer("""
-"\"[a-z\r\x80]*\"":str
+"\"[^\"]*\"":str
         """)
 
         ast = AST()
@@ -462,7 +421,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
 
     def test_normal_to_multi_and_normal(self):
         lexer = IncrementalLexer("""
-"\"[a-z\r\x80]*\"":str
+"\"[^\"]*\"":str
 "[a-z]+":var
         """)
 
@@ -484,7 +443,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
 
     def test_normal_to_normal_and_multi(self):
         lexer = IncrementalLexer("""
-"\"[a-z\r\x80]*\"":str
+"\"[^\"]*\"":str
 "[a-z]+":var
         """)
 
@@ -506,7 +465,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
 
     def test_multitoken_multi_to_normal(self):
         lexer = IncrementalLexer("""
-"\"[a-z\r\x80]*\"":str
+"\"[a-z]*\"":str
         """)
 
         ast = AST()
@@ -826,6 +785,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         assert bos.next_term == mk_multitextnode([Terminal("\"abc"), Terminal("\r"), Terminal("de"), Terminal("\r"), Terminal("f\"")])
 
         bos.next_term.children.pop(3) # remove a newline
+        bos.next_term.update_children()
         child0 = bos.next_term.children[0]
         child1 = bos.next_term.children[1]
         child2 = bos.next_term.children[2]
@@ -838,7 +798,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
 
     def test_multitoken_real_lbox(self):
         lexer = IncrementalLexer("""
-"\"[a-z\r\x80]*\"":str
+"\"[^\"]*\"":str
         """)
 
         ast = AST()
@@ -857,7 +817,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
 
     def test_multitoken_real_lbox_multiple(self):
         lexer = IncrementalLexer("""
-"\"[a-z\r\x80]*\"":str
+"\"[^\"]*\"":str
         """)
 
         ast = AST()
@@ -880,7 +840,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
 
     def test_multitoken_real_lbox_cut_off_string(self):
         lexer = IncrementalLexer("""
-"\"[a-z\r\x80]*\"":str
+"\"[^\"]*\"":str
 "[a-z]+":var
         """)
 
@@ -913,7 +873,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
 
     def test_multitoken_real_lbox_relex(self):
         lexer = IncrementalLexer("""
-"\"[a-z\r\x80]*\"":str
+"\"[^\"]*\"":str
         """)
 
         ast = AST()
@@ -937,7 +897,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
 
     def test_multitoken_real_lbox_relex_cut_off_string(self):
         lexer = IncrementalLexer("""
-"\"[a-z\r\x80]*\"":str
+"\"[^\"]*\"":str
 "[a-z]+":var
         """)
 
@@ -954,7 +914,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         lexer.relex(text1)
         assert bos.next_term.lookup == "str"
         assert bos.next_term == mk_multitextnode([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("def\"")])
-        assert bos.next_term.lookahead == 0
+        assert bos.next_term.lookahead == 1
 
         bos.next_term.children[2].symbol.name = "d\"ef\""
         pytest.raises(LexingError, lexer.relex, bos.next_term)
@@ -967,7 +927,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
 
     def test_bug_two_newlines_delete_one(self):
         lexer = IncrementalLexer("""
-"\"[a-z\r\x80]*\"":str
+"\"[^\"]*\"":str
 "[0-1]+":INT
 "\+":plus
         """)
@@ -997,7 +957,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
 
     def test_lexer_returns_nodes(self):
         lexer = IncrementalLexer("""
-"\"[a-z\r\x80]*\"":str
+"\"[^\"]*\"":str
         """)
 
         ast = AST()
@@ -1013,13 +973,12 @@ class Test_CalcLexer(Test_IncrementalLexer):
         lexer.relex(text1)
         assert bos.next_term.lookup == "str"
         assert bos.next_term == mk_multitextnode([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("def\"")])
-        assert bos.next_term.lookahead == 0
+        assert bos.next_term.lookahead == 1
 
     def test_multitoken_relex_to_normal(self):
         lexer = IncrementalLexer("""
-"\"[a-z\r\x80]*\"":str
+"\"[^\"]*\"":str
 "[0-9]+":INT
-"\x80":LBOX
         """)
 
         ast = AST()
@@ -1033,15 +992,12 @@ class Test_CalcLexer(Test_IncrementalLexer):
         assert bos.next_term.symbol == Terminal("123")
         assert bos.next_term.lookahead == 1
         assert bos.next_term.next_term.symbol == MagicTerminal("<SQL>")
-        assert bos.next_term.next_term.lookup == "LBOX"
-        assert bos.next_term.lookahead == 1
 
     def test_relex_altered_string(self):
         lexer = IncrementalLexer("""
-"\"[a-z\r\x80]*\"":str
+"\"[^\"]*\"":str
 "[0-9]+":INT
 "\+":PLUS
-"\x80":LBOX
         """)
 
         ast = AST()
@@ -1059,18 +1015,17 @@ class Test_CalcLexer(Test_IncrementalLexer):
         assert bos.next_term.next_term.lookahead == 0
         assert bos.next_term.next_term.next_term.symbol == Terminal("\"\"")
         assert bos.next_term.next_term.next_term.lookup == "str"
-        assert bos.next_term.next_term.next_term.lookahead == 0
+        assert bos.next_term.next_term.next_term.lookahead == 1
 
         string = bos.next_term.next_term.next_term
         string.symbol.name = "\"abc\""
         lexer.relex(string)
 
-    def test_relex_altered_string(self):
+    def test_relex_altered_comment(self):
         lexer = IncrementalLexer("""
-"#[a-z\r\x80]*":comment
+"#[^\r]*":comment
 "[0-9]+":INT
 "\+":PLUS
-"\x80":LBOX
         """)
 
         ast = AST()

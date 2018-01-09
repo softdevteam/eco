@@ -403,25 +403,23 @@ class IncrementalLexerCF(object):
         # create lexer automaton from rules
         regexs = []
         names = []
-        for k, _ in rules:
-            regex = k
-            name = pl.rules[k][1]
-            r = parse_regex(regex)
-            regexs.append(r)
+        for regex, _ in rules:
+            name = pl.rules[regex][1]
+            regexs.append(regex)
             names.append(name)
-        self.lexer = Lexer(regexs, names)
+        self.lexer = Lexer(zip(names, regexs))
 
     def is_indentation_based(self):
         return self.indentation_based
 
     def lex(self, text):
-        tokens = self.lexer.tokenize(text)
+        tokens = self.lexer.lex(text)
         return self.reformat_tokens(tokens)
 
     def reformat_tokens(self, tokens):
         l = []
         for t in tokens:
-            l.append((t.source, t.name))
+            l.append((t[0], t[1]))
         return l
 
     def relex_import(self, startnode, version = 0):
@@ -517,12 +515,12 @@ class IncrementalLexerCF(object):
                             past_startnode = True
                             break
                 toks.append([x for i,x in enumerate(token) if i != 3])
-                tokenslength += len(token[0])
+                tokenslength += tokenlen(token[0])
                 for r in token[3]:
                     if not read or r is not read[-1]: # skip already read nodes from previous tokens
                         read.append(r)
                         if not isinstance(r.symbol, IndentationTerminal):
-                            readlength += len(getname(r))
+                            readlength += getlength(r)
                 if tokenslength == readlength:
                     # Abort relexing if we relexed a node to itself AFTER we
                     # passed `startnode`. This way we avoid relexing nodes that
@@ -584,7 +582,10 @@ class IncrementalLexerCF(object):
         # allows us to properly update all lookback values, even if nodes have
         # been inserted before the starting node or nodes were moved into a
         # multitext node. Otherwise we might only update some of the nodes.
-        node_before_changes = read[0].prev_term
+        if read[0].ismultichild():
+            node_before_changes = read[0].parent.prev_term
+        else:
+            node_before_changes = read[0].prev_term
         if self.merge_back(toks, read):
             changed = True
 
@@ -991,8 +992,15 @@ def getname(node):
 
 def getlength(node):
     if isinstance(node, TextNode):
+        if isinstance(node.symbol, MagicTerminal):
+            return 1
         return len(getname(node))
     return len(node)
+
+def tokenlen(token):
+    if type(token) is list:
+        return sum([len(t) for t in token])
+    return len(token)
 
 def iter_tree(node):
     while True:

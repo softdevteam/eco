@@ -646,12 +646,34 @@ class MultiTextNode(TextNode):
             if self.children[i] is node:
                 self.children.insert(i+1, newnode)
                 newnode.parent = self
+                self.update_neighbors(i+1)
+                return
 
     def remove_child(self, child, version=None):
         for i in xrange(len(self.children)):
             if self.children[i] is child:
                 self.children.pop(i)
+                if i > 0:
+                    self.update_neighbors(i-1)
+                elif i < len(self.children):
+                    self.update_neighbors(i)
                 return
+
+    def update_neighbors(self, i):
+        self.children[i].next_term = None
+        self.children[i].prev_term = None
+        self.children[i].left = None
+        self.children[i].right = None
+        if i > 0:
+            self.children[i-1].next_term = self.children[i]
+            self.children[i-1].right = self.children[i]
+            self.children[i].prev_term = self.children[i-1]
+            self.children[i].left = self.children[i-1]
+        if i+1 < len(self.children):
+            self.children[i].next_term = self.children[i+1]
+            self.children[i].right = self.children[i+1]
+            self.children[i+1].prev_term = self.children[i]
+            self.children[i+1].left = self.children[i]
 
     def isempty(self):
         return self.children == []

@@ -159,8 +159,17 @@ class PatternMatcher(object):
             return self.get_token()
         return None
 
-from incparser.astree import TextNode, BOS, EOS
+from incparser.astree import TextNode, BOS, EOS, MultiTextNode
 from grammar_parser.gparser import MagicTerminal, Terminal, IndentationTerminal
+from grammars.grammars import regex
+
+class LBPH(object):
+    # Placeholder for language boxes to be used within the generated tokens.
+    # Will be replaced with the actual language box in inclexer:merge_back
+    def __len__(self):
+        return 1
+
+lbph = LBPH()
 
 class TreePatternMatcher(PatternMatcher):
 
@@ -173,23 +182,39 @@ class TreePatternMatcher(PatternMatcher):
 
     def inc(self):
         self.pos += 1
-        if self.read_nodes[-1] is not self.text:
+        if self.text.ismultichild():
+            if self.text.parent not in self.read_nodes:
+                self.read_nodes.append(self.text.parent)
+        elif self.read_nodes[-1] is not self.text:
             self.read_nodes.append(self.text)
-        if type(self.text.symbol) is MagicTerminal:
+        if type(self.text.symbol) in [MagicTerminal, IndentationTerminal]:
             self.pos = 0
-            self.text = self.text.next_term
-        if self.pos >= len(self.text.symbol.name):
-            self.text = self.text.next_term
+            self.inc_node()
+        elif self.pos >= len(self.text.symbol.name):
+            self.inc_node()
             self.pos = 0
+
+    def inc_node(self):
+        if self.text.next_term is None and self.text.ismultichild():
+            self.text = self.text.parent.next_term
+        else:
+            assert self.text.next_term is not None
+            self.text = self.text.next_term
+
+        if type(self.text) is MultiTextNode:
+            self.text = self.text.children[0]
+
+        if self.text.symbol.name == "":
+            self.inc_node()
 
     def append(self):
         if type(self.text.symbol) is MagicTerminal:
             self.result.append(None)
+        elif type(self.text.symbol) is IndentationTerminal:
+            pass
         else:
             self.result.append(self.char())
 
-    #XXX create tests where multitextnode is first element that needs to be merged
-    # e.g. [None, 123], read: [Multi, 123] -> Multi(12), 3
     def get_token(self):
         """Rejoins all matched characters back to a single token string. If the
         matched token contains newlines or language boxes, the token is split
@@ -200,6 +225,7 @@ class TreePatternMatcher(PatternMatcher):
             if self.result[i] is None:
                 if j < i:
                     l.append("".join(self.result[j:i]))
+                l.append(lbph)
                 j = i+1
             elif self.result[i] == "\r":
                 if j < i:
@@ -248,7 +274,10 @@ class TreePatternMatcher(PatternMatcher):
         return PatternMatcher.match_range(self, pattern)
 
     def match(self, pattern, text, pos=0):
-        self.read_nodes = [text]
+        if text.ismultichild():
+            self.read_nodes = [text.parent]
+        else:
+            self.read_nodes = [text]
         self.la = 0
         self.lookahead = 0
         return PatternMatcher.match(self, pattern, text, pos)
@@ -256,7 +285,6 @@ class TreePatternMatcher(PatternMatcher):
 class RegexParser(object):
 
     def __init__(self):
-        from grammars.grammars import regex
         p, l = regex.load(buildlexer=False)
         self.incparser = p
         self.lrules = zip(l[0],l[1])
@@ -443,28 +471,43 @@ class Lexer(object):
     def get_token_iter(self, node):
         pm = TreePatternMatcher()
         pos = 0
-        result = []
+        progress = pos, node
         while True:
             lookahead = 0
             oldpos = pos
             oldnode = node
+            result = ("", None, -1, None)
+            while type(node.symbol) is IndentationTerminal:
+                node = node.next_term
+            if type(node) is MultiTextNode:
+                node = node.children[0]
             if type(node) is EOS:
                 break
-            for p, n in self.patterns:
-                if type(node.symbol) is IndentationTerminal:
+            if type(node.symbol) is MagicTerminal:
+                # language boxes relex to themselves
+                if node.ismultichild():
+                    read = [node.parent]
+                else:
+                    read = [node]
+                yield (lbph, "", 0, read)
+                if node.next_term is None and node.ismultichild():
+                    node = node.parent.next_term
+                else:
                     node = node.next_term
-                    break
+                continue
+            for p, n in self.patterns:
                 token = pm.match(p, node, pos)
                 lookahead = max(pm.la, lookahead)
-                if token:
-                    lookahead = lookahead - pm.scanned_chars #(lookahead - len(token)) + (1 if not pm.exactmatch else 0)
-                    yield (token, n, lookahead, pm.read_nodes)
-                    pos = pm.pos
-                    node = pm.text
+                if token and len(token) > len(result[0]): # find longest match
+                    lookahead = lookahead - pm.scanned_chars
+                    result = (token, n, lookahead, pm.read_nodes)
+                    progress = pm.pos, pm.text
                     lookahead = 0
-                    break
+                    continue
                 else:
                     pass
+            pos, node = progress
             if oldnode is node and oldpos == pos:
                 # no progress means we failed to lex something
                 raise LexingError("Failed to lex node '{}' at position {})".format(node, pos))
+            yield result

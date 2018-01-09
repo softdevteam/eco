@@ -419,7 +419,7 @@ class NodeEditor(QFrame):
                     color = colors[(lbox-1) % len(colors)]
                     if lbox > 0:
                         lbox -= 1
-                    node = lbnode.next_term
+                    node = lbnode.next_terminal()
                     highlighter = self.get_highlighter(node)
                     renderer = self.get_renderer(node)
                     if self.selected_lbox is lbnode:
