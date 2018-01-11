@@ -81,32 +81,32 @@ class PatternMatcher(object):
         return False
 
     def match_star(self, pattern):
-        while self._match(pattern.c):
+        while self._inner_match(pattern.c):
              pass
         return True
 
     def match_plus(self, pattern):
-        if not self._match(pattern.c):
+        if not self._inner_match(pattern.c):
             # we have to at least match one
             return False
         return self.match_star(pattern)
 
     def match_question(self, pattern):
-        self._match(pattern.c)
+        self._inner_match(pattern.c)
         return True
 
     def match_list(self, pattern):
         for p in pattern:
-            if not self._match(p):
+            if not self._inner_match(p):
                 return False
         return True
 
     def match_or(self, pattern):
         tmp = self.save_state()
-        if self._match(pattern.lhs):
+        if self._inner_match(pattern.lhs):
             return True
         self.load_state(tmp)
-        return self._match(pattern.rhs)
+        return self._inner_match(pattern.rhs)
 
     def match_range(self, pattern):
         if self.isend():
@@ -117,7 +117,7 @@ class PatternMatcher(object):
         self.exactmatch = False
         return False
 
-    def _match(self, pattern):
+    def _inner_match(self, pattern):
         if not pattern:
             self.pos = self.textlength()
             return True
@@ -155,7 +155,7 @@ class PatternMatcher(object):
         self.pos = pos
         self.text = text
         self.result = []
-        if self._match(pattern):
+        if self._inner_match(pattern):
             return self.get_token()
         return None
 
