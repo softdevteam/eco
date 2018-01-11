@@ -19,9 +19,5 @@ install:
     - cd downloads/PyQt4_gpl_x11-4.12.1 && python configure.py --confirm-license && sudo make && sudo make install && cd ../../
 
 script:
-- if [ "${TRAVIS_PULL_REQUEST}" == "false" ] && [ "${TRAVIS_BRANCH}" == "master" ] ;
-  then
-     cd lib/eco; py.test test/test_eco.py; py.test test/test_eco.py --justslow;
-   else
-     cd lib/eco; py.test test/test_eco.py;
-  fi
+- cd lib/eco;
+- py.test

@@ -21,7 +21,7 @@
 
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
-from grammars.grammars import calc1, java15
+from grammars.grammars import calc, java
 from grammar_parser.plexer import PriorityLexer
 from grammar_parser.gparser import Terminal, Nonterminal
 from incparser.astree import TextNode, BOS, EOS, FinishSymbol
@@ -56,8 +56,9 @@ class Test_IncrementalParser:
 class Test_CalcParser(Test_IncrementalParser):
 
     def setup_class(cls):
-        cls.lexer = IncrementalLexer(calc1.priorities)
-        cls.parser = IncParser(calc1.grammar, 1, True)
+        parser, lexer = calc.load()
+        cls.lexer = lexer
+        cls.parser = parser
         cls.parser.init_ast()
         cls.ast = cls.parser.previous_version
 
@@ -100,8 +101,9 @@ class Test_CalcParser(Test_IncrementalParser):
 class Test_JavaParser(Test_IncrementalParser):
 
     def setup_class(cls):
-        cls.lexer = IncrementalLexer(java15.priorities)
-        cls.parser = IncParser(java15.grammar, 1, True)
+        parser, lexer = java.load()
+        cls.lexer = lexer
+        cls.parser = parser
         cls.parser.init_ast()
         cls.ast = cls.parser.previous_version
 
@@ -110,98 +112,4 @@ class Test_JavaParser(Test_IncrementalParser):
         new = TextNode(Terminal("class Test {}"))
         bos.insert_after(new)
         self.lexer.relex(new)
-        self.lexer.relex(new)
         assert self.parser.inc_parse([]) == True
-
-        node = self.insert_text(self.ast, 12, "public static void main(String[] args){}")
-        self.lexer.relex(node)
-        assert self.parser.inc_parse([]) == True
-        result = """Nonterminal('Root')
-    Terminal('''')
-    Nonterminal('Startrule')
-        Nonterminal('WS')
-        Nonterminal('goal')
-            Nonterminal('compilation_unit')
-                Nonterminal('package_declaration_opt')
-                Nonterminal('import_declarations_opt')
-                Nonterminal('type_declarations_opt')
-                    Nonterminal('type_declarations')
-                        Nonterminal('type_declaration')
-                            Nonterminal('class_declaration')
-                                Nonterminal('modifiers_opt')
-                                Terminal(''class'')
-                                Nonterminal('WS')
-                                    Terminal('' '')
-                                    Nonterminal('WS')
-                                Terminal(''Test'')
-                                Nonterminal('WS')
-                                    Terminal('' '')
-                                    Nonterminal('WS')
-                                Nonterminal('type_parameters_opt')
-                                Nonterminal('super_opt')
-                                Nonterminal('interfaces_opt')
-                                Nonterminal('class_body')
-                                    Terminal(''{'')
-                                    Nonterminal('WS')
-                                    Nonterminal('class_body_declarations_opt')
-                                        Nonterminal('class_body_declarations')
-                                            Nonterminal('class_body_declaration')
-                                                Nonterminal('class_member_declaration')
-                                                    Nonterminal('method_declaration')
-                                                        Nonterminal('method_header')
-                                                            Nonterminal('modifiers_opt')
-                                                                Nonterminal('modifiers')
-                                                                    Nonterminal('modifiers')
-                                                                        Nonterminal('modifier')
-                                                                            Terminal(''public'')
-                                                                            Nonterminal('WS')
-                                                                                Terminal('' '')
-                                                                                Nonterminal('WS')
-                                                                    Nonterminal('modifier')
-                                                                        Terminal(''static'')
-                                                                        Nonterminal('WS')
-                                                                            Terminal('' '')
-                                                                            Nonterminal('WS')
-                                                            Terminal(''void'')
-                                                            Nonterminal('WS')
-                                                                Terminal('' '')
-                                                                Nonterminal('WS')
-                                                            Nonterminal('method_declarator')
-                                                                Terminal(''main'')
-                                                                Nonterminal('WS')
-                                                                Terminal(''('')
-                                                                Nonterminal('WS')
-                                                                Nonterminal('formal_parameter_list_opt')
-                                                                    Nonterminal('formal_parameter_list')
-                                                                        Nonterminal('formal_parameter')
-                                                                            Nonterminal('type')
-                                                                                Nonterminal('reference_type')
-                                                                                    Nonterminal('array_type')
-                                                                                        Nonterminal('name')
-                                                                                            Nonterminal('simple_name')
-                                                                                                Terminal(''String'')
-                                                                                                Nonterminal('WS')
-                                                                                        Nonterminal('dims')
-                                                                                            Terminal(''['')
-                                                                                            Nonterminal('WS')
-                                                                                            Terminal('']'')
-                                                                                            Nonterminal('WS')
-                                                                                                Terminal('' '')
-                                                                                                Nonterminal('WS')
-                                                                            Nonterminal('variable_declarator_id')
-                                                                                Terminal(''args'')
-                                                                                Nonterminal('WS')
-                                                                Terminal('')'')
-                                                                Nonterminal('WS')
-                                                            Nonterminal('throws_opt')
-                                                        Nonterminal('method_body')
-                                                            Nonterminal('block')
-                                                                Terminal(''{'')
-                                                                Nonterminal('WS')
-                                                                Nonterminal('block_statements_opt')
-                                                                Terminal(''}'')
-                                                                Nonterminal('WS')
-                                    Terminal(''}'')
-                                    Nonterminal('WS')
-    $"""
-        assert result == self.ast.cprint()
