@@ -129,6 +129,7 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("\\+"), "+") == "+"
         assert PatternMatcher().match(self.cmp("\'"), "\'") == "'"
         assert PatternMatcher().match(self.cmp("\\'"), "\'") == "'"
+        assert PatternMatcher().match(self.cmp('\\"'), '\"') == '\"'
         assert PatternMatcher().match(self.cmp("\r"), "\r") == "\r"
         assert PatternMatcher().match(self.cmp("\\r"), "\r") == "\r"
         assert PatternMatcher().match(self.cmp("\r"), "\\r") is None
@@ -163,6 +164,7 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("0[xX][\da-fA-F]+"), "0xAB") == "0xAB"
         assert PatternMatcher().match(self.cmp("0[oO][0-7]+"), "0o67") == "0o67"
         assert PatternMatcher().match(self.cmp("0[bB][01]+"), "0b10101") == "0b10101"
+        assert PatternMatcher().match(self.cmp('\"([^\"\r\\\\]|\\\\")*\"'), '"escaped\\"quote"') == '"escaped\\"quote"'
 
         # Prolog
         assert PatternMatcher().match(self.cmp("/"), "/") == "/"
@@ -183,6 +185,17 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("\{\}"), "{}") == "{}"
         assert PatternMatcher().match(self.cmp("([a-z]([a-zA-Z0-9]|_)*)|('[^']*')|\[\]|!|\+|\-|\{\}"), "aH8_") == "aH8_"
         assert PatternMatcher().match(self.cmp("\"[^\"]*\""), '"a string"') == '"a string"'
+
+        # Eco grammar
+        assert PatternMatcher().match(self.cmp('\\"([^\\"]|\\\\\\")*\\"'), '"terminal"') == '"terminal"'
+        assert PatternMatcher().match(self.cmp('\\"([^\\"]|\\\\\\")*\\"'), '"[a-z]"') == '"[a-z]"'
+        assert PatternMatcher().match(self.cmp('\\"([^\\\\"]|\\\\\\")*\\"'), '"\\"[a-z]\\""') == '"\\"[a-z]\\""'
+        assert PatternMatcher().match(self.cmp('\\"([^\\\\"]|\\\\\\")*\\"'), '"\\"[a"-z]\\""') == '"\\"[a"'
+        assert PatternMatcher().match(self.cmp('"([^\\"\\\\r]|\\\\\")*"'), '"\\"[a-z]\\""') == '"\\"[a-z]\\""'
+        assert PatternMatcher().match(self.cmp('\\"([^\\"\\\\]|\\\\.)*\\"'), '"\+"') == '"\+"'
+        assert PatternMatcher().match(self.cmp('\\"([^\\"\\\\]|\\\\.)*\\"'), '"escaped\\"quote"') == '"escaped\\"quote"'
+        assert PatternMatcher().match(self.cmp('\\"([^\\"\\\\]|\\\\.)*\\"'), "\"escaped\\\"quote\"") == '"escaped\\"quote"'
+        assert PatternMatcher().match(self.cmp('\\"([^\\"\\\\]|\\\\.)*\\"'), '"\\"[a"-z]\\""') == '"\\"[a"'
 
     def test_exactmatch(self):
         pm = PatternMatcher()
