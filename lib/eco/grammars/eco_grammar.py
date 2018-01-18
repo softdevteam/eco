@@ -85,7 +85,7 @@ tokenname ::= "nonterminal" | "languagebox"
 "[0-9]+":NUMBER
 "[a-zA-Z_0-9]+":nonterminal
 "\<[a-zA-Z_0-9 \.]+\>":languagebox
-"\\"([^\\"]|\\\\\\")*\\"":terminal
+"\\"([^\\"\\\\]|\\\\.)*\\"":terminal
 "::\=":assign
 ":"::
 "\=":=

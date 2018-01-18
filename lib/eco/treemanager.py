@@ -21,7 +21,7 @@
 
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
-from cflexer.lexer import LexingError
+from treelexer.lexer import LexingError
 from incparser.astree import TextNode, BOS, EOS, MultiTextNode
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
 from PyQt4.QtGui import QApplication
@@ -1106,16 +1106,20 @@ class TreeManager(object):
                 self.delete_linebreak(self.cursor.line, node)
             self.last_delchar = node.backspace(0)
             repairnode = node
-
             # if node is empty, delete it and repair previous/next node
             if node.symbol.name == "" and not isinstance(node, BOS):
-                repairnode = self.cursor.find_previous_visible(node)
-                repairnode.mark_changed()
+                if node.ismultichild():
+                    repairnode = node.parent
+                else:
+                    repairnode = self.cursor.find_previous_visible(node)
+                    repairnode.mark_changed()
 
                 if not self.clean_empty_lbox(node):
                     # normal node is empty -> remove it from AST
                     node.parent.remove_child(node)
                     need_reparse = True
+                if node.ismultichild():
+                    node.parent.update_children()
 
         need_reparse |= self.relex(repairnode)
         need_reparse |= self.post_keypress("")

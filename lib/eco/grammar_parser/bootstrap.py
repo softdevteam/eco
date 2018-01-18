@@ -439,7 +439,7 @@ class BootstrapParser(object):
         elif node.symbol.name == "astnode":
             return self.parse_astnode(node)
 
-    def create_lexer(self):
+    def create_lexer(self, buildlexer=True):
         names = []
         regexs = []
         for name, regex in self.lrules:
@@ -452,6 +452,9 @@ class BootstrapParser(object):
         for t in undefined_terminals:
             names.insert(0, t)
             regexs.insert(0,re.escape(t))
+        if not buildlexer:
+            self.inclexer = (names, regexs)
+            return
         self.inclexer = IncrementalLexerCF()
         self.inclexer.from_name_and_regex(names, regexs)
         if self.indentation_based():

@@ -49,7 +49,7 @@ class EcoFile(object):
         self.alts = {}
         self.extract = None
 
-    def load(self):
+    def load(self, buildlexer=True):
         from grammar_parser.bootstrap import BootstrapParser
         from jsonmanager import JsonManager
         from incparser.incparser import IncParser
@@ -79,7 +79,7 @@ class EcoFile(object):
 
             bootstrap.parse_both()
             bootstrap.create_parser(pickle_id)
-            bootstrap.create_lexer()
+            bootstrap.create_lexer(buildlexer)
             whitespace = bootstrap.implicit_ws()
 
             _cache[self.name + "::lexer"] = bootstrap.inclexer
@@ -169,8 +169,10 @@ rubysl.add_alternative("top_stmt", simplelang)
 rubyjs = EcoFile("Ruby + JavaScript", "grammars/ruby.eco", "Ruby")
 rubyjs.add_alternative("top_stmt", javascript)
 
-languages = [calc, java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar, python_expr, ipython, pythonipython, simplelang, ruby, rubysl, rubyjs, javascript]
-newfile_langs = [java, javasqlchemical, php, phppython, python, pythonhtmlsql, pythonprolog, prolog, sql, html, htmlpythonsql, pythonipython, calc, ruby, simplelang, rubysl, rubyjs, javascript]
+regex = EcoFile("Regex", "grammars/regex.eco", "Regex")
+
+languages = [calc, java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar, python_expr, ipython, pythonipython, simplelang, ruby, rubysl, rubyjs, javascript, regex]
+newfile_langs = [java, javasqlchemical, php, phppython, python, pythonhtmlsql, pythonprolog, prolog, sql, html, htmlpythonsql, pythonipython, calc, ruby, simplelang, rubysl, rubyjs, javascript, regex]
 submenu_langs = [java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, python_expr, prolog, sql, sql_ref_java, html, htmlpythonsql, img, chemical, ipython, ruby, simplelang, javascript, rubysl, rubyjs]
 
 lang_dict = {}
