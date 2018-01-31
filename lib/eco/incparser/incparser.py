@@ -178,7 +178,7 @@ class IncParser(object):
             # node that is being analyses and the lookahead matches the nodes
             # lookahead from the previous parse, we are done
             if self.ooc:
-                logging.debug("ooc %s", self.ooc, id(self.ooc))
+                logging.debug("ooc %s %s", self.ooc, id(self.ooc))
                 logging.debug("la %s", la)
                 logging.debug("cs %s", self.current_state)
                 if la is self.ooc[0]:
@@ -312,6 +312,7 @@ class IncParser(object):
             bos.changed = False
             eos.changed = False
             self.previous_version.parent.set_children([bos, self.stack[1], eos])
+            self.previous_version.parent.changed = True
             logging.debug("loopcount: %s", self.loopcount)
             logging.debug ("\x1b[32mAccept\x1b[0m")
             return "Accept"
@@ -683,6 +684,70 @@ class IncParser(object):
                             self.reused_nodes.add(old_parent)
                         return old_parent
         return None
+
+    def top_down_reuse(self):
+        main = self.previous_version.parent
+        self.top_down_traversal(main)
+
+    def top_down_traversal(self, node):
+        if node.changed and not node.new:
+            self.reuse_isomorphic_structure(node)
+        elif node.nested_changes or node.new:
+            for c in node.children:
+                self.top_down_traversal(c)
+
+    def reuse_isomorphic_structure(self, node):
+        for i in range(len(node.children)):
+            current_child = node.children[i]
+            try:
+                previous_child = node.get_attr("children", self.prev_version)[i]
+            except IndexError:
+                self.top_down_traversal(current_child)
+                continue
+            if current_child.new and not previous_child.exists and \
+                current_child.symbol.name == previous_child.get_attr("symbol.name", self.prev_version):
+                    self.replace_child(node, i, current_child, previous_child)
+                    self.reuse_isomorphic_structure(previous_child)
+            elif current_child.nested_changes or current_child.new:
+                self.top_down_traversal(current_child)
+
+    def replace_child(self, parent, i, current, previous):
+        if isinstance(current.symbol, Terminal):
+            # Newly inserted terminals have already been saved to the history
+            # (previous_version) before we reach this. Reusing terminals
+            # here would thus give no memory benefit as the old terminal can't
+            # be garbage collected
+            return
+        parent.children[i] = previous
+        previous.parent = parent # in case previous was moved before being deleted
+        previous.children = list(current.children)
+        for c in current.children:
+            c.parent = previous
+        previous.symbol.name = current.symbol.name
+        previous.changed = False
+        previous.deleted = False
+        previous.isolated = False
+        previous.local_error = False
+        previous.state = current.state
+        previous.mark_changed()
+        previous.calc_textlength()
+        previous.position = current.position
+        previous.exists = True
+        previous.nested_errors = current.nested_errors
+        previous.right = current.right
+        previous.left = current.left
+        previous.alternate = current.alternate
+        if previous.right:
+            previous.right.left = previous
+        if previous.left:
+            previous.left.right = previous
+
+        if isinstance(current.symbol, Terminal):
+            previous.lookup = current.lookup
+            previous.prev_term = current.prev_term
+            previous.next_term = current.next_term
+            previous.prev_term.next_term = previous
+            previous.next_term.prev_term = previous
 
     def interpret_annotation(self, node, production):
         annotation = production.annotation
