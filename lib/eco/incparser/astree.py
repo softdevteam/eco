@@ -152,6 +152,7 @@ class Node(object):
             if not node.parent:
                 break
             if node.parent.has_changes():
+                node.parent.nested_changes = True
                 break
             node = node.parent
             node.nested_changes = True

@@ -1880,6 +1880,7 @@ class TreeManager(object):
             parser.prev_version = self.version
             parser.reference_version = self.reference_version
             parser.inc_parse()
+            parser.top_down_reuse()
             self.save_current_version(postparse=True) # save post parse tree
             if parser.last_status == True:
                 self.reference_version = self.version

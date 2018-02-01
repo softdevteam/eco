@@ -4413,3 +4413,42 @@ class Test_RetainSubtree:
         # current retaining creates a loop here as 'WS' is partly reverted and
         # retained at the same time
         assert WS3 is not WS
+
+class Test_TopDownReuse(Test_Python):
+
+    def test_basic(self):
+        grm = EcoFile("Undotest", "test/undobug1.eco", "Undo")
+        t = TreeManager()
+        parser, lexer = grm.load()
+        t.add_parser(parser, lexer, python.name)
+
+        t.key_normal("a")
+        t.undo_snapshot()
+        t.key_normal("b")
+        t.undo_snapshot()
+        t.key_normal("c")
+        t.undo_snapshot()
+        assert parser.last_status == True
+
+        startrule = parser.previous_version.parent.children[1]
+        E = startrule.children[1]
+        assert E.symbol.name == "E"
+        Y = E.children[0]
+        assert Y.symbol.name == "Y"
+
+        t.key_cursors(LEFT)
+        t.key_cursors(LEFT)
+        t.key_normal("x")
+        t.undo_snapshot()
+        assert parser.last_status == True
+
+        startrule2 = parser.previous_version.parent.children[1]
+        E2 = startrule2.children[1]
+        assert E2.symbol.name == "E"
+        Y2 = E2.children[0]
+        assert Y2.symbol.name == "Y"
+
+        # check if they have been reused
+        assert startrule is startrule2
+        assert E is E2
+        assert Y is Y2
