@@ -584,10 +584,6 @@ class TextNode(Node):
             return self.get_attr("changed", version) or self.get_attr("nested_changes", version)
         return self.changed or self.nested_changes
 
-    def does_exist(self):
-        # XXX isn't it also either new or reused?
-        return self.exists
-
     def has_errors(self):
         return self.nested_errors or self.local_error
 

@@ -821,7 +821,7 @@ class Test_Indentation(Test_Python):
         self.treemanager.key_delete()
 
     def test_indentation_stresstest_bug_retain(self):
-        # In the `pass2` method `textlength` needs to check the yield of the
+        # In the `pass1` method `textlength` needs to check the yield of the
         # previous version of the program. Wagner's thesis uses the current
         # version, which is limited by the error and thus can never have a
         # greater yield than the location of error
@@ -864,7 +864,8 @@ class Test_Indentation(Test_Python):
         self.move(DOWN, 17)
         self.move(RIGHT, 11)
         self.treemanager.key_backspace()
-        #assert False
+        # This is the part where the bug is introduced, leading to an
+        # error later on
         self.treemanager.cursor_reset()
         self.move(DOWN, 14)
         self.move(RIGHT, 2)
