@@ -288,6 +288,7 @@ class IncParser(object):
             # Nodes are no longer removed from the tree. Instead "deleted" nodes
             # are skipped during parsing so they won't end up in the next parse
             # tree. This allows to revert deleted nodes on undo.
+            la.exists = False
             la = self.pop_lookahead(la)
             return la
         # XXX if temporary EOS symbol, check lookup
@@ -378,6 +379,7 @@ class IncParser(object):
     def discard_changes(self, node):
         if node.has_changes():
             node.load(self.prev_version)
+            node.exists = True
             if node.nested_changes:
                 node.nested_errors = True
             if node.changed:
@@ -399,23 +401,25 @@ class IncParser(object):
         # to analyse them using the normal incparser
         logging.debug("    Refine %s Offset: %s Error Offset: %s", node, offset, error_offset)
         retain_set = set()
-        self.pass1(node, offset, error_offset, retain_set)
+        self.pass1(node, offset, error_offset, retain_set, offset)
         node.load(self.prev_version)
+        node.exists = True
         node.set_children(node.children) # reset sibling pointers
         node.local_error = node.nested_errors = False
         self.pass2(node, offset, error_offset, retain_set)
 
-    def pass1 (self, node, offset, error_offset, retain_set):
+    def pass1 (self, node, offset, error_offset, retain_set, poffset):
         if offset > error_offset:
             # We don't have to check any other children
             # that come after the error node
             return
         for child in node.get_attr("children", self.prev_version):
             if offset + child.textlength() <= error_offset:
-                self.find_retainable_subtrees(child, retain_set)
+                self.find_retainable_subtrees(child, retain_set, poffset)
             else:
-                self.pass1(child, offset, error_offset, retain_set)
+                self.pass1(child, offset, error_offset, retain_set, poffset)
             offset += child.textlength()
+            poffset += child.textlength(self.prev_version) # calculate the current position on the fly
 
     def pass2(self, node, offset, error_offset, retain_set):
         for c in node.children:
@@ -434,27 +438,29 @@ class IncParser(object):
                 self.pass2(c, offset, error_offset, retain_set)
             offset += c.textlength()
 
-    def find_retainable_subtrees(self, node, retain_set):
-        if self.is_retainable_subtree(node):
+    def find_retainable_subtrees(self, node, retain_set, poffset):
+        if self.is_retainable_subtree(node, poffset):
             retain_set.add(node)
             return
         for child in node.get_attr("children", self.prev_version):
-            self.find_retainable_subtrees(child, retain_set)
+            self.find_retainable_subtrees(child, retain_set, poffset)
+            poffset += child.textlength(self.prev_version)
 
-    def is_retainable_subtree(self, node):
+    def is_retainable_subtree(self, node, poffset):
         if node.new:
             return False
 
-        if not node.does_exist():
+        if not node.exists:
             return False
 
-        if not node.has_changes():
-            # if no changes, discarding doesn't do anything anyways so why check?
+        if not node.nested_changes:
+            # Even though retaining an unchanged node doesn't revert any changes
+            # it avoids having to inspect the children
             return True
 
         # This is equivalent to Wagner's `same_pos` function.
         if node.textlength(self.prev_version) == node.textlength() and \
-                node.get_attr("position", self.prev_version) == node.position:
+                poffset == node.position:
             return True
 
         return False
@@ -467,7 +473,9 @@ class IncParser(object):
             # Might have been assigned to a different parent in current version
             # that was removed during refinement. This makes sure this node is
             # assigned to the right parent. See test_eco.py:Test_RetainSubtree
-            node.parent = parent
+            if node.parent is not parent:
+                node.parent.mark_changed()
+                node.parent = parent
             # Also need to update siblings as they might have been changed by
             # the parser before nodes parent was reset
             node.update_siblings()
@@ -776,6 +784,7 @@ class IncParser(object):
 
     def right_breakdown(self):
         node = self.stack.pop() # optimistically shifted Nonterminal
+        node.exists = False
         # after the breakdown, we need to properly shift the left over terminal
         # using the (correct) current state from before the optimistic shift of
         # it's parent tree
@@ -786,7 +795,6 @@ class IncParser(object):
             # subsequent reductions. These reductions may contain nodes that
             # have been reused. Reverting the reduction also means we need to
             # undo the reusing of that node to free it up for future reusing.
-            node.exists = False
             self.reused_nodes.discard(node)
             # This bit of code is necessary to avoid a bug that occurs with the
             # default Wagner implementation if we isolate a subtree and
@@ -800,12 +808,14 @@ class IncParser(object):
             # exception. The following code fixes this by ignoring already
             # isolated subtrees.
             if node.isolated:
+                node.exists = True
                 self.stack.append(node)
                 self.current_state = node.state
                 return
             for c in node.children:
                 self.shift(c, rb=True)
             node = self.stack.pop()
+            node.exists = False
             # after undoing an optimistic shift (through pop) we need to revert
             # back to the state before the shift (which can be found on the top
             # of the stack after the "pop"
@@ -814,6 +824,7 @@ class IncParser(object):
                 # FinishSymbol pack onto the stack
                 self.current_state = 0
                 self.stack.append(node)
+                node.exists = True
                 return
             else:
                 logging.debug("right breakdown else: set state to %s", self.stack[-1].state)

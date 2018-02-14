@@ -955,6 +955,12 @@ class TreeManager(object):
                 self.save_and_textlen_rec(c, postparse)
             node.calc_textlength()
             node.save(self.version)
+            # Make sure that all nodes are always marked as non-existent before
+            # a new parse. This way only parsed subtrees are marked as exists,
+            # and we avoid retaining not yet parsed subtrees. However, not yet
+            # marked subtrees shouldn't end up in the retain part in the first
+            # place. But due to Wagner using current_version instead of
+            # previous_version in pass1 this can happen.
             node.exists = False
 
     def key_home(self, shift=False):
