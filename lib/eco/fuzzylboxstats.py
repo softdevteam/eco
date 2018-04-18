@@ -1,5 +1,5 @@
 import random
-from grammars.grammars import javapy, python
+from grammars.grammars import javapy, python, javasql, sqlfull, phppython
 from treemanager import TreeManager
 from grammar_parser.gparser import Nonterminal, Terminal
 
@@ -22,22 +22,28 @@ def subtree_to_text(subtree):
             l.append(subtree_to_text(child))
     elif type(subtree.symbol) is Terminal:
         l.append(subtree.symbol.name)
-    return "".join(l)
+    return "".join(l).replace("\r","").replace("\t", "").replace("\n", "")
 
 def truncate(string):
-    return string[:15] + "..." + string[-15:]
+    if len(string) > 40:
+        return repr(string[:20] + "..." + string[-20:])
+    else:
+        return repr(string)
 
 class FuzzyLboxStats:
 
-    def __init__(self):
-        parser, lexer = javapy.load()
+    def __init__(self, main, sub):
+        parser, lexer = main.load()
         self.lexer = lexer
         self.parser = parser
         self.ast = parser.previous_version
         self.treemanager = TreeManager()
-        self.treemanager.add_parser(parser, lexer, javapy.name)
+        self.treemanager.add_parser(parser, lexer, main.name)
 
-        parser.setup_autolbox(javapy.name)
+        parser.setup_autolbox(main.name)
+        self.sub = sub
+
+        self.inserted = 0
 
     def load_main(self, filename):
         f = open(filename, "r")
@@ -72,12 +78,12 @@ class FuzzyLboxStats:
         return l
 
     def find_expressions(self, program, expr):
-        parser, lexer = python.load()
+        parser, lexer = self.sub.load()
         treemanager = TreeManager()
-        treemanager.add_parser(parser, lexer, python.name)
+        treemanager.add_parser(parser, lexer, self.sub.name)
         treemanager.import_file(program)
 
-        # find all python expressions
+        # find all sub expressions
         l = self.find_nonterms_by_name(treemanager, expr)
         l2 = []
         for st in l:
@@ -118,37 +124,58 @@ class FuzzyLboxStats:
     def run(self):
         assert len(self.treemanager.parsers) == 1
 
-        #print "mainexpr", [subtree_to_text(x) for x in self.mainexprs]
-        #print "pyexpr", self.replexprs
+        print self.main_repl_str, len([subtree_to_text(x) for x in self.mainexprs])
+        print self.sub_repl_str, len(self.replexprs)
         random.shuffle(self.mainexprs)
         for e in self.mainexprs[:10]:
             if e.get_root() is None:
                 continue
-            before = len(self.treemanager.parsers)
             deleted = self.delete_expr(e)
+            before = len(self.treemanager.parsers)
             if deleted:
                 choice = random.choice(self.replexprs)
-                print "Replacing '{}' with '{}':".format(truncate(deleted), truncate(choice))
+                print "  Replacing '{}' with '{}':".format(truncate(deleted), truncate(choice))
                 self.insert_python_expression(choice)
                 valid = self.parser.last_status
                 if before == len(self.treemanager.parsers):
                     result = "No box inserted"
                 else:
                     result = "Box inserted"
+                    self.inserted += 1
                 print "    => {} ({})".format(result, valid)
             else:
-                print "Replacing '{}' with '{}':\n    => Already deleted".format(subtree_to_text(e), choice)
+                print "Replacing '{}' with '{}':\n    => Already deleted".format(truncate(subtree_to_text(e)), truncate(choice))
+        print("Boxes inserted: {}/{}".format(self.inserted, 10))
 
 if __name__ == "__main__":
     import sys
     args = sys.argv
-    mainfile = args[1]
-    exprfile = args[2]
-    fuz = FuzzyLboxStats()
-    #fuz.set_replace("unary_expression", "testlist")
+
+    # PHP + Python
+    fuz = FuzzyLboxStats(phppython, python)
+    fuz.set_replace("scalar", "testlist")
+    fuz.load_main("../../php_examples/example1.php")
+    fuz.load_expr("../../python_examples/connect4.py")
+    fuz.run()
+
+    # PHP + Python
+    fuz = FuzzyLboxStats(phppython, python)
+    fuz.set_replace("class_statement", "funcdef")
+    fuz.load_main("../../php_examples/GuardAuthenticationListener.php")
+    fuz.load_expr("../../python_examples/connect4.py")
+    fuz.run()
+
+    # Java + Python
+    fuz = FuzzyLboxStats(javapy, python)
     fuz.set_replace("method_declaration", "funcdef")
-    fuz.load_main(mainfile)
-    fuz.load_expr(exprfile)
+    fuz.load_main("../../java_examples/Scribble.java")
+    fuz.load_expr("../../sqlexamples.txt")
+
+    # Java + SQL
+    fuz = FuzzyLboxStats(javasql, sqlfull)
+    fuz.set_replace("unary_expression", "query")
+    fuz.load_main("../../java_examples/Scribble.java")
+    fuz.load_expr("../../sqlexamples.txt")
     fuz.run()
 
 # XXX turn this into a stats tool instead of a test suite
