@@ -106,6 +106,7 @@ class IncParser(object):
 
         self.autolboxes = None
         self.autodetector = None
+        self.option_autolbox_find = False
 
     def is_valid_symbol(self, state, token):
         action = self.syntaxtable.lookup(state, token)
@@ -349,7 +350,7 @@ class IncParser(object):
                 logging.debug("After breakdown: %s", self.stack[-1])
                 self.validating = False
             else:
-                if self.autodetector and self.autodetector.detect_lbox(la):
+                if self.autodetector and self.option_autolbox_find and self.autodetector.detect_lbox(la):
                     pass # we can immediately apply the language box here in the future
                 self.error_nodes.append(la)
                 if self.rm.recover(la):

@@ -435,6 +435,8 @@ class TreeManager(object):
 
         self.tool_data_is_dirty = False
         self.autolboxdetector = None
+        self.option_autolbox_find = True
+        self.option_autolbox_insert = False
 
         # This code and the can_profile() method should probably be refactored.
         self.langs_with_profiler = {
@@ -1782,10 +1784,12 @@ class TreeManager(object):
                 bos = root.children[0]
                 class X:
                     last_status = True
-                self.parsers = [[X, None, language, None]]
+                self.parsers = [[X, None, language, None, None]]
         def x():
             return bos
         self.get_bos = x
+        self.lines.append(X())
+        self.lines[0].node = bos
         return self.export(path, source=source)
 
     def load_file(self, language_boxes, reparse=True):
@@ -2008,6 +2012,7 @@ class TreeManager(object):
             self.previous_version = self.version
             parser.prev_version = self.version
             parser.reference_version = self.reference_version
+            parser.option_autolbox_find = self.option_autolbox_find
             parser.inc_parse()
             parser.top_down_reuse()
             self.save_current_version(postparse=True) # save post parse tree
@@ -2020,7 +2025,7 @@ class TreeManager(object):
         TreeManager.version = self.version
 
         # Now check for auto language boxes
-        if skipautolbox:
+        if skipautolbox or self.option_autolbox_insert is False:
             return
 
         parsers = list(self.parsers) # copy to avoid processing newly added parsers
