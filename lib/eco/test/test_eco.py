@@ -4496,6 +4496,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = pythonsql.load()
         parser.setup_autolbox(pythonsql.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
 
         for c in "x = SELECT * FROM table WHERE y=1":
@@ -4508,6 +4509,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = pythonsql.load()
         parser.setup_autolbox(pythonsql.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
 
         treemanager.key_normal(";")
@@ -4522,6 +4524,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = javapy.load()
         parser.setup_autolbox(javapy.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
 
         for c in "class X {\n\n}":
@@ -4542,6 +4545,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = javapy.load()
         parser.setup_autolbox(javapy.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
 
         for c in "class X {\n\n\n\n}":
@@ -4566,6 +4570,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = javapy.load()
         parser.setup_autolbox(javapy.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
 
         code = """class X {
@@ -4597,6 +4602,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = phppython.load()
         parser.setup_autolbox(phppython.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
 
         for c in "def x():\n    ":
@@ -4612,6 +4618,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = phppython.load()
         parser.setup_autolbox(phppython.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
 
         for c in "$x = [x for x in range(10)":
@@ -4632,6 +4639,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = phppython.load()
         parser.setup_autolbox(phppython.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
 
         for c in "$x = 1 or not ":
@@ -4651,6 +4659,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = pythonsql.load()
         parser.setup_autolbox(pythonsql.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
 
         for c in "x = SELECT * FROM table":
@@ -4673,6 +4682,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = phppython.load()
         parser.setup_autolbox(phppython.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
 
         for c in "class X{\n}":
@@ -4695,6 +4705,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = phppython.load()
         parser.setup_autolbox(phppython.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
 
         for c in "function x(){\n}":
@@ -4719,6 +4730,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = pythonsql.load()
         parser.setup_autolbox(pythonsql.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
 
         for c in "x = SELECT * FROM table":
@@ -4740,6 +4752,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = phppython.load()
         parser.setup_autolbox(phppython.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
         phpprogram = """function x(){
     $x = 12;
@@ -4766,6 +4779,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = phppython.load()
         parser.setup_autolbox(phppython.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
         for c in """function x(){
             $x = [1,2,3];
@@ -4776,6 +4790,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = phppython.load()
         parser.setup_autolbox(phppython.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
         p = """function x(){
     $x = [1,2,3];
@@ -4791,6 +4806,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = phppython.load()
         parser.setup_autolbox(phppython.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
         p = """function x(){
 
@@ -4807,6 +4823,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = javapy.load()
         parser.setup_autolbox(javapy.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
         p = """class X {
     int x = "test";
@@ -4818,6 +4835,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = javasqlchemical.load()
         parser.setup_autolbox(javasqlchemical.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
         p = """class X {
     int x = 1;
@@ -4847,6 +4865,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = javapy.load()
         parser.setup_autolbox(javapy.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
         p = """class X {
 
@@ -4874,6 +4893,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = javapy.load()
         parser.setup_autolbox(javapy.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
 
         program = """class X {
@@ -4906,6 +4926,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = phppython.load()
         parser.setup_autolbox(phppython.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
         p = """class X {
     d();
@@ -4951,6 +4972,7 @@ class Test_AutoLanguageBoxDetection():
         parser, lexer = javasql.load()
         parser.setup_autolbox(javasql.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
 
         for c in p:
@@ -4988,6 +5010,7 @@ WHERE ProductID = ANY (SELECT ProductID FROM OrderDetails WHERE Quantity = 10);"
         parser, lexer = phppython.load()
         parser.setup_autolbox(phppython.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
         treemanager.key_normal("f")
         assert len(treemanager.parsers) == 2
@@ -5011,6 +5034,7 @@ WHERE ProductID = ANY (SELECT ProductID FROM OrderDetails WHERE Quantity = 10);"
         parser, lexer = phppython.load()
         parser.setup_autolbox(phppython.name)
         treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
         p = """class X {
     public function x(){}

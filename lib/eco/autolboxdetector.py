@@ -138,7 +138,7 @@ class NewAutoLboxDetector(object):
             return False
 
 from inclexer.inclexer import StringWrapper
-from cflexer.lexer import LexingError
+from treelexer.lexer import LexingError
 from incparser.incparser import FinishSymbol
 
 class Recognizer(object):
@@ -167,7 +167,7 @@ class Recognizer(object):
         if not ppmode:
             self.reset()
 
-        self.tokeniter = self.lexer.get_token_iter(StringWrapper(startnode, startnode))
+        self.tokeniter = self.lexer.get_token_iter(startnode).next
         token = self.next_token()
         if not ppmode and not self.valid_start(token):
             return None

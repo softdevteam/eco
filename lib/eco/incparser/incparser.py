@@ -974,8 +974,9 @@ class IncParser(object):
     def next_terminal(self, node):
         n = self.pop_lookahead(node)
         while type(n.symbol) is Nonterminal:
-            if len(n.children) > 0:
-                n = n.children[0]
+            children = n.get_attr("children", self.prev_version)
+            if len(children) > 0:
+                n = children[0]
             else:
                 n = self.pop_lookahead(n)
         return n
