@@ -412,8 +412,14 @@ class NodeEditor(QFrame):
             if node.autobox:
                 if self.autolboxlines.has_key(line):
                     for box in node.autobox:
-                        # XXX need to compare s, e with identity?
-                        if box not in self.autolboxlines[line]:
+                        # Avoid duplicate suggestions by comparing the
+                        # identities of language box candidates
+                        exists = False
+                        for b in self.autolboxlines[line]:
+                            if b is box:
+                                exists = True
+                                break
+                        if not exists:
                             self.autolboxlines[line].append(box)
                 else:
                     self.autolboxlines[line] = list(node.autobox)

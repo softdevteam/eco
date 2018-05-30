@@ -337,7 +337,6 @@ class AutoLBoxComplete(QFrame):
         y = editor.paint_start[1]
         start = editor.paint_start[0]
         for i in range(start, len(editor.lines)):
-
             try:
                 auto = self.parent().editor.autolboxlines[i]
                 posy = y*gfont.fontht + gfont.fontht/2

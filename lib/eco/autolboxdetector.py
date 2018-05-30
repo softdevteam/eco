@@ -83,8 +83,10 @@ class NewAutoLboxDetector(object):
                                         valid.append((n, e, sub))
                 cut = cut - 1
         if errornode.autobox is False:
-            # XXX might have to only limit certain (node, autobox) combinations to
-            # allow boxes with different content later on
+            # XXX Currently, we don't suggest any language boxes for an error,
+            # if the user had to revert an automatically inserted box. However,
+            # we might want to consider showing suggestions if the suggested box
+            # differs from the one the user reverted
             return # don't use this node for autoboxes anymore
         if valid:
             errornode.autobox = valid
@@ -107,7 +109,7 @@ class NewAutoLboxDetector(object):
             stack.append(self.op.stack[i].state)
         after_end = self.op.next_terminal(end)
         # do all reductions until there's a shift or accept (whitespace doesn't
-        # count) XXX: parse entire file incrementally?
+        # count)
         lboxnode = TextNode(lbox)
         la = lboxnode
         la.next_term = after_end
@@ -281,7 +283,6 @@ class RecognizerIndent(Recognizer):
         return True
 
     def next_token(self):
-
         if self.todo:
            return self.todo.pop(0)
 
@@ -328,8 +329,6 @@ class RecognizerIndent(Recognizer):
     def is_finished(self):
         states = list(self.state)
         if self.temp_parse(states, Terminal("NEWLINE")):
-            # XXX need to test ALL dedents not just one
-            # XXX also can just check for shift which should be enough
             element = self.syntaxtable.lookup(states[-1], FinishSymbol())
             if element:
                 return True
@@ -341,7 +340,6 @@ class IncrementalRecognizer(Recognizer):
 
     def preparse(self, outer_root, stop):
         """Puts the recogniser into the state just before `stop`."""
-        #print("Preparsing {} upto {}".format(outer_root, stop))
         path_to_stop = set()
         parent = stop.parent
         while parent is not None:

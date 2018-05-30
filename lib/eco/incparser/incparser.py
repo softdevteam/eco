@@ -109,10 +109,7 @@ class IncParser(object):
         self.option_autolbox_find = False
 
     def is_valid_symbol(self, state, token):
-        action = self.syntaxtable.lookup(state, token)
-        if action:
-            return True
-        return False
+        return self.syntaxtable.lookup(state, token) is not None
 
     def from_dict(self, rules, startsymbol, lr_type, whitespaces, pickle_id, precedences):
         self.graph = None

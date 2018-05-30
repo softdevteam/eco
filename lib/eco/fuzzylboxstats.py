@@ -85,10 +85,7 @@ class FuzzyLboxStats:
 
         # find all sub expressions
         l = self.find_nonterms_by_name(treemanager, expr)
-        l2 = []
-        for st in l:
-            l2.append(subtree_to_text(st).rstrip())
-        return l2
+        return [subtree_to_text(st).rstrip() for st in l]
 
     def insert_python_expression(self, expr):
         for c in expr:
