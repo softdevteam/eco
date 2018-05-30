@@ -145,6 +145,8 @@ class JavaHighlighter(SyntaxHighlighter):
         "BOOLEAN_LITERAL": "cyan",
         "STRING_LITERAL": "cyan",
         "INTEGER_LITERAL": "cyan",
+        "SINGLE_COMMENT": "grey",
+        "MULTI_COMMENT": "grey"
     }
     keyword_style = {
         "static": "italic",
@@ -272,7 +274,9 @@ class PhpHighlighter(SyntaxHighlighter):
         "T_NAMESPACE": "green",
         "T_FUNCTION": "green",
         "T_STRING": "blue",
-        "T_RETURN": "green"
+        "T_RETURN": "green",
+        "<mlcomment>": "grey",
+        "<slcomment>": "grey",
     }
     keyword_style = {
         "static": "italic",

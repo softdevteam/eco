@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from grammars.grammars import calc, java, python, Language, sql, pythonprolog, lang_dict, phppython, pythonphp
+from grammars.grammars import calc, java, python, Language, sql, pythonprolog, lang_dict, phppython, pythonphp, pythonhtmlsql
 from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer, IncrementalLexerCF
@@ -1373,6 +1373,35 @@ class Test_Languageboxes(Test_Python):
         self.treemanager.key_normal("\r")
         self.treemanager.key_normal("a")
         assert self.treemanager.export_as_text() == "abc:\n    def\n    def x():\n        pass\n    a"
+
+    def test_java_python_dont_lex_lboxes(self):
+        parser, lexer = javapy.load()
+        parser.setup_autolbox(javapy.name)
+        treemanager = TreeManager()
+        treemanager.add_parser(parser, lexer, "")
+        p = """class X {
+    int x = 1 * 2;
+}"""
+        for c in p:
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+
+        treemanager.key_cursors(UP)
+        treemanager.key_end()
+
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_backspace()
+
+        treemanager.add_languagebox(lang_dict["Python expression"])
+        treemanager.key_normal("1")
+
+        assert treemanager.cursor.node.get_root().magic_backpointer.lookup == ""
+        assert len(treemanager.parsers) == 2
+        assert parser.last_status is True
 
 class Test_Backslash(Test_Python):
 
@@ -4453,3 +4482,575 @@ class Test_TopDownReuse(Test_Python):
         assert startrule is startrule2
         assert E is E2
         assert Y is Y2
+
+from grammars.grammars import sql_single, javapy, javasqlchemical, javasql
+
+# Add some more compositions that we only need inside the test environment
+pythonsql = EcoFile("Python + SQL", "grammars/python275.eco", "Python")
+pythonsql.add_alternative("atom", sql_single)
+lang_dict[pythonsql.name] = pythonsql
+
+class Test_AutoLanguageBoxDetection():
+
+    def test_pythonsql(self):
+        parser, lexer = pythonsql.load()
+        parser.setup_autolbox(pythonsql.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in "x = SELECT * FROM table WHERE y=1":
+            treemanager.key_normal(c)
+
+        assert len(treemanager.parsers) == 2
+        assert parser.last_status == True
+
+    def test_pythonsql2(self):
+        parser, lexer = pythonsql.load()
+        parser.setup_autolbox(pythonsql.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        treemanager.key_normal(";")
+        treemanager.key_cursors(LEFT)
+
+        for c in "x = SELECT * FROM table":
+            treemanager.key_normal(c)
+
+        assert len(treemanager.parsers) == 2
+
+    def test_java_python(self):
+        parser, lexer = javapy.load()
+        parser.setup_autolbox(javapy.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in "class X {\n\n}":
+            treemanager.key_normal(c)
+        assert parser.last_status == True
+
+        treemanager.key_cursors(UP)
+        for c in "    def x():\n    ":
+            treemanager.key_normal(c)
+        assert parser.last_status == False
+        assert len(treemanager.parsers) == 1
+
+        treemanager.key_normal("p")
+        assert parser.last_status == True
+        assert len(treemanager.parsers) == 2
+
+    def test_java_python2(self):
+        parser, lexer = javapy.load()
+        parser.setup_autolbox(javapy.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in "class X {\n\n\n\n}":
+            treemanager.key_normal(c)
+        assert parser.last_status == True
+
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        for c in "    def x():\n    ":
+            treemanager.key_normal(c)
+        assert parser.last_status == False
+        assert len(treemanager.parsers) == 1
+
+        treemanager.key_normal("p")
+        assert parser.last_status == True
+        assert len(treemanager.parsers) == 2
+
+    @pytest.mark.xfail
+    def test_java_python3(self):
+        """Currently fails as `public` is being parsed into the Python language
+        box."""
+        parser, lexer = javapy.load()
+        parser.setup_autolbox(javapy.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        code = """class X {
+
+
+
+    public void y(){
+    }
+}"""
+        for c in code:
+            treemanager.key_normal(c)
+        assert parser.last_status == True
+
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        for c in "    def x():\n    ":
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == False
+
+        treemanager.key_normal("p")
+        assert len(treemanager.parsers) == 2
+        assert parser.last_status == True
+
+    def test_php_python5_first_line_box(self):
+        parser, lexer = phppython.load()
+        parser.setup_autolbox(phppython.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in "def x():\n    ":
+            treemanager.key_normal(c)
+
+        treemanager.key_normal("p")
+        assert parser.last_status == True
+        assert len(treemanager.parsers) == 2
+
+    def test_php_python_expression(self):
+        """Results in two options for language box:
+        Python or Python expression"""
+        parser, lexer = phppython.load()
+        parser.setup_autolbox(phppython.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in "$x = [x for x in range(10)":
+            treemanager.key_normal(c)
+        assert parser.last_status == False
+
+        treemanager.key_normal("]")
+        treemanager.leave_languagebox()
+        treemanager.key_normal(";")
+
+        assert len(parser.error_nodes) == 1
+        assert len(parser.error_nodes[0].autobox) == 2
+
+    def test_php_python_expression2(self):
+        """Results in two options. Note: Neither option contains the full
+        expression `1 or not 2`. Instead they only contain `not 2` because of
+        the way PHP parses `or`."""
+        parser, lexer = phppython.load()
+        parser.setup_autolbox(phppython.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in "$x = 1 or not ":
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+
+        assert len(parser.error_nodes) == 1
+        assert parser.error_nodes[0].autobox is None
+
+        treemanager.key_normal("2")
+        treemanager.key_normal(";")
+
+        assert len(parser.error_nodes) == 1
+        assert len(parser.error_nodes[0].autobox) == 2
+
+    def test_autoremove_pythonsql(self):
+        parser, lexer = pythonsql.load()
+        parser.setup_autolbox(pythonsql.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in "x = SELECT * FROM table":
+            treemanager.key_normal(c)
+
+        assert parser.last_status == True
+        assert len(treemanager.parsers) == 2
+
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+
+        treemanager.key_normal("*") # valid Python now
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == True
+
+    def test_php_python_paste(self):
+        parser, lexer = phppython.load()
+        parser.setup_autolbox(phppython.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in "class X{\n}":
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+
+        treemanager.key_cursors(LEFT)
+        treemanager.key_normal("\n")
+        treemanager.key_cursors(UP)
+        treemanager.key_normal(" ")
+        treemanager.key_normal(" ")
+        treemanager.key_normal(" ")
+        treemanager.key_normal(" ")
+
+        treemanager.pasteText("def x():\n        pass;")
+        assert parser.last_status is True
+        assert len(treemanager.parsers) == 2
+
+    def test_php_python_paste2(self):
+        parser, lexer = phppython.load()
+        parser.setup_autolbox(phppython.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in "function x(){\n}":
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+
+        treemanager.key_cursors(LEFT)
+        treemanager.key_normal("\n")
+        treemanager.key_cursors(UP)
+        treemanager.key_normal(" ")
+        treemanager.key_normal(" ")
+        treemanager.key_normal(" ")
+        treemanager.key_normal(" ")
+
+        treemanager.pasteText("$x = def x():\n        pass;")
+        # XXX problem: error happens on `}` but `reduce_ends` only checks
+        # next terminal which is `<return>` and can be parsed
+        assert parser.last_status is True
+        assert len(treemanager.parsers) == 2
+
+    def test_python_sql_bug(self):
+        parser, lexer = pythonsql.load()
+        parser.setup_autolbox(pythonsql.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in "x = SELECT * FROM table":
+            treemanager.key_normal(c)
+
+        assert len(treemanager.parsers) == 2
+
+        for _ in range(5):
+            treemanager.key_cursors(LEFT)
+        treemanager.key_normal("*")
+
+        assert len(treemanager.parsers) == 1
+
+        treemanager.key_backspace()
+
+        assert len(treemanager.parsers) == 2
+
+    def test_newbug(self):
+        parser, lexer = phppython.load()
+        parser.setup_autolbox(phppython.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        phpprogram = """function x(){
+    $x = 12;
+}"""
+        # delete 12
+        treemanager.import_file(phpprogram)
+        treemanager.key_cursors(DOWN)
+        treemanager.key_end()
+        treemanager.key_cursors(LEFT)
+        treemanager.key_backspace()
+        treemanager.key_backspace()
+
+        for c in "[1,2.3]":
+            treemanager.key_normal(c)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        # check that there wasn't a language box inserted around '1'
+        assert treemanager.cursor.node.symbol.name == "1"
+
+    def test_newbug2(self):
+        parser, lexer = phppython.load()
+        parser.setup_autolbox(phppython.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        for c in """function x(){
+            $x = [1,2,3];
+            }""":
+            treemanager.key_normal(c)
+
+    def test_newbug3(self):
+        parser, lexer = phppython.load()
+        parser.setup_autolbox(phppython.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        p = """function x(){
+    $x = [1,2,3];
+}"""
+        treemanager.import_file(p)
+        treemanager.key_cursors(DOWN)
+        treemanager.key_cursors(DOWN)
+        treemanager.key_end()
+        for c in range(len(p)):
+            treemanager.key_backspace()
+
+    def test_php_bug4(self):
+        parser, lexer = phppython.load()
+        parser.setup_autolbox(phppython.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        p = """function x(){
+
+    return 12;
+}"""
+        treemanager.import_file(p)
+        treemanager.key_cursors(DOWN)
+        treemanager.key_home()
+        for c in "    $x = def y():":
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 2
+
+    def test_java_py_string(self):
+        parser, lexer = javapy.load()
+        parser.setup_autolbox(javapy.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        p = """class X {
+    int x = "test";
+}"""
+        for c in p:
+            treemanager.key_normal(c)
+
+    def test_java_sql_autoremove_valid_boxes(self):
+        parser, lexer = javasqlchemical.load()
+        parser.setup_autolbox(javasqlchemical.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        p = """class X {
+    int x = 1;
+}"""
+        for c in p:
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+
+        treemanager.key_cursors(UP)
+        treemanager.key_end()
+        treemanager.key_cursors(LEFT)
+        treemanager.key_backspace()
+        for c in "SELECT * FROM table;":
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 2
+
+        treemanager.key_backspace() # delete ;
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_normal("*")
+        assert len(treemanager.parsers) == 1
+
+    def test_java_python_method_insert_bug1(self):
+        parser, lexer = javapy.load()
+        parser.setup_autolbox(javapy.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        p = """class X {
+
+
+    public boolean main(){}
+}"""
+        for c in p:
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        treemanager.key_home()
+
+        for c in "    ":
+            treemanager.key_normal(c)
+        treemanager.key_normal("d")
+
+        assert len(treemanager.parsers) == 1
+
+    def test_deactivate_autobox_after_undo(self):
+        """Once an automatically inserted language box has been
+        undone, it shouldn't be inserted again on another change."""
+        parser, lexer = javapy.load()
+        parser.setup_autolbox(javapy.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        program = """class X {
+    int x = 12;
+}"""
+        for c in program:
+            treemanager.key_normal(c)
+
+        assert len(treemanager.parsers) == 1
+
+        treemanager.key_cursors(UP)
+        treemanager.key_end()
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        for c in " and ":
+            treemanager.key_normal(c)
+
+        assert len(treemanager.parsers) == 2
+
+        treemanager.key_ctrl_z()
+
+        assert len(treemanager.parsers) == 1
+
+        treemanager.key_cursors(RIGHT)
+        for c in " or 3":
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+
+    def test_php_python_whitespace_bug(self):
+        parser, lexer = phppython.load()
+        parser.setup_autolbox(phppython.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        p = """class X {
+    d();
+}"""
+        for c in p:
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 2
+
+        treemanager.key_cursors(UP)
+        treemanager.key_end()
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+
+        assert treemanager.parsers[0][0].last_status is True # PHP
+        assert treemanager.parsers[1][0].last_status is True # Python
+
+        treemanager.key_normal(" ")
+
+        assert treemanager.parsers[0][0].last_status is True
+        assert treemanager.parsers[1][0].last_status is False
+
+        treemanager.key_backspace()
+
+        assert treemanager.parsers[0][0].last_status is True
+        assert treemanager.parsers[1][0].last_status is True
+
+    import os
+    @pytest.mark.skipif("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true", reason="JavaSQL takes too long to built on Travis. Skip!")
+    def test_java_sql_skip_comments(self):
+        p = """public class Scribble {
+
+    public void init() {
+        // A comment
+        this.foo1(code.replace());
+
+        // Another comment
+        this.foo2();
+    }
+}"""
+
+        parser, lexer = javasql.load()
+        parser.setup_autolbox(javasql.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in p:
+            treemanager.key_normal(c)
+
+        assert parser.last_status == True
+
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        treemanager.key_end()
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        for _ in range(14):
+            treemanager.key_backspace()
+
+        assert parser.last_status == True
+
+        p = """SELECT ProductName
+FROM Products
+WHERE ProductID = ANY (SELECT ProductID FROM OrderDetails WHERE Quantity = 10);"""
+        for c in p:
+            treemanager.key_normal(c)
+
+        assert len(treemanager.parsers) == 2
+        assert parser.last_status == True
+
+    def test_php_python_autoremove(self):
+        """Sometimes automatically inserted boxes are valid in both languages.
+        Previously we only autoremoved boxes that were invalid. However, we
+        should always prioritise the outer language instead even if the language
+        box is a valid insertion."""
+        parser, lexer = phppython.load()
+        parser.setup_autolbox(phppython.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        treemanager.key_normal("f")
+        assert len(treemanager.parsers) == 2
+        treemanager.key_normal("o")
+        assert len(treemanager.parsers) == 2
+        treemanager.key_normal("o")
+        assert len(treemanager.parsers) == 2
+        treemanager.key_normal("(")
+        assert len(treemanager.parsers) == 1
+        treemanager.key_normal(")")
+        assert len(treemanager.parsers) == 2
+        treemanager.key_normal(";")
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == True
+
+    @pytest.mark.xfail
+    def test_php_python_auto_bug(self):
+        """PHP equivalent to `test_java_python3`. Fails because `public` is
+        optional in PHP and thus can be used in a Python box without making the
+        PHP program invalid."""
+        parser, lexer = phppython.load()
+        parser.setup_autolbox(phppython.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        p = """class X {
+    public function x(){}
+}"""
+        for c in p:
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == True
+
+        treemanager.key_cursors(UP)
+        treemanager.key_home()
+        treemanager.key_cursors(RIGHT)
+        treemanager.key_cursors(RIGHT)
+        treemanager.key_cursors(RIGHT)
+        treemanager.key_cursors(RIGHT)
+        treemanager.key_normal("d")
+
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == False

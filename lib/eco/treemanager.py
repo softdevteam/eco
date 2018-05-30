@@ -116,18 +116,31 @@ class Cursor(object):
 
     def left(self):
         node = self.node
+        if type(node.symbol) is MagicTerminal:
+            node = node.symbol.ast.children[-1]
         if not self.is_visible(node):
-            node = self.find_previous_visible(self.node)
+            node = self.find_previous_visible(node)
         if node.symbol.name == "\r":
             self.line -= 1
         if isinstance(node, BOS):
-            return
+            root = node.get_root()
+            lbox = root.get_magicterminal()
+            if lbox:
+                node = lbox.previous_terminal()
+            else:
+                self.node = node
+                return
         if not node is self.node:
             self.node = node
             self.pos = len(node.symbol.name)
         if self.pos > 1 and (not node.image or node.plain_mode):
             self.pos -= 1
         else:
+            # if neighbouring node is BOS, stay in box
+            if type(node.previous_terminal()) is BOS:
+                self.node = node.previous_terminal()
+                self.pos = 0
+                return
             node = self.find_previous_visible(node)
             self.node = node
             self.pos = len(node.symbol.name)
@@ -136,6 +149,8 @@ class Cursor(object):
         node = self.node
         if not self.is_visible(node):
             node = self.find_next_visible(self.node)
+            if type(node.symbol) is MagicTerminal:
+                node = node.symbol.ast.children[0]
         if isinstance(node, EOS):
             return
         if not node is self.node:
@@ -143,14 +158,19 @@ class Cursor(object):
             self.pos = 0
             if node.symbol.name == "\r":
                 self.line += 1
-        if self.pos < len(self.node.symbol.name):
+        if self.pos < len(node.symbol.name):
             self.pos += 1
         else:
             node = self.find_next_visible(node)
             if node.symbol.name == "\r":
                 self.line += 1
             if isinstance(node, EOS):
+                self.node = self.find_previous_visible(node)
+                self.pos = len(self.node.symbol.name)
                 return
+            if type(node.symbol) is MagicTerminal:
+                node = node.symbol.ast.children[0]
+                node = self.find_next_visible(node)
             self.node = node
             self.pos = 1
             if node.image and not node.plain_mode:
@@ -212,16 +232,19 @@ class Cursor(object):
             node = node.next_terminal()
         return node
 
-    def find_previous_visible(self, node):
+    def find_previous_visible(self, node, cross_lang=True):
         """Return the previous visible node in the parse tree."""
         if self.is_visible(node):
             node = node.previous_terminal() # XXX check for multiterm
         while not self.is_visible(node):
             if isinstance(node, BOS):
+                if not cross_lang: # don't cross language border
+                    return node
+                # leave lbox
                 root = node.get_root()
                 lbox = root.get_magicterminal()
                 if lbox:
-                    node = lbox.previous_terminal() #XXX check for multiterm
+                    node = lbox.previous_terminal()
                     continue
                 else:
                     return node
@@ -241,8 +264,6 @@ class Cursor(object):
         if isinstance(node, BOS):
             return False
         if isinstance(node, EOS):
-            return False
-        if isinstance(node.symbol, MagicTerminal):
             return False
         if isinstance(node.symbol, MultiTextNode):
             return False
@@ -287,14 +308,27 @@ class Cursor(object):
                 self.pos = len(node.symbol.name)
                 return
             node = newnode
+            if type(node.symbol) is MagicTerminal:
+                node = node.symbol.ast.children[0]
+                continue
             if node.image and not node.plain_mode:
                 x -= self.get_nodesize_in_chars(node).w
             else:
                 x -= len(node.symbol.name)
-            if node.symbol.name == "\r" or isinstance(node, EOS):
+            if node.symbol.name == "\r":
                 self.node = self.find_previous_visible(node)
                 self.pos = len(self.node.symbol.name)
                 return
+            if isinstance(node, EOS):
+                root = node.get_root()
+                lbox = root.get_magicterminal()
+                if lbox:
+                    node = lbox
+                    continue
+                else:
+                    self.node = self.find_previous_visible(node)
+                    self.pos = len(self.node.symbol.name)
+                    return
         self.pos = len(node.symbol.name) + x
         self.node = node
 
@@ -315,6 +349,26 @@ class Cursor(object):
                 x += len(node.symbol.name)
             node = self.find_previous_visible(node)
         return x
+
+    def move_to_node(self, node, after=False):
+        tmp = node
+        while tmp.symbol.name != "\r" and not isinstance(tmp, BOS):
+            tmp = self.find_previous_visible(tmp)
+        line = self.get_line_from_node(tmp)
+        self.line = line
+        self.node = node
+        if after:
+            self.pos = len(node.symbol.name)
+        else:
+            self.node = self.find_previous_visible(node)
+            self.pos = len(self.node.symbol.name)
+
+    def get_line_from_node(self, node):
+        i = 0
+        for l in self.lines:
+            if l.node is node:
+                return i
+            i += 1
 
     def get_nodesize_in_chars(self, node):
         """Calculate the size in characters of a non-textual node."""
@@ -380,6 +434,9 @@ class TreeManager(object):
         self.min_version = 1
 
         self.tool_data_is_dirty = False
+        self.autolboxdetector = None
+        self.option_autolbox_find = True
+        self.option_autolbox_insert = False
 
         # This code and the can_profile() method should probably be refactored.
         self.langs_with_profiler = {
@@ -511,6 +568,13 @@ class TreeManager(object):
                         return True
         return False
 
+    def get_all_syntaxerrors(self):
+        l = []
+        for p in self.parsers:
+            if p[0]:
+                l.extend(p[0].error_nodes)
+        return l
+
     def get_error(self, node):
         if self.is_syntaxerror(node):
             return "Syntax error on token '%s' (%s)." % (node.symbol.name, node.lookup)
@@ -578,6 +642,11 @@ class TreeManager(object):
         else:
             include_start = False
 
+        if type(cur_end.node.symbol) is MagicTerminal:
+            cur_end = cur_end.copy()
+            cur_end.node = cur_end.node.symbol.ast.children[-1]
+            cur_end.pos = 0
+            cur_end.jump_left()
         end_node = cur_end.node
         diff_end = len(end_node.symbol.name)
 
@@ -615,7 +684,8 @@ class TreeManager(object):
                     continue
             nodes.append(node)
             node = node.next_terminal()
-        nodes.append(end)
+        if type(node) is not EOS:
+            nodes.append(end)
 
         return (nodes, diff_start, diff_end)
 
@@ -836,6 +906,9 @@ class TreeManager(object):
         for c in node.children:
             self.undo(c)
         if not node.is_new(node.version):
+            if node.autobox and len(node.autobox) == 1:
+                # block this node for autolboxes in the future
+                node.autobox = False
             node.load(self.version)
             for c in node.children:
                 self.undo(c)
@@ -1117,7 +1190,7 @@ class TreeManager(object):
                 if node.ismultichild():
                     repairnode = node.parent
                 else:
-                    repairnode = self.cursor.find_previous_visible(node)
+                    repairnode = self.cursor.find_previous_visible(node, cross_lang=False)
                     repairnode.mark_changed()
 
                 if not self.clean_empty_lbox(node):
@@ -1227,6 +1300,12 @@ class TreeManager(object):
         self.cursor.line = len(self.lines) - 1
         self.selection_end = self.cursor.copy()
 
+    def select_from_to(self, _from, _to):
+        self.cursor.move_to_node(_from)
+        self.selection_start = self.cursor.copy()
+        self.cursor.move_to_node(_to, after=True)
+        self.selection_end = self.cursor.copy()
+
     def get_all_annotations_with_hint(self, hint):
         """Return all annotations (optionally of a specific type).
         Call sparingly as this runs over the whole tree.
@@ -1273,12 +1352,13 @@ class TreeManager(object):
             newnode.insert_after(node2)
 
             self.relex(node)
-            #self.relex(node2)
+            self.relex(node2)
         self.edit_rightnode = True # writes next char into magic ast
         self.cursor.node = newnode.symbol.ast.children[0]
         self.cursor.pos = 0
         self.reparse(newnode)
         self.changed = True
+        return newnode
 
     def leave_languagebox(self):
         self.log_input("leave_languagebox")
@@ -1305,7 +1385,7 @@ class TreeManager(object):
         lbox.plain_mode = True
         return lbox
 
-    def surround_with_languagebox(self, language):
+    def surround_with_languagebox(self, language, auto=False):
         self.log_input("surround_with_languagebox", repr(language.name))
         #XXX if partly selected node, need to split it
         nodes, _, _ = self.get_nodes_from_selection()
@@ -1313,12 +1393,44 @@ class TreeManager(object):
         # cut text
         text = self.copySelection()
         self.deleteSelection()
-        self.add_languagebox(language)
+        lbox = self.add_languagebox(language)
         self.pasteText(text)
+        lbox.tbd = auto
         self.input_log.pop()
         self.input_log.pop()
         self.input_log.pop()
         return
+
+    def remove_languagebox(self, lbox):
+        if lbox.deleted:
+            # Language box was already removed by an earlier error
+            return
+        parent = lbox.parent
+        root = lbox.symbol.ast
+        bos = root.children[0]
+        eos = root.children[-1]
+
+        # move all nodes from lbox to the outside
+        node = bos.next_term
+        top = []
+        while node is not eos:
+            if type(node.symbol) is not IndentationTerminal:
+                top.append(node)
+            node = node.next_term
+
+        for n in reversed(top):
+            lbox.insert_after(n)
+
+        # remove language box and parser
+        lbox.remove(True)
+        self.delete_parser(root)
+
+        # relex
+        for t in top:
+            #XXX add method to relex a range, e.g. relex(start, end)
+            self.relex(t)
+        # reparse
+        self.reparse(top[0], skipautolbox = True)
 
     def change_languagebox(self, language):
         self.log_input("change_languagebox", repr(language.name))
@@ -1465,6 +1577,8 @@ class TreeManager(object):
 
         text = text.replace("\r\n","\r")
         text = text.replace("\n","\r")
+        # while tabs are not supported, replace them with spaces
+        text = text.replace("\t", "    ")
 
         if self.cursor.inside():
             internal_position = self.cursor.pos
@@ -1492,6 +1606,12 @@ class TreeManager(object):
         self.cursor.fix()
         self.cursor.line += text.count("\r")
         self.changed = True #XXX needed?
+
+    def select_nodes(self, start, end):
+        self.cursor.move_to_node(start)
+        self.selection_start = self.cursor.copy()
+        self.cursor.move_to_node(end, True)
+        self.selection_end = self.cursor.copy()
 
     def cutSelection(self):
         self.log_input("cutSelection")
@@ -1529,6 +1649,10 @@ class TreeManager(object):
             if isinstance(node, BOS) or isinstance(node, EOS):
                 continue
             node.parent.remove_child(node)
+            # Remove MultiNode if all children have been deleted
+            if node.ismultichild():
+                if node.parent.children == []:
+                    node.parent.remove()
             self.clean_empty_lbox(node)
         while True: # in case first node was deleted
             if isinstance(repair_node.next_term, EOS):
@@ -1629,6 +1753,7 @@ class TreeManager(object):
         self.version = self.global_version = 0
         text = text.replace("\r\n","\r")
         text = text.replace("\n","\r")
+        text = text.replace("\t","    ")
         parser = self.parsers[0][0]
         lexer = self.parsers[0][1]
         # lex text into tokens
@@ -1659,10 +1784,12 @@ class TreeManager(object):
                 bos = root.children[0]
                 class X:
                     last_status = True
-                self.parsers = [[X, None, language, None]]
+                self.parsers = [[X, None, language, None, None]]
         def x():
             return bos
         self.get_bos = x
+        self.lines.append(X())
+        self.lines[0].node = bos
         return self.export(path, source=source)
 
     def load_file(self, language_boxes, reparse=True):
@@ -1865,7 +1992,7 @@ class TreeManager(object):
         lexer = self.get_lexer(root)
         return lexer.relex(node)
 
-    def reparse(self, node, changed=True):
+    def reparse(self, node, changed=True, skipautolbox=False):
         if self.version < self.global_version:
             # we changed stuff after one or more undos
             # later versions are void -> delete
@@ -1885,6 +2012,7 @@ class TreeManager(object):
             self.previous_version = self.version
             parser.prev_version = self.version
             parser.reference_version = self.reference_version
+            parser.option_autolbox_find = self.option_autolbox_find
             parser.inc_parse()
             parser.top_down_reuse()
             self.save_current_version(postparse=True) # save post parse tree
@@ -1895,6 +2023,50 @@ class TreeManager(object):
             # the type remains the same)
             self.save_current_version(postparse=True)
         TreeManager.version = self.version
+
+        # Now check for auto language boxes
+        if skipautolbox or self.option_autolbox_insert is False:
+            return
+
+        parsers = list(self.parsers) # copy to avoid processing newly added parsers
+        for temp in parsers:
+            # remove language boxes that are not valid anymore
+            p = temp[0]
+            lbox = p.previous_version.parent.get_magicterminal()
+            if lbox and lbox.tbd:
+                result = self.lbox_autoremove_test(lbox, p.last_status)
+                if result:
+                    self.remove_languagebox(lbox)
+
+            # apply language boxes if there is only one choice
+            for n in p.error_nodes:
+                if not n.deleted and n.autobox and len(n.autobox) == 1:
+                    s, e, l = n.autobox[0]
+                    self.undo_snapshot()
+                    ctemp = self.cursor.get_x()
+                    ltemp = self.cursor.line
+                    self.select_from_to(s, e)
+                    self.surround_with_languagebox(lang_dict[l], True)
+                    self.cursor.line = ltemp
+                    self.cursor.move_to_x(ctemp)
+                    self.reparse(s.prev_term, skipautolbox=True)
+                    self.undo_snapshot()
+
+    def lbox_autoremove_test(self, lbox, status):
+        """An automatically inserted languagebox can be automatically removed if
+        one of the following is true (if in doubt always prioritise the outer language):
+        1) The languagebox contents are valid in the outside language's context (i.e.
+        the contents can be parsed as well as the nodes following the old box)
+        2) The languagebox is invalid and its contents can be parsed in the
+        outside language (note: the context doesn't have to be valid)"""
+        from autolboxdetector import IncrementalRecognizer
+        outer_root = lbox.get_root()
+        outer_lang = outer_root.name
+        outer_parser, outer_lexer = lang_dict[outer_lang].load() # get preloaded one
+        r = IncrementalRecognizer(outer_parser.syntaxtable, outer_lexer.lexer, outer_lang)
+        r.preparse(outer_root, lbox)
+        result =  r.parse(lbox.symbol.ast.children[0].next_term, lbox.next_term, status)
+        return result
 
     def delete_version(self, version, node):
         if ("parent", version) in node.log:
@@ -1932,3 +2104,6 @@ class TreeManager(object):
                 eval(l) # expressions
             except SyntaxError:
                 exec(l) # statements
+
+    def get_langdef_from_string(self, lang):
+        return lang_dict[lang]

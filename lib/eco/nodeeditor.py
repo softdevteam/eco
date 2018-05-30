@@ -100,6 +100,8 @@ class NodeEditor(QFrame):
         self.hud_heat_map = False
         self.hud_types = False
 
+        self.autolboxlines = {}
+
     def hud_show_callgraph(self):
         self.hud_callgraph = True
         self.hud_eval = False
@@ -275,6 +277,7 @@ class NodeEditor(QFrame):
     def paintEvent(self, event):
         # Clear data in the visualisation overlay
         self.overlay.clear_data()
+        self.autolboxlines.clear()
 
         gfont = QApplication.instance().gfont
         self.font = gfont.font
@@ -371,6 +374,16 @@ class NodeEditor(QFrame):
         highlighter = self.get_highlighter(node)
         selection_start = min(self.tm.selection_start, self.tm.selection_end)
         selection_end = max(self.tm.selection_start, self.tm.selection_end)
+        if selection_start.node is not selection_end.node:
+            if type(selection_start.node.symbol) is MagicTerminal:
+                selection_start = selection_start.copy()
+                selection_start.node = selection_start.node.symbol.ast.children[0]
+                selection_start.pos = 0
+            if type(selection_end.node.symbol) is MagicTerminal:
+                selection_end = selection_end.copy()
+                selection_end.node = selection_end.node.symbol.ast.children[-1]
+                selection_end.pos = 0
+                selection_end.jump_left()
         draw_selection_start = (0,0,0)
         draw_selection_end = (0,0,0)
         start_lbox = self.get_languagebox(node)
@@ -394,6 +407,22 @@ class NodeEditor(QFrame):
         draw_cursor = True
         show_namebinding = self.getWindow().show_namebinding()
         while y < max_y:
+
+            # check if node is connected to auto lbox
+            if node.autobox:
+                if self.autolboxlines.has_key(line):
+                    for box in node.autobox:
+                        # Avoid duplicate suggestions by comparing the
+                        # identities of language box candidates
+                        exists = False
+                        for b in self.autolboxlines[line]:
+                            if b is box:
+                                exists = True
+                                break
+                        if not exists:
+                            self.autolboxlines[line].append(box)
+                else:
+                    self.autolboxlines[line] = list(node.autobox)
 
             # if we found a language box, continue drawing inside of it
             if isinstance(node.symbol, MagicTerminal):
@@ -532,7 +561,6 @@ class NodeEditor(QFrame):
                     draw_x = x
                     cursor_pos = 0
                 self.draw_cursor(paint, draw_x + cursor_pos * self.fontwt, 4 + y * self.fontht)
-
 
             if False and line == self.cursor.y and x/self.fontwt >= self.cursor.x and draw_cursor:
                 draw_cursor_at = QRect(0 + self.cursor.x * self.fontwt, 5 + y * self.fontht, 0, self.fontht - 3)
@@ -875,8 +903,11 @@ class NodeEditor(QFrame):
         if self.sublanguage:
             if self.tm.hasSelection():
                 self.tm.surround_with_languagebox(self.sublanguage)
+                self.tm.reparse(self.tm.selection_start.node)
             else:
                 self.tm.add_languagebox(self.sublanguage)
+            self.getWindow().btReparse([])
+            self.update()
 
     def change_languagebox(self):
         if self.sublanguage:

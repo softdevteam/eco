@@ -46,7 +46,7 @@
      <x>0</x>
      <y>0</y>
      <width>1069</width>
-     <height>23</height>
+     <height>17</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -59,8 +59,7 @@
      </property>
      <property name="icon">
       <iconset theme="document-open-recent">
-       <normaloff/>
-      </iconset>
+       <normaloff>.</normaloff>.</iconset>
      </property>
      <addaction name="actionActionDummy"/>
     </widget>
@@ -119,8 +118,7 @@
      </property>
      <property name="icon">
       <iconset theme="reload">
-       <normaloff/>
-      </iconset>
+       <normaloff>.</normaloff>.</iconset>
      </property>
      <addaction name="actionDummy"/>
     </widget>
@@ -147,11 +145,25 @@
      <string>Window</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuOptions">
+    <property name="title">
+     <string>Options</string>
+    </property>
+    <widget class="QMenu" name="menuAutomatic_language_boxes">
+     <property name="title">
+      <string>Automatic language boxes</string>
+     </property>
+     <addaction name="actionAutolboxFind"/>
+     <addaction name="actionAutolboxInsert"/>
+    </widget>
+    <addaction name="menuAutomatic_language_boxes"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
    <addaction name="menuPoject"/>
    <addaction name="menuView"/>
    <addaction name="menuWindow"/>
+   <addaction name="menuOptions"/>
    <addaction name="menuInfo"/>
   </widget>
   <widget class="QToolBar" name="toolBar">
@@ -449,8 +461,7 @@
    </property>
    <property name="icon">
     <iconset theme="edit-undo">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Undo</string>
@@ -465,8 +476,7 @@
    </property>
    <property name="icon">
     <iconset theme="edit-redo">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Redo</string>
@@ -481,8 +491,7 @@
    </property>
    <property name="icon">
     <iconset theme="edit-cut">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Cut</string>
@@ -497,8 +506,7 @@
    </property>
    <property name="icon">
     <iconset theme="edit-copy">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Copy</string>
@@ -513,8 +521,7 @@
    </property>
    <property name="icon">
     <iconset theme="edit-paste">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Paste</string>
@@ -544,8 +551,7 @@
    </property>
    <property name="icon">
     <iconset theme="list-add">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Add language box</string>
@@ -560,8 +566,7 @@
    </property>
    <property name="icon">
     <iconset theme="go-next">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Select next language box</string>
@@ -633,8 +638,7 @@
    </property>
    <property name="icon">
     <iconset theme="edit-select-all">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Select all</string>
@@ -649,8 +653,7 @@
    </property>
    <property name="icon">
     <iconset theme="document-export">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Export as...</string>
@@ -665,8 +668,7 @@
    </property>
    <property name="icon">
     <iconset theme="document-export">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Export</string>
@@ -678,8 +680,7 @@
   <action name="actionSettings">
    <property name="icon">
     <iconset theme="gnome-settings">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Settings...</string>
@@ -774,8 +775,7 @@
    </property>
    <property name="icon">
     <iconset theme="media-playback-start">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Continue</string>
@@ -790,8 +790,7 @@
    </property>
    <property name="icon">
     <iconset theme="down">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Step Into</string>
@@ -806,8 +805,7 @@
    </property>
    <property name="icon">
     <iconset theme="go-jump">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Step Over</string>
@@ -822,8 +820,7 @@
    </property>
    <property name="icon">
     <iconset theme="player_stop">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Stop</string>
@@ -835,6 +832,49 @@
   <action name="actionPvShow">
    <property name="text">
     <string>TreeView (Pygame)</string>
+   </property>
+  </action>
+  <action name="actionAutomatic_language_box_detection">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Automatic language box detection</string>
+   </property>
+  </action>
+  <action name="actionAutomatically_find_language_boxes">
+   <property name="text">
+    <string>Automatically find language boxes</string>
+   </property>
+  </action>
+  <action name="actionAutomatically_insert_language_boxes">
+   <property name="text">
+    <string>Automatically insert language boxes</string>
+   </property>
+  </action>
+  <action name="actionAutolboxFind">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Find</string>
+   </property>
+  </action>
+  <action name="actionAutolboxInsert">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Insert</string>
    </property>
   </action>
  </widget>

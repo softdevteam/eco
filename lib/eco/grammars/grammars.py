@@ -47,6 +47,7 @@ class EcoFile(object):
         self.filename = filename
         self.base = base
         self.alts = {}
+        self.included_langs = set()
         self.extract = None
 
     def load(self, buildlexer=True):
@@ -61,9 +62,11 @@ class EcoFile(object):
             incparser.syntaxtable = syntaxtable
             incparser.whitespaces = whitespaces
             incparser.init_ast()
+            incparser.lang = self.name
 
             inclexer = _cache[self.name + "::lexer"]
             incparser.lexer = inclexer # give parser a reference to its lexer (needed for multiline comments)
+            incparser.previous_version.parent.name = self.name
 
             return (incparser, inclexer)
         else:
@@ -86,6 +89,8 @@ class EcoFile(object):
             _cache[self.name + "::json"] = (root, language, whitespaces)
             _cache[self.name + "::parser"] = (bootstrap.incparser.syntaxtable, whitespace)
 
+            bootstrap.incparser.lang = self.name
+            bootstrap.incparser.previous_version.parent.name = self.name
             bootstrap.incparser.lexer = bootstrap.inclexer
             return (bootstrap.incparser, bootstrap.inclexer)
 
@@ -93,6 +98,7 @@ class EcoFile(object):
         if nonterminal not in self.alts:
             self.alts[nonterminal] = []
         self.alts[nonterminal].append("<%s>" % language.name)
+        self.included_langs.add(language.name)
 
     def change_start(self, name):
         self.extract = name
@@ -118,6 +124,7 @@ scoping = EcoFile("Scoping Rules (Ecofile)", "grammars/scoping_grammar.eco", "Sc
 eco = EcoFile("Eco Grammar (Ecofile)", "grammars/eco_grammar.eco", "Grammar") # based on eco_grammar
 html = EcoFile("HTML", "grammars/html.eco", "Html")
 sql = EcoFile("SQL", "grammars/sql.eco", "Sql")
+sqlfull = EcoFile("SQL (Full)", "grammars/sqlfull.eco", "Sql")
 img = EcoFile("Image", "grammars/img.eco", "Image")
 chemical = EcoFile("Chemicals", "grammars/chemicals.eco", "Chemicals")
 php = EcoFile("PHP", "grammars/php.eco", "Php")
@@ -127,9 +134,16 @@ javascript = EcoFile("JavaScript", "grammars/javascript.eco", "JavaScript")
 pythonprolog = EcoFile("Python + Prolog", "grammars/python275.eco", "Python")
 pythonprolog.add_alternative("atom", prolog)
 
+sql_single = EcoFile("SQL Statement", "grammars/sql.eco", "Sql")
+sql_single.change_start("sql_line")
+
 pythonhtmlsql = EcoFile("Python + HTML + SQL", "grammars/python275.eco", "Python")
 pythonhtmlsql.add_alternative("atom", html)
 pythonhtmlsql.add_alternative("atom", sql)
+
+pythonhtmlsqlsingle = EcoFile("Python + HTML + SQLStmt", "grammars/python275.eco", "Python")
+pythonhtmlsqlsingle.add_alternative("atom", html)
+pythonhtmlsqlsingle.add_alternative("atom", sql_single)
 
 htmlpythonsql = EcoFile("HTML + Python + SQL", "grammars/html.eco", "Html")
 htmlpythonsql.add_alternative("element", pythonhtmlsql)
@@ -142,11 +156,20 @@ java_expr.add_alternative("unary_expression", chemical)
 sql_ref_java = EcoFile("SQL ref. Java expression", "grammars/sql.eco", "Sql")
 sql_ref_java.add_alternative("y_condition", java_expr)
 
+javasql = EcoFile("Java + SQL", "grammars/java15.eco", "Java")
+javasql.add_alternative("unary_expression", sqlfull)
+
 javasqlchemical = EcoFile("Java + SQL + Chemical", "grammars/java15.eco", "Java")
 javasqlchemical.add_alternative("unary_expression", sql_ref_java)
 
 python_expr = EcoFile("Python expression", "grammars/python275.eco", "Python")
 python_expr.change_start("simple_stmt")
+
+python_method = EcoFile("Python method", "grammars/python275.eco", "Python")
+python_method.change_start("funcdef")
+
+python_class = EcoFile("Python class", "grammars/python275.eco", "Python")
+python_class.change_start("classdef")
 
 phppython = EcoFile("PHP + Python", "grammars/php.eco", "Php")
 pythonphp = EcoFile("Python + PHP", "grammars/python275.eco", "Python")
@@ -171,9 +194,49 @@ rubyjs.add_alternative("top_stmt", javascript)
 
 regex = EcoFile("Regex", "grammars/regex.eco", "Regex")
 
-languages = [calc, java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, prolog, sql, sql_ref_java, html, htmlpythonsql, eco, scoping, img, chemical, eco_grammar, python_expr, ipython, pythonipython, simplelang, ruby, rubysl, rubyjs, javascript, regex]
-newfile_langs = [java, javasqlchemical, php, phppython, python, pythonhtmlsql, pythonprolog, prolog, sql, html, htmlpythonsql, pythonipython, calc, ruby, simplelang, rubysl, rubyjs, javascript, regex]
-submenu_langs = [java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, python_expr, prolog, sql, sql_ref_java, html, htmlpythonsql, img, chemical, ipython, ruby, simplelang, javascript, rubysl, rubyjs]
+javapy = EcoFile("Java + Python", "grammars/java15.eco", "Java")
+javapy.add_alternative("unary_expression", python_expr)
+javapy.add_alternative("class_body_declaration", python_method)
+javapy.add_alternative("class_body_declaration", python_class)
+
+languages = [calc,
+             java,
+             javasql,
+             javasqlchemical,
+             java_expr,
+             php,
+             phppython,
+             python,
+             pythonhtmlsql,
+             pythonhtmlsqlsingle,
+             pythonprolog,
+             pythonphp,
+             prolog,
+             sql,
+             sqlfull,
+             sql_single,
+             sql_ref_java,
+             html,
+             htmlpythonsql,
+             eco,
+             scoping,
+             img,
+             chemical,
+             eco_grammar,
+             python_expr,
+             python_method,
+             python_class,
+             ipython,
+             pythonipython,
+             simplelang,
+             ruby,
+             rubysl,
+             rubyjs,
+             javascript,
+             regex,
+             javapy]
+newfile_langs = [java, javasql, javasqlchemical, php, phppython, python, pythonhtmlsql, pythonhtmlsqlsingle, pythonprolog, prolog, sql, sqlfull, html, htmlpythonsql, pythonipython, calc, ruby, simplelang, rubysl, rubyjs, javascript, regex, javapy]
+submenu_langs = [java, javasqlchemical, java_expr, php, phppython, python, pythonhtmlsql, pythonprolog, pythonphp, python_expr, prolog, sql, sql_single, sql_ref_java, html, htmlpythonsql, img, chemical, ipython, ruby, simplelang, javascript, rubysl, rubyjs]
 
 lang_dict = {}
 for l in languages:

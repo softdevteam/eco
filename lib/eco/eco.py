@@ -631,6 +631,8 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionShow_language_boxes, SIGNAL("triggered()"), self.update_editor)
         self.connect(self.ui.actionShow_namebinding, SIGNAL("triggered()"), self.update_editor)
         self.connect(self.ui.actionShow_indentation, SIGNAL("triggered()"), self.toogle_indentation)
+        self.connect(self.ui.actionAutolboxFind, SIGNAL("triggered()"), self.toggle_find_autolboxes)
+        self.connect(self.ui.actionAutolboxInsert, SIGNAL("triggered()"), self.toggle_insert_autolboxes)
         self.connect(self.ui.actionShow_lspaceview, SIGNAL("triggered()"), self.view_in_lspace)
         self.connect(self.ui.menuChange_language_box, SIGNAL("aboutToShow()"), self.showEditMenu)
         self.connect(self.ui.menuRecent_files, SIGNAL("aboutToShow()"), self.showRecentFiles)
@@ -932,6 +934,22 @@ class Window(QtGui.QMainWindow):
         else:
             QApplication.instance().showindent = False
         self.getEditor().update()
+
+    def toggle_find_autolboxes(self):
+        if self.ui.actionAutolboxFind.isChecked():
+            self.getEditor().tm.option_autolbox_find = True
+        else:
+            self.getEditor().tm.option_autolbox_find = False
+            self.getEditor().tm.option_autolbox_insert = False
+            self.ui.actionAutolboxInsert.setChecked(False)
+
+    def toggle_insert_autolboxes(self):
+        if self.ui.actionAutolboxInsert.isChecked():
+            self.getEditor().tm.option_autolbox_insert = True
+            self.getEditor().tm.option_autolbox_find = True
+            self.ui.actionAutolboxFind.setChecked(True)
+        else:
+            self.getEditor().tm.option_autolbox_insert = False
 
     def view_in_lspace(self):
         settings = QSettings("softdev", "Eco")
@@ -1416,6 +1434,8 @@ class Window(QtGui.QMainWindow):
         self.ui.actionFind_next.setEnabled(enabled)
         self.ui.actionAdd_language_box.setEnabled(enabled)
         self.ui.actionSelect_next_language_box.setEnabled(enabled)
+        self.ui.actionAutolboxInsert.setEnabled(enabled)
+        self.ui.actionAutolboxFind.setEnabled(enabled)
         try:
             import pydot
             self.ui.actionParse_Tree.setEnabled(enabled)
