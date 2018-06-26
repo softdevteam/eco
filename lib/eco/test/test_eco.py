@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from grammars.grammars import calc, java, python, Language, sql, pythonprolog, lang_dict, phppython, pythonphp, pythonhtmlsql
+from grammars.grammars import calc, java, python, Language, sql, pythonprolog, lang_dict, phppython, pythonphp, pythonhtmlsql, html
 from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer, IncrementalLexerCF
@@ -4654,6 +4654,57 @@ class Test_AutoLanguageBoxDetection():
 
         assert len(parser.error_nodes) == 1
         assert len(parser.error_nodes[0].autobox) == 2
+
+    def test_include_rules(self):
+        grm = EcoFile("Python + HTML (Include)", "grammars/python275.eco", "Python")
+        grm.add_alternative("atom", html)
+        grm.set_auto_include("HTML", set(["<html", "<img"]))
+        lang_dict[grm.name] = grm
+
+        parser, lexer = grm.load()
+        parser.setup_autolbox(grm.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in "x = <html></html>":
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 2
+
+        parser.reset()
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in "x = <span></span>":
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+
+    def test_exclude_rules(self):
+        grm = EcoFile("Python + HTML (Exclude)", "grammars/python275.eco", "Python")
+        grm.add_alternative("atom", html)
+        grm.set_auto_exclude("HTML", set(["TEXT"]))
+        lang_dict[grm.name] = grm
+
+        parser, lexer = grm.load()
+        parser.setup_autolbox(grm.name)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in "x = <span></span>":
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 2
+
+        parser.reset()
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in "x = FROM table":
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+        assert parser.error_nodes[0].autobox is None # would be set without excluding TEXT
 
     def test_autoremove_pythonsql(self):
         parser, lexer = pythonsql.load()

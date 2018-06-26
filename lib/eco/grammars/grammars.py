@@ -49,6 +49,8 @@ class EcoFile(object):
         self.alts = {}
         self.included_langs = set()
         self.extract = None
+        self.auto_include = None
+        self.auto_exclude = None
 
     def load(self, buildlexer=True):
         from grammar_parser.bootstrap import BootstrapParser
@@ -102,6 +104,26 @@ class EcoFile(object):
 
     def change_start(self, name):
         self.extract = name
+
+    def set_auto_include(self, lang, tokentype):
+        if self.auto_include is None:
+            self.auto_include = {}
+        self.auto_include[lang] = tokentype
+
+    def set_auto_exclude(self, lang, tokentype):
+        if self.auto_include is not None:
+            print "Warning: Inclusion and exclusion rules may conflict! Exclusion rules will be ignored."
+            return
+        if self.auto_exclude is None:
+            self.auto_exclude = {}
+        self.auto_exclude[lang] = tokentype
+
+    def auto_allows(self, lang, tokentype):
+        if self.auto_include and self.auto_include.has_key(lang):
+            return tokentype in self.auto_include[lang]
+        if self.auto_exclude and self.auto_exclude.has_key(lang):
+            return tokentype not in self.auto_exclude[lang]
+        return True
 
     def __str__(self):
         return self.name
