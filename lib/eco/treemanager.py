@@ -2063,7 +2063,7 @@ class TreeManager(object):
         outer_root = lbox.get_root()
         outer_lang = outer_root.name
         outer_parser, outer_lexer = lang_dict[outer_lang].load() # get preloaded one
-        r = IncrementalRecognizer(outer_parser.syntaxtable, outer_lexer.lexer, outer_lang)
+        r = IncrementalRecognizer(outer_parser.syntaxtable, outer_lexer.lexer, outer_lang, None)
         r.preparse(outer_root, lbox)
         result =  r.parse(lbox.symbol.ast.children[0].next_term, lbox.next_term, status)
         return result

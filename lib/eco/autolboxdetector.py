@@ -33,7 +33,7 @@ class NewAutoLboxDetector(object):
 
         # preload nested languages
         for sub in main.included_langs:
-            self.langs[sub] = get_recognizer(sub)
+            self.langs[sub] = get_recognizer(sub, langname)
 
     def find_terminal(self, node):
         while node.children:
@@ -147,10 +147,11 @@ class Recognizer(object):
     """A parser that simulates parsing some input without actually creating a
     parse tree. Used to test if some input is valid in some language."""
 
-    def __init__(self, syntaxtable, lexer, lang):
+    def __init__(self, syntaxtable, lexer, lang, outer):
         self.syntaxtable = syntaxtable
         self.lexer = lexer
         self.lang = lang
+        self.outer = outer
         self.state = [0]
         self.reached_eos = False
         self.seen_error = False
@@ -212,6 +213,8 @@ class Recognizer(object):
     def valid_start(self, token):
         if token.name in ["<ws>", "<return>"]:
             return False
+        if not lang_dict[self.outer].auto_allows(self.lang, token.name):
+            return False
         return True
 
     def is_finished(self):
@@ -248,8 +251,8 @@ class Recognizer(object):
 
 class RecognizerIndent(Recognizer):
 
-    def __init__(self, syntaxtable, lexer, lang):
-        Recognizer.__init__(self, syntaxtable, lexer, lang)
+    def __init__(self, syntaxtable, lexer, lang, outer):
+        Recognizer.__init__(self, syntaxtable, lexer, lang, outer)
         self.todo = []
         self.indents = [0]
         self.last_ws = 0
@@ -295,7 +298,8 @@ class RecognizerIndent(Recognizer):
             self.todo.append(FinishSymbol())
             return self.todo.pop(0)
 
-        if tok1[3][-1].symbol.name.endswith(tok1[0]):
+        if type(tok1[3][-1].symbol) is not MagicTerminal\
+               and tok1[3][-1].symbol.name.endswith(tok1[0]):
             # only use fully parsed nodes as possible ends
             self.last_read = tok1[3][-1]
 
@@ -424,10 +428,10 @@ class IncrementalRecognizer(Recognizer):
                 return True
             return False
 
-def get_recognizer(lang):
+def get_recognizer(lang, outer):
         main = lang_dict[lang]
         parser, lexer = main.load()
         if lexer.indentation_based:
-            return RecognizerIndent(parser.syntaxtable, lexer.lexer, lang)
+            return RecognizerIndent(parser.syntaxtable, lexer.lexer, lang, outer)
         else:
-            return Recognizer(parser.syntaxtable, lexer.lexer, lang)
+            return Recognizer(parser.syntaxtable, lexer.lexer, lang, outer)
