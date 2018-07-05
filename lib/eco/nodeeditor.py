@@ -426,11 +426,14 @@ class NodeEditor(QFrame):
 
             # if we found a language box, continue drawing inside of it
             if isinstance(node.symbol, MagicTerminal):
+                if self.tm.is_syntaxerror(node):
+                    self.draw_vertical_squiggly_line(paint,x,y)
                 lbox += 1
                 lbnode = node.symbol.ast
                 if self.selected_lbox is node:
                     color = colors[(lbox-1) % len(colors)]
-                    self.draw_lbox_bracket(paint, '[', node, x, y, color)
+                    if not self.tm.is_syntaxerror(node):
+                        self.draw_lbox_bracket(paint, '[', node, x, y, color)
                     draw_lbox = True
                     selected_language = lbnode
                 else:
@@ -577,17 +580,14 @@ class NodeEditor(QFrame):
 
             if self.tm.has_error_presentation(node):
                 length = len(node.symbol.name)*self.fontwt
-                self.draw_squiggly_line(paint, x-length, y, length, "green")
+                self.draw_squiggly_line(paint, x-length, y, length, "blue")
 
-            if self.tm.is_syntaxerror(node):
+            elif self.tm.is_syntaxerror(node):
                 if isinstance(node, EOS):
                     length = self.fontwt
                 else:
                     length = len(node.symbol.name)*self.fontwt
-                if isinstance(node.symbol, MagicTerminal):
-                    self.draw_vertical_squiggly_line(paint,x,y)
-                else:
-                    self.draw_squiggly_line(paint, x-length, y, length, "red")
+                self.draw_squiggly_line(paint, x-length, y, length, "red")
 
             node = node.next_terminal()
 
@@ -672,23 +672,34 @@ class NodeEditor(QFrame):
     def draw_vertical_squiggly_line(self, paint, x, y):
         paint.setPen(Qt.CustomDashLine)
         pen = paint.pen()
-        pen.setDashPattern([2,2])
         pen.setColor(QColor("red"))
-        paint.setPen(pen)
         y = 3+y*self.fontht
-        paint.drawLine(x-1, y, x-1, y+self.fontht)
-        paint.drawLine(x, y+2, x, y+self.fontht)
+        pen.setDashPattern([4,4])
+        paint.setPen(pen)
+        paint.drawLine(x-2, y, x-2, y+self.fontht)
+        pen.setDashPattern([2,2])
+        paint.setPen(pen)
+        paint.drawLine(x-3, y+3, x-3, y+self.fontht)
+        pen.setDashPattern([4,4])
+        paint.setPen(pen)
+        paint.drawLine(x-4, y+4, x-4, y+self.fontht)
         paint.setPen(Qt.SolidLine)
 
     def draw_squiggly_line(self, paint, x, y, length, color):
         paint.setPen(Qt.CustomDashLine)
         pen = paint.pen()
-        pen.setDashPattern([2,2])
         pen.setColor(QColor(color))
         paint.setPen(pen)
         y = (y+1)*self.fontht+1
-        paint.drawLine(x, y, x+length, y)
-        paint.drawLine(x+2, y+1, x+2+length, y+1)
+        pen.setDashPattern([4,4])
+        paint.setPen(pen)
+        paint.drawLine(x, y+2, x+length, y+2)
+        pen.setDashPattern([2,2])
+        paint.setPen(pen)
+        paint.drawLine(x+3, y+1, x+length, y+1)
+        pen.setDashPattern([4,4])
+        paint.setPen(pen)
+        paint.drawLine(x+4, y, x+length, y)
         paint.setPen(Qt.SolidLine)
 
     def draw_selection(self, paint, draw_selection_start, draw_selection_end, max_y):

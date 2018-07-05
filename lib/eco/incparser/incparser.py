@@ -402,11 +402,12 @@ class IncParser(object):
 
     def compute_presention(self, node):
         if type(node.symbol) is not Terminal:
+            # Don't show errors for indentation tokens
             return
         try:
             prev_name = node.get_attr("symbol.name", self.reference_version)
         except AttributeError:
-            prev_name = None
+            return
         if prev_name != node.symbol.name:
             self.error_pres.append((node, prev_name))
 
@@ -461,6 +462,9 @@ class IncParser(object):
             poffset += child.textlength(self.prev_version)
 
     def is_retainable_subtree(self, node, poffset):
+        if type(node.symbol) is Terminal:
+            # Don't retain terminals so we can be show them as errors
+            return False
         if node.new:
             return False
 
