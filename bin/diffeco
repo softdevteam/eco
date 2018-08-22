@@ -1,0 +1,52 @@
+usage() {
+    echo "usage: $0 [FILE1] [OPTIONS]";
+    echo
+    echo "Arguments:"
+    echo "-f <file>         Diff against file on disk"
+    echo "-c <commit>       Diff against file from commit"
+    exit 1;
+}
+
+
+if [ $# -eq 0 ]; then
+    usage
+fi
+
+file1=$1
+shift
+
+while getopts ":c:f:" o; do
+    case "${o}" in
+        f)
+            file2=${OPTARG}
+            ;;
+        c)
+            commit=${OPTARG}
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+
+BASEDIR=$(dirname "$0")
+
+if [ -z $file2 ]; then
+    echo "ecodiff $file1 and $commit"
+    ECODIFF0=`mktemp`
+    git archive $commit $file1 | tar -xO > $ECODIFF0
+    ECODIFF2=`mktemp`
+    $BASEDIR/eco -e $ECODIFF0 $ECODIFF2
+    rm $ECODIFF0
+else
+    echo "ecodiff $file1 and $file2"
+    ECODIFF2=`mktemp`
+    $BASEDIR/eco -e $file2 $ECODIFF2
+fi
+
+ECODIFF1=`mktemp`
+$BASEDIR/eco -e $file1 $ECODIFF1
+
+git diff --no-index $ECODIFF2 $ECODIFF1
+rm $ECODIFF1
+rm $ECODIFF2
