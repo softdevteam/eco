@@ -21,14 +21,22 @@ class RE_DEFAULT(object):
         return "%s(%s)" % (self.__class__.__name__, self.c)
 
 class RE_CHAR(RE_DEFAULT): pass
-class RE_STAR(RE_DEFAULT): pass
-class RE_PLUS(RE_DEFAULT): pass
+
+class RE_STAR(RE_DEFAULT):
+    def __init__(self, c, ng=False):
+        self.c = c
+        self.ng = ng
+
+class RE_PLUS(RE_STAR): pass
 class RE_QUESTION(RE_DEFAULT): pass
 
 class RE_RANGE(RE_DEFAULT):
     def __init__(self, c, neg=False):
         RE_DEFAULT.__init__(self, c)
         self.neg = neg
+
+    def __repr__(self):
+        return "%s(%s, %s)" % (self.__class__.__name__, self.c, self.neg)
 
 class PatternMatcher(object):
 
@@ -60,9 +68,10 @@ class PatternMatcher(object):
         self.pos = state[0]
         self.exactmatch = state[1]
         self.result = state[2]
+        self.la = state[3]
 
     def save_state(self):
-        return (self.pos, self.exactmatch, list(self.result))
+        return (self.pos, self.exactmatch, list(self.result), self.la)
 
     def match_one(self, pattern):
         if self.isend():
@@ -80,24 +89,56 @@ class PatternMatcher(object):
         self.exactmatch = False
         return False
 
-    def match_star(self, pattern):
-        while self._inner_match(pattern.c):
-             pass
-        return True
+    def match_star(self, pattern, l=None):
+        if l is None or len(l) == 1:
+            while self._inner_match(pattern.c):
+                pass
+            return True
 
-    def match_plus(self, pattern):
+        if pattern.ng: # non-greedy
+            while True:
+                tmp = self.save_state()
+                if self.match_list(l[1:]):
+                    return True
+                self.load_state(tmp)
+                if self._inner_match(pattern.c):
+                    continue
+                return False
+        else: # greedy
+            stack = []
+            while True:
+                stack.append(self.save_state())
+                if self._inner_match(pattern.c):
+                    continue
+                break
+            max_la = self.la
+            if len(l) > 1:
+                while stack:
+                    self.load_state(stack.pop())
+                    if self.match_list(l[1:]):
+                        return True
+                    max_la = max(self.la, max_la)
+                self.la = max_la
+            return False
+
+    def match_plus(self, pattern, l=None):
         if not self._inner_match(pattern.c):
             # we have to at least match one
             return False
-        return self.match_star(pattern)
+        return self.match_star(pattern, l)
 
     def match_question(self, pattern):
         self._inner_match(pattern.c)
         return True
 
     def match_list(self, pattern):
-        for p in pattern:
-            if not self._inner_match(p):
+        for i in range(len(pattern)):
+            p = pattern[i]
+            if type(p) is RE_STAR:
+                return self.match_star(p, pattern[i:])
+            if type(p) is RE_PLUS:
+                return self.match_plus(p, pattern[i:])
+            elif not self._inner_match(p):
                 return False
         return True
 
@@ -155,6 +196,7 @@ class PatternMatcher(object):
         self.pos = pos
         self.text = text
         self.result = []
+        self.la = 0
         if self._inner_match(pattern):
             return self.get_token()
         return None
@@ -329,8 +371,12 @@ class RegexParser(object):
             return self.parse_group(node)
         elif node.name == "STAR":
             return self.parse_star(node)
+        elif node.name == "NGSTAR":
+            return self.parse_star(node, ng=True)
         elif node.name == "PLUS":
             return self.parse_plus(node)
+        elif node.name == "NGPLUS":
+            return self.parse_plus(node, ng=True)
         elif node.name == "CHAR":
             return self.parse_char(node)
         elif node.name == "RANGE":
@@ -387,16 +433,16 @@ class RegexParser(object):
             return RE_RANGE(l, True)
         return RE_RANGE(l)
 
-    def parse_star(self, node):
+    def parse_star(self, node, ng=False):
         content = self.parse(node.get("value"))
-        return RE_STAR(content)
+        return RE_STAR(content, ng)
 
     def parse_group(self, node):
         return self.parse(node.get("value"))
 
-    def parse_plus(self, node):
+    def parse_plus(self, node, ng=False):
         content = self.parse(node.get("value"))
-        return RE_PLUS(content)
+        return RE_PLUS(content, ng)
 
     def parse_question(self, node):
         content = self.parse(node.get("value"))
@@ -431,13 +477,14 @@ class Lexer(object):
             oldpos = self.pos
             for p, n in self.patterns:
                 if pm.match(p, text[self.pos:]):
-                    if not pm.exactmatch:
-                        lookahead += 1
-                    result.append((text[self.pos:self.pos + pm.pos], n, lookahead))
+                    lookahead = max(pm.la, lookahead)
+                    value = text[self.pos:self.pos + pm.pos]
+                    lookahead = lookahead - len(value)
+                    result.append((value, n, lookahead))
                     self.pos += pm.pos
                     lookahead = 0
                 else:
-                    lookahead = max(pm.pos, lookahead)
+                    lookahead = max(pm.la, lookahead)
             if self.pos == oldpos:
                 # no more matches
                 if self.pos < len(text):
