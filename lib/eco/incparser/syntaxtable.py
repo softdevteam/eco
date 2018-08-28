@@ -69,10 +69,10 @@ class Accept(SyntaxTableElement):
 class SyntaxTable(object):
 
     def __init__(self, lr_type=LR0):
-        self.table = {}
         self.lr_type = lr_type
 
     def build(self, graph, precedences=[]):
+        self.table = [{} for _ in range(len(graph.state_sets))]
         symbols = graph.get_symbols()
         symbols.add(FinishSymbol())
         for i in range(len(graph.state_sets)):
@@ -81,7 +81,7 @@ class SyntaxTable(object):
             for state in state_set.elements:
                 if state.isfinal():
                     if state.p.left is None:
-                        self.table[(i, FinishSymbol())] = Accept()
+                        self.table[i][FinishSymbol()] = Accept()
                     else:
                         if self.lr_type in [LR1, LALR]:
                             lookahead = state_set.lookaheads[state]
@@ -89,13 +89,13 @@ class SyntaxTable(object):
                             lookahead = symbols
                         for s in lookahead:
                             newaction = Reduce(state.p)
-                            if self.table.has_key((i,s)):
-                                oldaction = self.table[(i,s)]
+                            if self.table[i].has_key(s):
+                                oldaction = self.table[i][s]
                                 newaction = self.resolve_conflict(i, s, oldaction, newaction, precedences)
                             if newaction:
-                                self.table[(i, s)] = newaction
+                                self.table[i][s] = newaction
                             else:
-                                del self.table[(i,s)]
+                                del self.table[i][s]
             # shift, goto
             for s in symbols:
                 dest = graph.follow(i, s)
@@ -104,12 +104,12 @@ class SyntaxTable(object):
                         action = Shift(dest)
                     if isinstance(s, Nonterminal):
                         action = Goto(dest)
-                    if self.table.has_key((i,s)):
-                        action = self.resolve_conflict(i, s, self.table[(i,s)], action, precedences)
+                    if self.table[i].has_key(s):
+                        action = self.resolve_conflict(i, s, self.table[i][s], action, precedences)
                     if action:
-                        self.table[(i, s)] = action
+                        self.table[i][s] = action
                     else:
-                        del self.table[(i,s)]
+                        del self.table[i][s]
 
     def resolve_conflict(self, state, symbol, oldaction, newaction, precedences):
         # input: old_action, lookup_symbol, new_action
@@ -192,6 +192,6 @@ class SyntaxTable(object):
 
     def lookup(self, state_id, symbol):
         try:
-            return self.table[(state_id, symbol)]
+            return self.table[state_id][symbol]
         except KeyError:
             return None

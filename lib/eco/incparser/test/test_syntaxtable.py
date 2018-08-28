@@ -44,27 +44,27 @@ S_bAd = Production(S, [b, A, d])
 A_c = Production(A, [c])
 A_None = Production(A, [Epsilon()])
 
-syntaxtable = {
-    (0, b): Shift(2),
-    (0, S): Goto(1),
+syntaxtable = [
+    {b: Shift(2),
+     S: Goto(1)},
 
-    (1, FinishSymbol()): Accept(),
+    {FinishSymbol(): Accept()},
 
-    (2, c): Shift(4),
-    (2, A): Goto(3),
-    (2, d): Reduce(A_None),
+    {c: Shift(4),
+     A: Goto(3),
+     d: Reduce(A_None)},
 
-    (3, d): Shift(5),
+    {d: Shift(5)},
 
-    (4, d): Reduce(A_c),
+    {d: Reduce(A_c)},
 
-    (5, FinishSymbol()): Reduce(S_bAd),
-}
+    {FinishSymbol(): Reduce(S_bAd)},
+]
 
 def test_build():
     graph = StateGraph(p.start_symbol, p.rules, 1)
     graph.build()
     st = SyntaxTable(1)
     st.build(graph)
-    for key in syntaxtable.keys():
-        assert st.table[key] == syntaxtable[key]
+    for i in range(len(syntaxtable)):
+        assert st.table[i] == syntaxtable[i]
