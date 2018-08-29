@@ -76,6 +76,21 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("ab*"), "abbbbbb") == "abbbbbb"
         assert PatternMatcher().match(self.cmp("a*b*"), "aaaaaabbbbbbbbbb") == "aaaaaabbbbbbbbbb"
         assert PatternMatcher().match(self.cmp(".*"), "absakljsadklajd") == "absakljsadklajd"
+        assert PatternMatcher().match(self.cmp(".*bc"), "abcaaabc") == "abcaaabc"
+        assert PatternMatcher().match(self.cmp(".*abc"), "abc") == "abc"
+        assert PatternMatcher().match(self.cmp("a*a"), "aa") == "aa"
+        assert PatternMatcher().match(self.cmp("a*aa"), "aa") == "aa"
+        assert PatternMatcher().match(self.cmp("a*aa"), "aaa") == "aaa"
+        assert PatternMatcher().match(self.cmp("a*a"), "a") == "a"
+        assert PatternMatcher().match(self.cmp("a*a"), "") is None
+        assert PatternMatcher().match(self.cmp(".*abc"), "abcabcabc") == "abcabcabc" # greedy
+        assert PatternMatcher().match(self.cmp(".*?abc"), "abcabcabc") == "abc" # non-greedy
+        assert PatternMatcher().match(self.cmp("(ab)*ab"), "ab") == "ab"
+        assert PatternMatcher().match(self.cmp("(ab)*ab"), "abab") == "abab"
+        assert PatternMatcher().match(self.cmp("(ab)*ab"), "ababab") == "ababab"
+        assert PatternMatcher().match(self.cmp("a*?bc"), "aaaabc") == "aaaabc"
+        assert PatternMatcher().match(self.cmp("a*?bc"), "bc") == "bc"
+        assert PatternMatcher().match(self.cmp("a*?bc"), "dbc") is None
 
     def test_match_plus(self):
         assert PatternMatcher().match(self.cmp("a+"), "aaaaaa") == "aaaaaa"
@@ -86,6 +101,8 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("a+b+"), "aaaaaaa") is None
         assert PatternMatcher().match(self.cmp("(ab)+"), "abababab") == "abababab"
         assert PatternMatcher().match(self.cmp("(ab)+"), "aaabbb") is None
+        assert PatternMatcher().match(self.cmp(".+bc"), "aaabcaaabc") == "aaabcaaabc" # greedy
+        assert PatternMatcher().match(self.cmp(".+?bc"), "aaabcaaabc") == "aaabc" # non-greedy
 
     def test_mixed(self):
         assert PatternMatcher().match(self.cmp("a+b*(c|d+)"), "aabbc") == "aabbc"
@@ -149,6 +166,16 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "1e23") == "1e23"
         assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a string 123!'") == "'this is a string 123!'"
         assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a with a newline \r string 123!'") is None
+
+        assert PatternMatcher().match(self.cmp("/"), "/") == "/"
+        assert PatternMatcher().match(self.cmp("\*"), "*") == "*"
+        assert PatternMatcher().match(self.cmp("/\*"), "/*") == "/*"
+        assert PatternMatcher().match(self.cmp("/\*\*/"), "/**/") == "/**/"
+        assert PatternMatcher().match(self.cmp("/\*[a-z]*\*/"), "/*foo*/") == "/*foo*/"
+        assert PatternMatcher().match(self.cmp("/\*([^\*])*\*/"), "/*foo*/") == "/*foo*/"
+        assert PatternMatcher().match(self.cmp("/\*.*?\*/"), "/***/") == "/***/"
+        assert PatternMatcher().match(self.cmp("/\*.*?\*/"), "/* abc** def */") == "/* abc** def */"
+        assert PatternMatcher().match(self.cmp("/\*.*?\*/"), "/* abc */ * def */") == "/* abc */"
 
         # Python
         assert PatternMatcher().match(self.cmp("#[^\\r]*"), "# hello world") == "# hello world"
@@ -229,6 +256,18 @@ class Test_PatternMatcher(object):
         pm.match(self.cmp("abcde|abcx"), "abcx")
         assert pm.exactmatch is True
 
+        pm = PatternMatcher()
+        assert pm.match(self.cmp("[a-z]*"), 'abc1') == "abc"
+        assert pm.la == 4
+
+        pm = PatternMatcher()
+        assert pm.match(self.cmp("a[b]*a"), 'abbbaa') == "abbba"
+        assert pm.la == 5
+
+        pm = PatternMatcher()
+        assert pm.match(self.cmp('"[^"]*"'), '"abc') is None
+        assert pm.la == 5
+
 from incparser.astree import TextNode, BOS, EOS, AST
 from grammar_parser.gparser import Terminal, Nonterminal, MagicTerminal
 from incparser.syntaxtable import FinishSymbol
@@ -237,13 +276,22 @@ class Test_Lexer(object):
 
     def test_simple(self):
         l = Lexer([("name", "[a-z]+"), ("num", "[0-9]+")])
-        assert l.lex("abc123") == [("abc", "name", 1), ("123", "num", 0)]
-        assert l.lex("456foobar9") == [("456", "num", 1), ("foobar", "name", 1), ("9", "num", 0)]
+        assert l.lex("abc123") == [("abc", "name", 1), ("123", "num", 1)]
+        assert l.lex("456foobar9") == [("456", "num", 1), ("foobar", "name", 1), ("9", "num", 1)]
 
     def test_lookahead(self):
         l = Lexer([("cls", "class"), ("as", "as"), ("chr", "[a-z]")])
         assert l.lex("aclasxy") == [("a", "chr", 1), ("c", "chr", 4), ("l", "chr", 0), \
                                     ("as", "as", 0), ("x", "chr", 0), ("y", "chr", 0)]
+
+    def test_lookahead2(self):
+        l = Lexer([("one", "abcdef"), ("two", "abc")])
+        assert l.lex("abcdexyz") == [("abc", "two", 3), ("dexyz", None, 0)]
+
+    def test_lookahead3(self):
+        l = Lexer([("MLS", '\"\"\"[^\"]*\"\"\"'), ("sstring", '\"[^\"\r]*\"')])
+        assert l.lex('"""abc""d') == [('""', "sstring", 7), ('"abc"', "sstring", 0), ('"d', None, 0)]
+
     def test_leftover(self):
         l = Lexer([("test", "abcde|abcx")])
         assert l.lex("abcx") == [("abcx", "test", 0)]
@@ -341,7 +389,7 @@ class Test_IncrementalLexing(object):
 
         it = self.lexer.get_token_iter(new)
         assert it.next() == ("12", "INT", 1, [TextNode(Terminal("12"))])
-        assert it.next() == (["'string with", lbph, "inside'"], "string", 1, [TextNode(Terminal("'string with")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("inside'"))])
+        assert it.next() == (["'string with", lbph, "inside'"], "string", 0, [TextNode(Terminal("'string with")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("inside'"))])
         with pytest.raises(StopIteration):
             it.next()
 
@@ -361,7 +409,7 @@ class Test_IncrementalLexing(object):
         new4.insert_after(new5)
 
         it = self.lexer.get_token_iter(new1)
-        assert it.next() == (["'a", lbph, "b", lbph, "c'"], "string", 1, [TextNode(Terminal("'a")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))])
+        assert it.next() == (["'a", lbph, "b", lbph, "c'"], "string", 0, [TextNode(Terminal("'a")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))])
         with pytest.raises(StopIteration):
             it.next()
 
@@ -377,7 +425,7 @@ class Test_IncrementalLexing(object):
         new2.insert_after(new3)
 
         it = self.lexer.get_token_iter(new1)
-        assert it.next() == (["'a", "\r", "b'"], "string", 1, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b'"))])
+        assert it.next() == (["'a", "\r", "b'"], "string", 0, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b'"))])
         with pytest.raises(StopIteration):
             it.next()
 
@@ -397,9 +445,52 @@ class Test_IncrementalLexing(object):
         new4.insert_after(new5)
 
         it = self.lexer.get_token_iter(new1)
-        assert it.next() == (["'a", "\r", "b", lbph, "c'"], "string", 1, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))])
+        assert it.next() == (["'a", "\r", "b", lbph, "c'"], "string", 0, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))])
         with pytest.raises(StopIteration):
             it.next()
+
+class Test_TripleQuote(object):
+
+    def setup_class(cls):
+        rules = []
+        rules.append(("MLS", '\"\"\"[^\"]*\"\"\"'))
+        rules.append(("sstring", "\'[^\'\r]*\'"))
+        rules.append(("dstring", '\"[^\"\r]*\"'))
+        cls.lexer = Lexer(rules)
+
+    def test_simple(self):
+        ast = AST()
+        ast.init()
+        new = TextNode(Terminal('"""abc"""'))
+        ast.parent.children[0].insert_after(new)
+        it = self.lexer.get_token_iter(new)
+        assert it.next() == ('"""abc"""', "MLS", 0, [TextNode(Terminal('"""abc"""'))])
+
+    def test_simple2(self):
+        ast = AST()
+        ast.init()
+        new = TextNode(Terminal('""'))
+        ast.parent.children[0].insert_after(new)
+        it = self.lexer.get_token_iter(new)
+        assert it.next() == ('""', "dstring", 1, [TextNode(Terminal('""'))])
+
+    def test_simple3(self):
+        ast = AST()
+        ast.init()
+        new = TextNode(Terminal('"""'))
+        ast.parent.children[0].insert_after(new)
+        it = self.lexer.get_token_iter(new)
+        assert it.next() == ('""', "dstring", 2, [TextNode(Terminal('"""'))])
+
+    def test_simple4(self):
+        ast = AST()
+        ast.init()
+        new = TextNode(Terminal('"""abc""d'))
+        ast.parent.children[0].insert_after(new)
+        it = self.lexer.get_token_iter(new)
+        print("\n\n")
+        assert it.next() == ('""', "dstring", 7, [TextNode(Terminal('"""abc""d'))])
+        assert it.next() == ('"abc"', "dstring", 0, [TextNode(Terminal('"""abc""d'))])
 
 class Test_Keyword(object):
 

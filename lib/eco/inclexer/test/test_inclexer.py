@@ -137,7 +137,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         new2.insert_after(new3)
 
         next_token = lexer.lexer.get_token_iter(new).next
-        assert next_token() == (["\"abc",lbph,"def\""], "STRING", 1, [TextNode(Terminal("\"abc")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("def\""))])
+        assert next_token() == (["\"abc",lbph,"def\""], "STRING", 0, [TextNode(Terminal("\"abc")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("def\""))])
 
     def test_token_iter_lbox_x80(self):
         lexer = IncrementalLexer("""
@@ -155,7 +155,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         new2.insert_after(new3)
 
         next_token = lexer.lexer.get_token_iter(new).next
-        assert next_token() == ("\"abc\x80def\"", "STRING", 1, [TextNode(Terminal("\"abc")), TextNode(Terminal("\x80")), TextNode(Terminal("def\""))])
+        assert next_token() == ("\"abc\x80def\"", "STRING", 0, [TextNode(Terminal("\"abc")), TextNode(Terminal("\x80")), TextNode(Terminal("def\""))])
 
     def test_relex(self):
         ast = AST()
@@ -914,7 +914,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         lexer.relex(text1)
         assert bos.next_term.lookup == "str"
         assert bos.next_term == mk_multitextnode([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("def\"")])
-        assert bos.next_term.lookahead == 1
+        assert bos.next_term.lookahead == 0
 
         bos.next_term.children[2].symbol.name = "d\"ef\""
         pytest.raises(LexingError, lexer.relex, bos.next_term)
@@ -973,7 +973,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         lexer.relex(text1)
         assert bos.next_term.lookup == "str"
         assert bos.next_term == mk_multitextnode([Terminal("\"abc"), MagicTerminal("<SQL>"), Terminal("def\"")])
-        assert bos.next_term.lookahead == 1
+        assert bos.next_term.lookahead == 0
 
     def test_multitoken_relex_to_normal(self):
         lexer = IncrementalLexer("""
@@ -1015,7 +1015,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         assert bos.next_term.next_term.lookahead == 0
         assert bos.next_term.next_term.next_term.symbol == Terminal("\"\"")
         assert bos.next_term.next_term.next_term.lookup == "str"
-        assert bos.next_term.next_term.next_term.lookahead == 1
+        assert bos.next_term.next_term.next_term.lookahead == 0
 
         string = bos.next_term.next_term.next_term
         string.symbol.name = "\"abc\""
