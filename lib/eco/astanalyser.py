@@ -239,25 +239,12 @@ class AstAnalyser(object):
         analyser = self.get_lboxanalyser(root)
         analyser.analyse(root, self.parsers)
 
-        # convert variables, functions
-        if node.symbol.name == "<Python + PHP>":
-            # merge python into php
-            original = "variable"
-            dest = "function"
-            max_path = 1
-        elif node.symbol.name == "<PHP + Python>":
-            # merge php into python
-            original = "function"
-            dest = "variable"
-            max_path = 1
-        else:
-            return
-        for method in analyser.data.get(original,[]):
-            if len(method.path) > max_path:
+        for kind in analyser.data:
+            if kind in ["File", "reference"]:
                 continue
-            uri = self.convert_uri(dest, method, path)
-            uri.nbrule = NBRule("none", [], {})
-            self.add_uri(uri)
+            for obj in analyser.data[kind]:
+                uri = self.convert_uri(kind, obj, path)
+                self.add_uri(uri)
 
         # convert references
         for ref in analyser.data.get("reference",[]):
@@ -265,23 +252,23 @@ class AstAnalyser(object):
             if ref.node in analyser.errors:
                 del analyser.errors[ref.node]
                 uri = self.convert_uri("reference", ref, path)
-                if uri.name.startswith("$"):
+                if uri.name.startswith("$"): # XXX PHP hack
                     uri.name = uri.name[1:]
-                else:
-                    uri.name = "$" + uri.name
-                uri.nbrule = NBRule("none", [], {"references":(["variable"], ["function"])})
+                uri.nbrule = NBRule("none", [], {"references":(["variable", "function"], ["name"])})
                 self.add_uri(uri)
         return
 
     def convert_uri(self, newkind, prev, path):
-        uri = URI()
-        uri.kind = newkind
-        uri.astnode = prev.astnode
-        uri.node = prev.node
-        uri.path = path
-        uri.name = prev.name
-        uri.vartype = prev.vartype
-        uri.index = self.index
+        uri = prev
+        if len(prev.path) >= 1:
+            # Replace language box's top level with current location
+            uri.path.pop(0)
+            for p in reversed(path):
+                uri.path.insert(0, p)
+        else:
+            # Language box has no top-level (subgrammar)
+            for p in reversed(path):
+                uri.path.insert(0, p)
         return uri
 
     def add_uri(self, uri):
