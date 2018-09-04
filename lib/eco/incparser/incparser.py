@@ -913,11 +913,7 @@ class IncParser(object):
         return AST(root)
 
     def get_next_possible_symbols(self, state_id):
-        l = set()
-        for (state, symbol) in self.syntaxtable.table.keys():
-            if state == state_id:
-                l.add(symbol)
-        return l
+        return self.syntaxtable.table[state_id].iterkeys()
 
     def get_next_symbols_list(self, state = -1):
         if state == -1:
