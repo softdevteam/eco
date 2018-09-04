@@ -784,15 +784,28 @@ class IncParser(object):
                 node.alternate = astnode
 
     def is_reusable_astnode(self, old, new):
-        from grammar_parser.bootstrap import AstNode
-        if type(old) is not AstNode or type(new) is not AstNode:
+        from grammar_parser.bootstrap import AstNode, ListNode
+
+        if type(old) is not type(new):
             return False
+
         if old.name != new.name:
             return False
-        for key in old.children:
-            if old.children.get(key) is not new.children.get(key):
+
+        if type(old) is ListNode:
+            if len(old.children) != len(new.children):
                 return False
-        return True
+            for i in range(len(old.children)):
+                if old.children[i] is not new.children[i]:
+                    return False
+            return True
+        elif type(old) is AstNode:
+            for key in old.children:
+                if old.children.get(key) is not new.children.get(key):
+                    return False
+            return True
+        else:
+            return False
 
     def left_breakdown(self, la):
         la.exists = False
