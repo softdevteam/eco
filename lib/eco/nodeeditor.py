@@ -1083,6 +1083,7 @@ class NodeEditor(QFrame):
     def createCCFunc(self, text):
         def action():
             self.tm.pasteCompletion(text)
+            self.update()
         return action
 
     def selectSubgrammar(self, item):
