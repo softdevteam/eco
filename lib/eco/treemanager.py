@@ -1637,14 +1637,11 @@ class TreeManager(object):
             s = s[:diff_start] + s[diff_end:]
             nodes[0].symbol.name = s
             self.delete_if_empty(nodes[0])
-            self.clean_empty_lbox(nodes[0])
         else:
             nodes[0].symbol.name = nodes[0].symbol.name[:diff_start]
             nodes[-1].symbol.name = nodes[-1].symbol.name[diff_end:]
             self.delete_if_empty(nodes[0])
             self.delete_if_empty(nodes[-1])
-            self.clean_empty_lbox(nodes[0])
-            self.clean_empty_lbox(nodes[-1])
         for node in nodes[1:-1]:
             if isinstance(node, BOS) or isinstance(node, EOS):
                 continue
@@ -1670,14 +1667,24 @@ class TreeManager(object):
         self.cursor.pos  = cur_start.pos
         self.selection_end = cur_start.copy()
         del self.lines[cur_start.line+1:cur_end.line+1]
+        # are we still inside an empty lbox
+        if isinstance(self.cursor.node, BOS):
+            magic = self.cursor.node.get_root().get_magicterminal()
+            if magic and magic.deleted:
+                self.cursor.node = self.cursor.find_previous_visible(self.cursor.node)
+                self.cursor.pos = len(self.cursor.node.symbol.name)
         self.selection_start = self.cursor.copy()
         self.selection_end = self.cursor.copy()
         self.changed = True
         self.repair_indentations()
-        self.reparse(nodes[-1])
+        repairnode = nodes[-1]
+        if repairnode.deleted:
+            repairnode = self.cursor.find_previous_visible(repairnode, cross_lang=True)
+        self.reparse(repairnode)
 
     def delete_if_empty(self, node):
         if node.symbol.name == "":
+            self.clean_empty_lbox(node)
             node.parent.remove_child(node)
 
     def cursor_movement(self, key):
