@@ -1208,8 +1208,8 @@ class Window(QtGui.QMainWindow):
     def show_export_fail_message(self):
         QMessageBox.warning(self, "Warning", "Export failed: program syntactically invalid!")
 
-    def show_execution_fail_message(self):
-        self.show_output("Execution error: program syntactically invalid!")
+    def show_execution_fail_message(self, reason):
+        self.show_output("Execution error: {}.".format(reason))
 
     def get_last_dir(self):
         settings = QSettings("softdev", "Eco")
@@ -1627,17 +1627,20 @@ class SubProcessThread(QThread):
         self.signal_execute_fail = QtCore.SIGNAL("executefail")
 
     def run(self):
+        from treemanager import ExecutionError
         ed = self.window.getEditorTab()
-        p = self.window.getEditor().export(run=True, source=str(ed.filename))
-        lang = self.window.getEditor().get_mainlanguage()
-        if p:
-            for line in iter(p.stdout.readline, b''):
-                if lang == "PHP + Python":
-                    if line.startswith("  <?php{ "):
-                        line = "  " + line[9:]
-                self.emit(self.signal, line.rstrip())
-        else:
-            self.emit(self.signal_execute_fail)
+        try:
+            p = self.window.getEditor().export(run=True, source=str(ed.filename))
+            lang = self.window.getEditor().get_mainlanguage()
+            if p is False:
+                self.emit(self.signal_execute_fail, "program syntactically invalid")
+            else:
+                for line in iter(p.stdout.readline, b''):
+                    if lang == "PHP + Python" and line.startswith("  <?php{ "):
+                            line = "  " + line[9:]
+                    self.emit(self.signal, line.rstrip())
+        except ExecutionError as e:
+            self.emit(self.signal_execute_fail, e.message)
 
 class ProfileThread(QThread):
     def __init__(self, window, parent):
