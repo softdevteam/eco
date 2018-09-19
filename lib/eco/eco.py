@@ -475,7 +475,6 @@ class PreviewDialog(QtGui.QDialog):
             text = self.tm.export("/dev/null")
             if not text:
                 text = ""
-                self.show_export_fail_message()
             self.ui.textEdit.setText(text)
 
 class FindDialog(QtGui.QDialog):
@@ -912,9 +911,7 @@ class Window(QtGui.QMainWindow):
             self.tm.fast_export(language_boxes, dest, source=source)
         else:
             self.tm.load_file(language_boxes)
-            ex = self.tm.export(dest, source=source)
-            if ex == False:
-                self.show_export_fail_message()
+            self.tm.export(dest, source=source)
         QApplication.quit()
         sys.exit(1)
 
@@ -1192,9 +1189,9 @@ class Window(QtGui.QMainWindow):
         if not ed.export_path:
             ed.export_path = QFileDialog.getSaveFileName()
         if ed.export_path:
-            ex = self.getEditor().tm.export(ed.export_path, source=ed.filename)
-        if ex == False:
-            self.show_export_fail_message()
+            result = self.getEditor().tm.export(ed.export_path, source=ed.filename)
+            if result is False:
+                self.show_export_fail_message()
 
     def exportAs(self):
         ed = self.getEditorTab()
@@ -1204,12 +1201,15 @@ class Window(QtGui.QMainWindow):
         if path:
             self.save_last_dir(str(path))
             ed.export_path = path
-            ex = self.getEditor().tm.export(path, source=ed.filename)
-        if ex == False:
-            self.show_export_fail_message()
+            result = self.getEditor().tm.export(path, source=ed.filename)
+            if result is False:
+                self.show_export_fail_message()
 
     def show_export_fail_message(self):
-        QMessageBox.about(self, "Error", "Eco cannot execute/export this program because it is syntactically invalid.")
+        QMessageBox.warning(self, "Warning", "Export failed: program syntactically invalid!")
+
+    def show_execution_fail_message(self):
+        self.show_output("Execution error: program syntactically invalid!")
 
     def get_last_dir(self):
         settings = QSettings("softdev", "Eco")
@@ -1604,9 +1604,9 @@ def main():
     window.connect(window.debugger, window.debugger.signal_output, window.show_output)
     window.connect(window.debugger, window.debugger.signal_done, window.debug_finished)
     window.connect(window.debugger, window.debugger.signal_toggle_buttons, window.debug_toggle_buttons)
-    window.connect(window.debugger, window.debugger.signal_execute_fail, window.show_export_fail_message)
+    window.connect(window.debugger, window.debugger.signal_execute_fail, window.show_execution_fail_message)
 
-    window.connect(window.thread, t.signal_execute_fail, window.show_export_fail_message)
+    window.connect(window.thread, t.signal_execute_fail, window.show_execution_fail_message)
     window.connect(window.thread, t.signal, window.show_output)
     window.connect(window.thread_prof, window.thread_prof.signal, window.show_output)
     # Connect the profiler (tool) thread to the throbber.
