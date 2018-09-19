@@ -1271,6 +1271,17 @@ class Test_NestedLboxWithIndentation():
         assert isinstance(self.treemanager.cursor.node, BOS)
         assert isinstance(self.treemanager.cursor.node.next_term, EOS)
 
+    def test_remove_empty_lbox2(self):
+        # whitespace sensitive languages still contain indentation tokens when they are "empty"
+        self.reset()
+        self.treemanager.add_languagebox(lang_dict["Python 2.7.5"])
+        self.treemanager.key_normal("a")
+        self.treemanager.key_shift()
+        self.treemanager.key_cursors(LEFT, shift=True)
+        self.treemanager.deleteSelection()
+        assert isinstance(self.treemanager.cursor.node, BOS)
+        assert isinstance(self.treemanager.cursor.node.next_term, EOS)
+
 #from grammars.grammars import lang_dict, python_prolog
 class Test_Languageboxes(Test_Python):
 
