@@ -239,25 +239,12 @@ class AstAnalyser(object):
         analyser = self.get_lboxanalyser(root)
         analyser.analyse(root, self.parsers)
 
-        # convert variables, functions
-        if node.symbol.name == "<Python + PHP>":
-            # merge python into php
-            original = "variable"
-            dest = "function"
-            max_path = 1
-        elif node.symbol.name == "<PHP + Python>":
-            # merge php into python
-            original = "function"
-            dest = "variable"
-            max_path = 1
-        else:
-            return
-        for method in analyser.data.get(original,[]):
-            if len(method.path) > max_path:
+        for kind in analyser.data:
+            if kind in ["File", "reference"]:
                 continue
-            uri = self.convert_uri(dest, method, path)
-            uri.nbrule = NBRule("none", [], {})
-            self.add_uri(uri)
+            for obj in analyser.data[kind]:
+                uri = self.convert_uri(kind, obj, path)
+                self.add_uri(uri)
 
         # convert references
         for ref in analyser.data.get("reference",[]):
@@ -265,23 +252,31 @@ class AstAnalyser(object):
             if ref.node in analyser.errors:
                 del analyser.errors[ref.node]
                 uri = self.convert_uri("reference", ref, path)
-                if uri.name.startswith("$"):
+                if uri.name.startswith("$"): # XXX PHP hack
                     uri.name = uri.name[1:]
-                else:
-                    uri.name = "$" + uri.name
-                uri.nbrule = NBRule("none", [], {"references":(["variable"], ["function"])})
+                uri.nbrule = NBRule("none", [], {"references":(["variable", "function"], ["name"])})
                 self.add_uri(uri)
         return
 
     def convert_uri(self, newkind, prev, path):
-        uri = URI()
-        uri.kind = newkind
-        uri.astnode = prev.astnode
-        uri.node = prev.node
-        uri.path = path
-        uri.name = prev.name
-        uri.vartype = prev.vartype
-        uri.index = self.index
+        uri = prev
+        # There is currently no easy way to find out if a namebinding rule
+        # belongs to the top-level grammar rule. However, the top-level
+        # namebinding rule typically doesn't have a name as there is no need for
+        # it to have one. So we can use this to determine which rule is the
+        # top-level and then remove it when merging a sublanguage's rules into
+        # the outer language. However, if a user decides to give the top-level
+        # namebinding rule a name, cross-language namebinding won't work, and
+        # we currently can't guard against that.
+        if len(prev.path) > 0 and prev.path[0].name is None:
+            # Replace language box's top level with current location
+            uri.path.pop(0)
+            for p in reversed(path):
+                uri.path.insert(0, p)
+        else:
+            # Language box has no top-level (subgrammar)
+            for p in reversed(path):
+                uri.path.insert(0, p)
         return uri
 
     def add_uri(self, uri):
@@ -385,8 +380,6 @@ class AstAnalyser(object):
         lbox = root.get_magicterminal()
         analyser = self.get_lboxanalyser(root)
         lboxresults = []
-        if analyser and analyser is not self:
-            lboxresults = analyser.get_completion(scope)
         if analyser is self:
             lbox = None
         astnode = self.get_correct_astnode(scope, analyser, lbox)
@@ -417,9 +410,6 @@ class AstAnalyser(object):
                 # astnode must have a corresponding entry in self.data
                 if nbrule:
                     deftype = nbrule.get_deftype()
-                    if lbox and lbox.symbol.name == "<Python + PHP>":
-                        if deftype == "variable": # convert to find it in data
-                            deftype = "function"
                     if self.data.has_key(deftype):
                         for e in self.data[deftype]:
                             if e.astnode is astnode:

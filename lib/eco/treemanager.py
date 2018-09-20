@@ -544,10 +544,12 @@ class TreeManager(object):
             return
         if isinstance(lang, EcoFile):
             import os
-            filename = os.path.splitext(lang.filename)[0] + ".nb"
-            if os.path.exists(filename):
+            if os.path.exists(lang.nb_file):
                 from astanalyser import AstAnalyser
-                return AstAnalyser(filename)
+                return AstAnalyser(lang.nb_file)
+            else:
+                print("Namebinding file '%s' not found." % (lang.nb_file))
+
 
     def get_languagebox(self, node):
         root = node.get_root()
@@ -604,10 +606,20 @@ class TreeManager(object):
         return None
 
     def analyse(self):
-        if self.parsers[0][2] == "PHP + Python":
-            self.parsers[0][3].analyse(self.parsers[0][0].previous_version.parent, self.parsers)
+        # for now only do cross-scope analysing for certain grammars
+        crossscope = ["PHP + Python", "Java + Python"]
+        lang = self.parsers[0][2]
+        parser = self.parsers[0][0]
+        analyser = self.parsers[0][3]
+
+        if not analyser:
+            return False
+
+        if lang in crossscope:
+            analyser.analyse(parser.previous_version.parent, self.parsers)
             return
 
+        # analyse all parsers individually
         for p in self.parsers:
             if p[0].last_status:
                 if p[3]:

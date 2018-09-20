@@ -1385,9 +1385,10 @@ class Window(QtGui.QMainWindow):
     def updateASTOutline(self):
         self.ui.tw_astoutline.clear()
         aa = self.getEditor().tm.parsers[0][3]
-        for uri in aa.data["class"]:
-            if uri.path[0].name is None and len(uri.path) == 1:
-                self.addToASTOutline(aa, uri, self.ui.tw_astoutline)
+        if aa.data.has_key("class"):
+            for uri in aa.data["class"]:
+                if not uri.path or (uri.path and uri.path[0].name is None and len(uri.path) == 1):
+                    self.addToASTOutline(aa, uri, self.ui.tw_astoutline)
         self.ui.tw_astoutline.expandAll()
 
     def addToASTOutline(self, aa, uri, parent):

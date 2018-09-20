@@ -19,6 +19,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+import os
+
 class Language(object):
 
     def __init__(self, name, grammar, priorities, base=""):
@@ -51,6 +53,7 @@ class EcoFile(object):
         self.extract = None
         self.auto_include = None
         self.auto_exclude = None
+        self.nb_file = os.path.splitext(filename)[0] + ".nb"
 
     def load(self, buildlexer=True):
         from grammar_parser.bootstrap import BootstrapParser
@@ -117,6 +120,9 @@ class EcoFile(object):
         if self.auto_exclude is None:
             self.auto_exclude = {}
         self.auto_exclude[lang] = tokentype
+
+    def set_custom_nb(self, basename):
+        self.nb_file = "{}/{}".format(os.path.dirname(self.filename), basename)
 
     def auto_allows(self, lang, tokentype):
         if self.auto_include and self.auto_include.has_key(lang):
@@ -194,6 +200,7 @@ python_class = EcoFile("Python class", "grammars/python275.eco", "Python")
 python_class.change_start("classdef")
 
 phppython = EcoFile("PHP + Python", "grammars/php.eco", "Php")
+phppython.set_custom_nb("phppython.nb")
 pythonphp = EcoFile("Python + PHP", "grammars/python275.eco", "Python")
 phppython.add_alternative("top_statement", pythonphp)
 phppython.add_alternative("class_statement", pythonphp)

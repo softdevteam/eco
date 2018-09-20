@@ -146,9 +146,9 @@ class NodeEditor(QFrame):
 
     def analysis_timer(self):
         if self.getWindow().show_namebinding():
-            self.tm.analyse()
-            self.update()
-            self.getWindow().updateASTOutline()
+            if self.tm.analyse() is not False:
+                self.update()
+                self.getWindow().updateASTOutline()
         self.timer.stop()
 
         # save swap
@@ -1083,6 +1083,7 @@ class NodeEditor(QFrame):
     def createCCFunc(self, text):
         def action():
             self.tm.pasteCompletion(text)
+            self.update()
         return action
 
     def selectSubgrammar(self, item):
