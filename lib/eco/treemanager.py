@@ -36,7 +36,7 @@ from export.simple_language import SimpleLanguageExporter
 from export.cpython import CPythonExporter
 from utils import arrow_keys, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT
 
-import math
+import math, os
 
 def debug_trace():
   '''Set a tracepoint in the Python debugger that works with Qt'''
@@ -1907,14 +1907,13 @@ class TreeManager(object):
             if unipath:
                 return subprocess.Popen([unipath, f[1]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
             else:
-                sys.stderr.write("Unipycation executable not set")
+                raise ExecutionError("Unipycation executable not set")
 
     def export_html_python_sql(self, path):
         with open(path, "w") as f:
             f.write(HTMLPythonSQL.export(self.get_bos()))
 
     def export_php_python(self, path, run=False, source=None):
-        import os
         if run:
             import tempfile
             import sys, subprocess
@@ -1934,9 +1933,9 @@ class TreeManager(object):
                     env["PYPY_PREFIX"] = prefixpath
                     return subprocess.Popen([pyhyppath, os.path.basename(f[1])], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0, env=env, cwd=os.path.dirname(f[1]))
                 else:
-                    sys.stderr.write("PYPY_PREFIX path not set")
+                    raise ExecutionError("PYPY_PREFIX path not set")
             else:
-                sys.stderr.write("PyHyp executable not set")
+                raise ExecutionError("PyHyp executable not set")
         else:
             with open(path, "w") as f:
                 if source:
@@ -2114,3 +2113,6 @@ class TreeManager(object):
 
     def get_langdef_from_string(self, lang):
         return lang_dict[lang]
+
+class ExecutionError(Exception):
+  pass
