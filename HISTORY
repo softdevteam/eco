@@ -2,6 +2,34 @@
   Eco history
 ============================================================================
 
-  eco 0.1 (2014-07-22)
+Version 0.3.0 (2018-09-21)
+
+* Created diffing-tool for Eco files
+* Added grammars for SQL and RegEx
+* Improved cross-language namebinding and code-completion
+* Automatic language boxes
+* Optimised node reuse via top-down reuse
+* Enabled language boxes within comments and strings
+* Improved cursor movement around language boxes
+* Full working version of Wagner's error recovery
+* Improved syntax-highlighting
+* Speed up grammar loading via caching
+* Optimised memory usage of incremental AST
+* Java grammar fixes
+* Bug fixes and improvements
+
+Version 0.2.0 (2016-09-21)
+
+* UI overhaul
+* Interactive parsetree viewer
+* Python debugger
+* JRuby callgraphs
+* Undo/Redo
+* OSX shortcuts
+* CLI support
+* Code refactoring
+* Various bug fixes and improvements
+
+Version 0.1.0 (2014-07-22)
 
 * First public release
