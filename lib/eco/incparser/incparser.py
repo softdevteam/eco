@@ -107,6 +107,7 @@ class IncParser(object):
         self.autolboxes = None
         self.autodetector = None
         self.option_autolbox_find = False
+        self.lang = None
 
     def is_valid_symbol(self, state, token):
         return self.syntaxtable.lookup(state, token) is not None
