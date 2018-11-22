@@ -56,6 +56,11 @@ class PGViewer(object):
             self.showast = self.showast ^ True
             self.refresh(self.version)
 
+    def update(self, root, version, max_version):
+        self.root = root
+        self.version = version
+        self.max_version = max_version
+
     def refresh(self, version):
         if self.is_alive():
             if version > 0 and version <= self.max_version:
