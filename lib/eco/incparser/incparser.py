@@ -245,6 +245,12 @@ class IncParser(object):
                     la = self.left_breakdown(la)
                 else:
                     if USE_OPT:
+                        if not la.children:
+                            # Since we are not allowed to optshift empty
+                            # nonterminals due to the retainbug, we can just
+                            # skip this node immediately.
+                            la = self.left_breakdown(la)
+                            continue
                         goto = self.syntaxtable.lookup(self.current_state, la.symbol)
                         # Only opt-shift if the nonterminal has children to
                         # avoid a bug in the retainability algorithm. See
