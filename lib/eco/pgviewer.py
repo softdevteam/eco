@@ -4,6 +4,7 @@ from dotviewer import drawgraph
 from grammar_parser.gparser import MagicTerminal
 from threading import Thread
 from grammar_parser.bootstrap import AstNode, ListNode
+from incparser.astree import BOS, EOS
 
 class PGThread(Thread):
 
@@ -55,6 +56,11 @@ class PGViewer(object):
         elif command == "toggle_ast":
             self.showast = self.showast ^ True
             self.refresh(self.version)
+
+    def update(self, root, version, max_version):
+        self.root = root
+        self.version = version
+        self.max_version = max_version
 
     def refresh(self, version):
         if self.is_alive():
@@ -114,7 +120,8 @@ class PGViewer(object):
 
         try:
             if node.get_attr("local_error", self.version):
-                dotnode.set('color','red')
+                if not (isinstance(node, EOS) or isinstance(node, BOS)):
+                    dotnode.set('color','red')
         except AttributeError:
             pass
 

@@ -1319,6 +1319,9 @@ class Window(QtGui.QMainWindow):
                 self.ui.hud_heat_map_button.setChecked(True)
             else:
                 self.ui.hud_off_button.setChecked(True)
+            tm = ed_tab.editor.tm
+            if self.pgviewer:
+                self.pgviewer.update(tm.main_lbox, tm.version, tm.get_max_version())
         else:
             self.toggle_menu(False)
         self.btReparse()
