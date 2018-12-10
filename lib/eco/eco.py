@@ -1320,6 +1320,8 @@ class Window(QtGui.QMainWindow):
             else:
                 self.ui.hud_off_button.setChecked(True)
             tm = ed_tab.editor.tm
+            tm.option_autolbox_find = self.ui.actionAutolboxFind.isChecked()
+            tm.option_autolbox_insert = self.ui.actionAutolboxInsert.isChecked()
             if self.pgviewer:
                 self.pgviewer.update(tm.main_lbox, tm.version, tm.get_max_version())
         else:

@@ -1388,6 +1388,7 @@ class TreeManager(object):
 
         # Create parser, priorities and lexer
         incparser, inclexer = self.get_parser_lexer_for_language(language, True)
+        incparser.setup_autolbox(language.name)
         root = incparser.previous_version.parent
         root.magic_backpointer = lbox
         self.add_parser(incparser, inclexer, language.name)
