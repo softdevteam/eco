@@ -1303,7 +1303,8 @@ class Window(QtGui.QMainWindow):
     def tabChanged(self, index):
         ed_tab = self.getEditorTab()
         if ed_tab is not None:
-            if ed_tab.editor.tm.get_mainparser().graph:
+            if hasattr(ed_tab.editor.tm.get_mainparser(), "graph") and \
+                    ed_tab.editor.tm.get_mainparser().graph:
                 self.ui.actionStateGraph.setEnabled(True)
             else:
                 self.ui.actionStateGraph.setEnabled(False)
