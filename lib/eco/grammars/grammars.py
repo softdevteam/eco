@@ -59,6 +59,7 @@ class EcoFile(object):
         self.auto_include = None
         self.auto_exclude = None
         self.nb_file = os.path.splitext(filename)[0] + ".nb"
+        self.auto_limit_new = False
 
     def load(self, buildlexer=True):
         from grammar_parser.bootstrap import BootstrapParser
@@ -278,6 +279,7 @@ javapy = EcoFile("Java + Python", "grammars/java15.eco", "Java")
 javapy.add_alternative("unary_expression", python_expr)
 javapy.add_alternative("class_body_declaration", python_method)
 javapy.add_alternative("class_body_declaration", python_class)
+javapy.auto_limit_new = True
 add_lang(javapy, True, False)
 
 lang_dict = {}
