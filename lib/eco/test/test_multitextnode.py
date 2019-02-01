@@ -376,7 +376,7 @@ y = 2"""
         self.treemanager.cursor_movement(LEFT)
         self.treemanager.cursor_movement(LEFT)
 
-        self.treemanager.add_languagebox(lang_dict["SQL"])
+        self.treemanager.add_languagebox(lang_dict["SQL (Dummy)"])
         self.treemanager.key_normal("S")
         bos = self.parser.previous_version.parent.children[0]
         assert bos.next_term.symbol.name == "x"
@@ -425,7 +425,7 @@ y = 2"""
             self.treemanager.key_normal(i)
 
         self.treemanager.cursor_movement(LEFT)
-        self.treemanager.add_languagebox(lang_dict["SQL"])
+        self.treemanager.add_languagebox(lang_dict["SQL (Dummy)"])
         self.treemanager.key_normal("x")
 
         bos = self.parser.previous_version.parent.children[0]
@@ -460,7 +460,7 @@ y = 2"""
             self.treemanager.key_normal(i)
 
         self.treemanager.cursor_movement(LEFT)
-        self.treemanager.add_languagebox(lang_dict["SQL"])
+        self.treemanager.add_languagebox(lang_dict["SQL (Dummy)"])
         self.treemanager.key_normal("x")
 
         self.treemanager.leave_languagebox()
@@ -472,7 +472,7 @@ y = 2"""
         assert eq.symbol.name == "="
         multi = eq.next_term
         assert multi.children[0].symbol.name == "\"abc"
-        assert multi.children[1].symbol.name == "<SQL>"
+        assert multi.children[1].symbol.name == "<SQL (Dummy)>"
         assert multi.children[2].symbol.name == "z\""
 
 class Test_MultiTextNodePHP:

@@ -3947,7 +3947,7 @@ self.cursor.move_to_x(16)
 self.selection_start = self.cursor.copy()
 self.selection_end = self.cursor.copy()
 self.key_backspace()
-self.add_languagebox('SQL')
+self.add_languagebox('SQL (Dummy)')
 self.key_shift()
 self.key_normal('S')
 self.key_normal('E')
@@ -5057,7 +5057,7 @@ class Test_AutoLanguageBoxDetection():
 
         p = """SELECT ProductName
 FROM Products
-WHERE ProductID = ANY (SELECT ProductID FROM OrderDetails WHERE Quantity = 10);"""
+WHERE ProductID IN (SELECT ProductID FROM OrderDetails WHERE Quantity = 10);"""
         for c in p:
             treemanager.key_normal(c)
 
