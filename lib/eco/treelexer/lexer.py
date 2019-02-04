@@ -472,19 +472,25 @@ class Lexer(object):
         pm = PatternMatcher()
         self.pos = 0
         result = []
+        progress = 0
         while True:
             lookahead = 0
             oldpos = self.pos
+            tmpresult = ("", None, None)
             for p, n in self.patterns:
                 if pm.match(p, text[self.pos:]):
                     lookahead = max(pm.la, lookahead)
                     value = text[self.pos:self.pos + pm.pos]
                     lookahead = lookahead - len(value)
-                    result.append((value, n, lookahead))
-                    self.pos += pm.pos
+                    if len(value) > len(tmpresult[0]):
+                        tmpresult = (value, n, lookahead)
+                        progress = pm.pos
                     lookahead = 0
                 else:
                     lookahead = max(pm.la, lookahead)
+            if tmpresult[0]:
+                result.append(tmpresult)
+                self.pos += progress
             if self.pos == oldpos:
                 # no more matches
                 if self.pos < len(text):
