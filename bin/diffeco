@@ -31,10 +31,18 @@ done
 
 BASEDIR=$(dirname "$0")
 
+# We need a GNU tar, so try gtar first
+which gtar 2>&1 > /dev/null
+if [ $? -eq 0 ]; then
+    TAR=gtar
+else
+    TAR=tar
+fi
+
 if [ -z $file2 ]; then
     echo "ecodiff $file1 and $commit"
     ECODIFF0=`mktemp`
-    git archive $commit $file1 | tar -xO > $ECODIFF0
+    git archive $commit $file1 | $TAR -xOf - > $ECODIFF0
     ECODIFF2=`mktemp`
     $BASEDIR/eco -e $ECODIFF0 $ECODIFF2
     rm $ECODIFF0
