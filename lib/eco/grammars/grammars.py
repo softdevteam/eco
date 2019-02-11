@@ -21,6 +21,11 @@
 
 import os
 
+try:
+    import __pypy__
+except ImportError:
+    __pypy__ = None
+
 class Language(object):
 
     def __init__(self, name, grammar, priorities, base=""):
@@ -253,9 +258,10 @@ add_lang(pythonipython, True, False)
 simplelang = EcoFile("SimpleLanguage", "grammars/simplelang.eco", "SimpleLanguage")
 add_lang(simplelang, True, True)
 
-from rubyparser.rubyparser import RubyProxy
-ruby = RubyProxy()
-add_lang(ruby, True, True)
+if not __pypy__:
+    from rubyparser.rubyparser import RubyProxy
+    ruby = RubyProxy()
+    add_lang(ruby, True, True)
 
 rubysl = EcoFile("Ruby + SimpleLanguage", "grammars/ruby.eco", "Ruby")
 rubysl.add_alternative("top_stmt", simplelang)

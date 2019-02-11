@@ -20,7 +20,10 @@
 # IN THE SOFTWARE.
 
 
-from PyQt4 import QtGui
+try:
+    import __pypy__
+except ImportError:
+    from PyQt4 import QtGui
 
 from incparser.astree import BOS, EOS, TextNode
 from grammar_parser.gparser import MagicTerminal, IndentationTerminal
