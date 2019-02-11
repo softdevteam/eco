@@ -807,7 +807,7 @@ class TreeManager(object):
         eos = parser.previous_version.parent.children[-1]
         node = bos
         while node is not eos:
-            if node is parser.error_node:
+            if node is parser.error_nodes[0]:
                 break
             node = node.next_term
 
