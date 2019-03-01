@@ -68,8 +68,9 @@ class Accept(SyntaxTableElement):
 
 class SyntaxTable(object):
 
-    def __init__(self, lr_type=LR0):
+    def __init__(self, prod_ids, lr_type=LR0):
         self.lr_type = lr_type
+        self.prod_ids = prod_ids
 
     def build(self, graph, precedences=[]):
         self.table = [{} for _ in range(len(graph.state_sets))]
@@ -152,8 +153,12 @@ class SyntaxTable(object):
             # shift/reduce: shift
             # reduce/reduce: use earlier reduce
             if self.is_reduce_reduce(oldaction, newaction):
-                print("Warning: Reduce/Reduce conflict in state %s with %s: %s vs. %s => Solved by using first reduce." % (state, symbol, oldaction, newaction))
-                return oldaction
+                if self.prod_ids:
+                    action = oldaction if self.prod_ids[oldaction.action] < self.prod_ids[newaction.action] else newaction
+                else:
+                    action = oldaction
+                print("Warning: Reduce/Reduce conflict in state %s with %s: %s vs. %s => Solved in favour of %s." % (state, symbol, oldaction, newaction, action))
+                return action
             else:
                 print("Warning: Shift/Reduce conflict in state %s with %s: %s vs. %s => Solved by shift." % (state, symbol, oldaction, newaction))
                 return self.get_shift(oldaction, newaction)
