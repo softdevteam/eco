@@ -31,6 +31,18 @@ def println(node):
         node = node.next_term
     return repr("".join(l))
 
+# NEW SIMPLIFIED ALGO
+# Starting at changed line
+# Update bracket counters
+# If lastline is uneven, don't repair anything (need todo list)
+# Fix indents:
+#   remove indents (if line is not logical, ws/comment/brackets)
+#   insert indents (if ws was changed)
+# If logical line was changed (indents or brackets):
+    # update dependent: min upto smaller line and until no more changes
+
+
+
 class IndentationManager:
 
     def __init__(self, root):
@@ -38,12 +50,18 @@ class IndentationManager:
         self.eos = root.children[-1]
         self.whitespaces = {}
         self.indentation = {}
+        self.parantheses = {}
         self.changed = False
 
     def repair(self, node):
         self.changed = False
         """Repair indentation in the line given by node."""
         bol = self.get_line_start(node)
+
+        changed = self.update_brackets(bol)
+        if changed:
+            self.apply_brackets(bol)
+
         # if line is not logical, skip ahead to next logical line
         if not self.is_logical_line(bol):
             self.remove_indentation_nodes(bol) # remove previous indentation
@@ -65,9 +83,12 @@ class IndentationManager:
         # XXX we don't need to update following lines if no indent tokens were
         # inserted in `fix_tokens(bol)`
 
-        # update following lines that dependant
-        search_threshold = min(before, after)
+        # XXX don't do anything if last line has uneven paras as to not remove
+        # all identation tokens in the entire file if a para is inserted at the
+        # top
 
+        # update all dependent lines that follow
+        search_threshold = min(before, after)
         current_indent = self.get_indentation(bol)
         current_ws = self.count_whitespace(bol)
         bol = self.next_line(bol)
@@ -94,6 +115,42 @@ class IndentationManager:
             current_indent = self.get_indentation(bol)
             bol = self.next_line(bol)
         return self.changed
+
+    def update_brackets(self, bol):
+        n = bol.next_term
+        if bol is self.bos:
+            para = 0
+        else:
+            prevl = self.prev_line(bol)
+            para = self.get_para(prevl)
+        before = para
+        while n is not self.eos:
+            if n.lookup == "<return>":
+                break
+            if n.symbol.name == "(":
+                para += 1
+            elif n.symbol.name == ")":
+                para -= 1
+            n = n.next_term
+        self.parantheses[bol] = para
+        if before != para:
+            return True
+        return False
+
+    def apply_brackets(self, bol):
+        nextl = bol
+        changed = True
+        while changed:
+            nextl = self.next_line(nextl)
+            if nextl is None:
+                break
+            changed = self.update_brackets(nextl)
+
+    def get_para(self, bol):
+        if bol in self.parantheses:
+            return self.parantheses[bol]
+        else:
+            return 0
 
     def repair_full(self):
         self.whitespaces = {}
@@ -160,6 +217,9 @@ class IndentationManager:
                     for i in range(indent_diff):
                         new_tokens.append(self.create_token("dedent"))
                     new_tokens.append(self.create_token("newline"))
+        else:
+            self.remove_indentation_nodes(bol) # remove previous indentation
+            #new_tokens = [] # this removes the indentation tokens in that line
 
         self.apply_nodes(new_tokens, temp)
 
@@ -226,12 +286,14 @@ class IndentationManager:
 
     def remove_indentation_nodes(self, bol):
         if bol is None:
-            return
+            return False
+        changed = False
         node = bol.next_term
         while isinstance(node.symbol, IndentationTerminal):
             node.parent.remove_child(node)
             node = node.next_term
-        return node
+            changed = True
+        return changed
 
     def find_indentation(self, bol):
         # indentation level
@@ -314,6 +376,13 @@ class IndentationManager:
     def is_logical_line(self, node):
         # check if line is logical (i.e. doesn't only consist of whitespaces,
         # comments, etc)
+
+        # if previous line has uneven parantheses, this line cannot be logical
+        if node is not self.bos:
+            prevl = self.prev_line(node)
+            if self.get_para(prevl) > 0:
+                return False
+
         if node.symbol.name == "\r":
             prev = node.prev_term
             while prev.deleted:
