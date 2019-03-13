@@ -1510,6 +1510,7 @@ class TreeManager(object):
         return changed
 
     def repair_indentations(self):
+        print("repair_indentations")
         node = self.cursor.node
         root = node.get_root()
         im = self.get_indentmanager(root)
@@ -1757,7 +1758,15 @@ class TreeManager(object):
 
     # ============================ INDENTATIONS ============================= #
 
+    # when we delete a whole line we need to clean up indentation tokens in that line
+    # unfortunately, if we delete the last line in the file, this cleans up the file ending
+    # dedentation tokens, which then need to be reinserted again by the indentmanager. This is
+    # 1) uncessary and wastes resources
+    # 2) since the new indent algo aborts if there are no changes, update_last_line won't be called
+    #    after this, and thus the file may become invalid, since the final tokens are not reinserted
+
     def remove_indentation_nodes(self, node):
+        print "Treemanager: remove indentation"
         if node is None:
             return
         while isinstance(node.symbol, IndentationTerminal):
