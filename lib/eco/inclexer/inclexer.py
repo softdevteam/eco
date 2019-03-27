@@ -22,7 +22,10 @@
 from grammar_parser.plexer import PriorityLexer
 from grammar_parser.gparser import MagicTerminal, Terminal, IndentationTerminal
 from incparser.astree import BOS, EOS, TextNode, ImageNode, MultiTextNode
-from PyQt4.QtGui import QImage
+try:
+    import __pypy__
+except ImportError:
+    from PyQt4.QtGui import QImage
 import re, os
 #from cflexer.lexer import LexingError
 

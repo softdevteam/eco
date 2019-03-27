@@ -133,6 +133,8 @@ class IndentationManager:
         temp = bol
         if bol is self.bos:
             this_ws = self.count_whitespace(bol)
+            if this_ws is None:
+                this_ws = 0
             self.indentation[bol] = this_ws
         elif self.is_logical_line(bol):
             this_ws = self.count_whitespace(bol)

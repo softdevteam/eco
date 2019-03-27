@@ -85,7 +85,7 @@ class IncParser(object):
                 self.graph.convert_lalr()
 
             logging.debug("Creating Syntaxtable")
-            self.syntaxtable = SyntaxTable(lr_type)
+            self.syntaxtable = SyntaxTable(None, lr_type)
             self.syntaxtable.build(self.graph)
 
         self.stack = []
@@ -112,7 +112,7 @@ class IncParser(object):
     def is_valid_symbol(self, state, token):
         return self.syntaxtable.lookup(state, token) is not None
 
-    def from_dict(self, rules, startsymbol, lr_type, whitespaces, pickle_id, precedences):
+    def from_dict(self, rules, startsymbol, lr_type, whitespaces, pickle_id, precedences, prod_ids):
         self.graph = None
         self.syntaxtable = None
         if pickle_id:
@@ -125,7 +125,7 @@ class IncParser(object):
         if self.syntaxtable is None:
             self.graph = StateGraph(startsymbol, rules, lr_type)
             self.graph.build()
-            self.syntaxtable = SyntaxTable(lr_type)
+            self.syntaxtable = SyntaxTable(prod_ids, lr_type)
             self.syntaxtable.build(self.graph, precedences)
             if pickle_id:
                 pickle.dump(self.syntaxtable, open(filename, "w"))

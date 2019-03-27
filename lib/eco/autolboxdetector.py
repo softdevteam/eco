@@ -24,23 +24,40 @@ class NewAutoLboxDetector(object):
     def __init__(self, origparser):
         self.op = origparser
         self.langs = {}
+        self.mode_limit_tokens_new = False
 
     def preload(self, langname):
         if langname in self.langs:
             return
 
         main = lang_dict[langname]
+        self.mode_limit_tokens_new = main.auto_limit_new
 
         # preload nested languages
         for sub in main.included_langs:
             self.langs[sub] = get_recognizer(sub, langname)
 
+    def pop_lookahead(self, node):
+        while not node.right_sibling():
+            node = node.parent
+        return node.right_sibling()
+
     def find_terminal(self, node):
-        while node.children:
-            node = node.children[-1]
-        if type(node.symbol) is Terminal:
-            return node.next_term
-        return None
+        startnode = node
+        while type(node) is not BOS:
+            if node.children:
+                node = node.children[-1]
+            elif type(node.symbol) is Terminal:
+                break
+            else:
+                if node.new:
+                    return
+                while not node.left_sibling():
+                    node = node.parent
+                    if node is startnode:
+                        return None
+                node = node.left_sibling()
+        return node.next_term
 
     def detect_lbox(self, errornode):
         # Find position on stack where lbox would be valid
@@ -66,6 +83,7 @@ class NewAutoLboxDetector(object):
                         n = term
                         # See if we can get a valid language box using the Recogniser
                         r = self.langs[sub]
+                        r.mode_limit_tokens_new = self.mode_limit_tokens_new
                         result = r.parse(n)
                         if r.possible_ends:
                             # Filter results and test if remaining file can be
@@ -157,6 +175,7 @@ class Recognizer(object):
         self.seen_error = False
         self.possible_ends = []
         self.last_read = None
+        self.mode_limit_tokens_new = False
 
     def reset(self):
         self.state = [0]
@@ -172,6 +191,7 @@ class Recognizer(object):
 
         self.tokeniter = self.lexer.get_token_iter(startnode).next
         token = self.next_token()
+        minversion = startnode.version
         if not ppmode and not self.valid_start(token):
             return None
         while True:
@@ -181,7 +201,8 @@ class Recognizer(object):
             if isinstance(element, Shift):
                 self.state.append(element.action)
                 if self.is_finished() and self.last_read:
-                    self.possible_ends.append(self.last_read)
+                    if self.mode_limit_tokens_new is False or self.last_read.version >= minversion:
+                        self.possible_ends.append(self.last_read)
                     self.last_read = None
                 token = self.next_token()
                 continue

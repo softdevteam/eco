@@ -64,7 +64,7 @@ syntaxtable = [
 def test_build():
     graph = StateGraph(p.start_symbol, p.rules, 1)
     graph.build()
-    st = SyntaxTable(1)
+    st = SyntaxTable(None, 1)
     st.build(graph)
     for i in range(len(syntaxtable)):
         assert st.table[i] == syntaxtable[i]

@@ -23,6 +23,12 @@ from __future__ import print_function
 import subprocess, sys
 
 try:
+    import __pypy__
+    print("Warning: PyQt4 is currently not supported in PyPy. Some features thus have been disabled.")
+except ImportError:
+    pass
+
+try:
     import py
 except ImportError:
     sys.stderr.write("""Error: can't import the py module. Typically this can be installed with:

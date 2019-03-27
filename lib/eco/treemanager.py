@@ -24,17 +24,20 @@ from inclexer.inclexer import IncrementalLexer
 from treelexer.lexer import LexingError
 from incparser.astree import TextNode, BOS, EOS, MultiTextNode
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
-from PyQt4.QtGui import QApplication
-from PyQt4.QtCore import QSettings
+try:
+    import __pypy__
+except ImportError:
+    from PyQt4.QtGui import QApplication
+    from PyQt4.QtCore import QSettings
+    from export.jruby import JRubyExporter
+    from export.jruby_simple_language import JRubySimpleLanguageExporter
+    from export.jruby_javascript import JRubyJavaScriptExporter
+    from export.simple_language import SimpleLanguageExporter
+    from utils import arrow_keys, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT
 from grammars.grammars import lang_dict, Language, EcoFile
 from indentmanager import IndentationManager
 from export import HTMLPythonSQL, PHPPython, ATerms
-from export.jruby import JRubyExporter
-from export.jruby_simple_language import JRubySimpleLanguageExporter
-from export.jruby_javascript import JRubyJavaScriptExporter
-from export.simple_language import SimpleLanguageExporter
 from export.cpython import CPythonExporter
-from utils import arrow_keys, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT
 
 import math, os
 
@@ -804,7 +807,7 @@ class TreeManager(object):
         eos = parser.previous_version.parent.children[-1]
         node = bos
         while node is not eos:
-            if node is parser.error_node:
+            if node is parser.error_nodes[0]:
                 break
             node = node.next_term
 

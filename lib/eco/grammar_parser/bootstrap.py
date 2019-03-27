@@ -23,6 +23,7 @@ from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer, IncrementalLexerCF
 from incparser.astree import BOS, EOS
+from incparser.production import Production
 
 from grammar_parser.gparser import Rule, Nonterminal, Terminal, Epsilon, MagicTerminal, IndentationTerminal
 
@@ -45,6 +46,7 @@ class BootstrapParser(object):
         self.current_rulename = ""
         self.all_terminals = set()
         self.functions = []
+        self.prod_ids = {}
 
     def implicit_ws(self):
         if self.options.has_key("implicit_ws"):
@@ -230,16 +232,19 @@ class BootstrapParser(object):
                 ws_rule.add_alternative([Nonterminal("WS"), Terminal("<backslash>"), Terminal("<return>")])
             ws_rule.add_alternative([]) # or empty
             self.rules[ws_rule.symbol] = ws_rule
+            for a in ws_rule.alternatives:
+                self.prod_ids[Production(ws_rule.symbol, a)] = len(self.prod_ids)
 
             # allow whitespace/comments at beginning of file
             start_rule = Rule()
             start_rule.symbol = Nonterminal("Startrule")
             start_rule.add_alternative([Nonterminal("WS"), self.start_symbol])
             self.rules[start_rule.symbol] = start_rule
+            self.prod_ids[Production(start_rule.symbol, start_rule.alternatives[0])] = len(self.prod_ids)
             self.start_symbol = start_rule.symbol
 
         incparser = IncParser()
-        incparser.from_dict(self.rules, self.start_symbol, self.lr_type, self.implicit_ws(), pickle_id, self.precedences)
+        incparser.from_dict(self.rules, self.start_symbol, self.lr_type, self.implicit_ws(), pickle_id, self.precedences, self.prod_ids)
         incparser.init_ast()
         self.incparser = incparser
 
@@ -262,10 +267,13 @@ class BootstrapParser(object):
         r = Rule(symbol)
         for a in alternatives:
             r.add_alternative(a[0], a[1], a[2])
+            self.prod_ids[Production(symbol, a[0])] = len(self.prod_ids)
         # add additional alternatives to the grammar (grammar extension feature, e.g. languageboxes)
         if self.extra_alternatives.has_key(symbol.name):
             for n in self.extra_alternatives[symbol.name]:
-                r.add_alternative([MagicTerminal(n), Nonterminal("WS")], None)
+                a = [MagicTerminal(n), Nonterminal("WS")]
+                r.add_alternative(a)
+                self.prod_ids[Production(symbol, a)] = len(self.prod_ids)
         self.rules[symbol] = r
 
     def parse_alternatives(self, node):
