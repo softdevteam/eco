@@ -187,6 +187,8 @@ php = EcoFile("PHP", "grammars/php.eco", "Php")
 add_lang(php, True, True)
 javascript = EcoFile("JavaScript", "grammars/javascript.eco", "JavaScript")
 add_lang(javascript, True, True)
+lua = EcoFile("Lua 5.3", "grammars/lua5_3.eco", "Lua")
+add_lang(lua, True, True)
 
 # extensions
 pythonprolog = EcoFile("Python + Prolog", "grammars/python275.eco", "Python")

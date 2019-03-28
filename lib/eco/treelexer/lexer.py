@@ -551,11 +551,9 @@ class Lexer(object):
             for p, n in self.patterns:
                 token = pm.match(p, node, pos)
                 lookahead = max(pm.la, lookahead)
-                if token and len(token) > len(result[0]): # find longest match
-                    lookahead = lookahead - pm.scanned_chars
-                    result = (token, n, lookahead, pm.read_nodes)
+                if token and self.tlen(token) > self.tlen(result[0]): # find longest match
+                    result = (token, n, lookahead - pm.scanned_chars, pm.read_nodes)
                     progress = pm.pos, pm.text
-                    lookahead = 0
                     continue
                 else:
                     pass
@@ -564,3 +562,8 @@ class Lexer(object):
                 # no progress means we failed to lex something
                 raise LexingError("Failed to lex node '{}' at position {})".format(node, pos))
             yield result
+
+    def tlen(self, token):
+        if type(token) is list:
+            return sum([len(t) for t in token])
+        return len(token)

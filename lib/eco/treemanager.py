@@ -706,17 +706,17 @@ class TreeManager(object):
 
     def is_logical_line(self, y):
         newline_node = self.lines[y].node
-        node = newline_node.next_term
+        node = newline_node.next_terminal()
         while True:
             if isinstance(node, EOS):
                 return False
             if node.lookup == "<return>": # reached next line
                 return False
             if node.lookup == "<ws>":
-                node = node.next_term
+                node = node.next_terminal()
                 continue
             if  isinstance(node.symbol, IndentationTerminal):
-                node = node.next_term
+                node = node.next_terminal()
                 continue
             # if we are here, we reached a normal node
             return True

@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from grammars.grammars import calc, java, python, Language, sql, pythonprolog, lang_dict, phppython, pythonphp, pythonhtmlsql, html
+from grammars.grammars import calc, java, python, lua, Language, sql, pythonprolog, lang_dict, phppython, pythonphp, pythonhtmlsql, html
 from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer, IncrementalLexerCF
@@ -1481,6 +1481,23 @@ class Test_Java:
         self.treemanager.key_end()
         self.treemanager.key_normal("\r")
         for c in "int x = 1;":
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status == True
+
+class Test_Lua:
+    def setup_class(cls):
+        parser, lexer = lua.load()
+        cls.lexer = lexer
+        cls.parser = parser
+        cls.parser.init_ast()
+        cls.ast = cls.parser.previous_version
+        cls.treemanager = TreeManager()
+        cls.treemanager.add_parser(cls.parser, cls.lexer, java.name)
+        cls.treemanager.set_font_test(7, 17) # hard coded. PyQt segfaults in test suite
+
+    def test_comment(self):
+        prog = """--[[cmt\rcmt\ncmt]]\rx = {}"""
+        for c in prog:
             self.treemanager.key_normal(c)
         assert self.parser.last_status == True
 
