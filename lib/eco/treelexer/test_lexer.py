@@ -224,6 +224,9 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp('\\"([^\\"\\\\]|\\\\.)*\\"'), "\"escaped\\\"quote\"") == '"escaped\\"quote"'
         assert PatternMatcher().match(self.cmp('\\"([^\\"\\\\]|\\\\.)*\\"'), '"\\"[a"-z]\\""') == '"\\"[a"'
 
+        # Lua
+        assert PatternMatcher().match(self.cmp('--\[\[.*?\]\]'), '--[[te\nst]]') == '--[[te\nst]]'
+
     def test_exactmatch(self):
         pm = PatternMatcher()
         pm.match(self.cmp("abc"), "abcd")
@@ -488,7 +491,6 @@ class Test_TripleQuote(object):
         new = TextNode(Terminal('"""abc""d'))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        print("\n\n")
         assert it.next() == ('""', "dstring", 7, [TextNode(Terminal('"""abc""d'))])
         assert it.next() == ('"abc"', "dstring", 0, [TextNode(Terminal('"""abc""d'))])
 
@@ -507,3 +509,36 @@ class Test_Keyword(object):
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
         assert it.next() == ("asd", "NAME", 1, [TextNode(Terminal("asd"))])
+
+class Test_LuaComments(object):
+
+    def setup_class(cls):
+        rules = []
+        rules.append(("mcomment", '--\[\[.*?\]\]'))
+        rules.append(("minus", '-'))
+        rules.append(("scomment", '--[^\r]*'))
+        cls.lexer = Lexer(rules)
+
+    def test_simple(self):
+        ast = AST()
+        ast.init()
+        new = TextNode(Terminal('--[[testtest]]'))
+        ast.parent.children[0].insert_after(new)
+        it = self.lexer.get_token_iter(new)
+        assert it.next() == ('--[[testtest]]', "mcomment", 0, [TextNode(Terminal('--[[testtest]]'))])
+
+    def test_lookahead(self):
+        ast = AST()
+        ast.init()
+        new = TextNode(Terminal('--[[test\rtest'))
+        ast.parent.children[0].insert_after(new)
+        it = self.lexer.get_token_iter(new)
+        assert it.next() == ('--[[test', "scomment", 6, [TextNode(Terminal('--[[test\rtest'))])
+
+    def test_multi(self):
+        ast = AST()
+        ast.init()
+        new = TextNode(Terminal('--[[test\rtest]]'))
+        ast.parent.children[0].insert_after(new)
+        it = self.lexer.get_token_iter(new)
+        assert it.next() == (['--[[test', '\r', 'test]]'], "mcomment", 0, [TextNode(Terminal('--[[test\rtest]]'))])
