@@ -982,32 +982,63 @@ class NodeEditor(QFrame):
             if lbox:
                 tmp = self.tm.cursor.node
                 self.tm.cursor.node = lbox.prev_term
-
-        # Create actions
-        bf = QFont()
-        bf.setBold(True)
-        valid_langs = []
         lalist = self.tm.getLookaheadList()
-        for l in languages:
-            if "<%s>" % l in lalist:
-                valid_langs.append(l)
-
         if tmp:
             # undo cursor change
             self.tm.cursor.node = tmp
+
+        # Filter out languages that are part of this composition.
+        todo = [self.get_mainlanguage()]
+        comp_langs = []
+        while todo:
+            l = todo.pop()
+            for sl in lang_dict[l].included_langs:
+                if lang_dict[sl] not in comp_langs:
+                    comp_langs.append(lang_dict[sl])
+                    todo.append(sl)
+
+        # Generate list of languages valid at current position
+        valid_langs = []
+        for l in comp_langs:
+            if "<%s>" % l in lalist:
+                valid_langs.append(l)
+        for l in valid_langs:
+            # Don't show languages twice
+            comp_langs.remove(l)
+
+        def create_entry(l, menu):
+            pass
+
+        bf = QFont()
+        bf.setBold(True)
+        # Show valid languages first
         if len(valid_langs) > 0:
-            for l in valid_langs:
+            for l in sorted(valid_langs, key=lambda x: x.name):
                 item = QAction(str(l), menu)
                 item.setData(l)
                 self._set_icon(item, l)
                 item.setFont(bf)
                 menu.addAction(item)
             menu.addSeparator()
-        for l in languages:
+
+        # Then show languages that are part of this composition
+        for l in sorted(comp_langs, key=lambda x: x.name):
             item = QAction(str(l), menu)
             item.setData(l)
             self._set_icon(item, l)
             menu.addAction(item)
+
+        # Finally add another submenu with all remaining languages
+        other_langs = QtGui.QMenu("Other", self)
+        for l in sorted(languages, key=lambda x: x.name):
+            if l not in comp_langs and l not in valid_langs:
+                item = QAction(str(l), other_langs)
+                item.setData(l)
+                self._set_icon(item, l)
+                other_langs.addAction(item)
+        menu.addSeparator()
+        menu.addMenu(other_langs)
+
         return menu
 
     def showSubgrammarMenu(self):
