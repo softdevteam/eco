@@ -76,6 +76,7 @@ class JsonManager(object):
         jsnode["local_error"] = node.local_error
         jsnode["nested_errors"] = node.nested_errors
         jsnode["image_src"] = node.image_src
+        jsnode["textlen"] = node.textlen
 
         children = []
         for c in node.children:
@@ -105,6 +106,7 @@ class JsonManager(object):
         try:
             node.local_error = jsnode["local_error"]
             node.nested_errors = jsnode["nested_errors"]
+            node.textlen = jsnode["textlen"]
         except KeyError:
             pass # Backwards compatibility for old Eco files
         node.image_src = jsnode["image_src"]
