@@ -565,7 +565,7 @@ class TextNode(Node):
         return ("new", version) in self.log
 
     def textlength(self, version = None):
-        if version:
+        if version is not None:
             return self.get_attr("textlen", version)
         return self.textlen
 
