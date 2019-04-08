@@ -155,7 +155,6 @@ class FuzzyLboxStats:
 
         ops = self.main_repl_str, len([subtree_to_text(x) for x in self.mainexprs])
         choices = self.sub_repl_str, len(self.replexprs)
-        random.shuffle(self.mainexprs)
         preversion = self.treemanager.version
 
         inserted_error = 0
@@ -164,17 +163,26 @@ class FuzzyLboxStats:
         noinsert_valid = 0
         noinsert_multi = 0
 
-        if len(self.mainexprs) > 10:
-            exprchoices = [random.choice(self.mainexprs) for i in range(10)]
-        else:
-            exprchoices = self.mainexprs
-        for e in exprchoices:
+        # pick random exprs from main
+        samplesize = 10
+        if len(self.mainexprs) < 10:
+            samplesize = len(self.mainexprs)
+        sample = random.sample(range(len(self.mainexprs)), samplesize) # store this for repeatability
+        exprchoices = [self.mainexprs[i] for i in sample]
+        self.main_samples = sample
+
+        # pick random exprs from sub
+        sample = random.sample(range(len(self.replexprs)), len(exprchoices))
+        replchoices = [self.replexprs[i] for i in sample]
+        self.sub_samples = sample
+
+        for i, e in enumerate(exprchoices):
             if e.get_root() is None:
                 continue
             deleted = self.delete_expr(e)
             before = len(self.treemanager.parsers)
             if deleted:
-                choice = random.choice(self.replexprs)
+                choice = replchoices[i]
                 if debug: print "  Replacing '{}' with '{}':".format(truncate(deleted), choice)
                 self.insert_python_expression(choice)
                 valid = self.parser.last_status
@@ -223,6 +231,7 @@ class FuzzyLboxStats:
 
 def run_multi(name, main, sub, folder, ext, exprs, mrepl, srepl=None):
     print "Running", name 
+    run_config = []
     results = []
     faillog = []
     i = 0
@@ -230,7 +239,7 @@ def run_multi(name, main, sub, folder, ext, exprs, mrepl, srepl=None):
     if len(files) > 200:
         # let's limit files to 200 for now
         files = random.sample(files, 200)
-    for filename in files:
+    for i, filename in enumerate(files):
         fuz = FuzzyLboxStats(main, sub)
         fuz.set_replace(mrepl, srepl)
         try:
@@ -249,12 +258,15 @@ def run_multi(name, main, sub, folder, ext, exprs, mrepl, srepl=None):
         else:
             sys.stdout.write(".")
             sys.stdout.flush()
+        run_config.append((filename, fuz.main_samples, fuz.sub_samples))
         results.append(r)
         faillog.extend(fuz.faillog)
         i = i + sum(r)
         #print(i)
         if i > 1000:
             break
+
+    with open("{}_run.json".format(name), "w") as f: json.dump(run_config, f, indent=0)
     with open("{}_log.json".format(name), "w") as f: json.dump(results, f)
     with open("{}_fail.json".format(name), "w") as f: json.dump(faillog, f, indent=0)
     print
