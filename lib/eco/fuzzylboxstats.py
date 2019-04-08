@@ -150,11 +150,10 @@ class FuzzyLboxStats:
         self.treemanager.deleteSelection()
         return deleted
 
-    def run(self):
+    def run(self, main_samples=None, sub_samples=None):
         assert len(self.treemanager.parsers) == 1
 
         ops = self.main_repl_str, len([subtree_to_text(x) for x in self.mainexprs])
-        choices = self.sub_repl_str, len(self.replexprs)
         preversion = self.treemanager.version
 
         inserted_error = 0
@@ -164,17 +163,23 @@ class FuzzyLboxStats:
         noinsert_multi = 0
 
         # pick random exprs from main
-        samplesize = 10
-        if len(self.mainexprs) < 10:
-            samplesize = len(self.mainexprs)
-        sample = random.sample(range(len(self.mainexprs)), samplesize) # store this for repeatability
-        exprchoices = [self.mainexprs[i] for i in sample]
-        self.main_samples = sample
+        if not main_samples:
+            samplesize = 10
+            if len(self.mainexprs) < 10:
+                samplesize = len(self.mainexprs)
+            sample = random.sample(range(len(self.mainexprs)), samplesize) # store this for repeatability
+            exprchoices = [self.mainexprs[i] for i in sample]
+            self.main_samples = sample
+        else:
+            self.main_samples = main_samples
 
-        # pick random exprs from sub
-        sample = random.sample(range(len(self.replexprs)), len(exprchoices))
-        replchoices = [self.replexprs[i] for i in sample]
-        self.sub_samples = sample
+        if not sub_samples:
+            # pick random exprs from sub
+            sample = random.sample(range(len(self.replexprs)), len(exprchoices))
+            replchoices = [self.replexprs[i] for i in sample]
+            self.sub_samples = sample
+        else:
+            self.sub_samples = sub_samples
 
         for i, e in enumerate(exprchoices):
             if e.get_root() is None:
@@ -234,43 +239,63 @@ def run_multi(name, main, sub, folder, ext, exprs, mrepl, srepl=None):
     run_config = []
     results = []
     faillog = []
-    i = 0
     files = [y for x in os.walk(folder) for y in glob.glob(os.path.join(x[0], ext))]
     if len(files) > 200:
         # let's limit files to 200 for now
         files = random.sample(files, 200)
-    for i, filename in enumerate(files):
-        fuz = FuzzyLboxStats(main, sub)
-        fuz.set_replace(mrepl, srepl)
-        try:
-            fuz.load_main(filename)
-            fuz.load_expr_from_json(exprs)
-            r = fuz.run()
-        except Exception, e:
-            # We only care about files that parse initially
-            sys.stdout.write("s")
-            sys.stdout.flush()
+    i = 0
+    for filename in files:
+        c, r, f = run_single(filename, main, sub, exprs, mrepl, srepl)
+        if c is None:
             continue
-        if r[1] > 0 or r[3] > 0:
-            # insert_error and noinsert_error
-            sys.stdout.write("x")
-            sys.stdout.flush()
-        else:
-            sys.stdout.write(".")
-            sys.stdout.flush()
-        run_config.append((filename, fuz.main_samples, fuz.sub_samples))
+        run_config.append(c)
         results.append(r)
-        faillog.extend(fuz.faillog)
+        faillog.extend(f)
         i = i + sum(r)
-        #print(i)
         if i > 1000:
+            # abort after 1000 insertions
             break
-
     with open("{}_run.json".format(name), "w") as f: json.dump(run_config, f, indent=0)
     with open("{}_log.json".format(name), "w") as f: json.dump(results, f)
     with open("{}_fail.json".format(name), "w") as f: json.dump(faillog, f, indent=0)
     print
 
+def run_single(filename, main, sub, exprs, mrepl, srepl, msample=None, ssample=None):
+    fuz = FuzzyLboxStats(main, sub)
+    fuz.set_replace(mrepl, srepl)
+    try:
+        fuz.load_main(filename)
+        fuz.load_expr_from_json(exprs)
+        r = fuz.run(msample, ssample)
+    except Exception, e:
+        # We only care about files that parse initially
+        sys.stdout.write("s")
+        sys.stdout.flush()
+        return None, None, None
+    if r[1] > 0 or r[3] > 0:
+        # insert_error and noinsert_error
+        sys.stdout.write("x")
+        sys.stdout.flush()
+    else:
+        sys.stdout.write(".")
+        sys.stdout.flush()
+    config = (filename, fuz.main_samples, fuz.sub_samples)
+    return config, r, fuz.faillog
+
+def run_config(name, main, sub, configdir, exprs, mrepl, srepl=None):
+    with open("{}/{}_run.json".format(configdir, name)) as f:
+        log = []
+        faillog = []
+        config = json.load(f)
+        for filename, msample, ssample in config:
+            c, r, f = run_single(filename, main, sub, exprs, mrepl, srepl, msample, ssample)
+            if c is None:
+                continue
+            log.append(r)
+            faillog.extend(f)
+        with open("{}_log.json".format(name), "w") as f: json.dump(results, f)
+        with open("{}_fail.json".format(name), "w") as f: json.dump(faillog, f, indent=0)
+        print
 
 def create_composition(smain, ssub, mainexpr, gmain, gsub, subexpr=None):
     sub = EcoFile(ssub, "grammars/" + gsub, ssub)
@@ -291,13 +316,18 @@ if __name__ == "__main__":
     wd = "/home/lukas/research/auto_lbox_experiments"
 
     base = args[1]
+    if len(args) > 2:
+        config = args[2]
     if base == "java":
         javaphp = create_composition("Java", "PHP", "unary_expression", "java15.eco", "php.eco", "expr_without_variable")
         javasql = create_composition("Java", "Sqlite", "unary_expression", "java15.eco", "sqlite.eco")
         javalua = create_composition("Java", "Lua", "unary_expression", "java15.eco", "lua5_3.eco", "explist")
-        run_multi("javaphp", javaphp, None, "{}/javastdlib5/".format(wd), '*.java', "{}/phpstmts.json".format(wd), "unary_expression")
-        run_multi("javasql", javasql, None, "{}/javastdlib5/".format(wd), '*.java', "{}/sqlstmts.json".format(wd), "unary_expression")
-        run_multi("javalua", javalua, None, "{}/javastdlib5/".format(wd), '*.java', "{}/luastmts.json".format(wd), "unary_expression")
+        if config:
+            run_config("javaphp", javaphp, None, config, "{}/phpstmts.json".format(wd), "unary_expression")
+        else:
+            run_multi("javaphp", javaphp, None, "{}/javastdlib5/".format(wd), '*.java', "{}/phpstmts.json".format(wd), "unary_expression")
+            run_multi("javasql", javasql, None, "{}/javastdlib5/".format(wd), '*.java', "{}/sqlstmts.json".format(wd), "unary_expression")
+            run_multi("javalua", javalua, None, "{}/javastdlib5/".format(wd), '*.java', "{}/luastmts.json".format(wd), "unary_expression")
     elif base == "lua":
         luaphp  = create_composition("Lua", "PHP", "explist", "lua5_3.eco", "php.eco", "expr_without_variable")
         luasql  = create_composition("Lua", "Sqlite", "explist", "lua5_3.eco", "sqlite.eco")
