@@ -234,8 +234,11 @@ class FuzzyLboxStats:
             if before == self.treemanager.version:
                 exit("Error")
 
-def run_multi(name, main, sub, folder, ext, exprs, mrepl, srepl=None):
-    print "Running", name 
+def run_multi(name, main, sub, folder, ext, exprs, mrepl, srepl=None, config=None):
+    if config:
+        run_config(name, main, sub, config, exprs, mrepl)
+        return
+    print "Multi:", name 
     run_config = []
     results = []
     faillog = []
@@ -283,6 +286,7 @@ def run_single(filename, main, sub, exprs, mrepl, srepl, msample=None, ssample=N
     return config, r, fuz.faillog
 
 def run_config(name, main, sub, configdir, exprs, mrepl, srepl=None):
+    print "Config:", name
     with open("{}/{}_run.json".format(configdir, name)) as f:
         log = []
         faillog = []
@@ -304,6 +308,7 @@ def create_composition(smain, ssub, mainexpr, gmain, gsub, subexpr=None):
         sub.change_start(subexpr)
 
     main = EcoFile(smain + " + " + ssub, "grammars/" + gmain, smain)
+    main.auto_limit_new = True
     main.add_alternative(mainexpr, sub)
     lang_dict[main.name] = main
     lang_dict[sub.name] = sub
@@ -312,40 +317,42 @@ def create_composition(smain, ssub, mainexpr, gmain, gsub, subexpr=None):
 
 if __name__ == "__main__":
     import sys
+    #from optparse import OptionParser
+    #op = OptionParser(usage="usage: python2.7 %prog TARGET SUBSET [OPTIONS]")
     args = sys.argv
     wd = "/home/lukas/research/auto_lbox_experiments"
 
     base = args[1]
+    config = None
     if len(args) > 2:
         config = args[2]
     if base == "java":
+        # fuzzylboxstats.py Java unary_expression java15.ecp PHP expr_without_variable php.eco javastdlib5 phpstmts.json log/      True
+        #                   MAIN MAINRULE         MAINGRM    SUB SUBRULE               SUBGRM  FILES       REPLACEMENTS  REPLAYDIR HISTORIC_TOKENS     
         javaphp = create_composition("Java", "PHP", "unary_expression", "java15.eco", "php.eco", "expr_without_variable")
         javasql = create_composition("Java", "Sqlite", "unary_expression", "java15.eco", "sqlite.eco")
         javalua = create_composition("Java", "Lua", "unary_expression", "java15.eco", "lua5_3.eco", "explist")
-        if config:
-            run_config("javaphp", javaphp, None, config, "{}/phpstmts.json".format(wd), "unary_expression")
-        else:
-            run_multi("javaphp", javaphp, None, "{}/javastdlib5/".format(wd), '*.java', "{}/phpstmts.json".format(wd), "unary_expression")
-            run_multi("javasql", javasql, None, "{}/javastdlib5/".format(wd), '*.java', "{}/sqlstmts.json".format(wd), "unary_expression")
-            run_multi("javalua", javalua, None, "{}/javastdlib5/".format(wd), '*.java', "{}/luastmts.json".format(wd), "unary_expression")
+        run_multi("javaphp", javaphp, None, "{}/javastdlib5/".format(wd), '*.java', "{}/phpstmts.json".format(wd), "unary_expression", config)
+        run_multi("javasql", javasql, None, "{}/javastdlib5/".format(wd), '*.java', "{}/sqlstmts.json".format(wd), "unary_expression", config)
+        run_multi("javalua", javalua, None, "{}/javastdlib5/".format(wd), '*.java', "{}/luastmts.json".format(wd), "unary_expression", config)
     elif base == "lua":
         luaphp  = create_composition("Lua", "PHP", "explist", "lua5_3.eco", "php.eco", "expr_without_variable")
         luasql  = create_composition("Lua", "Sqlite", "explist", "lua5_3.eco", "sqlite.eco")
         luajava = create_composition("Lua", "Java", "explist", "lua5_3.eco", "java15.eco", "unary_expression")
-        run_multi("luaphp", luaphp, None, "{}/lua/testes/".format(wd), '*.lua', "{}/phpstmts.json".format(wd), "explist")
-        run_multi("luasql", luasql, None, "{}/lua/testes/".format(wd), '*.lua', "{}/sqlstmts.json".format(wd), "explist")
-        run_multi("luajava", luajava, None, "{}/lua/testes/".format(wd), '*.lua', "{}/javastmts.json".format(wd), "explist")
+        run_multi("luaphp", luaphp, None, "{}/lua/testes/".format(wd), '*.lua', "{}/phpstmts.json".format(wd), "explist", config)
+        run_multi("luasql", luasql, None, "{}/lua/testes/".format(wd), '*.lua', "{}/sqlstmts.json".format(wd), "explist", config)
+        run_multi("luajava", luajava, None, "{}/lua/testes/".format(wd), '*.lua', "{}/javastmts.json".format(wd), "explist", config)
     elif base == "php":
         phpjava = create_composition("PHP", "Java", "expr", "php.eco", "java15.eco", "unary_expression")
         phpsql  = create_composition("PHP", "Sqlite", "expr", "php.eco", "sqlite.eco")
         phplua  = create_composition("PHP", "Lua", "expr", "php.eco", "lua5_3.eco", "explist")
-        run_multi("phpjava", phpjava, None, "{}/phpfiles/".format(wd), '*.php', "{}/javastmts.json".format(wd), "expr_without_variable")
-        run_multi("phpsql", phpsql, None, "{}/phpfiles/".format(wd), '*.php', "{}/sqlstmts.json".format(wd), "expr_without_variable")
-        run_multi("phplua", phplua, None, "{}/phpfiles/".format(wd), '*.php', "{}/luastmts.json".format(wd), "expr_without_variable")
+        run_multi("phpjava", phpjava, None, "{}/phpfiles/".format(wd), '*.php', "{}/javastmts.json".format(wd), "expr_without_variable", config)
+        run_multi("phpsql", phpsql, None, "{}/phpfiles/".format(wd), '*.php', "{}/sqlstmts.json".format(wd), "expr_without_variable", config)
+        run_multi("phplua", phplua, None, "{}/phpfiles/".format(wd), '*.php', "{}/luastmts.json".format(wd), "expr_without_variable", config)
     elif base == "sql":
         sqlphp  = create_composition("Sqlite", "PHP",  "expr", "sqlite.eco", "php.eco", "expr_without_variable")
         sqljava = create_composition("Sqlite", "Java", "expr", "sqlite.eco", "java15.eco", "unary_expression")
         sqllua  = create_composition("Sqlite", "Lua",  "expr", "sqlite.eco", "lua5_3.eco", "explist")
-        run_multi("sqlphp", sqlphp, None, "{}/sqlfiles/".format(wd), '*.sql', "{}/phpstmts.json".format(wd), "expr")
-        run_multi("sqljava", sqljava, None, "{}/sqlfiles/".format(wd), '*.sql', "{}/javastmts.json".format(wd), "expr")
-        run_multi("sqllua", sqllua, None, "{}/sqlfiles/".format(wd), '*.sql', "{}/luastmts.json".format(wd), "expr")
+        run_multi("sqlphp", sqlphp, None, "{}/sqlfiles/".format(wd), '*.sql', "{}/phpstmts.json".format(wd), "expr", config)
+        run_multi("sqljava", sqljava, None, "{}/sqlfiles/".format(wd), '*.sql', "{}/javastmts.json".format(wd), "expr", config)
+        run_multi("sqllua", sqllua, None, "{}/sqlfiles/".format(wd), '*.sql', "{}/luastmts.json".format(wd), "expr", config)
