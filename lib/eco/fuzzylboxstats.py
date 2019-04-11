@@ -317,42 +317,28 @@ def create_composition(smain, ssub, mainexpr, gmain, gsub, subexpr=None):
 
 if __name__ == "__main__":
     import sys
-    #from optparse import OptionParser
-    #op = OptionParser(usage="usage: python2.7 %prog TARGET SUBSET [OPTIONS]")
     args = sys.argv
     wd = "/home/lukas/research/auto_lbox_experiments"
 
-    base = args[1]
-    config = None
-    if len(args) > 2:
-        config = args[2]
-    if base == "java":
-        # fuzzylboxstats.py Java unary_expression java15.ecp PHP expr_without_variable php.eco javastdlib5 phpstmts.json log/      True
-        #                   MAIN MAINRULE         MAINGRM    SUB SUBRULE               SUBGRM  FILES       REPLACEMENTS  REPLAYDIR HISTORIC_TOKENS     
-        javaphp = create_composition("Java", "PHP", "unary_expression", "java15.eco", "php.eco", "expr_without_variable")
-        javasql = create_composition("Java", "Sqlite", "unary_expression", "java15.eco", "sqlite.eco")
-        javalua = create_composition("Java", "Lua", "unary_expression", "java15.eco", "lua5_3.eco", "explist")
-        run_multi("javaphp", javaphp, None, "{}/javastdlib5/".format(wd), '*.java', "{}/phpstmts.json".format(wd), "unary_expression", config)
-        run_multi("javasql", javasql, None, "{}/javastdlib5/".format(wd), '*.java', "{}/sqlstmts.json".format(wd), "unary_expression", config)
-        run_multi("javalua", javalua, None, "{}/javastdlib5/".format(wd), '*.java', "{}/luastmts.json".format(wd), "unary_expression", config)
-    elif base == "lua":
-        luaphp  = create_composition("Lua", "PHP", "explist", "lua5_3.eco", "php.eco", "expr_without_variable")
-        luasql  = create_composition("Lua", "Sqlite", "explist", "lua5_3.eco", "sqlite.eco")
-        luajava = create_composition("Lua", "Java", "explist", "lua5_3.eco", "java15.eco", "unary_expression")
-        run_multi("luaphp", luaphp, None, "{}/lua/testes/".format(wd), '*.lua', "{}/phpstmts.json".format(wd), "explist", config)
-        run_multi("luasql", luasql, None, "{}/lua/testes/".format(wd), '*.lua', "{}/sqlstmts.json".format(wd), "explist", config)
-        run_multi("luajava", luajava, None, "{}/lua/testes/".format(wd), '*.lua', "{}/javastmts.json".format(wd), "explist", config)
-    elif base == "php":
-        phpjava = create_composition("PHP", "Java", "expr", "php.eco", "java15.eco", "unary_expression")
-        phpsql  = create_composition("PHP", "Sqlite", "expr", "php.eco", "sqlite.eco")
-        phplua  = create_composition("PHP", "Lua", "expr", "php.eco", "lua5_3.eco", "explist")
-        run_multi("phpjava", phpjava, None, "{}/phpfiles/".format(wd), '*.php', "{}/javastmts.json".format(wd), "expr_without_variable", config)
-        run_multi("phpsql", phpsql, None, "{}/phpfiles/".format(wd), '*.php', "{}/sqlstmts.json".format(wd), "expr_without_variable", config)
-        run_multi("phplua", phplua, None, "{}/phpfiles/".format(wd), '*.php', "{}/luastmts.json".format(wd), "expr_without_variable", config)
-    elif base == "sql":
-        sqlphp  = create_composition("Sqlite", "PHP",  "expr", "sqlite.eco", "php.eco", "expr_without_variable")
-        sqljava = create_composition("Sqlite", "Java", "expr", "sqlite.eco", "java15.eco", "unary_expression")
-        sqllua  = create_composition("Sqlite", "Lua",  "expr", "sqlite.eco", "lua5_3.eco", "explist")
-        run_multi("sqlphp", sqlphp, None, "{}/sqlfiles/".format(wd), '*.sql', "{}/phpstmts.json".format(wd), "expr", config)
-        run_multi("sqljava", sqljava, None, "{}/sqlfiles/".format(wd), '*.sql', "{}/javastmts.json".format(wd), "expr", config)
-        run_multi("sqllua", sqllua, None, "{}/sqlfiles/".format(wd), '*.sql', "{}/luastmts.json".format(wd), "expr", config)
+    if len(args) < 8:
+        print("Missing arguments.\nUsage: python2 fuzzylboxstats.py MAINGRM MAINRULE SUBGRM SUBRULE FILES EXTENSION REPLACMENTS HISTORICTOKEN [RERUNDIR]")
+        exit()
+
+    maingrm = args[1]
+    mainrule = args[2]
+    subgrm = args[3]
+    subrule = args[4]
+    files = args[5]
+    ext = args[6]
+    repl = args[7]
+    histtok = args[8]
+    if len(args) > 9:
+        rerunconfig = args[9]
+    else:
+        rerunconfig = None
+    if subrule == "None":
+        subrule = None
+
+    comp = create_composition("Main", "Sub", mainrule, maingrm, subgrm, subrule)
+    name = maingrm[:-4] + subgrm[:-4]
+    run_multi(name, comp, None, "{}/{}/".format(wd, files), '*.{}'.format(ext), "{}/{}".format(wd, repl), mainrule, rerunconfig)
