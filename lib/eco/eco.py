@@ -526,6 +526,9 @@ class LanguageView(QtGui.QDialog):
         self.ui = Ui_LanguageDialog()
         self.ui.setupUi(self)
 
+        if len(newfile_langs) == 0:
+            return
+
         # categorize languages
         d = {}
         self.d = d
@@ -1148,21 +1151,10 @@ class Window(QtGui.QMainWindow):
 
     def load_composition(self, filename):
         import json
-        from grammars import grammars
+        from grammars.grammars import create_grammar_from_config
         with open(filename) as f:
-            comp = json.load(f)
-            print(comp)
-            main = grammars.EcoFile(comp["name"], comp["file"], "")
-            main.auto_limit_new = True
-            for c in comp["compositions"]:
-                sub = grammars.EcoFile(c["name"], c["file"], "")
-                if c["subset"]:
-                    sub.change_start(c["subset"])
-                main.add_alternative(c["location"], sub)
-                grammars.add_lang(sub, False, True)
-                lang_dict[sub.name] = sub
-            grammars.add_lang(main, True, False)
-            lang_dict[main.name] = main
+            cfg = json.load(f)
+            create_grammar_from_config(cfg, filename)
 
     def savefile(self):
         ed = self.getEditorTab()

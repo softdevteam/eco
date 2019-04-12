@@ -1,0 +1,25 @@
+{
+    "name": "Test grammar: Java + SQLDummy ref. Java",
+    "file": "grammars/java15.eco",
+    "base": "Java",
+    "visibility": ["newfile"],
+    "compositions": [
+        {
+            "location": "unary_expression",
+            "name": "SQL ref. Java",
+            "file": "grammars/sql.eco",
+            "base": "Sql",
+            "visibility": ["submenu"],
+            "compositions": [
+                {
+                    "location": "y_condition",
+                    "name": "Java expression",
+                    "file": "grammars/sql.eco",
+                    "base": "Java",
+                    "subset": "expression",
+                    "visibility": ["submenu"]
+                }
+            ]
+        }
+    ]
+}

@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-import os
+import os, json
 
 try:
     import __pypy__
@@ -106,10 +106,15 @@ class EcoFile(object):
             return (bootstrap.incparser, bootstrap.inclexer)
 
     def add_alternative(self, nonterminal, language):
+        if isinstance(language, EcoFile):
+            # Backwards compatibility
+            lang = language.name
+        else:
+            lang = language
         if nonterminal not in self.alts:
             self.alts[nonterminal] = []
-        self.alts[nonterminal].append("<%s>" % language.name)
-        self.included_langs.add(language.name)
+        self.alts[nonterminal].append("<%s>" % lang)
+        self.included_langs.add(lang)
 
     def change_start(self, name):
         self.extract = name
@@ -149,141 +154,61 @@ class EcoFile(object):
 languages = []
 newfile_langs = []
 submenu_langs = []
+lang_dict = {}
+
 def add_lang(lang, new=False, sub=False):
     languages.append(lang)
+    if lang_dict.has_key(lang.name):
+        print("Error: Multiple definitions for language '{}'".format(lang))
+        exit()
+    lang_dict[lang.name] = lang
     if new:
         newfile_langs.append(lang)
     if sub:
         submenu_langs.append(lang)
 
-from eco_grammar import eco_grammar # needed to edit EcoGrammar
-
-# base languages
-calc = EcoFile("Basic Calculator", "grammars/basiccalc.eco", "Calc")
-add_lang(calc, True)
-java = EcoFile("Java 1.5", "grammars/java15.eco", "Java")
-add_lang(java, True, True)
-python = EcoFile("Python 2.7.5", "grammars/python275.eco", "Python")
-add_lang(python, True, True)
-ipython = EcoFile("IPython", "grammars/python275.eco", "IPython")
-add_lang(ipython, False, True)
-prolog = EcoFile("Prolog", "grammars/prolog.eco", "Prolog")
-add_lang(prolog, True, True)
-scoping = EcoFile("Scoping Rules (Ecofile)", "grammars/scoping_grammar.eco", "Scoping")
-add_lang(scoping, False, False)
-eco = EcoFile("Eco Grammar (Ecofile)", "grammars/eco_grammar.eco", "Grammar") # based on eco_grammar
-add_lang(eco, False, False)
-html = EcoFile("HTML", "grammars/html.eco", "Html")
-add_lang(html, True, True)
-sql = EcoFile("SQL (Dummy)", "grammars/sql.eco", "Sql")
-add_lang(sql, True, True)
-sqlite = EcoFile("SQLite", "grammars/sqlite.eco", "Sql")
-add_lang(sqlite, True, True)
-img = EcoFile("Image", "grammars/img.eco", "Image")
-add_lang(img, False, True)
-chemical = EcoFile("Chemicals", "grammars/chemicals.eco", "Chemicals")
-add_lang(chemical, False, True)
-php = EcoFile("PHP", "grammars/php.eco", "Php")
-add_lang(php, True, True)
-javascript = EcoFile("JavaScript", "grammars/javascript.eco", "JavaScript")
-add_lang(javascript, True, True)
-lua = EcoFile("Lua 5.3", "grammars/lua5_3.eco", "Lua")
-add_lang(lua, True, True)
-
-# extensions
-pythonprolog = EcoFile("Python + Prolog", "grammars/python275.eco", "Python")
-pythonprolog.add_alternative("atom", prolog)
-add_lang(pythonprolog, True, True)
-
-sql_single = EcoFile("SQL Statement", "grammars/sql.eco", "Sql")
-sql_single.change_start("sql_line")
-add_lang(sql_single, False, True)
-
-pythonhtmlsql = EcoFile("Python + HTML + SQL", "grammars/python275.eco", "Python")
-pythonhtmlsql.add_alternative("atom", html)
-pythonhtmlsql.add_alternative("atom", sql)
-add_lang(pythonhtmlsql, True, True)
-
-pythonhtmlsqlsingle = EcoFile("Python + HTML + SQLStmt", "grammars/python275.eco", "Python")
-pythonhtmlsqlsingle.add_alternative("atom", html)
-pythonhtmlsqlsingle.add_alternative("atom", sql_single)
-add_lang(pythonhtmlsqlsingle, True, False)
-
-htmlpythonsql = EcoFile("HTML + Python + SQL", "grammars/html.eco", "Html")
-htmlpythonsql.add_alternative("element", pythonhtmlsql)
-htmlpythonsql.add_alternative("attribute_value", img)
-add_lang(htmlpythonsql, True, True)
-
-java_expr = EcoFile("Java expression", "grammars/java15.eco", "Java")
-java_expr.change_start("expression")
-java_expr.add_alternative("unary_expression", chemical)
-add_lang(java_expr, False, True)
-
-sql_ref_java = EcoFile("SQL ref. Java expression", "grammars/sql.eco", "Sql")
-sql_ref_java.add_alternative("y_condition", java_expr)
-add_lang(sql_ref_java, False, True)
-
-javasql = EcoFile("Java + SQL", "grammars/java15.eco", "Java")
-javasql.add_alternative("unary_expression", sqlite)
-add_lang(javasql, True, False)
-
-javasqlchemical = EcoFile("Java + SQL + Chemical", "grammars/java15.eco", "Java")
-javasqlchemical.add_alternative("unary_expression", sql_ref_java)
-add_lang(javasqlchemical, True, True)
-
-python_expr = EcoFile("Python expression", "grammars/python275.eco", "Python")
-python_expr.change_start("simple_stmt")
-add_lang(python_expr, False, True)
-
-python_method = EcoFile("Python method", "grammars/python275.eco", "Python")
-python_method.change_start("funcdef")
-add_lang(python_method, False, True)
-
-python_class = EcoFile("Python class", "grammars/python275.eco", "Python")
-python_class.change_start("classdef")
-add_lang(python_class, False, True)
-
-phppython = EcoFile("PHP + Python", "grammars/php.eco", "Php")
-phppython.set_custom_nb("phppython.nb")
-pythonphp = EcoFile("Python + PHP", "grammars/python275.eco", "Python")
-phppython.add_alternative("top_statement", pythonphp)
-phppython.add_alternative("class_statement", pythonphp)
-phppython.add_alternative("expr", pythonphp)
-phppython.add_alternative("expr", python_expr)
-pythonphp.add_alternative("atom", phppython)
-add_lang(phppython, True, True)
-add_lang(pythonphp, True, True)
-
-pythonipython = EcoFile("Python + IPython", "grammars/python275.eco", "Python")
-pythonipython.add_alternative("atom", ipython)
-add_lang(pythonipython, True, False)
-
-simplelang = EcoFile("SimpleLanguage", "grammars/simplelang.eco", "SimpleLanguage")
-add_lang(simplelang, True, True)
+regex = EcoFile("Regex", "grammars/regex.eco", "Regex")
+add_lang(regex, True, False)
 
 if not __pypy__:
     from rubyparser.rubyparser import RubyProxy
     ruby = RubyProxy()
     add_lang(ruby, True, True)
 
-rubysl = EcoFile("Ruby + SimpleLanguage", "grammars/ruby.eco", "Ruby")
-rubysl.add_alternative("top_stmt", simplelang)
-add_lang(rubysl, True, True)
+# import languages from grammars/include
 
-rubyjs = EcoFile("Ruby + JavaScript", "grammars/ruby.eco", "Ruby")
-rubyjs.add_alternative("top_stmt", javascript)
-add_lang(rubyjs, True, True)
+def create_grammar_from_config(cfg, filename):
+    main = EcoFile(cfg["name"], cfg["file"], cfg["base"])
+    if cfg.has_key("limit_historic_tokens"):
+        main.auto_limit_new = cfg["limit_historic_tokens"]
+    if cfg.has_key("subset") and cfg["subset"]:
+        main.change_start(cfg["subset"])
+    if cfg.has_key("custom_namebinding"):
+        main.set_custom_nb(cfg["custom_namebinding"])
+    if cfg.has_key("compositions"):
+        for c in cfg["compositions"]:
+            if not c.has_key("file"):
+                sub = c["name"]
+                reused.append((filename, sub))
+            else:
+                sub = create_grammar_from_config(c, filename)
+            main.add_alternative(c["location"], sub)
+    show_newfile = "newfile" in cfg["visibility"]
+    show_submenu = "submenu" in cfg["visibility"]
+    add_lang(main, show_newfile, show_submenu)
+    return main.name
 
-regex = EcoFile("Regex", "grammars/regex.eco", "Regex")
-add_lang(regex, True, False)
+reused = []
+for root, _, files in os.walk("grammars/include/"):
+    for filename in files:
+        with open(os.path.join(root, filename)) as f:
+            grmcfg = json.load(f)
+            create_grammar_from_config(grmcfg, filename)
+    error = False
 
-javapy = EcoFile("Java + Python", "grammars/java15.eco", "Java")
-javapy.add_alternative("unary_expression", python_expr)
-javapy.add_alternative("class_body_declaration", python_method)
-javapy.add_alternative("class_body_declaration", python_class)
-javapy.auto_limit_new = True
-add_lang(javapy, True, False)
-
-lang_dict = {}
-for l in languages:
-    lang_dict[l.name] = l
+for r in reused:
+    if not r[1] in lang_dict:
+        error = True
+        print "Error in '{}': Referenced language '{}' doesn't exist.".format(r[0], r[1])
+if error:
+    exit()

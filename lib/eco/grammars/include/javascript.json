@@ -1,0 +1,6 @@
+{
+    "name": "JavaScript",
+    "file": "grammars/javascript.eco",
+    "base": "JavaScript",
+    "visibility": ["newfile", "submenu"]
+}

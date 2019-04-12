@@ -1,0 +1,12 @@
+{
+    "name": "Python + PHP",
+    "file": "grammars/python275.eco",
+    "base": "Python",
+    "visibility": ["newfile", "submenu"],
+    "compositions": [
+        {
+            "location": "atom",
+            "name": "PHP + Python"
+        }
+    ]
+}

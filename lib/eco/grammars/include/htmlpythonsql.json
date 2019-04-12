@@ -1,0 +1,29 @@
+{
+    "name": "HTML + Python + SQL",
+    "file": "grammars/html.eco",
+    "base": "Html",
+    "visibility": ["newfile", "submenu"],
+    "compositions": [
+        {
+            "location": "element",
+            "name": "Python + HTML + SQL",
+            "file": "grammars/python275.eco",
+            "base": "Python",
+            "visibility": ["submenu"],
+            "compositions": [
+                {
+                    "location": "atom",
+                    "name": "HTML"
+                },
+                {
+                    "location": "atom",
+                    "name": "SQL (Dummy)"
+                }
+            ]
+        },
+        {
+            "location": "attribute_value",
+            "name": "Image"
+        }
+    ]
+}

@@ -1,0 +1,6 @@
+{
+    "name": "SQLite",
+    "file": "grammars/sqlite.eco",
+    "base": "Sql",
+    "visibility": ["newfile", "submenu"]
+}

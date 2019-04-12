@@ -1,0 +1,6 @@
+{
+    "name": "Python 2.7.5",
+    "file": "grammars/python275.eco",
+    "base": "Python",
+    "visibility": ["newfile", "submenu"]
+}

@@ -1,10 +1,14 @@
-from grammars.grammars import calc, python, php, lang_dict
+from grammars.grammars import lang_dict
 from treemanager import TreeManager
 from grammar_parser.gparser import MagicTerminal
 from utils import KEY_UP as UP, KEY_DOWN as DOWN, KEY_LEFT as LEFT, KEY_RIGHT as RIGHT
 from grammars.grammars import EcoFile
 
 import pytest
+
+calc = lang_dict["Basic Calculator"]
+python = lang_dict["Python 2.7.5"]
+php = lang_dict["PHP"]
 
 if pytest.config.option.log:
     import logging

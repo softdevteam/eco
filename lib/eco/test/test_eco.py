@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from grammars.grammars import calc, java, python, lua, Language, sql, pythonprolog, lang_dict, phppython, pythonphp, pythonhtmlsql, html
+from grammars.grammars import lang_dict, Language
 from treemanager import TreeManager
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer, IncrementalLexerCF
@@ -33,6 +33,18 @@ import programs
 
 import pytest
 slow = pytest.mark.slow
+
+
+calc = lang_dict["Basic Calculator"]
+java = lang_dict["Java"]
+python = lang_dict["Python 2.7.5"]
+lua = lang_dict["Lua 5.3"]
+sql = lang_dict["SQL (Dummy)"]
+pythonprolog = lang_dict["Python + Prolog"]
+phppython = lang_dict["PHP + Python"]
+pythonphp = lang_dict["Python + PHP"]
+pythonhtmlsql = lang_dict["Python + HTML + SQL"]
+html = lang_dict["HTML"]
 
 if pytest.config.option.log:
     import logging
@@ -4521,12 +4533,22 @@ class Test_TopDownReuse(Test_Python):
         assert E is E2
         assert Y is Y2
 
-from grammars.grammars import sql_single, javapy, javasqlchemical, javasql
+sql_single = lang_dict["SQL Statement"]
+javapy = lang_dict["Java + Python"]
+javasql = lang_dict["Java + SQL"]
+javasqlchemical = javasql
 
 # Add some more compositions that we only need inside the test environment
 pythonsql = EcoFile("Python + SQL", "grammars/python275.eco", "Python")
 pythonsql.add_alternative("atom", sql_single)
 lang_dict[pythonsql.name] = pythonsql
+
+import json
+from grammars.grammars import create_grammar_from_config
+with open("test/javasqldummy.json") as f:
+    cfg = json.load(f)
+    javasql2_name = create_grammar_from_config(cfg, "test/javasqldummy.json")
+    javasqlchemical = lang_dict[javasql2_name]
 
 class Test_AutoLanguageBoxDetection():
 

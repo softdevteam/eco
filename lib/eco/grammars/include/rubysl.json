@@ -1,0 +1,12 @@
+{
+    "name": "Ruby + SimpleLanguage",
+    "file": "grammars/ruby.eco",
+    "base": "Ruby",
+    "visibility": ["newfile"],
+    "compositions": [
+        {
+            "location": "top_stmt",
+            "name": "SimpleLanguage"
+        }
+    ]
+}
