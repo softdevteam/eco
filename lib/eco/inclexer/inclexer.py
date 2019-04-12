@@ -493,7 +493,6 @@ class IncrementalLexerCF(object):
         pos = 0  # read tokens
         read = 0 # generated tokens
         current_node = node
-        sw = StringWrapper(node, startnode)
         next_token = self.lexer.get_token_iter(node).next
 
         combos = []
@@ -570,6 +569,14 @@ class IncrementalLexerCF(object):
                 else:
                     # There are no part matches so remark the startnode as error
                     startnode.changed = True
+                if not past_startnode:
+                    # When a lexing error occurs before we reached the newly
+                    # inserted node (startnode) try to continue lexing from
+                    # startnode onwards.
+                    # See Test_Relexing::test_newline_after_error
+                    next_token = self.lexer.get_token_iter(startnode).next
+                    past_startnode = True
+                    continue
                 break
 
         if not toks:
