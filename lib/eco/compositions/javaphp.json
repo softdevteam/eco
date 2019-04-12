@@ -1,0 +1,21 @@
+{
+    "name": "Java+PHP",
+    "file": "grammars/java15.eco",
+    "subset": null,
+    "compositions": [
+        {
+            "name": "PHP func",
+            "file": "grammars/php.eco",
+            "subset": "class_statement",
+            "location": "method_declaration",
+            "compositions": []
+        },
+        {
+            "name": "PHP expr",
+            "file": "grammars/php.eco",
+            "subset": "expr_without_variable",
+            "location": "unary_expression",
+            "compositions": []
+        }
+    ]
+}

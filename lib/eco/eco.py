@@ -867,6 +867,7 @@ class Window(QtGui.QMainWindow):
         parser.add_option("-e", "--export", action="store_true", default=False, help="Fast export files. Usage: --export [SOURCE] [DESTINATION]")
         parser.add_option("-f", "--fullexport", action="store_true", default=False, help="Export files. Usage: --fullexport [SOURCE] [DESTINATION]")
         parser.add_option("-g", "--grammar", action="store_true", default=None, help="Load external grammar. Usage: --grammar [GRAMMARFILE]")
+        parser.add_option("-c", "--composition", action="store_true", default=None, help="Load external composition. Usage: --composition [COMPOSITIONFILE]")
         (options, args) = parser.parse_args()
 
         if options.log.upper() in ["INFO", "WARNING", "ERROR", "DEBUG"]:
@@ -887,6 +888,9 @@ class Window(QtGui.QMainWindow):
             self.cli_export(source, dest, True)
         if options.grammar:
             self.load_external_grammar(args[0])
+            return
+        if options.composition:
+            self.load_composition(args[0])
             return
         if len(args) > 0:
             for f in args:
@@ -1141,6 +1145,24 @@ class Window(QtGui.QMainWindow):
         etab.editor.setContextMenuPolicy(Qt.CustomContextMenu)
         etab.editor.customContextMenuRequested.connect(self.contextMenu)
         self.toggle_menu(True)
+
+    def load_composition(self, filename):
+        import json
+        from grammars import grammars
+        with open(filename) as f:
+            comp = json.load(f)
+            print(comp)
+            main = grammars.EcoFile(comp["name"], comp["file"], "")
+            main.auto_limit_new = True
+            for c in comp["compositions"]:
+                sub = grammars.EcoFile(c["name"], c["file"], "")
+                if c["subset"]:
+                    sub.change_start(c["subset"])
+                main.add_alternative(c["location"], sub)
+                grammars.add_lang(sub, False, True)
+                lang_dict[sub.name] = sub
+            grammars.add_lang(main, True, False)
+            lang_dict[main.name] = main
 
     def savefile(self):
         ed = self.getEditorTab()
