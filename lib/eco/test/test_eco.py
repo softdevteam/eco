@@ -1232,6 +1232,16 @@ def y():
 
         assert self.parser.last_status is True
 
+    def test_newline_after_error(self):
+        self.reset()
+
+        for c in "   $x=1;\n":
+            self.treemanager.key_normal(c)
+        assert self.parser.last_status is False
+
+        # Check that the node `\n   ` has been split up
+        assert self.treemanager.cursor.node.symbol.name == "   "
+
 class Test_NestedLboxWithIndentation():
     def setup_class(cls):
         parser, lexer = calc.load()
