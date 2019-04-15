@@ -35,19 +35,21 @@ def truncate(string):
         return repr(string)
 
 def validnonterm(node, symbol):
+    if isinstance(node.symbol, Nonterminal):
+        return False
     if node.symbol.name == "class_statement": # PHP func
         return node.children[1].symbol.name == "function"
-    elif node.symbol.name == "expr_without_variable": ] # PHP expr
+    elif node.symbol.name == "expr_without_variable": # PHP expr
         return node.children[0].symbol.name == "expr"
     elif node.symbol.name == "testlist": # Python expr
         # Only replace RHS of expressions, because there's currently a bug that
         # keeps indentation terminals from being inserted before language boxes
         return node.left_sibling() is not None
-    elif n.symbol.name == "stat": # Lua func
-        if n.children:
-            if n.children[0].symbol.name == "function":
+    elif node.symbol.name == "stat": # Lua func
+        if node.children:
+            if node.children[0].symbol.name == "function":
                 return True
-            if n.children[0].symbol.name == "local" and n.children[2].symbol.name == "function":
+            if node.children[0].symbol.name == "local" and node.children[2].symbol.name == "function":
                 return True
         return False
     else:
