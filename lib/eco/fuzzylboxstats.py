@@ -7,6 +7,7 @@ from incparser.astree import MultiTextNode
 # helper functions
 
 debug = False
+MAX_FILES = 200
 
 def next_node(node):
     while(node.right is None):
@@ -32,6 +33,25 @@ def truncate(string):
         return repr(string[:20] + "..." + string[-20:])
     else:
         return repr(string)
+
+def validnonterm(node, symbol):
+    if node.symbol.name == "class_statement": # PHP func
+        return node.children[1].symbol.name == "function"
+    elif node.symbol.name == "expr_without_variable": ] # PHP expr
+        return node.children[0].symbol.name == "expr"
+    elif node.symbol.name == "testlist": # Python expr
+        # Only replace RHS of expressions, because there's currently a bug that
+        # keeps indentation terminals from being inserted before language boxes
+        return node.left_sibling() is not None
+    elif n.symbol.name == "stat": # Lua func
+        if n.children:
+            if n.children[0].symbol.name == "function":
+                return True
+            if n.children[0].symbol.name == "local" and n.children[2].symbol.name == "function":
+                return True
+        return False
+    else:
+        return node.symbol.name == symbol
 
 class FuzzyLboxStats:
 
@@ -90,22 +110,14 @@ class FuzzyLboxStats:
         eos = tm.get_eos()
         node = bos.right_sibling()
         while node is not eos:
-            # Python: Only replace RHS of expressions, because there is
-            # currently a bug that keeps indentation terminals from being
-            # inserted before language boxes
-            if node.symbol.name == "testlist": # Python only use most right testlist
-                if not node.left_sibling():
-                    node = next_node(node)
-                    continue
-            # PHP: Only replace RHS of expressions
-            if node.symbol.name == name and (name != "expr_without_variable" or node.children[0].symbol.name == "expr"):
+            if validnonterm(node, name):
                 l.append(node)
                 node = next_node(node)
                 continue
             if node.children:
                 node = node.children[0]
-                continue
-            node = next_node(node)
+            else:
+                node = next_node(node)
         return l
 
     def find_expressions(self, program, expr):
@@ -248,9 +260,9 @@ def run_multi(name, main, sub, folder, ext, exprs, mrepl, srepl=None, config=Non
     results = []
     faillog = []
     files = [y for x in os.walk(folder) for y in glob.glob(os.path.join(x[0], ext))]
-    if len(files) > 200:
+    if len(files) > MAX_FILES:
         # let's limit files to 200 for now
-        files = random.sample(files, 200)
+        files = random.sample(files, MAX_FILES)
     i = 0
     for filename in files:
         c, r, f = run_single(filename, main, sub, exprs, mrepl, srepl)
