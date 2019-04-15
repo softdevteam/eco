@@ -1,0 +1,6 @@
+{
+    "name": "Image",
+    "file": "grammars/img.eco",
+    "base": "Image",
+    "visibility": ["submenu"]
+}

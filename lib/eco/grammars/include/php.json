@@ -1,0 +1,6 @@
+{
+    "name": "PHP",
+    "file": "grammars/php.eco",
+    "base": "Php",
+    "visibility": ["newfile", "submenu"]
+}

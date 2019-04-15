@@ -1,0 +1,14 @@
+{
+    "name": "Java + SQL",
+    "file": "grammars/java15.eco",
+    "base": "Java",
+    "subset": null,
+    "visibility": ["newfile"],
+    "limit_historic_tokens": false,
+    "compositions": [
+        {
+            "location": "unary_expression",
+            "name": "SQLite"
+        }
+    ]
+}

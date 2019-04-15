@@ -1,0 +1,6 @@
+{
+    "name": "Basic Calculator",
+    "file": "grammars/basiccalc.eco",
+    "base": "Calc",
+    "visibility": ["newfile"]
+}

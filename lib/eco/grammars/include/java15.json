@@ -1,0 +1,6 @@
+{
+    "name": "Java",
+    "file": "grammars/java15.eco",
+    "base": "Java",
+    "visibility": ["newfile", "submenu"]
+}

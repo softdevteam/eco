@@ -1,0 +1,6 @@
+{
+    "name": "SQL (Dummy)",
+    "file": "grammars/sql.eco",
+    "base": "Sql",
+    "visibility": ["newfile", "submenu"]
+}

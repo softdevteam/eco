@@ -1,0 +1,6 @@
+{
+    "name": "Scoping Rules (Ecofile)",
+    "file": "grammars/scoping_grammar.eco",
+    "base": "Scoping",
+    "visibility": []
+}

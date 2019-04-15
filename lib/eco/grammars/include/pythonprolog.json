@@ -1,0 +1,12 @@
+{
+    "name": "Python + Prolog",
+    "file": "grammars/python275.eco",
+    "base": "Python",
+    "visibility": ["newfile"],
+    "compositions": [
+        {
+            "name": "Prolog",
+            "location": "atom"
+        }
+    ]
+}

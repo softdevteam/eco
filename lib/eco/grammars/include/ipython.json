@@ -1,0 +1,6 @@
+{
+    "name": "IPython",
+    "file": "grammars/python275.eco",
+    "base": "IPython",
+    "visibility": ["submenu"]
+}

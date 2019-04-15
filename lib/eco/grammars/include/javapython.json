@@ -1,0 +1,29 @@
+{
+    "name": "Java + Python",
+    "file": "grammars/java15.eco",
+    "base": "Java",
+    "visibility": ["newfile"],
+    "limit_historic_tokens": true,
+    "compositions": [
+        {
+            "location": "unary_expression",
+            "name": "Python expression"
+        },
+        {
+            "location": "class_body_declaration",
+            "name": "Python method",
+            "file": "grammars/python275.eco",
+            "base": "Python",
+            "subset": "funcdef",
+            "visibility": ["submenu"]
+        },
+        {
+            "location": "class_body_declaration",
+            "name": "Python class",
+            "file": "grammars/python275.eco",
+            "base": "Python",
+            "subset": "classdef",
+            "visibility": ["submenu"]
+        }
+    ]
+}

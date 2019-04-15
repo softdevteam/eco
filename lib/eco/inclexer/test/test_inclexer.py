@@ -21,7 +21,7 @@
 
 from inclexer.inclexer import IncrementalLexerCF
 from incparser.astree import AST
-from grammars.grammars import calc
+from grammars.grammars import lang_dict
 from incparser.astree import TextNode, BOS, EOS, MultiTextNode
 from grammar_parser.gparser import Terminal, Nonterminal, MagicTerminal
 
@@ -29,6 +29,7 @@ import pytest
 from treelexer.lexer import LexingError, lbph
 
 IncrementalLexer = IncrementalLexerCF
+calc = lang_dict["Basic Calculator"]
 
 class Test_IncrementalLexer:
 

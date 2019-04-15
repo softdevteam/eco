@@ -1,0 +1,6 @@
+{
+    "name": "Lua 5.3",
+    "file": "grammars/lua5_3.eco",
+    "base": "Lua",
+    "visibility": ["newfile", "submenu"]
+}

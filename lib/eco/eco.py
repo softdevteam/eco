@@ -526,6 +526,9 @@ class LanguageView(QtGui.QDialog):
         self.ui = Ui_LanguageDialog()
         self.ui.setupUi(self)
 
+        if len(newfile_langs) == 0:
+            return
+
         # categorize languages
         d = {}
         self.d = d
@@ -867,6 +870,7 @@ class Window(QtGui.QMainWindow):
         parser.add_option("-e", "--export", action="store_true", default=False, help="Fast export files. Usage: --export [SOURCE] [DESTINATION]")
         parser.add_option("-f", "--fullexport", action="store_true", default=False, help="Export files. Usage: --fullexport [SOURCE] [DESTINATION]")
         parser.add_option("-g", "--grammar", action="store_true", default=None, help="Load external grammar. Usage: --grammar [GRAMMARFILE]")
+        parser.add_option("-c", "--composition", action="store_true", default=None, help="Load external composition. Usage: --composition [COMPOSITIONFILE]")
         (options, args) = parser.parse_args()
 
         if options.log.upper() in ["INFO", "WARNING", "ERROR", "DEBUG"]:
@@ -887,6 +891,9 @@ class Window(QtGui.QMainWindow):
             self.cli_export(source, dest, True)
         if options.grammar:
             self.load_external_grammar(args[0])
+            return
+        if options.composition:
+            self.load_composition(args[0])
             return
         if len(args) > 0:
             for f in args:
@@ -1141,6 +1148,13 @@ class Window(QtGui.QMainWindow):
         etab.editor.setContextMenuPolicy(Qt.CustomContextMenu)
         etab.editor.customContextMenuRequested.connect(self.contextMenu)
         self.toggle_menu(True)
+
+    def load_composition(self, filename):
+        import json
+        from grammars.grammars import create_grammar_from_config
+        with open(filename) as f:
+            cfg = json.load(f)
+            create_grammar_from_config(cfg, filename)
 
     def savefile(self):
         ed = self.getEditorTab()

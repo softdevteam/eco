@@ -1,0 +1,30 @@
+{
+    "name": "PHP + Python",
+    "file": "grammars/php.eco",
+    "base": "Php",
+    "visibility": ["newfile", "submenu"],
+    "custom_namebinding": "phppython.nb",
+    "compositions": [
+        {
+            "location": "top_statement",
+            "name": "Python + PHP"
+        },
+        {
+            "location": "class_statement",
+            "name": "Python + PHP"
+        },
+        {
+            "location": "expr",
+            "name": "Python + PHP"
+        },
+        {
+            "location": "expr",
+            "name": "Python expression",
+            "file": "grammars/python275.eco",
+            "base": "Python",
+            "subset": "simple_stmt",
+            "visibility": ["submenu"]
+        }
+
+    ]
+}

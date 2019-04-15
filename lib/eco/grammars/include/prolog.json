@@ -1,0 +1,6 @@
+{
+    "name": "Prolog",
+    "file": "grammars/prolog.eco",
+    "base": "Prolog",
+    "visibility": ["newfile", "submenu"]
+}
