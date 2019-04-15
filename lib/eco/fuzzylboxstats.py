@@ -2,6 +2,7 @@ import random, json, glob, os
 from grammars.grammars import lang_dict, EcoFile
 from treemanager import TreeManager
 from grammar_parser.gparser import Nonterminal, Terminal
+from incparser.astree import MultiTextNode
 
 # helper functions
 
@@ -131,6 +132,8 @@ class FuzzyLboxStats:
             else:
                 node = next_node(node)
         first = node
+        if isinstance(first, MultiTextNode):
+            first = first.children[0]
 
         node = expr
         while type(node.symbol) is Nonterminal:
@@ -141,6 +144,8 @@ class FuzzyLboxStats:
         while node.lookup == "<ws>" or node.lookup == "<return>":
             node = node.prev_term
         last = node
+        if isinstance(last, MultiTextNode):
+            last = last.children[-1]
 
         if first.deleted or last.deleted:
             return None
@@ -264,6 +269,7 @@ def run_multi(name, main, sub, folder, ext, exprs, mrepl, srepl=None, config=Non
     print
 
 def run_single(filename, main, sub, exprs, mrepl, srepl, msample=None, ssample=None):
+    if debug: print("Runsingle:", filename)
     fuz = FuzzyLboxStats(main, sub)
     fuz.set_replace(mrepl, srepl)
     try:
