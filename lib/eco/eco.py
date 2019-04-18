@@ -1027,7 +1027,7 @@ class Window(QtGui.QMainWindow):
             self.getEditor().tm.find_text(text)
             self.getEditor().update()
             self.btReparse([])
-            self.getEditorTab().keypress()
+            self.getEditorTab().keypress(center=True)
 
     def find_next(self):
         text = self.finddialog.getText()

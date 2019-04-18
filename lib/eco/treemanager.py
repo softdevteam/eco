@@ -767,7 +767,7 @@ class TreeManager(object):
 
     def find_text(self, text):
         startnode = self.cursor.node
-        node = self.cursor.node.next_term
+        node = self.cursor.node.next_terminal()
         line = self.cursor.line
         index = -1
         while node is not self.cursor.node:
@@ -792,7 +792,7 @@ class TreeManager(object):
 
             if node.symbol.name == "\r":
                 line += 1
-            node = node.next_term
+            node = node.next_terminal()
         if index > -1:
             self.cursor.line = line
             self.cursor.node = node
