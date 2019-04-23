@@ -1493,6 +1493,8 @@ class Test_Java:
     def move(self, direction, times):
         for i in range(times): self.treemanager.cursor_movement(direction)
 
+class Test_JavaBugs(Test_Java):
+
     def test_incparse_optshift_bug(self):
         prog = """class Test {\r    public static void main() {\r        String y = z;\r    }\r}"""
         for c in prog:
@@ -1505,6 +1507,22 @@ class Test_Java:
         for c in "int x = 1;":
             self.treemanager.key_normal(c)
         assert self.parser.last_status == True
+
+    def test_cursor_jumping_bug(self):
+        self.reset()
+        prog = "x = 1  + 2"
+        for c in prog:
+            self.treemanager.key_normal(c)
+        self.treemanager.key_home()
+        self.treemanager.key_cursors(RIGHT)
+        self.treemanager.key_cursors(RIGHT)
+        self.treemanager.key_cursors(RIGHT)
+        self.treemanager.key_cursors(RIGHT)
+        self.treemanager.key_normal("'")
+        self.treemanager.key_cursors(RIGHT)
+        self.treemanager.key_cursors(RIGHT)
+        self.treemanager.key_normal("'")
+        assert self.treemanager.cursor.node.symbol.name == "'1 '"
 
 class Test_Lua:
     def setup_class(cls):
