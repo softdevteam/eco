@@ -161,7 +161,8 @@ class Test_Bootstrapping(object):
     def test_error(self):
         bootstrap = BootstrapParser()
         test_grammar = """S ::= A {If(child1=#1, child2=[#3, #4]}; %% a:\"a\""""
-        py.test.raises(Exception, "bootstrap.parse(test_grammar)")
+        with py.test.raises(Exception):
+            bootstrap.parse(test_grammar)
 
     def test_simple(self):
         bootstrap = BootstrapParser()

@@ -92,6 +92,7 @@ class Cursor(object):
         self.pos = pos
         self.line = line
         self.lines = lines
+        self.last_x = 0
         self.log = {}
 
     def save(self, version):
@@ -109,13 +110,15 @@ class Cursor(object):
     def copy(self):
         return Cursor(self.node, self.pos, self.line, self.lines)
 
-    def fix(self):
-        while self.node.deleted:
-            self.pos = 0
-            self.left()
-        while self.pos > len(self.node.symbol.name):
-            self.pos -= len(self.node.symbol.name)
-            self.node = self.find_next_visible(self.node)
+    def store_last_x(self):
+        self.last_x = self.get_x()
+
+    def restore_last_x(self, text=""):
+        if text != "" and text[0] == "\r":
+            self.line += 1
+            self.move_to_x(len(text) - 1)
+        else:
+            self.move_to_x(self.last_x)
 
     def left(self):
         node = self.node
@@ -1136,12 +1139,12 @@ class TreeManager(object):
         self.cursor.pos += len(text)
 
         need_reparse = self.relex(node)
-        self.cursor.fix()
         self.fix_cursor_on_image()
         temp = self.cursor.node
         self.cursor.node = edited_node
         need_reparse |= self.post_keypress(text)
         self.cursor.node = temp
+        self.cursor.restore_last_x(text)
         self.reparse(node, need_reparse)
         self.changed = True
         return indentation
@@ -1217,7 +1220,7 @@ class TreeManager(object):
 
         need_reparse |= self.relex(repairnode)
         need_reparse |= self.post_keypress("")
-        self.cursor.fix()
+        self.cursor.restore_last_x()
         self.reparse(repairnode, need_reparse)
         self.changed = True
 
@@ -1508,8 +1511,6 @@ class TreeManager(object):
         root = node.get_root()
         changed = self.repair_indentations()
 
-        if text != "" and text[0] == "\r":
-            self.cursor.line += 1
         return changed
 
     def repair_indentations(self):
@@ -1617,10 +1618,10 @@ class TreeManager(object):
 
         self.relex(node)
         self.post_keypress("")
+        self.cursor.line += text.count("\r")
+        self.cursor.restore_last_x()
         self.reparse(node)
 
-        self.cursor.fix()
-        self.cursor.line += text.count("\r")
         self.changed = True #XXX needed?
 
     def select_nodes(self, start, end):
@@ -1995,6 +1996,7 @@ class TreeManager(object):
             return text
 
     def relex(self, node):
+        self.cursor.store_last_x()
         if node is None:
             return False
         if isinstance(node, BOS) or isinstance(node, EOS):
