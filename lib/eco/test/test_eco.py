@@ -1520,6 +1520,24 @@ class Test_JavaBugs(Test_Java):
         self.treemanager.key_normal("'")
         assert self.treemanager.cursor.node.symbol.name == "'1 '"
 
+    def test_inclexing_bug(self):
+        self.reset()
+        prog = """class C {
+    int x = cur;
+	/*
+	 */
+	/*
+	 */
+    int x = '+';
+}"""
+        self.treemanager.import_file(prog)
+        self.move(DOWN, 1)
+        self.move(RIGHT, 16)
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_backspace()
+        self.treemanager.key_normal("'")
+
 class Test_Lua:
     def setup_class(cls):
         parser, lexer = lua.load()
