@@ -46,10 +46,6 @@ pythonphp = lang_dict["Python + PHP"]
 pythonhtmlsql = lang_dict["Python + HTML + SQL"]
 html = lang_dict["HTML"]
 
-if pytest.config.option.log:
-    import logging
-    logging.getLogger().setLevel(logging.DEBUG)
-
 class Test_Typing:
 
     def setup_class(cls):

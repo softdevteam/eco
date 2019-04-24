@@ -10,10 +10,6 @@ calc = lang_dict["Basic Calculator"]
 python = lang_dict["Python 2.7.5"]
 php = lang_dict["PHP"]
 
-if pytest.config.option.log:
-    import logging
-    logging.getLogger().setLevel(logging.DEBUG)
-
 class Test_MultiTextNode:
 
     def setup_class(cls):
