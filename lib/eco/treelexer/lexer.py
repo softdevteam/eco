@@ -222,10 +222,16 @@ class TreePatternMatcher(PatternMatcher):
     def char(self):
         return self.text.symbol.name[self.pos]
 
+    def exists_in_readnodes(self, node):
+        for n in self.read_nodes:
+            if node is n:
+                return True
+        return False
+
     def inc(self):
         self.pos += 1
         if self.text.ismultichild():
-            if self.text.parent not in self.read_nodes:
+            if not self.exists_in_readnodes(self.text.parent):
                 self.read_nodes.append(self.text.parent)
         elif self.read_nodes[-1] is not self.text:
             self.read_nodes.append(self.text)
