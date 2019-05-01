@@ -7,7 +7,7 @@ from incparser.astree import MultiTextNode
 # helper functions
 
 debug = False
-MAX_FILES = 200
+MAX_FILES = 100
 
 def next_node(node):
     while(node.right is None):
@@ -35,7 +35,9 @@ def truncate(string):
         return repr(string)
 
 def validnonterm(node, symbol):
-    if isinstance(node.symbol, Nonterminal):
+    if not isinstance(node.symbol, Nonterminal):
+        return False
+    if node.symbol.name != symbol:
         return False
     if node.symbol.name == "class_statement": # PHP func
         return node.children[1].symbol.name == "function"
@@ -52,8 +54,7 @@ def validnonterm(node, symbol):
             if node.children[0].symbol.name == "local" and node.children[2].symbol.name == "function":
                 return True
         return False
-    else:
-        return node.symbol.name == symbol
+    return True
 
 class FuzzyLboxStats:
 
@@ -203,8 +204,8 @@ class FuzzyLboxStats:
         for i, e in enumerate(exprchoices):
             if e.get_root() is None:
                 continue
-            deleted = self.delete_expr(e)
             before = len(self.treemanager.parsers)
+            deleted = self.delete_expr(e)
             if deleted:
                 choice = replchoices[i]
                 if debug: print "  Replacing '{}' with '{}':".format(truncate(deleted), choice)
@@ -228,6 +229,7 @@ class FuzzyLboxStats:
                     self.inserted += 1
                     if valid:
                         inserted_valid += 1
+                        self.faillog.append(("ok", self.filename, repr(deleted), repr(choice)))
                     else:
                         inserted_error += 1
                         self.faillog.append(("inerr", self.filename, repr(deleted), repr(choice)))
@@ -328,7 +330,7 @@ def create_composition(smain, ssub, mainexpr, gmain, gsub, subexpr=None):
         sub.change_start(subexpr)
 
     main = EcoFile(smain + " + " + ssub, "grammars/" + gmain, smain)
-    main.auto_limit_new = True
+    main.auto_limit_new = False
     main.add_alternative(mainexpr, sub)
     lang_dict[main.name] = main
     lang_dict[sub.name] = sub
