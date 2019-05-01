@@ -42,24 +42,95 @@ class NewAutoLboxDetector(object):
             node = node.parent
         return node.right_sibling()
 
-    def find_terminal(self, node):
+    def find_terminal(self, node, version=None):
         startnode = node
         while type(node) is not BOS:
-            if node.children:
-                node = node.children[-1]
+            if node.get_attr("children", version):
+                node = node.get_attr("children", version)[-1]
             elif type(node.symbol) is Terminal:
                 break
             else:
                 if node.new:
                     return
-                while not node.left_sibling():
-                    node = node.parent
+                while not node.get_attr("left", version):
+                    node = node.get_attr("parent", version)
                     if node is startnode:
                         return None
-                node = node.left_sibling()
+                node = node.get_attr("left", version)
         return node.next_term
 
     def detect_lbox(self, errornode):
+        # Try heuristic #2 first; if it fails to find an automatic language
+        # box, try heuristic #1
+        valid = self.detect_lbox_h2(errornode)
+        if not valid:
+            valid = self.detect_lbox_h1(errornode)
+
+        if errornode.autobox is False:
+            # XXX Currently, we don't suggest any language boxes for an error
+            # if the user had to revert an automatically inserted box. However,
+            # we might want to consider showing suggestions if the suggested
+            # box differs from the one the user reverted.
+            return False # don't use this node for autoboxes anymore
+        if len(valid) > 0:
+            errornode.autobox = valid
+            return True
+        else:
+            errornode.autobox = None
+            return False
+
+    def detect_lbox_h2(self, errornode):
+        valid = []
+        ws = ["<ws>", "<return>"]
+        searched = set()
+        pv = self.op.prev_version
+        for sub in self.langs:
+            lbox = MagicTerminal("<{}>".format(sub))
+            parent = errornode.parent
+            while parent is not None:
+                if parent.get_attr("parent", pv) is None: # Root
+                    # If we've reached the root, try inserting the box after
+                    # BOS, i.e. the beginning of the file
+                    left = parent.get_attr("children", pv)[0] # bos
+                else:
+                    left = parent.get_attr("left", pv)
+                if left:
+                    state = left.state
+                    element = self.op.syntaxtable.lookup(state, lbox)
+                    if type(element) in [Reduce, Shift]:
+                        term = self.find_terminal(left, pv)
+                        if type(term) is EOS:
+                            continue
+                        while term and term.lookup in ws:
+                            # skip whitespace
+                            term = term.next_term
+                        if term and term not in searched:
+                            r = self.langs[sub]
+                            r.mode_limit_tokens_new = self.mode_limit_tokens_new
+                            result = r.parse(term)
+                            if r.possible_ends:
+                                for e in r.possible_ends:
+                                    if e.lookup in ws:
+                                        continue
+                                    if (self.contains_errornode(term, e, errornode) \
+                                            and self.parse_after_lbox_h2(lbox, e, parent)):
+                                                valid.append((term, e, sub))
+                                                searched.add(term)
+                parent = parent.get_attr("parent", pv)
+        return valid
+
+    def parse_after_lbox_h2(self, lbox, end, parent):
+        root = parent.get_root()
+        p, l = lang_dict[root.name].load()
+        ir = IncrementalRecognizer(p.syntaxtable, l.lexer, root.name, None)
+        if root is not parent:
+            # if the parent is already the root we don't need to preparse
+            # anything
+            ir.preparse(root, parent)
+        # try parsing lbox + one more non-ws terminal
+        return ir.parse_single(TextNode(lbox)) and ir.parse_after(end.next_term)
+
+    def detect_lbox_h1(self, errornode):
         # Find position on stack where lbox would be valid
         valid = []
         for sub in self.langs:
@@ -92,24 +163,15 @@ class NewAutoLboxDetector(object):
                                 if e.lookup == "<ws>" or e.lookup == "<return>":
                                     continue
                                 if (self.contains_errornode(n, e, errornode) \
-                                    and self.parse_after_lbox(lbox, e, cut)) \
-                                    or self.parse_after_lbox(lbox, e, cut, errornode):
+                                    and self.parse_after_lbox_h1(lbox, e, cut)) \
+                                    or self.parse_after_lbox_h1(lbox, e, cut, errornode):
                                         # Either the error was solved by
                                         # moving it into the box or a box
                                         # was created before it, allowing
                                         # the error to be shifted
                                         valid.append((n, e, sub))
                 cut = cut - 1
-        if errornode.autobox is False:
-            # XXX Currently, we don't suggest any language boxes for an error,
-            # if the user had to revert an automatically inserted box. However,
-            # we might want to consider showing suggestions if the suggested box
-            # differs from the one the user reverted
-            return # don't use this node for autoboxes anymore
-        if valid:
-            errornode.autobox = valid
-        else:
-            errornode.autobox = None
+        return valid
 
     def contains_errornode(self, start, end, errornode):
         while start is not end:
@@ -120,7 +182,7 @@ class NewAutoLboxDetector(object):
             return True
         return False
 
-    def parse_after_lbox(self, lbox, end, cut, errornode=None):
+    def parse_after_lbox_h1(self, lbox, end, cut, errornode=None):
         # copy stack
         stack = []
         for i in range(cut+1):
@@ -445,6 +507,27 @@ class IncrementalRecognizer(Recognizer):
                     continue
                 return True
 
+            if type(element) is Accept:
+                return True
+            return False
+
+    def parse_single(self, la):
+        while True:
+            lookup = get_lookup(la)
+            element = self.syntaxtable.lookup(self.state[-1], lookup)
+
+            if type(element) is Reduce:
+                for i in range(element.amount()):
+                    self.state.pop()
+                goto = self.syntaxtable.lookup(self.state[-1], element.action.left)
+                assert goto is not None
+                self.state.append(goto.action)
+                continue
+
+            if type(element) is Shift:
+                self.state.append(element.action)
+                return True
+                
             if type(element) is Accept:
                 return True
             return False
