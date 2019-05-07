@@ -192,6 +192,7 @@ class FuzzyLboxStats:
             self.main_samples = sample
         else:
             self.main_samples = main_samples
+            exprchoices = [self.mainexprs[i] for i in main_samples]
 
         if not sub_samples:
             # pick random exprs from sub
@@ -200,6 +201,7 @@ class FuzzyLboxStats:
             self.sub_samples = sample
         else:
             self.sub_samples = sub_samples
+            replchoices = [self.replexprs[i] for i in sub_samples]
 
         for i, e in enumerate(exprchoices):
             if e.get_root() is None:
@@ -259,8 +261,7 @@ def run_multi(name, main, sub, folder, ext, exprs, mrepl, srepl=None, config=Non
     if config:
         run_config(name, main, sub, config, exprs, mrepl)
         return
-    print "Multi:", name 
-    run_config = []
+    runcfg = []
     results = []
     faillog = []
     files = [y for x in os.walk(folder) for y in glob.glob(os.path.join(x[0], ext))]
@@ -272,14 +273,14 @@ def run_multi(name, main, sub, folder, ext, exprs, mrepl, srepl=None, config=Non
         c, r, f = run_single(filename, main, sub, exprs, mrepl, srepl)
         if c is None:
             continue
-        run_config.append(c)
+        runcfg.append(c)
         results.append(r)
         faillog.extend(f)
         i = i + sum(r)
         if i > 1000:
             # abort after 1000 insertions
             break
-    with open("{}_run.json".format(name), "w") as f: json.dump(run_config, f, indent=0)
+    with open("{}_run.json".format(name), "w") as f: json.dump(runcfg, f, indent=0)
     with open("{}_log.json".format(name), "w") as f: json.dump(results, f)
     with open("{}_fail.json".format(name), "w") as f: json.dump(faillog, f, indent=0)
     print
@@ -308,7 +309,6 @@ def run_single(filename, main, sub, exprs, mrepl, srepl, msample=None, ssample=N
     return config, r, fuz.faillog
 
 def run_config(name, main, sub, configdir, exprs, mrepl, srepl=None):
-    print "Config:", name
     with open("{}/{}_run.json".format(configdir, name)) as f:
         log = []
         faillog = []
@@ -319,18 +319,18 @@ def run_config(name, main, sub, configdir, exprs, mrepl, srepl=None):
                 continue
             log.append(r)
             faillog.extend(f)
-        with open("{}_log.json".format(name), "w") as f: json.dump(results, f)
+        with open("{}_log.json".format(name), "w") as f: json.dump(log, f)
         with open("{}_fail.json".format(name), "w") as f: json.dump(faillog, f, indent=0)
         print
 
-def create_composition(smain, ssub, mainexpr, gmain, gsub, subexpr=None):
+def create_composition(smain, ssub, mainexpr, gmain, gsub, histtok, subexpr=None):
     sub = EcoFile(ssub, "grammars/" + gsub, ssub)
     if subexpr:
         sub.name = sub.name + " expr"
         sub.change_start(subexpr)
 
     main = EcoFile(smain + " + " + ssub, "grammars/" + gmain, smain)
-    main.auto_limit_new = False
+    main.auto_limit_new = histtok
     main.add_alternative(mainexpr, sub)
     lang_dict[main.name] = main
     lang_dict[sub.name] = sub
@@ -340,7 +340,7 @@ def create_composition(smain, ssub, mainexpr, gmain, gsub, subexpr=None):
 if __name__ == "__main__":
     import sys
     args = sys.argv
-    wd = "/home/lukas/research/auto_lbox_experiments"
+    wd = "/home/lukas/research/auto_lbox_experiments/"
 
     if len(args) < 8:
         print("Missing arguments.\nUsage: python2 fuzzylboxstats.py MAINGRM MAINRULE SUBGRM SUBRULE FILES EXTENSION REPLACMENTS HISTORICTOKEN [RERUNDIR]")
@@ -353,14 +353,17 @@ if __name__ == "__main__":
     files = args[5]
     ext = args[6]
     repl = args[7]
-    histtok = args[8]
+    if args[8] == "True":
+        histtok = True
+    else:
+        histtok = False
     if len(args) > 9:
-        rerunconfig = args[9]
+        rerunconfig = wd + args[9]
     else:
         rerunconfig = None
     if subrule == "None":
         subrule = None
 
-    comp = create_composition("Main", "Sub", mainrule, maingrm, subgrm, subrule)
+    comp = create_composition("Main", "Sub", mainrule, maingrm, subgrm, subrule, histtok)
     name = maingrm[:-4] + subgrm[:-4]
-    run_multi(name, comp, None, "{}/{}/".format(wd, files), '*.{}'.format(ext), "{}/{}".format(wd, repl), mainrule, rerunconfig)
+    run_multi(name, comp, None, "{}/{}/".format(wd, files), '*.{}'.format(ext), "{}/{}".format(wd, repl), mainrule, subrule, rerunconfig)
