@@ -1,0 +1,12 @@
+{
+    "name": "Python + IPython",
+    "file": "grammars/python275.eco",
+    "base": "Python",
+    "visibility": ["newfile"],
+    "compositions": [
+        {
+            "location": "atom",
+            "name": "IPython"
+        }
+    ]
+}

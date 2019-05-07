@@ -4,7 +4,7 @@ def pytest_addoption(parser):
         help="ONLY run slow tests")
     parser.addoption("--runslow", action="store_true",
         help="run slow tests")
-    parser.addoption("--log", action="store_true",
+    parser.addoption("--logs", action="store_true",
         help="print debug logs")
 
 def pytest_runtest_setup(item):
@@ -13,3 +13,8 @@ def pytest_runtest_setup(item):
             pytest.skip("need --runslow option to run")
     elif 'slow' in item.keywords and not item.config.getoption("--runslow"):
         pytest.skip("need --runslow option to run")
+
+def pytest_configure(config):
+    if config.getoption('--logs'):
+        import logging
+        logging.getLogger().setLevel(logging.DEBUG)

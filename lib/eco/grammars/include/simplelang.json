@@ -1,0 +1,6 @@
+{
+    "name": "SimpleLanguage",
+    "file": "grammars/simplelang.eco",
+    "base": "SimpleLanguage",
+    "visibility": ["newfile", "submenu"]
+}

@@ -21,13 +21,15 @@
 
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
-from grammars.grammars import calc, java
+from grammars.grammars import lang_dict
 from grammar_parser.plexer import PriorityLexer
 from grammar_parser.gparser import Terminal, Nonterminal
 from incparser.astree import TextNode, BOS, EOS, FinishSymbol
 
 N = Nonterminal
 T = Terminal
+calc = lang_dict["Basic Calculator"]
+java = lang_dict["Java"]
 
 class Test_IncrementalParser:
 

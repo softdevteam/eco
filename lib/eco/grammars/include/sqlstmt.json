@@ -1,0 +1,7 @@
+{
+    "name": "SQL Statement",
+    "file": "grammars/sql.eco",
+    "base": "Sql",
+    "subset": "sql_line",
+    "visibility": ["submenu"]
+}

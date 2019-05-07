@@ -1,0 +1,6 @@
+{
+    "name": "Eco Grammar (Ecofile)",
+    "file": "grammars/eco_grammar.eco",
+    "base": "Grammar",
+    "visibility": ["newfile"]
+}

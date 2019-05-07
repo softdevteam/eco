@@ -1,5 +1,7 @@
-from grammars.grammars import java
+from grammars.grammars import lang_dict
 from treemanager import TreeManager
+
+java = lang_dict["Java"]
 
 class Test_Java:
     def setup_class(cls):

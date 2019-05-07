@@ -1,0 +1,6 @@
+{
+    "name": "HTML",
+    "file": "grammars/html.eco",
+    "base": "Html",
+    "visibility": ["newfile", "submenu"]
+}
