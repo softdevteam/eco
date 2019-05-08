@@ -241,8 +241,11 @@ class Cursor(object):
     def find_previous_visible(self, node, cross_lang=True):
         """Return the previous visible node in the parse tree."""
         if self.is_visible(node):
-            node = node.previous_terminal() # XXX check for multiterm
-        while not self.is_visible(node):
+            if type(node.symbol) is MagicTerminal and cross_lang:
+                node = node.symbol.ast.children[-1]
+            else:
+                node = node.previous_terminal()
+        while True:
             if isinstance(node, BOS):
                 if not cross_lang: # don't cross language border
                     return node
@@ -260,6 +263,8 @@ class Cursor(object):
             elif isinstance(node, MultiTextNode):
                 node = node.children[-1]
                 continue
+            if self.is_visible(node):
+                break
             node = node.previous_terminal()
         return node
 
@@ -340,15 +345,21 @@ class Cursor(object):
 
     def get_x(self):
         """Get the current character/column position of the cursor."""
-        if self.node.symbol.name == "\r" or isinstance(self.node, BOS):
+        if self.node.symbol.name == "\r":
             return 0
+        if isinstance(self.node, BOS):
+            if not self.node.get_root().get_magicterminal():
+                return 0
 
         if self.node.image and not self.node.plain_mode:
             x = self.get_nodesize_in_chars(self.node).w
         else:
             x = self.pos
         node = self.find_previous_visible(self.node)
-        while node.symbol.name != "\r" and not isinstance(node, BOS):
+        while node.symbol.name != "\r":
+            if isinstance(node, BOS):
+                if not node.get_root().get_magicterminal():
+                    break
             if node.image and not node.plain_mode:
                 x += self.get_nodesize_in_chars(node).w
             else:
