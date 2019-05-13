@@ -1538,6 +1538,22 @@ class Test_JavaBugs(Test_Java):
         self.treemanager.key_backspace()
         self.treemanager.key_normal("'")
 
+    def test_cursor_jumping_bug2(self):
+        self.reset()
+        prog = """class C {
+int x = 1;
+}"""
+        self.treemanager.import_file(prog)
+        self.move(DOWN, 1)
+        self.treemanager.key_end()
+        self.move(LEFT, 1)
+        self.treemanager.key_backspace()
+        self.treemanager.add_languagebox(lang_dict["Basic Calculator"])
+        self.treemanager.key_normal("1")
+        self.treemanager.leave_languagebox()
+        self.treemanager.key_normal(" ")
+        assert self.treemanager.cursor.node.symbol.name == " "
+
 class Test_Lua:
     def setup_class(cls):
         parser, lexer = lua.load()
