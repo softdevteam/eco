@@ -1439,6 +1439,13 @@ class TreeManager(object):
         self.input_log.pop()
         return
 
+    def remove_selected_lbox(self):
+        root = self.cursor.node.get_root()
+        if hasattr(root, "magic_backpointer"):
+            lbox = root.magic_backpointer
+            if lbox:
+                self.remove_languagebox(lbox)
+
     def remove_languagebox(self, lbox):
         if lbox.deleted:
             # Language box was already removed by an earlier error
@@ -1447,6 +1454,7 @@ class TreeManager(object):
         root = lbox.symbol.ast
         bos = root.children[0]
         eos = root.children[-1]
+        left = lbox.prev_term
 
         # move all nodes from lbox to the outside
         node = bos.next_term
@@ -1467,6 +1475,8 @@ class TreeManager(object):
         for t in top:
             #XXX add method to relex a range, e.g. relex(start, end)
             self.relex(t)
+        self.relex(left)
+        self.cursor.restore_last_x()
         # reparse
         self.reparse(top[0], skipautolbox = True)
 

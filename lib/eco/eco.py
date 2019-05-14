@@ -643,6 +643,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionAutolboxInsert, SIGNAL("triggered()"), self.toggle_insert_autolboxes)
         self.connect(self.ui.actionShow_lspaceview, SIGNAL("triggered()"), self.view_in_lspace)
         self.connect(self.ui.menuChange_language_box, SIGNAL("aboutToShow()"), self.showEditMenu)
+        self.connect(self.ui.actionRemove_language_box, SIGNAL("triggered()"), self.remove_languagebox)
         self.connect(self.ui.menuRecent_files, SIGNAL("aboutToShow()"), self.showRecentFiles)
         self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
 
@@ -800,6 +801,7 @@ class Window(QtGui.QMainWindow):
 
         menu.addMenu(changemenu)
         menu.addMenu(newmenu)
+        menu.addAction(self.ui.actionRemove_language_box)
         menu.addAction(self.ui.actionSelect_next_language_box)
         menu.addSeparator()
         menu.addAction(self.ui.actionCode_complete)
@@ -1011,6 +1013,11 @@ class Window(QtGui.QMainWindow):
 
     def show_lbox_menu(self):
         self.getEditor().showLanguageBoxMenu()
+        self.getEditor().update()
+
+    def remove_languagebox(self):
+        self.getEditor().tm.remove_selected_lbox()
+        self.btReparse([])
         self.getEditor().update()
 
     def show_code_completion(self):
@@ -1460,6 +1467,7 @@ class Window(QtGui.QMainWindow):
         self.ui.actionSelect_all.setEnabled(enabled)
         self.ui.actionFind_next.setEnabled(enabled)
         self.ui.actionAdd_language_box.setEnabled(enabled)
+        self.ui.actionRemove_language_box.setEnabled(enabled)
         self.ui.actionSelect_next_language_box.setEnabled(enabled)
         self.ui.actionAutolboxInsert.setEnabled(enabled)
         self.ui.actionAutolboxFind.setEnabled(enabled)
