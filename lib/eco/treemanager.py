@@ -1510,7 +1510,7 @@ class TreeManager(object):
             return True
         return False
 
-    def expand_languagebox(self, lbox, newend):
+    def expand_languagebox(self, lbox, newend, manual=False):
         last_x = self.cursor.get_x() # Remember cursor position
 
         # Remove nodes from outer box and copy their content
@@ -1522,11 +1522,16 @@ class TreeManager(object):
             n = n.next_term
         l.append(newend.symbol.name)
         newend.remove()
+        self.reparse(lbox, True, skipautolbox=True)
 
         # Insert copied content at the end of the lbox
         eos = lbox.symbol.ast.children[-1]
         prev = eos.prev_term
         prev.insert_after(TextNode(Terminal("".join(l))))
+
+        if manual:
+            lbox.autobox = None
+            lbox.tbd = False
 
         # Relex and reparse changes
         self.relex(prev.next_term)
@@ -1534,7 +1539,6 @@ class TreeManager(object):
         self.cursor.last_x = last_x
         self.cursor.restore_last_x()
         self.reparse(lbox.symbol.ast.children[0], True)
-        self.reparse(lbox, True)
 
     def update_tbd(self, lbox):
         if lbox is None:
@@ -2110,12 +2114,11 @@ class TreeManager(object):
             p = temp[0]
             lbox = p.previous_version.parent.get_magicterminal()
             if lbox and lbox.tbd:
-                result = self.lbox_autoremove_test(lbox, p.last_status)
-                if result:
+                if self.lbox_autoremove_test(lbox, p.last_status):
                     self.remove_languagebox(lbox)
-
-                # expand language boxes
-                self.lbox_expand_test(lbox)
+                else:
+                    # try to expand language boxes
+                    self.lbox_expand_test(lbox)
 
             # apply language boxes if there is only one choice
             for n in p.error_nodes:
@@ -2166,6 +2169,8 @@ class TreeManager(object):
         # options in the editor
         if len(filtered) == 1:
             self.expand_languagebox(lbox, filtered[0])
+        elif len(filtered) > 1:
+            lbox.autobox = [(lbox, f, None) for f in filtered]
 
     def lbox_autoremove_test(self, lbox, status):
         """An automatically inserted languagebox can be automatically removed if
