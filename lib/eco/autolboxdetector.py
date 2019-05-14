@@ -21,8 +21,10 @@ class NewAutoLboxDetector(object):
     occurs. Similar to error recovery it uses the current parse stack to
     determine a location where a language box can be inserted and then tries to
     wrap the error into that box."""
-    def __init__(self, origparser):
+    def __init__(self, origparser, origlexer):
         self.op = origparser
+        self.ol = origlexer
+        self.olang = None
         self.langs = {}
         self.mode_limit_tokens_new = False
 
@@ -31,6 +33,7 @@ class NewAutoLboxDetector(object):
             return
 
         main = lang_dict[langname]
+        self.olang = langname
         self.mode_limit_tokens_new = main.auto_limit_new
 
         # preload nested languages
@@ -218,6 +221,14 @@ class NewAutoLboxDetector(object):
             if type(element) is Accept:
                 return True
             return False
+
+    def check_remove_lbox(self, lbox):
+        r = IncrementalRecognizer(self.op.syntaxtable, self.ol.lexer, self.olang, None)
+        stack = [s.state for s in self.op.stack]
+        r.state = stack
+        result = r.parse(lbox.symbol.ast.children[0].next_term, lbox.next_term, self.op.last_status)
+        if result:
+            lbox.tbd = "remove"
 
 from inclexer.inclexer import StringWrapper
 from treelexer.lexer import LexingError

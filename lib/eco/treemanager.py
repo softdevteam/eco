@@ -1413,7 +1413,7 @@ class TreeManager(object):
 
         # Create parser, priorities and lexer
         incparser, inclexer = self.get_parser_lexer_for_language(language, True)
-        incparser.setup_autolbox(language.name)
+        incparser.setup_autolbox(language.name, inclexer)
         root = incparser.previous_version.parent
         root.magic_backpointer = lbox
         self.add_parser(incparser, inclexer, language.name)
@@ -2124,7 +2124,7 @@ class TreeManager(object):
             p = temp[0]
             lbox = p.previous_version.parent.get_magicterminal()
             if lbox and lbox.tbd:
-                if self.lbox_autoremove_test(lbox, p.last_status):
+                if lbox.tbd == "remove" or self.lbox_autoremove_test(lbox, p.last_status):
                     self.remove_languagebox(lbox)
                 else:
                     # try to expand language boxes

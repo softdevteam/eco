@@ -1405,7 +1405,7 @@ class Test_Languageboxes(Test_Python):
 
     def test_java_python_dont_lex_lboxes(self):
         parser, lexer = javapy.load()
-        parser.setup_autolbox(javapy.name)
+        parser.setup_autolbox(javapy.name, lexer)
         treemanager = TreeManager()
         treemanager.add_parser(parser, lexer, "")
         p = """class X {
@@ -4602,7 +4602,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_pythonsql(self):
         parser, lexer = pythonsql.load()
-        parser.setup_autolbox(pythonsql.name)
+        parser.setup_autolbox(pythonsql.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4615,7 +4615,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_pythonsql2(self):
         parser, lexer = pythonsql.load()
-        parser.setup_autolbox(pythonsql.name)
+        parser.setup_autolbox(pythonsql.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4630,7 +4630,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_java_python(self):
         parser, lexer = javapy.load()
-        parser.setup_autolbox(javapy.name)
+        parser.setup_autolbox(javapy.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4651,7 +4651,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_java_python2(self):
         parser, lexer = javapy.load()
-        parser.setup_autolbox(javapy.name)
+        parser.setup_autolbox(javapy.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4676,7 +4676,7 @@ class Test_AutoLanguageBoxDetection():
         """Currently fails as `public` is being parsed into the Python language
         box."""
         parser, lexer = javapy.load()
-        parser.setup_autolbox(javapy.name)
+        parser.setup_autolbox(javapy.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4708,7 +4708,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_php_python5_first_line_box(self):
         parser, lexer = phppython.load()
-        parser.setup_autolbox(phppython.name)
+        parser.setup_autolbox(phppython.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4724,7 +4724,7 @@ class Test_AutoLanguageBoxDetection():
         """Results in two options for language box:
         Python or Python expression"""
         parser, lexer = phppython.load()
-        parser.setup_autolbox(phppython.name)
+        parser.setup_autolbox(phppython.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4745,7 +4745,7 @@ class Test_AutoLanguageBoxDetection():
         expression `1 or not 2`. Instead they only contain `not 2` because of
         the way PHP parses `or`."""
         parser, lexer = phppython.load()
-        parser.setup_autolbox(phppython.name)
+        parser.setup_autolbox(phppython.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4770,7 +4770,7 @@ class Test_AutoLanguageBoxDetection():
         lang_dict[grm.name] = grm
 
         parser, lexer = grm.load()
-        parser.setup_autolbox(grm.name)
+        parser.setup_autolbox(grm.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4795,7 +4795,7 @@ class Test_AutoLanguageBoxDetection():
         lang_dict[grm.name] = grm
 
         parser, lexer = grm.load()
-        parser.setup_autolbox(grm.name)
+        parser.setup_autolbox(grm.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4816,7 +4816,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_autoremove_pythonsql(self):
         parser, lexer = pythonsql.load()
-        parser.setup_autolbox(pythonsql.name)
+        parser.setup_autolbox(pythonsql.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4839,7 +4839,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_php_python_paste(self):
         parser, lexer = phppython.load()
-        parser.setup_autolbox(phppython.name)
+        parser.setup_autolbox(phppython.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4862,7 +4862,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_php_python_paste2(self):
         parser, lexer = phppython.load()
-        parser.setup_autolbox(phppython.name)
+        parser.setup_autolbox(phppython.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4887,7 +4887,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_python_sql_bug(self):
         parser, lexer = pythonsql.load()
-        parser.setup_autolbox(pythonsql.name)
+        parser.setup_autolbox(pythonsql.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4909,7 +4909,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_newbug(self):
         parser, lexer = phppython.load()
-        parser.setup_autolbox(phppython.name)
+        parser.setup_autolbox(phppython.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4936,7 +4936,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_newbug2(self):
         parser, lexer = phppython.load()
-        parser.setup_autolbox(phppython.name)
+        parser.setup_autolbox(phppython.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4947,7 +4947,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_newbug3(self):
         parser, lexer = phppython.load()
-        parser.setup_autolbox(phppython.name)
+        parser.setup_autolbox(phppython.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4963,7 +4963,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_php_bug4(self):
         parser, lexer = phppython.load()
-        parser.setup_autolbox(phppython.name)
+        parser.setup_autolbox(phppython.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4980,7 +4980,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_java_py_string(self):
         parser, lexer = javapy.load()
-        parser.setup_autolbox(javapy.name)
+        parser.setup_autolbox(javapy.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -4992,7 +4992,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_java_sql_autoremove_valid_boxes(self):
         parser, lexer = javasqlchemical.load()
-        parser.setup_autolbox(javasqlchemical.name)
+        parser.setup_autolbox(javasqlchemical.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -5022,7 +5022,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_java_python_method_insert_bug1(self):
         parser, lexer = javapy.load()
-        parser.setup_autolbox(javapy.name)
+        parser.setup_autolbox(javapy.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -5050,7 +5050,7 @@ class Test_AutoLanguageBoxDetection():
         """Once an automatically inserted language box has been
         undone, it shouldn't be inserted again on another change."""
         parser, lexer = javapy.load()
-        parser.setup_autolbox(javapy.name)
+        parser.setup_autolbox(javapy.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -5083,7 +5083,7 @@ class Test_AutoLanguageBoxDetection():
 
     def test_php_python_whitespace_bug(self):
         parser, lexer = phppython.load()
-        parser.setup_autolbox(phppython.name)
+        parser.setup_autolbox(phppython.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -5129,7 +5129,7 @@ class Test_AutoLanguageBoxDetection():
 }"""
 
         parser, lexer = javasql.load()
-        parser.setup_autolbox(javasql.name)
+        parser.setup_autolbox(javasql.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -5167,7 +5167,7 @@ WHERE ProductID IN (SELECT ProductID FROM OrderDetails WHERE Quantity = 10);"""
         should always prioritise the outer language instead even if the language
         box is a valid insertion."""
         parser, lexer = phppython.load()
-        parser.setup_autolbox(phppython.name)
+        parser.setup_autolbox(phppython.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -5191,7 +5191,7 @@ WHERE ProductID IN (SELECT ProductID FROM OrderDetails WHERE Quantity = 10);"""
         optional in PHP and thus can be used in a Python box without making the
         PHP program invalid."""
         parser, lexer = phppython.load()
-        parser.setup_autolbox(phppython.name)
+        parser.setup_autolbox(phppython.name, lexer)
         treemanager = TreeManager()
         treemanager.option_autolbox_insert = True
         treemanager.add_parser(parser, lexer, "")
@@ -5212,4 +5212,28 @@ WHERE ProductID IN (SELECT ProductID FROM OrderDetails WHERE Quantity = 10);"""
         treemanager.key_normal("d")
 
         assert len(treemanager.parsers) == 1
+        assert parser.last_status == False
+
+    def test_java_lua_dont_remove_explicit_lboxes(self):
+        grm = load_json_grammar("test/javalua_expr.json")
+        parser, lexer = grm.load()
+        parser.setup_autolbox(grm.name, lexer)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        p = """class X {
+    int x = 1;
+}"""
+        for c in p:
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == True
+
+        treemanager.key_cursors(UP)
+        treemanager.key_end()
+        treemanager.key_cursors(LEFT)
+        treemanager.add_languagebox(lang_dict["Lua expr"])
+        treemanager.key_normal("a")
+
+        assert len(treemanager.parsers) == 2
         assert parser.last_status == False
