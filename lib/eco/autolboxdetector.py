@@ -343,6 +343,16 @@ class Recognizer(object):
             else:
                 return False
 
+    def parse_lex_single(self, node):
+        self.tokeniter = self.lexer.get_token_iter(node).next
+        token = self.next_token()
+        while True:
+            if not self.temp_parse(self.state, token):
+                return False
+            token = self.next_token()
+            if self.last_read is not node or type(token) is FinishSymbol:
+                return True
+
 class RecognizerIndent(Recognizer):
 
     def __init__(self, syntaxtable, lexer, lang, outer):
@@ -499,6 +509,9 @@ class IncrementalRecognizer(Recognizer):
             if self.parse_after(follow):
                 return True
         return False
+
+    def parse_lex_single(self, node):
+        return Recognizer.parse_lex_single(self, node)
 
     def parse_until(self, start, end):
         node = start.next_term

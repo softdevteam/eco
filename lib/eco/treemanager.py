@@ -1550,6 +1550,30 @@ class TreeManager(object):
         self.cursor.restore_last_x()
         self.reparse(lbox.symbol.ast.children[0], True)
 
+    def shrink_languagebox(self, lbox, newend):
+        last_x = self.cursor.get_x() # Remember cursor position
+
+        # Remove nodes from language box and copy their content
+        l = []
+        n = newend
+        while type(n) is not EOS:
+            l.append(n.symbol.name)
+            n.remove()
+            n = n.next_term
+        self.skipautolbox = True
+        self.reparse(lbox.symbol.ast.children[0], True)
+
+        # Insert copied content after lbox
+        lbox.insert_after(TextNode(Terminal("".join(l))))
+
+        # Relex and reparse changes
+        self.relex(lbox.next_term)
+        self.post_keypress("")
+        self.cursor.last_x = last_x
+        self.cursor.restore_last_x()
+        self.reparse(lbox, True, skipautolbox=True)
+        self.skipautolbox = False
+
     def update_tbd(self, lbox):
         if lbox is None:
             return
@@ -2128,7 +2152,8 @@ class TreeManager(object):
                     self.remove_languagebox(lbox)
                 else:
                     # try to expand language boxes
-                    self.lbox_expand_test(lbox)
+                    if not self.lbox_expand_test(lbox):
+                        self.lbox_shrink_test(lbox)
 
             # apply language boxes if there is only one choice
             for n in p.error_nodes:
@@ -2179,8 +2204,38 @@ class TreeManager(object):
         # options in the editor
         if len(filtered) == 1:
             self.expand_languagebox(lbox, filtered[0])
+            return True
         elif len(filtered) > 1:
             lbox.autobox = [(lbox, f, None) for f in filtered]
+        return False
+
+    def lbox_shrink_test(self, lbox):
+        """Checks if an invalid language box can be shrunken by moving the
+        error (and following tokens) within the box into the outer language."""
+        from autolboxdetector import IncrementalRecognizer
+        outer_lang = lbox.get_root().name
+        p = self.get_parser(lbox.symbol.ast)
+        l = self.get_lexer(lbox.symbol.ast)
+        langname = self.get_language(lbox.symbol.ast)
+        eos = lbox.symbol.ast.children[-1]
+        if len(p.error_nodes) == 0:
+            return False
+        error = p.error_nodes[0]
+        r = IncrementalRecognizer(p.syntaxtable, l.lexer, langname, None)
+        r.mode_limit_tokens_new = lang_dict[outer_lang].auto_limit_new
+        r.preparse(lbox.symbol.ast, error) # Preparse lbox contents up to the error
+        if r.is_finished(): # if code up to error is valid
+            root = lbox.get_root()
+            p = self.get_parser(root) # outer parser
+            l = self.get_lexer(root) # outer lexer
+            r = IncrementalRecognizer(p.syntaxtable, l.lexer, outer_lang, None)
+            r.mode_limit_tokens_new = lang_dict[outer_lang].auto_limit_new
+            r.preparse(root, lbox)
+            r.temp_parse(r.state, lbox.symbol)
+            if r.parse_lex_single(error):
+                self.shrink_languagebox(lbox, error)
+                return True
+        return False
 
     def lbox_autoremove_test(self, lbox, status):
         """An automatically inserted languagebox can be automatically removed if
