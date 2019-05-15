@@ -1430,7 +1430,7 @@ class TreeManager(object):
         self.edit_rightnode = False
         # cut text
         text = self.copySelection()
-        self.deleteSelection()
+        self.deleteSelection(reparse=False)
         lbox = self.add_languagebox(language)
         self.pasteText(text)
         lbox.tbd = auto
@@ -1730,7 +1730,7 @@ class TreeManager(object):
             self.changed = True
             return text
 
-    def deleteSelection(self):
+    def deleteSelection(self, reparse=True):
         #XXX simple version: later we might want to modify the nodes directly
         self.tool_data_is_dirty = True
         nodes, diff_start, diff_end = self.get_nodes_from_selection()
@@ -1787,7 +1787,8 @@ class TreeManager(object):
         repairnode = nodes[-1]
         if repairnode.deleted:
             repairnode = self.cursor.find_previous_visible(repairnode, cross_lang=True)
-        self.reparse(repairnode)
+        if reparse:
+            self.reparse(repairnode)
 
     def delete_if_empty(self, node):
         if node.symbol.name == "":
