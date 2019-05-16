@@ -74,6 +74,7 @@ class FuzzyLboxStats:
         self.inserted = 0
 
         self.faillog = []
+        self.multilog = []
 
     def load_main(self, filename):
         self.filename = filename
@@ -170,6 +171,16 @@ class FuzzyLboxStats:
         self.treemanager.deleteSelection()
         return deleted
 
+    def multi_len(self, autos):
+        r = []
+        for start, end, _ in autos:
+            l = 0
+            while start is not end:
+                l += len(start.symbol.name)
+                start = start.next_term
+            r.append(l)
+        return r
+
     def run(self, main_samples=None, sub_samples=None):
         assert len(self.treemanager.parsers) == 1
 
@@ -218,6 +229,8 @@ class FuzzyLboxStats:
                         noinsert_multi += 1
                         result = "No box inserted (Multi)"
                         self.faillog.append(("multi", self.filename, repr(deleted), repr(choice)))
+                        multis = self.multi_len(self.parser.error_nodes[0].autobox)
+                        self.multilog.append(multis)
                     elif valid:
                         noinsert_valid += 1
                         result = "No box inserted (Valid)"
@@ -264,18 +277,20 @@ def run_multi(name, main, sub, folder, ext, exprs, mrepl, srepl=None, config=Non
     runcfg = []
     results = []
     faillog = []
+    multilog = []
     files = [y for x in os.walk(folder) for y in glob.glob(os.path.join(x[0], ext))]
     if len(files) > MAX_FILES:
         # let's limit files to 200 for now
         files = random.sample(files, MAX_FILES)
     i = 0
     for filename in files:
-        c, r, f = run_single(filename, main, sub, exprs, mrepl, srepl)
+        c, r, f, m = run_single(filename, main, sub, exprs, mrepl, srepl)
         if c is None:
             continue
         runcfg.append(c)
         results.append(r)
         faillog.extend(f)
+        multilog.extend(m)
         i = i + sum(r)
         if i > 1000:
             # abort after 1000 insertions
@@ -283,6 +298,7 @@ def run_multi(name, main, sub, folder, ext, exprs, mrepl, srepl=None, config=Non
     with open("{}_run.json".format(name), "w") as f: json.dump(runcfg, f, indent=0)
     with open("{}_log.json".format(name), "w") as f: json.dump(results, f)
     with open("{}_fail.json".format(name), "w") as f: json.dump(faillog, f, indent=0)
+    with open("{}_multi.json".format(name), "w") as f: json.dump(multilog, f, indent=0)
     print
 
 def run_single(filename, main, sub, exprs, mrepl, srepl, msample=None, ssample=None):
@@ -297,7 +313,7 @@ def run_single(filename, main, sub, exprs, mrepl, srepl, msample=None, ssample=N
         # We only care about files that parse initially
         sys.stdout.write("s")
         sys.stdout.flush()
-        return None, None, None
+        return None, None, None, None
     if r[1] > 0 or r[3] > 0:
         # insert_error and noinsert_error
         sys.stdout.write("x")
@@ -306,24 +322,27 @@ def run_single(filename, main, sub, exprs, mrepl, srepl, msample=None, ssample=N
         sys.stdout.write(".")
         sys.stdout.flush()
     config = (filename, fuz.main_samples, fuz.sub_samples)
-    return config, r, fuz.faillog
+    return config, r, fuz.faillog, fuz.multilog
 
 def run_config(name, main, sub, configdir, exprs, mrepl, srepl=None):
     with open("{}/{}_run.json".format(configdir, name)) as f:
         log = []
         faillog = []
+        multilog = []
         config = json.load(f)
         for filename, msample, ssample in config:
-            c, r, f = run_single(filename, main, sub, exprs, mrepl, srepl, msample, ssample)
+            c, r, f, m = run_single(filename, main, sub, exprs, mrepl, srepl, msample, ssample)
             if c is None:
                 continue
             log.append(r)
             faillog.extend(f)
+            multilog.extend(m)
         with open("{}_log.json".format(name), "w") as f: json.dump(log, f)
         with open("{}_fail.json".format(name), "w") as f: json.dump(faillog, f, indent=0)
+        with open("{}_multi.json".format(name), "w") as f: json.dump(multilog, f, indent=0)
         print
 
-def create_composition(smain, ssub, mainexpr, gmain, gsub, histtok, subexpr=None):
+def create_composition(smain, ssub, mainexpr, gmain, gsub, subexpr, histtok):
     sub = EcoFile(ssub, "grammars/" + gsub, ssub)
     if subexpr:
         sub.name = sub.name + " expr"
