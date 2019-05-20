@@ -455,6 +455,8 @@ class TreeManager(object):
         self.option_autolbox_find = True
         self.option_autolbox_insert = False
 
+        self.skipautolbox = False
+
         # This code and the can_profile() method should probably be refactored.
         self.langs_with_profiler = {
             "Python + Prolog" : False,
@@ -2140,7 +2142,7 @@ class TreeManager(object):
         TreeManager.version = self.version
 
         # Now check for auto language boxes
-        if skipautolbox or self.option_autolbox_insert is False:
+        if self.skipautolbox or skipautolbox or self.option_autolbox_insert is False:
             return
 
         parsers = list(self.parsers) # copy to avoid processing newly added parsers
@@ -2164,11 +2166,12 @@ class TreeManager(object):
                     ctemp = self.cursor.get_x()
                     ltemp = self.cursor.line
                     self.select_from_to(s, e)
+                    self.skipautolbox = True # block automatic lboxes during automatic insertion
                     self.surround_with_languagebox(lang_dict[l], True)
                     self.cursor.line = ltemp
                     self.cursor.move_to_x(ctemp)
-                    self.reparse(s.prev_term, skipautolbox=True)
                     self.undo_snapshot()
+                    self.skipautolbox = False
 
     def lbox_expand_test(self, lbox):
         """Checks if the language box can be expanded by moving following
