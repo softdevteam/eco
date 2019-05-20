@@ -5340,3 +5340,30 @@ y = 2"""
 
         assert len(treemanager.parsers) == 2
         assert parser.last_status == True
+
+    @pytest.mark.skipif("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true", reason="Sqlite takes too long to built on Travis. Skip!")
+    def test_lua_sqlite_bug(self):
+        grm = load_json_grammar("test/luasqlite_expr.json")
+        parser, lexer = grm.load()
+        parser.setup_autolbox(grm.name, lexer)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        p = """x = 1,2
+y = 2"""
+        for c in p:
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == True
+
+        treemanager.key_cursors(UP)
+        treemanager.key_end()
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_backspace()
+        p2 = "SELECT a FROM t1;"
+        for c in p2:
+            treemanager.key_normal(c)
+
+        assert len(treemanager.parsers) == 2
+        assert parser.last_status == True

@@ -97,17 +97,33 @@ class NewAutoLboxDetector(object):
                     left = parent.get_attr("children", pv)[0] # bos
                 else:
                     left = parent.get_attr("left", pv)
+                while left and type(left.symbol) is Nonterminal and len(left.get_attr("children", pv)) == 0:
+                    # If left is an empty nonterminal, keep going left until we
+                    # find a non-empty nonterminal or a terminal
+                    left = left.get_attr("left", pv)
                 if left:
                     state = left.state
                     element = self.op.syntaxtable.lookup(state, lbox)
                     if type(element) in [Reduce, Shift]:
                         term = self.find_terminal(left, pv)
-                        if type(term) is EOS:
-                            continue
-                        while term and term.lookup in ws:
-                            # skip whitespace
-                            term = term.next_term
                         if term and term not in searched:
+                            tleft = term.prev_term # left's most right terminal
+                            if type(term) is EOS:
+                                parent = parent.get_attr("parent", pv)
+                                continue
+                            while term and term.lookup in ws:
+                                # skip whitespace
+                                term = term.next_term
+                            element = self.op.syntaxtable.lookup(tleft.state, lbox)
+                            if type(element) not in [Reduce, Shift]:
+                                # Usually if `lbox` can be shifted after `left`
+                                # this means it should also be shiftable after
+                                # `left`'s most right terminal. However, that
+                                # terminal might have changed and caused an error
+                                # which was isolated, which means that `lbox` isn't
+                                # valid after all.
+                                parent = parent.get_attr("parent", pv)
+                                continue
                             r = self.langs[sub]
                             r.mode_limit_tokens_new = self.mode_limit_tokens_new
                             result = r.parse(term)
@@ -116,20 +132,20 @@ class NewAutoLboxDetector(object):
                                     if e.lookup in ws:
                                         continue
                                     if (self.contains_errornode(term, e, errornode) \
-                                            and self.parse_after_lbox_h2(lbox, e, parent)):
+                                            and self.parse_after_lbox_h2(lbox, e, parent, pv)):
                                                 valid.append((term, e, sub))
                                                 searched.add(term)
                 parent = parent.get_attr("parent", pv)
         return valid
 
-    def parse_after_lbox_h2(self, lbox, end, parent):
+    def parse_after_lbox_h2(self, lbox, end, parent, version):
         root = parent.get_root()
         p, l = lang_dict[root.name].load()
         ir = IncrementalRecognizer(p.syntaxtable, l.lexer, root.name, None)
         if root is not parent:
             # if the parent is already the root we don't need to preparse
             # anything
-            ir.preparse(root, parent)
+            ir.preparse(root, parent, version)
         # try parsing lbox + one more non-ws terminal
         return ir.parse_single(TextNode(lbox)) and ir.parse_after(end.next_term)
 
@@ -446,19 +462,19 @@ class RecognizerIndent(Recognizer):
 
 class IncrementalRecognizer(Recognizer):
 
-    def preparse(self, outer_root, stop):
+    def preparse(self, outer_root, stop, version=None):
         """Puts the recogniser into the state just before `stop`."""
         path_to_stop = set()
-        parent = stop.parent
+        parent = stop.get_attr("parent", version)
         while parent is not None:
             path_to_stop.add(parent)
-            parent = parent.parent
+            parent = parent.get_attr("parent", version)
 
         # setup parser to the state just before lbox
-        node = outer_root.children[1]
+        node = outer_root.get_attr("children", version)[1]
         while True:
-            if node.deleted:
-                node = node.right
+            if node.get_attr("deleted", version):
+                node = node.get_attr("right", version)
                 continue
             if node is stop:
                 # Reached stop node
@@ -482,12 +498,12 @@ class IncrementalRecognizer(Recognizer):
                     continue
                 else:
                     return False
-                node  = node.right
+                node  = node.get_attr("right", version)
             else:
-                if node.children:
-                    node = node.children[0]
+                if node.get_attr("children", version):
+                    node = node.get_attr("children", version)[0]
                 else:
-                    node = node.right
+                    node = node.get_attr("right", version)
 
     def orig_parse(self, node):
         return Recognizer.parse(self, node, ppmode=True)
