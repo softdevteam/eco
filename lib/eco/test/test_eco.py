@@ -5315,3 +5315,28 @@ y = 2"""
 
         assert len(treemanager.parsers) == 2
         assert parser.last_status == True
+
+    @pytest.mark.skipif("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true", reason="Sqlite takes too long to built on Travis. Skip!")
+    def test_sqlite_java_shrink(self):
+        grm = load_json_grammar("test/sqlitejava_expr.json")
+        parser, lexer = grm.load()
+        parser.setup_autolbox(grm.name, lexer)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        p = "SELECT a FROM t;"
+        for c in p:
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == True
+
+        treemanager.key_home()
+        for i in range(8):
+            treemanager.key_cursors(RIGHT)
+        treemanager.key_normal("(")
+        treemanager.key_normal(")")
+        treemanager.key_normal(".") # wrap `a(). FROM` in lbox
+        treemanager.key_normal("d") # shrink box to `a().d`
+
+        assert len(treemanager.parsers) == 2
+        assert parser.last_status == True

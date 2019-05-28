@@ -1,0 +1,17 @@
+{
+    "name": "Sqlite + Java",
+    "file": "grammars/sqlite.eco",
+    "base": "",
+    "visibility": ["newfile"],
+    "limit_historic_tokens": false,
+    "compositions": [
+        {
+            "location": "expr",
+            "name": "Java expr",
+            "file": "grammars/java15.eco",
+            "base": "Java",
+            "subset": "assignment_expression",
+            "visibility": ["submenu"]
+        }
+    ]
+}
