@@ -132,8 +132,8 @@ class IncParser(object):
 
         self.whitespaces = whitespaces
 
-    def setup_autolbox(self, lang):
-        self.autodetector = NewAutoLboxDetector(self)
+    def setup_autolbox(self, lang, origlexer):
+        self.autodetector = NewAutoLboxDetector(self, origlexer)
         self.autodetector.preload(lang)
 
     def init_ast(self, magic_parent=None):
@@ -354,8 +354,11 @@ class IncParser(object):
                 logging.debug("After breakdown: %s", self.stack[-1])
                 self.validating = False
             else:
-                if self.autodetector and self.option_autolbox_find and self.autodetector.detect_lbox(la):
-                    pass # we can immediately apply the language box here in the future
+                if self.autodetector and self.option_autolbox_find:
+                    if type(la.symbol) is MagicTerminal and la.tbd:
+                        self.autodetector.check_remove_lbox(la)
+                    else:
+                        self.autodetector.detect_lbox(la)
                 self.error_nodes.append(la)
                 if self.rm.recover(la):
                     # recovered, continue parsing

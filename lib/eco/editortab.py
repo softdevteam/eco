@@ -26,6 +26,7 @@ from PyQt4.QtGui import *
 
 from nodeeditor import NodeEditor
 from grammars.grammars import Language, EcoGrammar, EcoFile
+from grammar_parser.gparser import MagicTerminal
 
 from incparser.incparser import IncParser
 from inclexer.inclexer import IncrementalLexer
@@ -114,7 +115,7 @@ class EditorTab(QWidget):
         elif isinstance(lang, EcoFile):
             incparser, inclexer = lang.load()
             self.editor.set_mainlanguage(incparser, inclexer, lang.name)
-            incparser.setup_autolbox(lang.name)
+            incparser.setup_autolbox(lang.name, inclexer)
 
     def toggle_breakpoint(self, isTemp, number, from_click):
         self.emit(SIGNAL("breakpoint"), isTemp, number, from_click)
@@ -365,21 +366,28 @@ class AutoLBoxComplete(QFrame):
                 return
             for s, e, l in self.parent().editor.autolboxlines[line]:
                 text = []
-                temp = s
-                while temp is not e:
-                    text.append(temp.symbol.name)
-                    temp = temp.next_term
-                text.append(e.symbol.name)
-                text.append(" : {}".format(l))
+                if type(s.symbol) is MagicTerminal:
+                    temp = s.symbol.ast.children[0].next_term
+                    text = ["Extend to '{}'".format(e.symbol.name)]
+                else:
+                    temp = s
+                    while temp is not e:
+                        text.append(temp.symbol.name)
+                        temp = temp.next_term
+                    text.append(e.symbol.name)
+                    text.append(" : {}".format(l))
                 item = QAction("".join(text), menu)
                 item.setData((s,e,l))
                 menu.addAction(item)
             action = menu.exec_(self.mapToGlobal(event.pos()))
             if action:
                 s, e, l = action.data().toPyObject()
-                self.parent().editor.tm.select_nodes(s, e)
-                langdef = self.parent().editor.tm.get_langdef_from_string(l)
-                self.parent().editor.tm.surround_with_languagebox(langdef)
+                if type(s.symbol) is MagicTerminal:
+                    self.parent().editor.tm.expand_languagebox(s, e, manual=True)
+                else:
+                    self.parent().editor.tm.select_nodes(s, e)
+                    langdef = self.parent().editor.tm.get_langdef_from_string(l)
+                    self.parent().editor.tm.surround_with_languagebox(langdef)
                 self.parent().editor.tm.reparse(s)
                 self.parent().editor.getWindow().btReparse([]) # refresh gui
                 self.parent().editor.update() # refresh code editor

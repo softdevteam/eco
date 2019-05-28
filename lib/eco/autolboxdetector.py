@@ -21,8 +21,10 @@ class NewAutoLboxDetector(object):
     occurs. Similar to error recovery it uses the current parse stack to
     determine a location where a language box can be inserted and then tries to
     wrap the error into that box."""
-    def __init__(self, origparser):
+    def __init__(self, origparser, origlexer):
         self.op = origparser
+        self.ol = origlexer
+        self.olang = None
         self.langs = {}
         self.mode_limit_tokens_new = False
 
@@ -31,6 +33,7 @@ class NewAutoLboxDetector(object):
             return
 
         main = lang_dict[langname]
+        self.olang = langname
         self.mode_limit_tokens_new = main.auto_limit_new
 
         # preload nested languages
@@ -94,17 +97,33 @@ class NewAutoLboxDetector(object):
                     left = parent.get_attr("children", pv)[0] # bos
                 else:
                     left = parent.get_attr("left", pv)
+                while left and type(left.symbol) is Nonterminal and len(left.get_attr("children", pv)) == 0:
+                    # If left is an empty nonterminal, keep going left until we
+                    # find a non-empty nonterminal or a terminal
+                    left = left.get_attr("left", pv)
                 if left:
                     state = left.state
                     element = self.op.syntaxtable.lookup(state, lbox)
                     if type(element) in [Reduce, Shift]:
                         term = self.find_terminal(left, pv)
-                        if type(term) is EOS:
-                            continue
-                        while term and term.lookup in ws:
-                            # skip whitespace
-                            term = term.next_term
                         if term and term not in searched:
+                            tleft = term.prev_term # left's most right terminal
+                            if type(term) is EOS:
+                                parent = parent.get_attr("parent", pv)
+                                continue
+                            while term and term.lookup in ws:
+                                # skip whitespace
+                                term = term.next_term
+                            element = self.op.syntaxtable.lookup(tleft.state, lbox)
+                            if type(element) not in [Reduce, Shift]:
+                                # Usually if `lbox` can be shifted after `left`
+                                # this means it should also be shiftable after
+                                # `left`'s most right terminal. However, that
+                                # terminal might have changed and caused an error
+                                # which was isolated, which means that `lbox` isn't
+                                # valid after all.
+                                parent = parent.get_attr("parent", pv)
+                                continue
                             r = self.langs[sub]
                             r.mode_limit_tokens_new = self.mode_limit_tokens_new
                             result = r.parse(term)
@@ -113,20 +132,20 @@ class NewAutoLboxDetector(object):
                                     if e.lookup in ws:
                                         continue
                                     if (self.contains_errornode(term, e, errornode) \
-                                            and self.parse_after_lbox_h2(lbox, e, parent)):
+                                            and self.parse_after_lbox_h2(lbox, e, parent, pv)):
                                                 valid.append((term, e, sub))
                                                 searched.add(term)
                 parent = parent.get_attr("parent", pv)
         return valid
 
-    def parse_after_lbox_h2(self, lbox, end, parent):
+    def parse_after_lbox_h2(self, lbox, end, parent, version):
         root = parent.get_root()
         p, l = lang_dict[root.name].load()
         ir = IncrementalRecognizer(p.syntaxtable, l.lexer, root.name, None)
         if root is not parent:
             # if the parent is already the root we don't need to preparse
             # anything
-            ir.preparse(root, parent)
+            ir.preparse(root, parent, version)
         # try parsing lbox + one more non-ws terminal
         return ir.parse_single(TextNode(lbox)) and ir.parse_after(end.next_term)
 
@@ -218,6 +237,14 @@ class NewAutoLboxDetector(object):
             if type(element) is Accept:
                 return True
             return False
+
+    def check_remove_lbox(self, lbox):
+        r = IncrementalRecognizer(self.op.syntaxtable, self.ol.lexer, self.olang, None)
+        stack = [s.state for s in self.op.stack]
+        r.state = stack
+        result = r.parse(lbox.symbol.ast.children[0].next_term, lbox.next_term, self.op.last_status)
+        if result:
+            lbox.tbd = "remove"
 
 from inclexer.inclexer import StringWrapper
 from treelexer.lexer import LexingError
@@ -332,6 +359,16 @@ class Recognizer(object):
             else:
                 return False
 
+    def parse_lex_single(self, node):
+        self.tokeniter = self.lexer.get_token_iter(node).next
+        token = self.next_token()
+        while True:
+            if not self.temp_parse(self.state, token):
+                return False
+            token = self.next_token()
+            if self.last_read is not node or type(token) is FinishSymbol:
+                return True
+
 class RecognizerIndent(Recognizer):
 
     def __init__(self, syntaxtable, lexer, lang, outer):
@@ -425,19 +462,19 @@ class RecognizerIndent(Recognizer):
 
 class IncrementalRecognizer(Recognizer):
 
-    def preparse(self, outer_root, stop):
+    def preparse(self, outer_root, stop, version=None):
         """Puts the recogniser into the state just before `stop`."""
         path_to_stop = set()
-        parent = stop.parent
+        parent = stop.get_attr("parent", version)
         while parent is not None:
             path_to_stop.add(parent)
-            parent = parent.parent
+            parent = parent.get_attr("parent", version)
 
         # setup parser to the state just before lbox
-        node = outer_root.children[1]
+        node = outer_root.get_attr("children", version)[1]
         while True:
-            if node.deleted:
-                node = node.right
+            if node.get_attr("deleted", version):
+                node = node.get_attr("right", version)
                 continue
             if node is stop:
                 # Reached stop node
@@ -461,12 +498,15 @@ class IncrementalRecognizer(Recognizer):
                     continue
                 else:
                     return False
-                node  = node.right
+                node  = node.get_attr("right", version)
             else:
-                if node.children:
-                    node = node.children[0]
+                if node.get_attr("children", version):
+                    node = node.get_attr("children", version)[0]
                 else:
-                    node = node.right
+                    node = node.get_attr("right", version)
+
+    def orig_parse(self, node):
+        return Recognizer.parse(self, node, ppmode=True)
 
     def parse(self, node, follow, status):
         """Parse normally starting at `node`."""
@@ -486,7 +526,22 @@ class IncrementalRecognizer(Recognizer):
                 return True
         return False
 
+    def parse_lex_single(self, node):
+        return Recognizer.parse_lex_single(self, node)
+
+    def parse_until(self, start, end):
+        node = start.next_term
+        while True:
+            lookup = get_lookup(node)
+            if not self.temp_parse(self.state, lookup):
+                return False
+            if node is end:
+                return True
+            node = node.next_term
+
     def parse_after(self, la):
+        """Checks if la can be parsed in the current state. If la is whitespace,
+        continue until we can parse the next non-whitespace token."""
         while True:
             lookup = get_lookup(la)
             element = self.syntaxtable.lookup(self.state[-1], lookup)
@@ -505,6 +560,7 @@ class IncrementalRecognizer(Recognizer):
                     self.state.append(element.action)
                     la = la.next_term
                     continue
+                self.state.append(element.action)
                 return True
 
             if type(element) is Accept:

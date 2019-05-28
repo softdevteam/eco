@@ -1,0 +1,17 @@
+{
+    "name": "Java + Lua expr",
+    "file": "grammars/java15.eco",
+    "base": "",
+    "visibility": ["newfile"],
+    "limit_historic_tokens": false,
+    "compositions": [
+        {
+            "location": "unary_expression",
+            "name": "Lua expr",
+            "file": "grammars/lua5_3.eco",
+            "base": "Lua",
+            "subset": "explist",
+            "visibility": ["submenu"]
+        }
+    ]
+}

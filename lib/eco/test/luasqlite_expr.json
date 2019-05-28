@@ -1,0 +1,17 @@
+{
+    "name": "Lua + Sqlite",
+    "file": "grammars/lua5_3.eco",
+    "base": "",
+    "visibility": ["newfile"],
+    "limit_historic_tokens": false,
+    "compositions": [
+        {
+            "location": "explist",
+            "name": "SQL expr (Lua+Sqlite)",
+            "file": "grammars/sqlite.eco",
+            "base": "Sql",
+            "subset": null,
+            "visibility": ["submenu"]
+        }
+    ]
+}

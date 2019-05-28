@@ -455,6 +455,8 @@ class TreeManager(object):
         self.option_autolbox_find = True
         self.option_autolbox_insert = False
 
+        self.skipautolbox = False
+
         # This code and the can_profile() method should probably be refactored.
         self.langs_with_profiler = {
             "Python + Prolog" : False,
@@ -1068,14 +1070,18 @@ class TreeManager(object):
     def key_home(self, shift=False):
         self.log_input("key_home", str(shift))
         self.unselect()
+        lbox = self.get_languagebox(self.cursor.node)
         self.cursor.home()
+        self.update_tbd(lbox)
         if shift:
             self.selection_end = self.cursor.copy()
 
     def key_end(self, shift=False):
         self.log_input("key_end", str(shift))
         self.unselect()
+        lbox = self.get_languagebox(self.cursor.node)
         self.cursor.end()
+        self.update_tbd(lbox)
         if shift:
             self.selection_end = self.cursor.copy()
 
@@ -1257,6 +1263,8 @@ class TreeManager(object):
         # with shift, no   selection -> start new selection, modify selection
         # with shift, with selection -> modify selection
 
+        lbox = self.get_languagebox(self.cursor.node)
+
         if shift:
             if not self.hasSelection():
                 self.selection_start = self.cursor.copy()
@@ -1268,6 +1276,8 @@ class TreeManager(object):
             else:
                 self.cursor_movement(key)
             self.unselect()
+
+        self.update_tbd(lbox)
 
     def jump_cursor_within_selection(self, key):
         """
@@ -1405,7 +1415,7 @@ class TreeManager(object):
 
         # Create parser, priorities and lexer
         incparser, inclexer = self.get_parser_lexer_for_language(language, True)
-        incparser.setup_autolbox(language.name)
+        incparser.setup_autolbox(language.name, inclexer)
         root = incparser.previous_version.parent
         root.magic_backpointer = lbox
         self.add_parser(incparser, inclexer, language.name)
@@ -1422,7 +1432,7 @@ class TreeManager(object):
         self.edit_rightnode = False
         # cut text
         text = self.copySelection()
-        self.deleteSelection()
+        self.deleteSelection(reparse=False)
         lbox = self.add_languagebox(language)
         self.pasteText(text)
         lbox.tbd = auto
@@ -1430,6 +1440,13 @@ class TreeManager(object):
         self.input_log.pop()
         self.input_log.pop()
         return
+
+    def remove_selected_lbox(self):
+        root = self.cursor.node.get_root()
+        if hasattr(root, "magic_backpointer"):
+            lbox = root.magic_backpointer
+            if lbox:
+                self.remove_languagebox(lbox)
 
     def remove_languagebox(self, lbox):
         if lbox.deleted:
@@ -1439,6 +1456,7 @@ class TreeManager(object):
         root = lbox.symbol.ast
         bos = root.children[0]
         eos = root.children[-1]
+        left = lbox.prev_term
 
         # move all nodes from lbox to the outside
         node = bos.next_term
@@ -1459,6 +1477,8 @@ class TreeManager(object):
         for t in top:
             #XXX add method to relex a range, e.g. relex(start, end)
             self.relex(t)
+        self.relex(left)
+        self.cursor.restore_last_x()
         # reparse
         self.reparse(top[0], skipautolbox = True)
 
@@ -1501,6 +1521,67 @@ class TreeManager(object):
             self.delete_parser(root)
             return True
         return False
+
+    def expand_languagebox(self, lbox, newend, manual=False):
+        last_x = self.cursor.get_x() # Remember cursor position
+
+        # Remove nodes from outer box and copy their content
+        l = []
+        n = lbox.next_term
+        while n is not newend:
+            l.append(n.symbol.name)
+            n.remove()
+            n = n.next_term
+        l.append(newend.symbol.name)
+        newend.remove()
+        self.reparse(lbox, True, skipautolbox=True)
+
+        # Insert copied content at the end of the lbox
+        eos = lbox.symbol.ast.children[-1]
+        prev = eos.prev_term
+        prev.insert_after(TextNode(Terminal("".join(l))))
+
+        if manual:
+            lbox.autobox = None
+            lbox.tbd = False
+
+        # Relex and reparse changes
+        self.relex(prev.next_term)
+        self.post_keypress("")
+        self.cursor.last_x = last_x
+        self.cursor.restore_last_x()
+        self.reparse(lbox.symbol.ast.children[0], True)
+
+    def shrink_languagebox(self, lbox, newend):
+        last_x = self.cursor.get_x() # Remember cursor position
+
+        # Remove nodes from language box and copy their content
+        l = []
+        n = newend
+        while type(n) is not EOS:
+            l.append(n.symbol.name)
+            n.remove()
+            n = n.next_term
+        self.skipautolbox = True
+        self.reparse(lbox.symbol.ast.children[0], True)
+
+        # Insert copied content after lbox
+        lbox.insert_after(TextNode(Terminal("".join(l))))
+
+        # Relex and reparse changes
+        self.relex(lbox.next_term)
+        self.post_keypress("")
+        self.cursor.last_x = last_x
+        self.cursor.restore_last_x()
+        self.reparse(lbox, True, skipautolbox=True)
+        self.skipautolbox = False
+
+    def update_tbd(self, lbox):
+        if lbox is None:
+            return
+        newlbox = self.get_languagebox(self.cursor.node)
+        if lbox is not newlbox:
+            lbox.tbd = False
 
     def create_node(self, text, lbox=False):
         if lbox:
@@ -1651,7 +1732,7 @@ class TreeManager(object):
             self.changed = True
             return text
 
-    def deleteSelection(self):
+    def deleteSelection(self, reparse=True):
         #XXX simple version: later we might want to modify the nodes directly
         self.tool_data_is_dirty = True
         nodes, diff_start, diff_end = self.get_nodes_from_selection()
@@ -1708,7 +1789,8 @@ class TreeManager(object):
         repairnode = nodes[-1]
         if repairnode.deleted:
             repairnode = self.cursor.find_previous_visible(repairnode, cross_lang=True)
-        self.reparse(repairnode)
+        if reparse:
+            self.reparse(repairnode)
 
     def delete_if_empty(self, node):
         if node.symbol.name == "":
@@ -2060,7 +2142,7 @@ class TreeManager(object):
         TreeManager.version = self.version
 
         # Now check for auto language boxes
-        if skipautolbox or self.option_autolbox_insert is False:
+        if self.skipautolbox or skipautolbox or self.option_autolbox_insert is False:
             return
 
         parsers = list(self.parsers) # copy to avoid processing newly added parsers
@@ -2069,9 +2151,12 @@ class TreeManager(object):
             p = temp[0]
             lbox = p.previous_version.parent.get_magicterminal()
             if lbox and lbox.tbd:
-                result = self.lbox_autoremove_test(lbox, p.last_status)
-                if result:
+                if lbox.tbd == "remove" or self.lbox_autoremove_test(lbox, p.last_status):
                     self.remove_languagebox(lbox)
+                else:
+                    # try to expand language boxes
+                    if not self.lbox_expand_test(lbox):
+                        self.lbox_shrink_test(lbox)
 
             # apply language boxes if there is only one choice
             for n in p.error_nodes:
@@ -2081,11 +2166,80 @@ class TreeManager(object):
                     ctemp = self.cursor.get_x()
                     ltemp = self.cursor.line
                     self.select_from_to(s, e)
+                    self.skipautolbox = True # block automatic lboxes during automatic insertion
                     self.surround_with_languagebox(lang_dict[l], True)
                     self.cursor.line = ltemp
                     self.cursor.move_to_x(ctemp)
-                    self.reparse(s.prev_term, skipautolbox=True)
                     self.undo_snapshot()
+                    self.skipautolbox = False
+
+    def lbox_expand_test(self, lbox):
+        """Checks if the language box can be expanded by moving following
+        tokens from the outer language into the language box."""
+        from autolboxdetector import IncrementalRecognizer
+        outer_root = lbox.get_root()
+        outer_lang = outer_root.name
+        p = self.get_parser(lbox.symbol.ast)
+        l = self.get_lexer(lbox.symbol.ast)
+        langname = self.get_language(lbox.symbol.ast)
+        eos = lbox.symbol.ast.children[-1]
+        r = IncrementalRecognizer(p.syntaxtable, l.lexer, langname, None)
+        r.mode_limit_tokens_new = lang_dict[outer_lang].auto_limit_new
+        r.preparse(lbox.symbol.ast, eos.prev_term) # Preparse lbox contents...
+        r.parse_single(eos.prev_term) # ... up to (but excluding) EOS
+        r.orig_parse(lbox.next_term) # Parse tokens following lbox
+        # Check that we can continue parsing the outer language for each
+        # extension option
+        op = self.get_parser(outer_root)
+        ol = self.get_lexer(outer_root)
+        r2 = IncrementalRecognizer(op.syntaxtable, ol.lexer, outer_lang, None)
+        r2.mode_limit_tokens_new = False
+        r2.preparse(outer_root, lbox)
+        r2.parse_after(lbox)
+        filtered = []
+        for e in r.possible_ends:
+            if e.lookup == "<ws>" or e.lookup == "<return>":
+                continue
+            tmp = r2.state[:]
+            if r2.parse_after(e.next_term):
+                filtered.append(e)
+            r2.state = tmp
+        # If there's only one expansion option apply it, otherwise show the
+        # options in the editor
+        if len(filtered) == 1:
+            self.expand_languagebox(lbox, filtered[0])
+            return True
+        elif len(filtered) > 1:
+            lbox.autobox = [(lbox, f, None) for f in filtered]
+        return False
+
+    def lbox_shrink_test(self, lbox):
+        """Checks if an invalid language box can be shrunken by moving the
+        error (and following tokens) within the box into the outer language."""
+        from autolboxdetector import IncrementalRecognizer
+        outer_lang = lbox.get_root().name
+        p = self.get_parser(lbox.symbol.ast)
+        l = self.get_lexer(lbox.symbol.ast)
+        langname = self.get_language(lbox.symbol.ast)
+        eos = lbox.symbol.ast.children[-1]
+        if len(p.error_nodes) == 0:
+            return False
+        error = p.error_nodes[0]
+        r = IncrementalRecognizer(p.syntaxtable, l.lexer, langname, None)
+        r.mode_limit_tokens_new = lang_dict[outer_lang].auto_limit_new
+        r.preparse(lbox.symbol.ast, error) # Preparse lbox contents up to the error
+        if r.is_finished(): # if code up to error is valid
+            root = lbox.get_root()
+            p = self.get_parser(root) # outer parser
+            l = self.get_lexer(root) # outer lexer
+            r = IncrementalRecognizer(p.syntaxtable, l.lexer, outer_lang, None)
+            r.mode_limit_tokens_new = lang_dict[outer_lang].auto_limit_new
+            r.preparse(root, lbox)
+            r.temp_parse(r.state, lbox.symbol)
+            if r.parse_lex_single(error):
+                self.shrink_languagebox(lbox, error)
+                return True
+        return False
 
     def lbox_autoremove_test(self, lbox, status):
         """An automatically inserted languagebox can be automatically removed if

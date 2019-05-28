@@ -46,7 +46,7 @@
      <x>0</x>
      <y>0</y>
      <width>1069</width>
-     <height>17</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -59,7 +59,8 @@
      </property>
      <property name="icon">
       <iconset theme="document-open-recent">
-       <normaloff>.</normaloff>.</iconset>
+       <normaloff/>
+      </iconset>
      </property>
      <addaction name="actionActionDummy"/>
     </widget>
@@ -118,7 +119,8 @@
      </property>
      <property name="icon">
       <iconset theme="reload">
-       <normaloff>.</normaloff>.</iconset>
+       <normaloff/>
+      </iconset>
      </property>
      <addaction name="actionDummy"/>
     </widget>
@@ -135,6 +137,7 @@
     <addaction name="actionFind_next"/>
     <addaction name="separator"/>
     <addaction name="actionAdd_language_box"/>
+    <addaction name="actionRemove_language_box"/>
     <addaction name="actionSelect_next_language_box"/>
     <addaction name="menuChange_language_box"/>
     <addaction name="separator"/>
@@ -194,6 +197,7 @@
    <addaction name="actionPaste"/>
    <addaction name="separator"/>
    <addaction name="actionAdd_language_box"/>
+   <addaction name="actionRemove_language_box"/>
    <addaction name="actionSelect_next_language_box"/>
    <addaction name="separator"/>
    <addaction name="actionCode_complete"/>
@@ -461,7 +465,8 @@
    </property>
    <property name="icon">
     <iconset theme="edit-undo">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Undo</string>
@@ -476,7 +481,8 @@
    </property>
    <property name="icon">
     <iconset theme="edit-redo">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Redo</string>
@@ -491,7 +497,8 @@
    </property>
    <property name="icon">
     <iconset theme="edit-cut">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Cut</string>
@@ -506,7 +513,8 @@
    </property>
    <property name="icon">
     <iconset theme="edit-copy">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Copy</string>
@@ -521,7 +529,8 @@
    </property>
    <property name="icon">
     <iconset theme="edit-paste">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Paste</string>
@@ -551,7 +560,8 @@
    </property>
    <property name="icon">
     <iconset theme="list-add">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Add language box</string>
@@ -566,7 +576,8 @@
    </property>
    <property name="icon">
     <iconset theme="go-next">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Select next language box</string>
@@ -638,7 +649,8 @@
    </property>
    <property name="icon">
     <iconset theme="edit-select-all">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Select all</string>
@@ -653,7 +665,8 @@
    </property>
    <property name="icon">
     <iconset theme="document-export">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Export as...</string>
@@ -668,7 +681,8 @@
    </property>
    <property name="icon">
     <iconset theme="document-export">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Export</string>
@@ -680,7 +694,8 @@
   <action name="actionSettings">
    <property name="icon">
     <iconset theme="gnome-settings">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Settings...</string>
@@ -775,7 +790,8 @@
    </property>
    <property name="icon">
     <iconset theme="media-playback-start">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Continue</string>
@@ -790,7 +806,8 @@
    </property>
    <property name="icon">
     <iconset theme="down">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Step Into</string>
@@ -805,7 +822,8 @@
    </property>
    <property name="icon">
     <iconset theme="go-jump">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Step Over</string>
@@ -820,7 +838,8 @@
    </property>
    <property name="icon">
     <iconset theme="player_stop">
-     <normaloff>.</normaloff>.</iconset>
+     <normaloff/>
+    </iconset>
    </property>
    <property name="text">
     <string>Stop</string>
@@ -875,6 +894,19 @@
    </property>
    <property name="text">
     <string>Insert</string>
+   </property>
+  </action>
+  <action name="actionRemove_language_box">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="list-remove">
+     <normaloff/>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>Remove language box</string>
    </property>
   </action>
  </widget>
