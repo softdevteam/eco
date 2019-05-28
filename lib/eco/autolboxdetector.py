@@ -468,6 +468,9 @@ class IncrementalRecognizer(Recognizer):
                 else:
                     node = node.right
 
+    def orig_parse(self, node):
+        return Recognizer.parse(self, node, ppmode=True)
+
     def parse(self, node, follow, status):
         """Parse normally starting at `node`."""
 
@@ -486,7 +489,19 @@ class IncrementalRecognizer(Recognizer):
                 return True
         return False
 
+    def parse_until(self, start, end):
+        node = start.next_term
+        while True:
+            lookup = get_lookup(node)
+            if not self.temp_parse(self.state, lookup):
+                return False
+            if node is end:
+                return True
+            node = node.next_term
+
     def parse_after(self, la):
+        """Checks if la can be parsed in the current state. If la is whitespace,
+        continue until we can parse the next non-whitespace token."""
         while True:
             lookup = get_lookup(la)
             element = self.syntaxtable.lookup(self.state[-1], lookup)
@@ -505,6 +520,7 @@ class IncrementalRecognizer(Recognizer):
                     self.state.append(element.action)
                     la = la.next_term
                     continue
+                self.state.append(element.action)
                 return True
 
             if type(element) is Accept:

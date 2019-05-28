@@ -1510,6 +1510,32 @@ class TreeManager(object):
             return True
         return False
 
+    def expand_languagebox(self, lbox, newend):
+        last_x = self.cursor.get_x() # Remember cursor position
+
+        # Remove nodes from outer box and copy their content
+        l = []
+        n = lbox.next_term
+        while n is not newend:
+            l.append(n.symbol.name)
+            n.remove()
+            n = n.next_term
+        l.append(newend.symbol.name)
+        newend.remove()
+
+        # Insert copied content at the end of the lbox
+        eos = lbox.symbol.ast.children[-1]
+        prev = eos.prev_term
+        prev.insert_after(TextNode(Terminal("".join(l))))
+
+        # Relex and reparse changes
+        self.relex(prev.next_term)
+        self.post_keypress("")
+        self.cursor.last_x = last_x
+        self.cursor.restore_last_x()
+        self.reparse(lbox.symbol.ast.children[0], True)
+        self.reparse(lbox, True)
+
     def update_tbd(self, lbox):
         if lbox is None:
             return
@@ -2088,6 +2114,9 @@ class TreeManager(object):
                 if result:
                     self.remove_languagebox(lbox)
 
+                # expand language boxes
+                self.lbox_expand_test(lbox)
+
             # apply language boxes if there is only one choice
             for n in p.error_nodes:
                 if not n.deleted and n.autobox and len(n.autobox) == 1:
@@ -2101,6 +2130,42 @@ class TreeManager(object):
                     self.cursor.move_to_x(ctemp)
                     self.reparse(s.prev_term, skipautolbox=True)
                     self.undo_snapshot()
+
+    def lbox_expand_test(self, lbox):
+        """Checks if the language box can be expanded by moving following
+        tokens from the outer language into the language box."""
+        from autolboxdetector import IncrementalRecognizer
+        outer_root = lbox.get_root()
+        outer_lang = outer_root.name
+        p = self.get_parser(lbox.symbol.ast)
+        l = self.get_lexer(lbox.symbol.ast)
+        langname = self.get_language(lbox.symbol.ast)
+        eos = lbox.symbol.ast.children[-1]
+        r = IncrementalRecognizer(p.syntaxtable, l.lexer, langname, None)
+        r.mode_limit_tokens_new = lang_dict[outer_lang].auto_limit_new
+        r.preparse(lbox.symbol.ast, eos.prev_term) # Preparse lbox contents...
+        r.parse_single(eos.prev_term) # ... up to (but excluding) EOS
+        r.orig_parse(lbox.next_term) # Parse tokens following lbox
+        # Check that we can continue parsing the outer language for each
+        # extension option
+        op = self.get_parser(outer_root)
+        ol = self.get_lexer(outer_root)
+        r2 = IncrementalRecognizer(op.syntaxtable, ol.lexer, outer_lang, None)
+        r2.mode_limit_tokens_new = False
+        r2.preparse(outer_root, lbox)
+        r2.parse_after(lbox)
+        filtered = []
+        for e in r.possible_ends:
+            if e.lookup == "<ws>" or e.lookup == "<return>":
+                continue
+            tmp = r2.state[:]
+            if r2.parse_after(e.next_term):
+                filtered.append(e)
+            r2.state = tmp
+        # If there's only one expansion option apply it, otherwise show the
+        # options in the editor
+        if len(filtered) == 1:
+            self.expand_languagebox(lbox, filtered[0])
 
     def lbox_autoremove_test(self, lbox, status):
         """An automatically inserted languagebox can be automatically removed if
