@@ -4598,6 +4598,18 @@ with open("test/javasqldummy.json") as f:
     javasql2_name = create_grammar_from_config(cfg, "test/javasqldummy.json")
     javasqlchemical = lang_dict[javasql2_name]
 
+grm_cache = {}
+def load_json_grammar(filename):
+    if filename in grm_cache:
+        return grm_cache[filename]
+
+    with open(filename) as f:
+        cfg = json.load(f)
+        name = create_grammar_from_config(cfg, filename)
+        grm = lang_dict[name]
+        grm_cache[filename] = grm
+        return grm
+
 class Test_AutoLanguageBoxDetection():
 
     def test_pythonsql(self):
@@ -5237,3 +5249,69 @@ WHERE ProductID IN (SELECT ProductID FROM OrderDetails WHERE Quantity = 10);"""
 
         assert len(treemanager.parsers) == 2
         assert parser.last_status == False
+
+    def test_java_php_expand(self):
+        grm = load_json_grammar("test/javaphp_expr.json")
+        parser, lexer = grm.load()
+        parser.setup_autolbox(grm.name, lexer)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        p = """class X {
+    int x = 1 == 2;
+}"""
+        for c in p:
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == True
+
+        treemanager.key_cursors(UP)
+        treemanager.key_end()
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_backspace() # delete `1`
+        p2 = "!e($x) ? $y : $z"
+        for c in p2:
+            treemanager.key_normal(c)
+
+        assert len(treemanager.parsers) == 2
+        assert parser.last_status == False # only `!e($x)` wrapped in lbox
+
+        treemanager.key_end()
+        treemanager.key_cursors(LEFT)
+        treemanager.key_backspace()
+        treemanager.key_backspace()
+        treemanager.key_backspace()
+        treemanager.key_backspace()
+
+        assert len(treemanager.parsers) == 2 # box now has been expanded
+        assert parser.last_status == True
+
+    @pytest.mark.skipif("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true", reason="Sqlite takes too long to built on Travis. Skip!")
+    def test_lua_sqlite_expand(self):
+        grm = load_json_grammar("test/luasqlite_expr.json")
+        parser, lexer = grm.load()
+        parser.setup_autolbox(grm.name, lexer)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        p = """x = 1
+y = 2"""
+        for c in p:
+            treemanager.key_normal(c)
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == True
+
+        treemanager.key_cursors(UP)
+        treemanager.key_end()
+        treemanager.key_backspace()
+        p2 = "INSERT INTO k2 VALUES(a, NULL); PRAGMA f(k2);"
+        for c in p2:
+            treemanager.key_normal(c)
+
+        assert len(treemanager.parsers) == 2
+        assert parser.last_status == True

@@ -1,0 +1,17 @@
+{
+    "name": "Java + PHP expr",
+    "file": "grammars/java15.eco",
+    "base": "",
+    "visibility": ["newfile"],
+    "limit_historic_tokens": false,
+    "compositions": [
+        {
+            "location": "unary_expression",
+            "name": "PHP expre",
+            "file": "grammars/php.eco",
+            "base": "Php",
+            "subset": "expr_without_variable",
+            "visibility": ["submenu"]
+        }
+    ]
+}
