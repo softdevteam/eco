@@ -1068,14 +1068,18 @@ class TreeManager(object):
     def key_home(self, shift=False):
         self.log_input("key_home", str(shift))
         self.unselect()
+        lbox = self.get_languagebox(self.cursor.node)
         self.cursor.home()
+        self.update_tbd(lbox)
         if shift:
             self.selection_end = self.cursor.copy()
 
     def key_end(self, shift=False):
         self.log_input("key_end", str(shift))
         self.unselect()
+        lbox = self.get_languagebox(self.cursor.node)
         self.cursor.end()
+        self.update_tbd(lbox)
         if shift:
             self.selection_end = self.cursor.copy()
 
@@ -1257,6 +1261,8 @@ class TreeManager(object):
         # with shift, no   selection -> start new selection, modify selection
         # with shift, with selection -> modify selection
 
+        lbox = self.get_languagebox(self.cursor.node)
+
         if shift:
             if not self.hasSelection():
                 self.selection_start = self.cursor.copy()
@@ -1268,6 +1274,8 @@ class TreeManager(object):
             else:
                 self.cursor_movement(key)
             self.unselect()
+
+        self.update_tbd(lbox)
 
     def jump_cursor_within_selection(self, key):
         """
@@ -1501,6 +1509,13 @@ class TreeManager(object):
             self.delete_parser(root)
             return True
         return False
+
+    def update_tbd(self, lbox):
+        if lbox is None:
+            return
+        newlbox = self.get_languagebox(self.cursor.node)
+        if lbox is not newlbox:
+            lbox.tbd = False
 
     def create_node(self, text, lbox=False):
         if lbox:
