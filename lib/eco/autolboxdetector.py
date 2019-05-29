@@ -2,6 +2,7 @@ from grammars.grammars import lang_dict
 from incparser.astree import BOS, EOS, TextNode
 from grammar_parser.gparser import MagicTerminal, Terminal, Nonterminal, IndentationTerminal
 from incparser.syntaxtable import Shift, Reduce, Goto, Accept
+import config
 
 ws_tokens = ["<ws>", "<return>", "<slcomment>", "<mlcomment>"]
 
@@ -63,11 +64,16 @@ class NewAutoLboxDetector(object):
         return node.next_term
 
     def detect_lbox(self, errornode):
-        # Try heuristic #2 first; if it fails to find an automatic language
-        # box, try heuristic #1
-        valid = self.detect_lbox_h2(errornode)
-        if not valid:
-            valid = self.detect_lbox_h1(errornode)
+        # Try history based heuristic first; if it fails to find an automatic
+        # language box, try the stack based one; if that fails, try the
+        # line-based heuristic.
+        valid = []
+        if config.AUTOLBOX_HEURISTIC_HIST:
+            valid = self.heuristic_history(errornode)
+        if not valid and config.AUTOLBOX_HEURISTIC_STACK:
+            valid = self.heuristic_stack(errornode)
+        if not valid and config.AUTOLBOX_HEURISTIC_LINE:
+            valid = self.heuristic_line(errornode)
 
         if errornode.autobox is False:
             # XXX Currently, we don't suggest any language boxes for an error
@@ -82,7 +88,7 @@ class NewAutoLboxDetector(object):
             errornode.autobox = None
             return False
 
-    def line_search(self, errornode):
+    def heuristic_line(self, errornode):
         valid = []
         pv = self.op.prev_version
         for sub in self.langs:
@@ -107,7 +113,7 @@ class NewAutoLboxDetector(object):
                 node = node.prev_term
         return valid
 
-    def detect_lbox_h2(self, errornode):
+    def heuristic_history(self, errornode):
         valid = []
         ws = ["<ws>", "<return>"]
         searched = set()
@@ -174,7 +180,7 @@ class NewAutoLboxDetector(object):
         # try parsing lbox + one more non-ws terminal
         return ir.parse_single(TextNode(lbox)) and ir.parse_after(end.next_term)
 
-    def detect_lbox_h1(self, errornode):
+    def heuristic_stack(self, errornode):
         # Find position on stack where lbox would be valid
         valid = []
         for sub in self.langs:
