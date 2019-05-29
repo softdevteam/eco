@@ -82,6 +82,31 @@ class NewAutoLboxDetector(object):
             errornode.autobox = None
             return False
 
+    def line_search(self, errornode):
+        valid = []
+        pv = self.op.prev_version
+        for sub in self.langs:
+            lbox = MagicTerminal("<{}>".format(sub))
+            node = errornode.prev_term
+            while True:
+                element = self.op.syntaxtable.lookup(node.state, lbox)
+                if type(element) in [Reduce, Shift]:
+                    r = self.langs[sub]
+                    r.mode_limit_tokens_new = self.mode_limit_tokens_new
+                    start = node.next_term
+                    result = r.parse(start)
+                    if r.possible_ends:
+                        for e in r.possible_ends:
+                            if e.lookup == "<ws>" or e.lookup == "<return>":
+                                continue
+                            if (self.contains_errornode(start, e, errornode) \
+                                    and self.parse_after_lbox_h2(lbox, e, start, pv)):
+                                        valid.append((start, e, sub))
+                if node.lookup == "<return>" or type(node) is BOS:
+                    break
+                node = node.prev_term
+        return valid
+
     def detect_lbox_h2(self, errornode):
         valid = []
         ws = ["<ws>", "<return>"]
@@ -139,7 +164,7 @@ class NewAutoLboxDetector(object):
         return valid
 
     def parse_after_lbox_h2(self, lbox, end, parent, version):
-        root = parent.get_root()
+        root = parent.get_root(version)
         p, l = lang_dict[root.name].load()
         ir = IncrementalRecognizer(p.syntaxtable, l.lexer, root.name, None)
         if root is not parent:

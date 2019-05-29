@@ -492,11 +492,19 @@ class TextNode(Node):
         except AttributeError:
             return None
 
-    def get_root(self):
-        node = self
-        while node.parent is not None:
-            node = node.parent
-        return node
+    def get_root(self, version=None):
+        if version:
+            last = self
+            node = self.get_attr("parent", version)
+            while node is not None:
+                last = node
+                node = node.get_attr("parent", version)
+            return last
+        else:
+            node = self
+            while node.parent is not None:
+                node = node.parent
+            return node
 
     def get_parent(self):
         if self.parent:
