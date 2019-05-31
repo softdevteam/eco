@@ -1514,11 +1514,11 @@ class Test_JavaBugs(Test_Java):
         self.treemanager.key_cursors(RIGHT)
         self.treemanager.key_cursors(RIGHT)
         self.treemanager.key_cursors(RIGHT)
-        self.treemanager.key_normal("'")
+        self.treemanager.key_normal("\"")
         self.treemanager.key_cursors(RIGHT)
         self.treemanager.key_cursors(RIGHT)
-        self.treemanager.key_normal("'")
-        assert self.treemanager.cursor.node.symbol.name == "'1 '"
+        self.treemanager.key_normal("\"")
+        assert self.treemanager.cursor.node.symbol.name == "\"1 \""
 
     def test_inclexing_bug(self):
         self.reset()
