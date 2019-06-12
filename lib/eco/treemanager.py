@@ -570,6 +570,9 @@ class TreeManager(object):
                 print("Namebinding file '%s' not found." % (lang.nb_file))
 
 
+    def get_selected_languagebox(self):
+        return self.get_languagebox(self.cursor.node)
+
     def get_languagebox(self, node):
         root = node.get_root()
         lbox = root.get_magicterminal()
@@ -1481,6 +1484,13 @@ class TreeManager(object):
         self.cursor.restore_last_x()
         # reparse
         self.reparse(top[0], skipautolbox = True)
+
+    def toggle_lock_languagebox(self):
+        root = self.cursor.node.get_root()
+        if hasattr(root, "magic_backpointer"):
+            lbox = root.magic_backpointer
+            if lbox:
+                lbox.tbd = not lbox.tbd
 
     def change_languagebox(self, language):
         self.log_input("change_languagebox", repr(language.name))
