@@ -644,6 +644,7 @@ class Window(QtGui.QMainWindow):
         self.connect(self.ui.actionShow_lspaceview, SIGNAL("triggered()"), self.view_in_lspace)
         self.connect(self.ui.menuChange_language_box, SIGNAL("aboutToShow()"), self.showEditMenu)
         self.connect(self.ui.actionRemove_language_box, SIGNAL("triggered()"), self.remove_languagebox)
+        self.connect(self.ui.actionLock_Unlock_language_box, SIGNAL("triggered()"), self.toggle_lock_languagebox)
         self.connect(self.ui.menuRecent_files, SIGNAL("aboutToShow()"), self.showRecentFiles)
         self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
 
@@ -798,10 +799,19 @@ class Window(QtGui.QMainWindow):
         newmenu = QMenu("Add languagebox", self)
         newmenu.setIcon(QtGui.QIcon.fromTheme("list-add"))
         self.getEditor().createSubgrammarMenu(newmenu)
-
-        menu.addMenu(changemenu)
         menu.addMenu(newmenu)
-        menu.addAction(self.ui.actionRemove_language_box)
+
+        lbox = self.getEditor().tm.get_selected_languagebox()
+        if lbox is not None:
+            menu.addAction(self.ui.actionRemove_language_box)
+            lockaction = QAction(QIcon.fromTheme("lock"), "Lock language box", menu)
+            self.connect(lockaction, SIGNAL("triggered()"), self.toggle_lock_languagebox)
+            menu.addAction(lockaction)
+            if not lbox.tbd:
+                lockaction.setText("Unlock language box")
+
+            menu.addMenu(changemenu)
+
         menu.addAction(self.ui.actionSelect_next_language_box)
         menu.addSeparator()
         menu.addAction(self.ui.actionCode_complete)
@@ -1019,6 +1029,9 @@ class Window(QtGui.QMainWindow):
         self.getEditor().tm.remove_selected_lbox()
         self.btReparse([])
         self.getEditor().update()
+
+    def toggle_lock_languagebox(self):
+        self.getEditor().tm.toggle_lock_languagebox()
 
     def show_code_completion(self):
         self.getEditor().showCodeCompletion()
@@ -1468,6 +1481,7 @@ class Window(QtGui.QMainWindow):
         self.ui.actionFind_next.setEnabled(enabled)
         self.ui.actionAdd_language_box.setEnabled(enabled)
         self.ui.actionRemove_language_box.setEnabled(enabled)
+        self.ui.actionLock_Unlock_language_box.setEnabled(enabled)
         self.ui.actionSelect_next_language_box.setEnabled(enabled)
         self.ui.actionAutolboxInsert.setEnabled(enabled)
         self.ui.actionAutolboxFind.setEnabled(enabled)

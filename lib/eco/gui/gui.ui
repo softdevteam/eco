@@ -140,6 +140,7 @@
     <addaction name="actionRemove_language_box"/>
     <addaction name="actionSelect_next_language_box"/>
     <addaction name="menuChange_language_box"/>
+    <addaction name="actionLock_Unlock_language_box"/>
     <addaction name="separator"/>
     <addaction name="actionCode_complete"/>
    </widget>
@@ -907,6 +908,22 @@
    </property>
    <property name="text">
     <string>Remove language box</string>
+   </property>
+  </action>
+  <action name="actionLock_Unlock_language_box">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="lock">
+     <normaloff/>
+    </iconset>
+   </property>
+   <property name="text">
+    <string>Lock/Unlock language box</string>
+   </property>
+   <property name="toolTip">
+    <string>Lock/Unlock language box</string>
    </property>
   </action>
  </widget>
