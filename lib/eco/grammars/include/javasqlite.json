@@ -8,7 +8,11 @@
     "compositions": [
         {
             "location": "unary_expression",
-            "name": "SQLite"
+            "file": "grammars/sqlite.eco",
+            "base": "Sql",
+            "visibility": ["submenu"],
+            "name": "SQLite cmd",
+            "subset": "cmdx"
         }
     ]
 }
