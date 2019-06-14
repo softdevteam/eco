@@ -2171,7 +2171,7 @@ class TreeManager(object):
             # remove language boxes that are not valid anymore
             p = temp[0]
             lbox = p.previous_version.parent.get_magicterminal()
-            if lbox and lbox.tbd:
+            if lbox and lbox.tbd and not lbox.deleted:
                 if lbox.tbd == "remove" or self.lbox_autoremove_test(lbox, p.last_status):
                     self.remove_languagebox(lbox)
                 else:
