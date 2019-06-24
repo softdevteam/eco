@@ -68,12 +68,26 @@ class NewAutoLboxDetector(object):
         # language box, try the stack based one; if that fails, try the
         # line-based heuristic.
         valid = []
+        maxd = 0
         if config.AUTOLBOX_HEURISTIC_HIST:
-            valid = self.heuristic_history(errornode)
-        if not valid and config.AUTOLBOX_HEURISTIC_STACK:
-            valid = self.heuristic_stack(errornode)
-        if not valid and config.AUTOLBOX_HEURISTIC_LINE:
-            valid = self.heuristic_line(errornode)
+            valid.extend(self.heuristic_history(errornode))
+        if config.AUTOLBOX_HEURISTIC_STACK:
+            valid.extend(self.heuristic_stack(errornode))
+        if config.AUTOLBOX_HEURISTIC_LINE:
+            valid.extend(self.heuristic_line(errornode))
+
+        maxdistance = {}
+        # find max distance by startnode
+        for start, _, _, dist in valid:
+            if not start in maxdistance or maxdistance[start] < dist:
+                maxdistance[start] = dist
+        # remove all startnodes which have less than max distance
+        validnew = set()
+        for start, end, lang, dist in valid:
+            if dist >= maxdistance[start]:
+                validnew.add((start, end, lang))
+
+        valid = list(validnew)
 
         if errornode.autobox is False:
             # XXX Currently, we don't suggest any language boxes for an error
@@ -102,12 +116,13 @@ class NewAutoLboxDetector(object):
                     start = node.next_term
                     result = r.parse(start)
                     if r.possible_ends:
-                        for e in r.possible_ends:
+                        for e, enddist in r.possible_ends:
                             if e.lookup == "<ws>" or e.lookup == "<return>":
                                 continue
-                            if (self.contains_errornode(start, e, errornode) \
-                                    and self.parse_after_lbox_h2(lbox, e, start, pv)):
-                                        valid.append((start, e, sub))
+                            if self.contains_errornode(start, e, errornode):
+                               if self.parse_after_lbox_h2(lbox, e, start, pv):
+                                        total_distance = self.abs_parse_distance + enddist
+                                        valid.append((start, e, sub, total_distance))
                 if node.lookup == "<return>" or type(node) is BOS:
                     break
                 node = node.prev_term
@@ -159,17 +174,19 @@ class NewAutoLboxDetector(object):
                             r.mode_limit_tokens_new = self.mode_limit_tokens_new
                             result = r.parse(term)
                             if r.possible_ends:
-                                for e in r.possible_ends:
+                                for e, enddist in r.possible_ends:
                                     if e.lookup in ws:
                                         continue
                                     if (self.contains_errornode(term, e, errornode) \
                                             and self.parse_after_lbox_h2(lbox, e, parent, pv)):
-                                                valid.append((term, e, sub))
+                                                total_distance = self.abs_parse_distance + enddist
+                                                valid.append((term, e, sub, total_distance))
                                                 searched.add(term)
                 parent = parent.get_attr("parent", pv)
         return valid
 
     def parse_after_lbox_h2(self, lbox, end, parent, version):
+        # XXX Can reuse preparsed ir as long as parent is the same
         root = parent.get_root(version)
         p, l = lang_dict[root.name].load()
         ir = IncrementalRecognizer(p.syntaxtable, l.lexer, root.name, None)
@@ -178,7 +195,9 @@ class NewAutoLboxDetector(object):
             # anything
             ir.preparse(root, parent, version)
         # try parsing lbox + one more non-ws terminal
-        return ir.parse_single(TextNode(lbox)) and ir.parse_after(end.next_term)
+        check = ir.parse_single(TextNode(lbox)) and ir.parse_after(end.next_term, distance=10)
+        self.abs_parse_distance = ir.abs_parse_distance
+        return check
 
     def heuristic_stack(self, errornode):
         # Find position on stack where lbox would be valid
@@ -209,17 +228,18 @@ class NewAutoLboxDetector(object):
                         if r.possible_ends:
                             # Filter results and test if remaining file can be
                             # parsed after shifting the language box
-                            for e in r.possible_ends:
+                            for e, enddist in r.possible_ends:
                                 if e.lookup == "<ws>" or e.lookup == "<return>":
                                     continue
                                 if (self.contains_errornode(n, e, errornode) \
-                                    and self.parse_after_lbox_h1(lbox, e, cut)) \
+                                    and self.parse_after_lbox_h1(lbox, e, cut, distance=10)) \
                                     or self.parse_after_lbox_h1(lbox, e, cut, errornode):
                                         # Either the error was solved by
                                         # moving it into the box or a box
                                         # was created before it, allowing
                                         # the error to be shifted
-                                        valid.append((n, e, sub))
+                                        total_distance = self.abs_parse_distance + enddist
+                                        valid.append((n, e, sub, total_distance))
                 cut = cut - 1
         return valid
 
@@ -232,11 +252,14 @@ class NewAutoLboxDetector(object):
             return True
         return False
 
-    def parse_after_lbox_h1(self, lbox, end, cut, errornode=None):
+    def parse_after_lbox_h1(self, lbox, end, cut, errornode=None, distance=1):
+        self.abs_parse_distance = 0
+        parsed_tokens = 0
         # copy stack
         stack = []
         for i in range(cut+1):
             stack.append(self.op.stack[i].state)
+            self.abs_parse_distance += self.op.stack[i].textlength()
         after_end = end.next_term
         # do all reductions until there's a shift or accept (whitespace doesn't
         # count)
@@ -261,11 +284,21 @@ class NewAutoLboxDetector(object):
                 # if whitespace continue
                 if la.lookup in ws_tokens or la is lboxnode:
                     stack.append(element.action)
+                    if la is not lboxnode:
+                        self.abs_parse_distance += len(la.symbol.name)
                     la = la.next_term
                     continue
                 if not errornode:
-                    return True
+                    stack.append(element.action)
+                    self.abs_parse_distance += len(la.symbol.name)
+                    parsed_tokens += 1
+                    if parsed_tokens == distance:
+                        return True
+                    la = la.next_term
+                    continue
             if type(element) is Accept:
+                return True
+            if parsed_tokens > 0:
                 return True
             return False
 
@@ -296,6 +329,8 @@ class Recognizer(object):
         self.possible_ends = []
         self.last_read = None
         self.mode_limit_tokens_new = False
+        self.abs_parse_distance = 0
+        self.last_token_value = ""
 
     def reset(self):
         self.state = [0]
@@ -303,6 +338,8 @@ class Recognizer(object):
         self.seen_error = False
         self.possible_ends = []
         self.last_read = None
+        self.abs_parse_distance = 0
+        self.last_token_value = ""
 
     def parse(self, startnode, ppmode=False):
         # as we are reusing recogisers now, reset it
@@ -319,10 +356,11 @@ class Recognizer(object):
                 return True
             element = self.syntaxtable.lookup(self.state[-1], token)
             if isinstance(element, Shift):
+                self.abs_parse_distance += len(self.last_token_value)
                 self.state.append(element.action)
                 if self.is_finished() and self.last_read:
                     if self.mode_limit_tokens_new is False or self.last_read.version >= minversion:
-                        self.possible_ends.append(self.last_read)
+                        self.possible_ends.append((self.last_read, self.abs_parse_distance))
                     self.last_read = None
                 token = self.next_token()
                 continue
@@ -344,6 +382,7 @@ class Recognizer(object):
         try:
             t = self.tokeniter()
             self.last_read = t[3][-1]
+            self.last_token_value = t[0]
             return Terminal(t[1])
         except StopIteration:
             self.reached_eos = True
@@ -515,8 +554,10 @@ class IncrementalRecognizer(Recognizer):
                 lookup = get_lookup(node)
                 element = self.syntaxtable.lookup(self.state[-1], lookup)
                 if type(element) is Goto:
+                    self.abs_parse_distance += node.textlength(version)
                     self.state.append(element.action)
                 elif type(element) is Shift:
+                    self.abs_parse_distance += node.textlength(version)
                     self.state.append(element.action)
                 elif type(element) is Reduce:
                     i = 0
@@ -570,9 +611,10 @@ class IncrementalRecognizer(Recognizer):
                 return True
             node = node.next_term
 
-    def parse_after(self, la):
+    def parse_after(self, la, distance=1):
         """Checks if la can be parsed in the current state. If la is whitespace,
         continue until we can parse the next non-whitespace token."""
+        parsed_tokens = 0
         while True:
             lookup = get_lookup(la)
             element = self.syntaxtable.lookup(self.state[-1], lookup)
@@ -589,12 +631,20 @@ class IncrementalRecognizer(Recognizer):
                 # if whitespace continue
                 if la.lookup in ws_tokens:
                     self.state.append(element.action)
+                    self.abs_parse_distance += len(la.symbol.name)
                     la = la.next_term
                     continue
                 self.state.append(element.action)
-                return True
+                self.abs_parse_distance += len(la.symbol.name)
+                parsed_tokens += 1
+                if parsed_tokens == distance:
+                    return True
+                la = la.next_term
+                continue
 
             if type(element) is Accept:
+                return True
+            if parsed_tokens > 0:
                 return True
             return False
 

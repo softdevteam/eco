@@ -4753,9 +4753,9 @@ class Test_AutoLanguageBoxDetection():
         assert len(parser.error_nodes[0].autobox) == 2
 
     def test_php_python_expression2(self):
-        """Results in two options. Note: Neither option contains the full
-        expression `1 or not 2`. Instead they only contain `not 2` because of
-        the way PHP parses `or`."""
+        """Previously, we could only find the `not 2` option here.  With the
+        introduction of the line heuristic, we can now find the full expression
+        `1 or not 2` as well."""
         parser, lexer = phppython.load()
         parser.setup_autolbox(phppython.name, lexer)
         treemanager = TreeManager()
@@ -4773,7 +4773,7 @@ class Test_AutoLanguageBoxDetection():
         treemanager.key_normal(";")
 
         assert len(parser.error_nodes) == 1
-        assert len(parser.error_nodes[0].autobox) == 2
+        assert len(parser.error_nodes[0].autobox) == 4
 
     def test_include_rules(self):
         grm = EcoFile("Python + HTML (Include)", "grammars/python275.eco", "Python")

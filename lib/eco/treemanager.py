@@ -2218,7 +2218,7 @@ class TreeManager(object):
         r2.preparse(outer_root, lbox)
         r2.parse_after(lbox)
         filtered = []
-        for e in r.possible_ends:
+        for e, _ in r.possible_ends:
             if e.lookup == "<ws>" or e.lookup == "<return>":
                 continue
             tmp = r2.state[:]
