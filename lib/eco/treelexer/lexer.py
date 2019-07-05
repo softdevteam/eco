@@ -298,12 +298,14 @@ class TreePatternMatcher(PatternMatcher):
         self.pos = state[0]
         self.text = state[1]
         self.exactmatch = state[2]
-        self.result = state[3]
-        self.read_nodes = state[4]
+        assert state[3] <= len(self.result)
+        del self.result[state[3]:]
+        assert state[4] <= len(self.read_nodes)
+        del self.read_nodes[state[4]:]
         self.la = state[5]
 
     def save_state(self):
-        return (self.pos, self.text, self.exactmatch, list(self.result), list(self.read_nodes), self.la)
+        return (self.pos, self.text, self.exactmatch, len(self.result), len(self.read_nodes), self.la)
 
     def match_one(self, pattern):
         if type(self.text.symbol) in [MagicTerminal, IndentationTerminal]:
