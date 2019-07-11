@@ -5410,7 +5410,6 @@ int x = 1;
         treemanager.key_backspace()
         for c in "$this . 'http://":
             treemanager.key_normal(c)
-        print("\n\n\n\n")
         treemanager.key_normal("'")
         assert parser.last_status is True
         assert len(treemanager.parsers) == 2

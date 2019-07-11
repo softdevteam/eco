@@ -376,7 +376,7 @@ class AutoLBoxComplete(QFrame):
                         temp = temp.next_term
                     text.append(e.symbol.name[:split] if split<0 else e.symbol.name)
                     text.append(" : {}".format(l))
-                item = QAction("".join(text), menu)
+                item = QAction("".join(text).replace("&", "&&"), menu)
                 item.setData((s,e,l,split))
                 menu.addAction(item)
             action = menu.exec_(self.mapToGlobal(event.pos()))

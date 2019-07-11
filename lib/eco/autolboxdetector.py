@@ -390,7 +390,7 @@ class Recognizer(object):
             t = self.tokeniter()
             self.last_read = t[3][-1]
             self.last_token_value = t[0]
-            self.last_split = len(t[0]) - length
+            self.last_split = t[4]
             return Terminal(t[1])
         except StopIteration:
             self.reached_eos = True
