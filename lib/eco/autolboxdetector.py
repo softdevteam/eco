@@ -206,7 +206,7 @@ class NewAutoLboxDetector(object):
         stack = []
         for i in range(cut+1):
             stack.append(self.op.stack[i].state)
-        after_end = self.op.next_terminal(end)
+        after_end = end.next_term
         # do all reductions until there's a shift or accept (whitespace doesn't
         # count)
         lboxnode = TextNode(lbox)

@@ -5291,6 +5291,103 @@ WHERE ProductID IN (SELECT ProductID FROM OrderDetails WHERE Quantity = 10);"""
         assert len(treemanager.parsers) == 2 # box now has been expanded
         assert parser.last_status == True
 
+    def test_java_php_shrink_bug(self):
+        grm = load_json_grammar("test/javaphp_expr.json")
+        parser, lexer = grm.load()
+        parser.setup_autolbox(grm.name, lexer)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        assert len(treemanager.parsers) == 1
+        p = """class X {
+    public void println() {
+        if (numPrinted >= numLines) {
+        }
+
+        int x = (a == 'x');
+    }
+}"""
+        treemanager.import_file(p)
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == True
+
+        treemanager.key_cursors(DOWN)
+        treemanager.key_cursors(DOWN)
+        treemanager.key_end()
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        for i in range(22):
+            treemanager.key_backspace()
+
+        p2 = "'set_transient_' . $transient'"
+        for c in p2:
+            treemanager.key_normal(c)
+        assert parser.last_status == True
+
+    def test_java_php_shrink_bug2(self):
+        grm = load_json_grammar("test/javaphp_expr.json")
+        parser, lexer = grm.load()
+        parser.setup_autolbox(grm.name, lexer)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        assert len(treemanager.parsers) == 1
+        p = """class X {
+    public void println() {
+        if (i < fDepth - 1) {
+            System.out.print(',');
+        }
+    }
+}"""
+        treemanager.import_file(p)
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == True
+
+        treemanager.key_cursors(DOWN)
+        treemanager.key_cursors(DOWN)
+        treemanager.key_end()
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        treemanager.key_cursors(LEFT)
+        for i in range(14):
+            treemanager.key_backspace()
+
+        p2 = "d('i') && $s->l('i')"
+        for c in p2:
+            treemanager.key_normal(c)
+        assert parser.last_status == True
+
+    def test_java_php_preparse_bug(self):
+        grm = load_json_grammar("test/javaphp_expr.json")
+        parser, lexer = grm.load()
+        parser.setup_autolbox(grm.name, lexer)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        assert len(treemanager.parsers) == 1
+        p = """class C {
+public static int contents = {
+    { SOMEVAR, "strubg" },
+
+    { ANOTHERVAR, "string ',' string!"}
+};
+}"""
+        treemanager.import_file(p)
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == True
+
+        treemanager.key_cursors(DOWN)
+        treemanager.key_cursors(DOWN)
+        treemanager.key_end()
+        for i in range(13):
+            treemanager.key_cursors(LEFT)
+        for i in range(7):
+            treemanager.key_backspace()
+        for c in "'test'":
+            print("input", c)
+            treemanager.key_normal(c)
+
     @pytest.mark.skipif("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true", reason="Sqlite takes too long to built on Travis. Skip!")
     def test_lua_sqlite_expand(self):
         grm = load_json_grammar("test/luasqlite_expr.json")

@@ -1569,9 +1569,20 @@ class TreeManager(object):
         l = []
         n = newend
         while type(n) is not EOS:
-            l.append(n.symbol.name)
+            if isinstance(n, MultiTextNode):
+                for c in list(n.children):
+                    l.append(c.symbol.name)
+                    c.remove()
+                    c.deleted = True
+            else:
+                l.append(n.symbol.name)
             n.remove()
             n = n.next_term
+
+        for i in reversed(range(len(self.lines))):
+            if self.lines[i].node.deleted:
+                del self.lines[i]
+
         self.skipautolbox = True
         self.reparse(lbox.symbol.ast.children[0], True)
 
@@ -2160,7 +2171,7 @@ class TreeManager(object):
             # remove language boxes that are not valid anymore
             p = temp[0]
             lbox = p.previous_version.parent.get_magicterminal()
-            if lbox and lbox.tbd:
+            if lbox and lbox.tbd and not lbox.deleted:
                 if lbox.tbd == "remove" or self.lbox_autoremove_test(lbox, p.last_status):
                     self.remove_languagebox(lbox)
                 else:
