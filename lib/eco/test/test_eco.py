@@ -5389,6 +5389,32 @@ public static int contents = {
             print("input", c)
             treemanager.key_normal(c)
 
+    def test_java_php_slashslash_bug(self):
+        grm = load_json_grammar("test/javaphp_expr.json")
+        parser, lexer = grm.load()
+        parser.setup_autolbox(grm.name, lexer)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+        assert len(treemanager.parsers) == 1
+        p = """class C {
+int x = 1;
+}"""
+        treemanager.import_file(p)
+        assert len(treemanager.parsers) == 1
+        assert parser.last_status == True
+
+        treemanager.key_cursors(DOWN)
+        treemanager.key_end()
+        treemanager.key_cursors(LEFT);
+        treemanager.key_backspace()
+        for c in "$this . 'http://":
+            treemanager.key_normal(c)
+        print("\n\n\n\n")
+        treemanager.key_normal("'")
+        assert parser.last_status is True
+        assert len(treemanager.parsers) == 2
+
     @pytest.mark.skipif("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true", reason="Sqlite takes too long to built on Travis. Skip!")
     def test_lua_sqlite_expand(self):
         grm = load_json_grammar("test/luasqlite_expr.json")
