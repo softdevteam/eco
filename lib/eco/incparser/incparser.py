@@ -955,8 +955,10 @@ class IncParser(object):
         self.last_shift_state = 0
         self.validating = False
         self.last_status = False
+        tmp = self.previous_version.parent.name
         self.previous_version = None
         self.init_ast()
+        self.previous_version.parent.name = tmp
 
     def load_status(self, version):
         try:
