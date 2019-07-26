@@ -339,11 +339,11 @@ class Test_IncrementalLexing(object):
         bos.insert_after(new)
 
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ("1", "INT", 1, [TextNode(Terminal("1+2*3"))])
-        assert it.next() == ("+", "plus", 0, [TextNode(Terminal("1+2*3"))])
-        assert it.next() == ("2", "INT", 1, [TextNode(Terminal("1+2*3"))])
-        assert it.next() == ("*", "mul", 0, [TextNode(Terminal("1+2*3"))])
-        assert it.next() == ("3", "INT", 1, [TextNode(Terminal("1+2*3"))])
+        assert it.next() == ("1", "INT", 1, [TextNode(Terminal("1+2*3"))], -4)
+        assert it.next() == ("+", "plus", 0, [TextNode(Terminal("1+2*3"))], -3)
+        assert it.next() == ("2", "INT", 1, [TextNode(Terminal("1+2*3"))], -2)
+        assert it.next() == ("*", "mul", 0, [TextNode(Terminal("1+2*3"))], -1)
+        assert it.next() == ("3", "INT", 1, [TextNode(Terminal("1+2*3"))], 0)
         with pytest.raises(StopIteration):
             it.next()
 
@@ -355,7 +355,7 @@ class Test_IncrementalLexing(object):
         bos.insert_after(new)
 
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ("1", "INT", 1, [TextNode(Terminal("1b"))])
+        assert it.next() == ("1", "INT", 1, [TextNode(Terminal("1b"))], -1)
         with pytest.raises(LexingError):
             it.next()
 
@@ -371,9 +371,9 @@ class Test_IncrementalLexing(object):
         new2.insert_after(new3)
 
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ("12", "INT", 1, [TextNode(Terminal("12"))])
-        assert it.next() == (lbph, "", 0, [TextNode(MagicTerminal("<SQL>"))])
-        assert it.next() == ("34", "INT", 1, [TextNode(Terminal("34"))])
+        assert it.next() == ("12", "INT", 1, [TextNode(Terminal("12"))], 0)
+        assert it.next() == (lbph, "", 0, [TextNode(MagicTerminal("<SQL>"))], 0)
+        assert it.next() == ("34", "INT", 1, [TextNode(Terminal("34"))], 0)
         with pytest.raises(Exception):
             it.next()
 
@@ -391,8 +391,8 @@ class Test_IncrementalLexing(object):
         new3.insert_after(new4)
 
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ("12", "INT", 1, [TextNode(Terminal("12"))])
-        assert it.next() == (["'string with", lbph, "inside'"], "string", 0, [TextNode(Terminal("'string with")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("inside'"))])
+        assert it.next() == ("12", "INT", 1, [TextNode(Terminal("12"))], 0)
+        assert it.next() == (["'string with", lbph, "inside'"], "string", 0, [TextNode(Terminal("'string with")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("inside'"))], 0)
         with pytest.raises(StopIteration):
             it.next()
 
@@ -412,7 +412,7 @@ class Test_IncrementalLexing(object):
         new4.insert_after(new5)
 
         it = self.lexer.get_token_iter(new1)
-        assert it.next() == (["'a", lbph, "b", lbph, "c'"], "string", 0, [TextNode(Terminal("'a")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))])
+        assert it.next() == (["'a", lbph, "b", lbph, "c'"], "string", 0, [TextNode(Terminal("'a")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))], 0)
         with pytest.raises(StopIteration):
             it.next()
 
@@ -428,7 +428,7 @@ class Test_IncrementalLexing(object):
         new2.insert_after(new3)
 
         it = self.lexer.get_token_iter(new1)
-        assert it.next() == (["'a", "\r", "b'"], "string", 0, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b'"))])
+        assert it.next() == (["'a", "\r", "b'"], "string", 0, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b'"))], 0)
         with pytest.raises(StopIteration):
             it.next()
 
@@ -448,7 +448,7 @@ class Test_IncrementalLexing(object):
         new4.insert_after(new5)
 
         it = self.lexer.get_token_iter(new1)
-        assert it.next() == (["'a", "\r", "b", lbph, "c'"], "string", 0, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))])
+        assert it.next() == (["'a", "\r", "b", lbph, "c'"], "string", 0, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))], 0)
         with pytest.raises(StopIteration):
             it.next()
 
@@ -467,7 +467,7 @@ class Test_TripleQuote(object):
         new = TextNode(Terminal('"""abc"""'))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ('"""abc"""', "MLS", 0, [TextNode(Terminal('"""abc"""'))])
+        assert it.next() == ('"""abc"""', "MLS", 0, [TextNode(Terminal('"""abc"""'))], 0)
 
     def test_simple2(self):
         ast = AST()
@@ -475,7 +475,7 @@ class Test_TripleQuote(object):
         new = TextNode(Terminal('""'))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ('""', "dstring", 1, [TextNode(Terminal('""'))])
+        assert it.next() == ('""', "dstring", 1, [TextNode(Terminal('""'))], 0)
 
     def test_simple3(self):
         ast = AST()
@@ -483,7 +483,7 @@ class Test_TripleQuote(object):
         new = TextNode(Terminal('"""'))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ('""', "dstring", 2, [TextNode(Terminal('"""'))])
+        assert it.next() == ('""', "dstring", 2, [TextNode(Terminal('"""'))], -1)
 
     def test_simple4(self):
         ast = AST()
@@ -491,8 +491,8 @@ class Test_TripleQuote(object):
         new = TextNode(Terminal('"""abc""d'))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ('""', "dstring", 7, [TextNode(Terminal('"""abc""d'))])
-        assert it.next() == ('"abc"', "dstring", 0, [TextNode(Terminal('"""abc""d'))])
+        assert it.next() == ('""', "dstring", 7, [TextNode(Terminal('"""abc""d'))], -7)
+        assert it.next() == ('"abc"', "dstring", 0, [TextNode(Terminal('"""abc""d'))], -2)
 
 class Test_Keyword(object):
 
@@ -508,7 +508,7 @@ class Test_Keyword(object):
         new = TextNode(Terminal("asd"))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ("asd", "NAME", 1, [TextNode(Terminal("asd"))])
+        assert it.next() == ("asd", "NAME", 1, [TextNode(Terminal("asd"))], 0)
 
 class Test_LuaComments(object):
 
@@ -525,7 +525,7 @@ class Test_LuaComments(object):
         new = TextNode(Terminal('--[[testtest]]'))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ('--[[testtest]]', "mcomment", 0, [TextNode(Terminal('--[[testtest]]'))])
+        assert it.next() == ('--[[testtest]]', "mcomment", 0, [TextNode(Terminal('--[[testtest]]'))], 0)
 
     def test_lookahead(self):
         ast = AST()
@@ -533,7 +533,7 @@ class Test_LuaComments(object):
         new = TextNode(Terminal('--[[test\rtest'))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ('--[[test', "scomment", 6, [TextNode(Terminal('--[[test\rtest'))])
+        assert it.next() == ('--[[test', "scomment", 6, [TextNode(Terminal('--[[test\rtest'))], -5)
 
     def test_multi(self):
         ast = AST()
@@ -541,4 +541,4 @@ class Test_LuaComments(object):
         new = TextNode(Terminal('--[[test\rtest]]'))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        assert it.next() == (['--[[test', '\r', 'test]]'], "mcomment", 0, [TextNode(Terminal('--[[test\rtest]]'))])
+        assert it.next() == (['--[[test', '\r', 'test]]'], "mcomment", 0, [TextNode(Terminal('--[[test\rtest]]'))], 0)

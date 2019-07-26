@@ -537,7 +537,7 @@ class Lexer(object):
             lookahead = 0
             oldpos = pos
             oldnode = node
-            result = ("", None, -1, None)
+            result = ("", None, -1, None, 0)
             while type(node.symbol) is IndentationTerminal:
                 node = node.next_term
             if type(node) is MultiTextNode:
@@ -550,7 +550,7 @@ class Lexer(object):
                     read = [node.parent]
                 else:
                     read = [node]
-                yield (lbph, "", 0, read)
+                yield (lbph, "", 0, read, 0)
                 if node.next_term is None and node.ismultichild():
                     node = node.parent.next_term
                 else:
@@ -560,7 +560,12 @@ class Lexer(object):
                 token = pm.match(p, node, pos)
                 lookahead = max(pm.la, lookahead)
                 if token and self.tlen(token) > self.tlen(result[0]): # find longest match
-                    result = (token, n, lookahead - pm.scanned_chars, pm.read_nodes)
+                    if pm.pos > 0 and pm.pos != len(pm.text.symbol.name):
+                        # Record when a node only produced a partial match
+                        split = pm.pos - len(pm.text.symbol.name)
+                    else:
+                        split = 0
+                    result = (token, n, lookahead - pm.scanned_chars, pm.read_nodes, split)
                     progress = pm.pos, pm.text
                     continue
                 else:

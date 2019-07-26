@@ -1342,11 +1342,12 @@ class TreeManager(object):
         self.cursor.line = len(self.lines) - 1
         self.selection_end = self.cursor.copy()
 
-    def select_from_to(self, _from, _to):
+    def select_from_to(self, _from, _to, split):
         self.cursor.move_to_node(_from)
         self.selection_start = self.cursor.copy()
         self.cursor.move_to_node(_to, after=True)
         self.selection_end = self.cursor.copy()
+        self.selection_end.pos += split
 
     def get_all_annotations_with_hint(self, hint):
         """Return all annotations (optionally of a specific type).
@@ -2182,11 +2183,11 @@ class TreeManager(object):
             # apply language boxes if there is only one choice
             for n in p.error_nodes:
                 if not n.deleted and n.autobox and len(n.autobox) == 1:
-                    s, e, l = n.autobox[0]
+                    s, e, l, split = n.autobox[0]
                     self.undo_snapshot()
                     ctemp = self.cursor.get_x()
                     ltemp = self.cursor.line
-                    self.select_from_to(s, e)
+                    self.select_from_to(s, e, split)
                     self.skipautolbox = True # block automatic lboxes during automatic insertion
                     self.surround_with_languagebox(lang_dict[l], True)
                     self.cursor.line = ltemp
@@ -2218,7 +2219,7 @@ class TreeManager(object):
         r2.preparse(outer_root, lbox)
         r2.parse_after(lbox)
         filtered = []
-        for e, _ in r.possible_ends:
+        for e, _, _ in r.possible_ends:
             if e.lookup == "<ws>" or e.lookup == "<return>":
                 continue
             tmp = r2.state[:]
