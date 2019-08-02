@@ -145,6 +145,29 @@ class EcoFile(object):
     def __str__(self):
         return self.name
 
+    def __eq__(self, other):
+        if self.name != other.name:
+            return False
+        if self.base != other.base:
+            return False
+        if self.filename != other.filename:
+            return False
+        if self.alts != other.alts:
+            return False
+        if self.included_langs != other.included_langs:
+            return False
+        if self.extract != other.extract:
+            return False
+        if self.auto_include != other.auto_include:
+            return False
+        if self.auto_exclude != other.auto_exclude:
+            return False
+        if self.auto_limit_new != other.auto_limit_new:
+            return False
+        if self.nb_file != other.nb_file:
+            return False
+        return True
+
     def __hash__(self):
         h1 = hash(file(self.filename, "r").read())
         h2 = hash(repr(self.alts))
@@ -157,6 +180,10 @@ submenu_langs = []
 lang_dict = {}
 
 def add_lang(lang, new=False, sub=False):
+    if lang in languages:
+        # if two language definitions are identical we only need to add one of
+        # them
+        return
     languages.append(lang)
     if lang_dict.has_key(lang.name):
         print("Error: Multiple definitions for language '{}'".format(lang))
