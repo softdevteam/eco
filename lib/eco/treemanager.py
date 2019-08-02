@@ -1937,7 +1937,9 @@ class TreeManager(object):
         for root, language, whitespaces in language_boxes:
             grammar = lang_dict[language]
             incparser, inclexer = self.get_parser_lexer_for_language(grammar, whitespaces)
+            incparser.setup_autolbox(grammar.name, inclexer)
             incparser.previous_version.parent = root
+            incparser.previous_version.parent.name = grammar.name
             try:
                 lbox = root.magic_backpointer
                 lbox.parent_lbox = lbox.get_root()
