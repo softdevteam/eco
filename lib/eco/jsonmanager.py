@@ -23,7 +23,7 @@ import json, gzip, sys
 sys.setrecursionlimit(2000)
 
 from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal, Nonterminal
-from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol
+from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol, MultiTextNode
 try:
     import __pypy__
 except ImportError:
@@ -100,8 +100,11 @@ class JsonManager(object):
         symbol.name = jsnode["text"].encode("utf-8")
         if self.unescape:
             symbol.name = symbol.name.decode("string-escape")
-        node = node_class(symbol)
-        assert node.symbol is symbol
+        if node_class is not MultiTextNode:
+            node = node_class(symbol)
+            assert node.symbol is symbol
+        else:
+            node = node_class()
         node.lookup = jsnode["lookup"]
         try:
             node.local_error = jsnode["local_error"]
@@ -143,6 +146,9 @@ class JsonManager(object):
             children.append(cnode)
             last_child = cnode
         node.children = children
+        if node_class is MultiTextNode:
+            node.update_children()
+            self.last_terminal = node
         node.calc_textlength()
         node.save(0)
 
