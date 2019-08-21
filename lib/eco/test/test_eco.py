@@ -5173,6 +5173,32 @@ WHERE ProductID IN (SELECT ProductID FROM OrderDetails WHERE Quantity = 10);"""
         assert len(treemanager.parsers) == 2
         assert parser.last_status == True
 
+    def test_java_sql_ranking(self):
+        p = """class C {
+int x = 1, y = 2;
+int y = 1 + 2 * 3;
+int z = 4 + 5 - 6;
+}"""
+
+        parser, lexer = javasql.load()
+        parser.setup_autolbox(javasql.name, lexer)
+        treemanager = TreeManager()
+        treemanager.option_autolbox_insert = True
+        treemanager.add_parser(parser, lexer, "")
+
+        for c in p:
+            treemanager.key_normal(c)
+
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        treemanager.key_cursors(UP)
+        treemanager.key_end()
+        for i in range(8): treemanager.key_cursors(LEFT)
+        treemanager.key_backspace()
+        for s in "SELECT a":
+            treemanager.key_normal(s)
+        assert len(parser.error_nodes[0].autobox) == 2
+
     def test_php_python_autoremove(self):
         """Sometimes automatically inserted boxes are valid in both languages.
         Previously we only autoremoved boxes that were invalid. However, we
