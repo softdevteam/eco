@@ -113,7 +113,6 @@ class NewAutoLboxDetector(object):
 
     def heuristic_line(self, errornode):
         valid = []
-        pv = self.op.prev_version
         for sub in self.langs:
             lbox = MagicTerminal("<{}>".format(sub))
             node = errornode.prev_term
@@ -129,7 +128,7 @@ class NewAutoLboxDetector(object):
                             if e.lookup == "<ws>" or e.lookup == "<return>":
                                 continue
                             valid.append((start, e, sub, enddist, split, lbox, errornode))
-                if node.lookup == "<return>" or type(node) is BOS:
+                if node.lookup == "<return>" or type(node) is BOS or node.ismultinode():
                     break
                 node = node.prev_term
         return valid

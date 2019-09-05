@@ -298,6 +298,9 @@ class Node(object):
     def ismultichild(self):
         return isinstance(self.parent, MultiTextNode)
 
+    def ismultinode(self):
+        return type(self) is MultiTextNode
+
     def insert_after_node(self, node, newnode):
         i = 0
         for c in self.children:
