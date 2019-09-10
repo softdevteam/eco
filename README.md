@@ -18,7 +18,6 @@ link above).
 If you wish to see visualisations of parse trees, you may optionally install:
 
 * GraphViz http://www.graphviz.org/Download.php
-* PyDot https://code.google.com/p/pydot/
 
 
 ### Running Eco ###
