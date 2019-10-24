@@ -1,5 +1,5 @@
-from astree import FinishSymbol, BOS, EOS, Nonterminal
-from syntaxtable import Goto
+from .astree import FinishSymbol, BOS, EOS, Nonterminal
+from .syntaxtable import Goto
 import logging
 
 class RecoveryManager(object):

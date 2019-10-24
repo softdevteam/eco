@@ -45,7 +45,7 @@ import renderers
 
 import logging
 
-whitelist = set(u"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!\"$%^&*()_-+=;:'@#~[]{},.<>/?|\\`\r ")
+whitelist = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!\"$%^&*()_-+=;:'@#~[]{},.<>/?|\\`\r ")
 
 def debug_trace():
   '''Set a tracepoint in the Python debugger that works with Qt'''
@@ -414,7 +414,7 @@ class NodeEditor(QFrame):
 
             # check if node is connected to auto lbox
             if node.autobox:
-                if self.autolboxlines.has_key(line):
+                if line in self.autolboxlines:
                     for box in node.autobox:
                         # Avoid duplicate suggestions by comparing the
                         # identities of language box candidates

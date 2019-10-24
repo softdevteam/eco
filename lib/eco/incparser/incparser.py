@@ -19,22 +19,22 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from __future__ import print_function
+
 
 try:
-    import cPickle as pickle
+    import pickle as pickle
 except:
     import pickle
 
 import time, os
 
 from grammar_parser.gparser import Parser, Nonterminal, Terminal, Epsilon, IndentationTerminal, MagicTerminal
-from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Accept, Shift
-from stategraph import StateGraph
-from constants import LR0, LALR
-from astree import AST, TextNode, BOS, EOS
+from .syntaxtable import SyntaxTable, FinishSymbol, Reduce, Accept, Shift
+from .stategraph import StateGraph
+from .constants import LR0, LALR
+from .astree import AST, TextNode, BOS, EOS
 from ip_plugins.plugin import PluginManager
-from error_recovery import RecoveryManager
+from .error_recovery import RecoveryManager
 from autolboxdetector import NewAutoLboxDetector
 
 import logging
@@ -923,7 +923,7 @@ class IncParser(object):
         return AST(root)
 
     def get_next_possible_symbols(self, state_id):
-        return self.syntaxtable.table[state_id].iterkeys()
+        return iter(self.syntaxtable.table[state_id].keys())
 
     def get_next_symbols_list(self, state = -1):
         if state == -1:

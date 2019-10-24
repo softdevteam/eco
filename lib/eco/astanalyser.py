@@ -303,7 +303,7 @@ class AstAnalyser(object):
                 return analyser
 
     def analyse_refs(self):
-        if self.data.has_key("reference"):
+        if "reference" in self.data:
             for reference in self.data["reference"]:
                 self.find_reference(reference)
 
@@ -342,7 +342,7 @@ class AstAnalyser(object):
         self.errors[reference.node] = "'%s' cannot be resolved to a variable." % (reference.name)
 
     def get_reference(self, kind, path, name):
-        if not self.data.has_key(kind):
+        if kind not in self.data:
             return None
         for candidate in self.data[kind]:
             if candidate.name != name:
@@ -366,7 +366,7 @@ class AstAnalyser(object):
         return _type in scope.nbrule.get_scopes()
 
     def has_error(self, node):
-        return self.errors.has_key(node)
+        return node in self.errors
 
     def get_error(self, node):
         try:
@@ -410,7 +410,7 @@ class AstAnalyser(object):
                 # astnode must have a corresponding entry in self.data
                 if nbrule:
                     deftype = nbrule.get_deftype()
-                    if self.data.has_key(deftype):
+                    if deftype in self.data:
                         for e in self.data[deftype]:
                             if e.astnode is astnode:
                                 return astnode
@@ -523,33 +523,33 @@ class NBRule(object):
         self.options = options
 
     def is_definition(self):
-        return self.options.has_key('defines')
+        return 'defines' in self.options
 
     def is_reference(self):
-        return self.options.has_key('references')
+        return 'references' in self.options
 
     def get_scopes(self):
-        if self.options.has_key('scopes'):
+        if 'scopes' in self.options:
             return self.options['scopes']
         return []
 
     def get_references(self):
-        if self.options.has_key('references'):
+        if 'references' in self.options:
             return self.options['references']
         return []
 
     def get_definition(self):
-        if self.options.has_key('defines'):
+        if 'defines' in self.options:
             return self.options['defines']
         return None
 
     def get_visibility(self):
-        if self.options.has_key('in'):
+        if 'in' in self.options:
             return self.options['in']
         return "surrounding"
 
     def get_in(self):
-        if self.options.has_key('in'):
+        if 'in' in self.options:
             return self.options['in']
         return None
 

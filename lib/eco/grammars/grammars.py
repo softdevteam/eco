@@ -66,7 +66,7 @@ class EcoFile(object):
         from jsonmanager import JsonManager
         from incparser.incparser import IncParser
 
-        if _cache.has_key(self.name + "::parser"):
+        if self.name + "::parser" in _cache:
 
             syntaxtable, whitespaces = _cache[self.name + "::parser"]
             incparser = IncParser()
@@ -126,7 +126,7 @@ class EcoFile(object):
 
     def set_auto_exclude(self, lang, tokentype):
         if self.auto_include is not None:
-            print "Warning: Inclusion and exclusion rules may conflict! Exclusion rules will be ignored."
+            print("Warning: Inclusion and exclusion rules may conflict! Exclusion rules will be ignored.")
             return
         if self.auto_exclude is None:
             self.auto_exclude = {}
@@ -136,9 +136,9 @@ class EcoFile(object):
         self.nb_file = "{}/{}".format(os.path.dirname(self.filename), basename)
 
     def auto_allows(self, lang, tokentype):
-        if self.auto_include and self.auto_include.has_key(lang):
+        if self.auto_include and lang in self.auto_include:
             return tokentype in self.auto_include[lang]
-        if self.auto_exclude and self.auto_exclude.has_key(lang):
+        if self.auto_exclude and lang in self.auto_exclude:
             return tokentype not in self.auto_exclude[lang]
         return True
 
@@ -185,7 +185,7 @@ def add_lang(lang, new=False, sub=False):
         # them
         return
     languages.append(lang)
-    if lang_dict.has_key(lang.name):
+    if lang.name in lang_dict:
         print("Error: Multiple definitions for language '{}'".format(lang))
         exit()
     lang_dict[lang.name] = lang
@@ -206,15 +206,15 @@ if not __pypy__:
 
 def create_grammar_from_config(cfg, filename):
     main = EcoFile(cfg["name"], cfg["file"], cfg["base"])
-    if cfg.has_key("limit_historic_tokens"):
+    if "limit_historic_tokens" in cfg:
         main.auto_limit_new = cfg["limit_historic_tokens"]
-    if cfg.has_key("subset") and cfg["subset"]:
+    if "subset" in cfg and cfg["subset"]:
         main.change_start(cfg["subset"])
-    if cfg.has_key("custom_namebinding"):
+    if "custom_namebinding" in cfg:
         main.set_custom_nb(cfg["custom_namebinding"])
-    if cfg.has_key("compositions"):
+    if "compositions" in cfg:
         for c in cfg["compositions"]:
-            if not c.has_key("file"):
+            if "file" not in c:
                 sub = c["name"]
                 reused.append((filename, sub))
             else:
@@ -236,6 +236,6 @@ for root, _, files in os.walk("grammars/include/"):
 for r in reused:
     if not r[1] in lang_dict:
         error = True
-        print "Error in '{}': Referenced language '{}' doesn't exist.".format(r[0], r[1])
+        print("Error in '{}': Referenced language '{}' doesn't exist.".format(r[0], r[1]))
 if error:
     exit()

@@ -19,12 +19,12 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from __future__ import print_function
 
-from state import State, StateSet, LR0Element, LR1Element
-from production import Production
+
+from .state import State, StateSet, LR0Element, LR1Element
+from .production import Production
 from grammar_parser.gparser import Terminal, Nonterminal, Epsilon
-from syntaxtable import FinishSymbol
+from .syntaxtable import FinishSymbol
 
 epsilon = Epsilon()
 
@@ -109,7 +109,7 @@ class Helper(object):
         changes = True
         while changes:
             changes = False
-            for rule in self.grammar.values():
+            for rule in list(self.grammar.values()):
                 for alternative in rule.alternatives:
                     for i in range(len(alternative)):
                         oldfollow = self.follow(alternative[i])
@@ -202,7 +202,7 @@ class Helper(object):
                         if a == []:
                             a = [Epsilon()]
                         p = Production(symbol, a, self.grammar[symbol].annotations[i], self.grammar[symbol].precs[i])
-                        if self.grammar[symbol].inserts.has_key(i):
+                        if i in self.grammar[symbol].inserts:
                             insert = self.grammar[symbol].inserts[i]
                             p.inserts[insert[0]] = insert[1]
                         s = LR0Element(p, 0)
@@ -366,7 +366,7 @@ def follow(grammar, symbol):
            ==> add follow(X) to follow(symbol)
     """
     result = set()
-    for rule in grammar.values():
+    for rule in list(grammar.values()):
         for alternative in rule.alternatives:
             for i in range(len(alternative)):
                 # skip all symbols until we find the symbol we want to build the follow set from

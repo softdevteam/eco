@@ -377,7 +377,7 @@ class JRubyCallgraphProcessor(object):
                 i += 1
 
         # Resolve method ids to point to the actual object
-        for obj in objects.itervalues():
+        for obj in objects.values():
             if isinstance(obj, CallSiteVersion):
                 callsite_version = obj
                 new_calls = []
@@ -394,7 +394,7 @@ class JRubyCallgraphProcessor(object):
                 callsite_version.calls = new_calls
         # Resolve eval() strings. This must be done after resolving method
         # ids, because we need to walk eval strings back up the callgraph.
-        for obj in objects.itervalues():
+        for obj in objects.values():
             if isinstance(obj, MethodVersion) and "#eval" in obj.method.name:
                 version = obj
                 if version.eval_code:
@@ -404,7 +404,7 @@ class JRubyCallgraphProcessor(object):
         # Find which objects were actually used
         reachable_objects = set()
         reachable_worklist = set()
-        for obj in objects.itervalues():
+        for obj in objects.values():
             if ((isinstance(obj, Method) and not obj.is_core()) or
                 (isinstance(obj, MethodVersion) and
                  obj.method.name == "<main>" and

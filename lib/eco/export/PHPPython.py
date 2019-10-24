@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-import helper
+from . import helper
 from incparser.astree import BOS, EOS, TextNode
 from grammar_parser.gparser import MagicTerminal, IndentationTerminal
 import re

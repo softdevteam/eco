@@ -1,11 +1,11 @@
-from __future__ import generators
+
 import os, time, sys
 import pygame
 from pygame.locals import *
-from drawgraph import GraphRenderer
-from drawgraph import Node, Edge
-from drawgraph import EventQueue, wait_for_events
-from strunicode import forceunicode, forcestr
+from .drawgraph import GraphRenderer
+from .drawgraph import Node, Edge
+from .drawgraph import EventQueue, wait_for_events
+from .strunicode import forceunicode, forcestr
 from incparser.astree import TextNode, Terminal, Nonterminal
 
 
@@ -47,14 +47,16 @@ def permute_mods(base, args):
 
 class Display(object):
 
-    def __init__(self, (w,h)=(800,680)):
+    def __init__(self, res=(800,680)):
         # initialize the modules by hand, to avoid initializing too much
         # (e.g. the sound system)
+        (w,h) = res
         pygame.display.init()
         pygame.font.init()
         self.resize((w,h))
 
-    def resize(self, (w,h)):
+    def resize(self, res):
+        (w,h) = res
         self.width = w
         self.height = h
         self.screen = pygame.display.set_mode((w, h), HWSURFACE|RESIZABLE, 32)
@@ -171,16 +173,16 @@ class GraphDisplay(Display):
 
         mask = 0
 
-        for strnames, methodname in self.KEYS.iteritems():
+        for strnames, methodname in self.KEYS.items():
             names = strnames.split()
-            if not isinstance(methodname, basestring):
+            if not isinstance(methodname, str):
                 methodname, args = methodname[0], methodname[1:]
             else:
                 args = ()
             method = getattr(self, methodname, None)
             if method is None:
-                print 'Can not implement key mapping %r, %s.%s does not exist' % (
-                        strnames, self.__class__.__name__, methodname)
+                print('Can not implement key mapping %r, %s.%s does not exist' % (
+                        strnames, self.__class__.__name__, methodname))
                 continue
 
             mods = []
@@ -196,7 +198,7 @@ class GraphDisplay(Display):
                 else:
                     val = GET_KEY(name)
                     assert len(keys) == 0
-                    if not isinstance(val, (int, basestring)):
+                    if not isinstance(val, (int, str)):
                         keys.extend([GET_KEY(k) for k in val])
                     else:
                         keys.append(val)
@@ -298,8 +300,8 @@ class GraphDisplay(Display):
                         return forcestr(text) # return encoded unicode
                     elif e.key == K_BACKSPACE:
                         text = text[:-1]
-                    elif e.unicode and ord(e.unicode) >= ord(' '):
-                        text += e.unicode
+                    elif e.str and ord(e.str) >= ord(' '):
+                        text += e.str
             if text != old_text:
                 draw(prompt + text)
 
@@ -390,11 +392,13 @@ class GraphDisplay(Display):
     def reoffset(self):
         self.viewer.reoffset(self.width, self.height)
 
-    def pan(self, (x, y)):
+    def pan(self, pos):
+        (x, y) = pos
         self.viewer.shiftoffset(x * (self.width // 8), y * (self.height // 8))
         self.updated_viewer()
 
-    def fast_pan(self, (x, y)):
+    def fast_pan(self, pos):
+        (x, y) = pos
         self.pan((x * 4, y * 4))
 
     def update_status_bar(self):
@@ -692,8 +696,8 @@ class GraphDisplay(Display):
     def process_KeyDown(self, event):
         mod = event.mod & self.key_mask
         method, args = self.key_cache.get((event.key, mod), (None, None))
-        if method is None and event.unicode:
-            char = event.unicode.lower()
+        if method is None and event.str:
+            char = event.str.lower()
             mod = mod & ~ KMOD_SHIFT
             method, args = self.ascii_key_cache.get((char, mod), (None, None))
         if method is not None:
@@ -769,7 +773,7 @@ def shortlabel(label):
     return label and label.replace('\\l', '\n').splitlines()[0]
 
 
-def renderline(text, font, fgcolor, width, maxheight=sys.maxint,
+def renderline(text, font, fgcolor, width, maxheight=sys.maxsize,
                overflowcolor=None):
     """Render a single line of text into a list of images.
 
@@ -804,7 +808,7 @@ def renderline(text, font, fgcolor, width, maxheight=sys.maxint,
     return lines
 
 
-def rendertext(text, font, fgcolor, width, maxheight=sys.maxint,
+def rendertext(text, font, fgcolor, width, maxheight=sys.maxsize,
                overflowcolor=None):
     """Render a multiline string into a list of images.
 

@@ -22,7 +22,7 @@
 # Grammar operations
 
 import re
-from grammars import Language
+from .grammars import Language
 
 
 def _rules_to_str(rules):

@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from grammars import Language
+from .grammars import Language
 
 python275_annotated = Language("Python 2.7.5 (Annotated)",
 """

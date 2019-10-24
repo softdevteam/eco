@@ -103,7 +103,7 @@ class Cursor(object):
         self.lines = lines
 
     def clean_versions(self, version):
-        for key in self.log.keys():
+        for key in list(self.log.keys()):
             if key > version:
                 del self.log[key]
 
@@ -885,7 +885,7 @@ class TreeManager(object):
     def get_max_version(self):
         root = self.get_bos().parent
         maxversion = 0
-        for (key, version) in root.log.keys():
+        for (key, version) in list(root.log.keys()):
             maxversion = max(maxversion, version)
         return maxversion
 
@@ -960,10 +960,10 @@ class TreeManager(object):
 
     def clean_versions(self, version):
         # clean linenumbers
-        for key in self.saved_lines.keys():
+        for key in list(self.saved_lines.keys()):
             if key > version:
                 del self.saved_lines[key]
-        for key in self.saved_parsers.keys():
+        for key in list(self.saved_parsers.keys()):
             if key > version:
                 del self.saved_parsers[key]
         self.cursor.clean_versions(version)
@@ -990,7 +990,7 @@ class TreeManager(object):
                     node = self.pop_lookahead(node)
 
     def delete_versions_from(self, node, version):
-        for (key, v) in node.log.keys():
+        for (key, v) in list(node.log.keys()):
             if v > version:
                 del node.log[(key, v)]
 
@@ -1580,7 +1580,7 @@ class TreeManager(object):
             n.remove()
             n = n.next_term
 
-        for i in reversed(range(len(self.lines))):
+        for i in reversed(list(range(len(self.lines)))):
             if self.lines[i].node.deleted:
                 del self.lines[i]
 
@@ -2139,7 +2139,7 @@ class TreeManager(object):
             # later versions are void -> delete
             for l in self.parsers:
                 root = l[0].previous_version.parent
-                for v in reversed(range(self.version+1, self.global_version+1)):
+                for v in reversed(list(range(self.version+1, self.global_version+1))):
                     self.delete_version(v, root)
                     try:
                         self.undo_snapshots.remove(v)

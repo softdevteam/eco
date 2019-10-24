@@ -269,7 +269,7 @@ class TreePatternMatcher(PatternMatcher):
         into a list of subtokens."""
         l = []
         j = 0
-        for i in xrange(len(self.result)):
+        for i in range(len(self.result)):
             if self.result[i] is None:
                 if j < i:
                     l.append("".join(self.result[j:i]))
@@ -337,7 +337,7 @@ class RegexParser(object):
     def __init__(self):
         p, l = regex.load(buildlexer=False)
         self.incparser = p
-        self.lrules = zip(l[0],l[1])
+        self.lrules = list(zip(l[0],l[1]))
 
     def load(self, pattern):
         from incparser.astree import TextNode
@@ -423,9 +423,9 @@ class RegexParser(object):
                 a = ord(n.symbol.name[0])
                 b = ord(n.symbol.name[2])
                 if a > b:
-                    l.extend(range(b, a+1))
+                    l.extend(list(range(b, a+1)))
                 else:
-                    l.extend(range(a, b+1))
+                    l.extend(list(range(a, b+1)))
             elif len(n.symbol.name) == 2: # escaped
                 if n.symbol.name == "\\r":
                     l.append(ord('\r'))

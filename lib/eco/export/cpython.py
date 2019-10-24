@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from mocks import MockPopen
+from .mocks import MockPopen
 from incparser.annotation import Annotation, Heatmap, Footnote, ToolTip, HUDHeatmap
 import copy, os, os.path, subprocess, tempfile
 import sys
@@ -162,7 +162,7 @@ RemotePdb('localhost', 8210).set_trace();"""
                     ncalls_dict[node] = float(ncalls)
 
         # Normalise profiler information.
-        vals = ncalls_dict.values()
+        vals = list(ncalls_dict.values())
         val_min = float(min(vals))
         val_max = float(max(vals))
         val_diff = val_max - val_min

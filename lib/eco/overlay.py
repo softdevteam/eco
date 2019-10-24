@@ -58,7 +58,7 @@ class Overlay(QWidget):
         self._random_colours = list()
         self._random_colours_outdated = list()
         rangen = random.Random(0.5)
-        for _ in xrange(1000):
+        for _ in range(1000):
             hue = rangen.random() + GOLDEN_RATIO
             hue %= 1
             rgb = [col * 255 for col in hsv_to_rgb(hue, SATURATION, VALUE)]
@@ -139,7 +139,7 @@ class Overlay(QWidget):
         temp_cursor.line = 0  # Start at beginning of syntax tree.
         temp_cursor.move_to_x(0)
         while True:
-            if temp_cursor.node.symbol.name in self._railroad_data.keys():
+            if temp_cursor.node.symbol.name in list(self._railroad_data.keys()):
                 method = temp_cursor.node.symbol.name
                 saved_x = temp_cursor.get_x()
                 temp_cursor.end()

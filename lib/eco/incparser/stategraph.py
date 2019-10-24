@@ -19,14 +19,14 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from __future__ import print_function
 
-from state import StateSet, State, LR0Element
-from production import Production
-from helpers import Helper
-from syntaxtable import FinishSymbol
+
+from .state import StateSet, State, LR0Element
+from .production import Production
+from .helpers import Helper
+from .syntaxtable import FinishSymbol
 from grammar_parser.gparser import Terminal
-from constants import LR0, LR1, LALR
+from .constants import LR0, LR1, LALR
 from time import time
 import logging
 
@@ -242,7 +242,7 @@ class StateGraph(object):
 
     def get_symbols(self):
         s = set()
-        for _, symbol in self.edges.keys():
+        for _, symbol in list(self.edges.keys()):
             s.add(symbol)
         return s
 

@@ -1,4 +1,4 @@
-from grammars import Language
+from .grammars import Language
 
 prolog = Language("Prolog",
 """

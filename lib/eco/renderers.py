@@ -157,7 +157,7 @@ else:
                             while not listener.finished:
                                 krn.poll(-1)
                             text = str(listener.result)
-                    except Exception, e:
+                    except Exception as e:
                         text = e.message
                     paint.drawText(QtCore.QPointF(x+100, self.fontht + y*self.fontht), " | "+text)
                 return dx, dy

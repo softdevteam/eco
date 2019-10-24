@@ -29,7 +29,7 @@ from utils import KEY_UP as UP, KEY_DOWN as DOWN, KEY_LEFT as LEFT, KEY_RIGHT as
 
 from PyQt5 import QtCore
 
-import programs
+from . import programs
 
 import pytest
 slow = pytest.mark.slow
@@ -662,7 +662,7 @@ class Test_Indentation(Test_Python):
 
         deleted = {}
         line_count = len(self.treemanager.lines)
-        random_lines = range(line_count)
+        random_lines = list(range(line_count))
         random.shuffle(random_lines)
         for linenr in random_lines:
             whitespace = self.treemanager.get_indentation(linenr)
@@ -1821,7 +1821,7 @@ class Test_Undo(Test_Python):
         original = original.replace("\r", "").split("\n")
         current = self.treemanager.export_as_text("/dev/null").replace("\r", "").split("\n")
 
-        for i in xrange(len(current)):
+        for i in range(len(current)):
             assert original[i] == current[i]
 
     def copy(self):
@@ -1888,12 +1888,12 @@ class Test_Undo(Test_Python):
         assert self.parser.last_status == True
 
         line_count = len(self.treemanager.lines)
-        random_lines = range(line_count)
+        random_lines = list(range(line_count))
         random.shuffle(random_lines)
 
         start_version = self.treemanager.version
         for linenr in random_lines:
-            cols = range(10)
+            cols = list(range(10))
             random.shuffle(cols)
             for col in cols:
                 self.treemanager.cursor_reset()
@@ -1994,12 +1994,12 @@ class Test_Undo(Test_Python):
         self.text_compare(programs.pythonsmall)
 
         line_count = len(self.treemanager.lines)
-        random_lines = range(line_count)
+        random_lines = list(range(line_count))
         random.shuffle(random_lines)
 
         start_version = self.treemanager.version
         for linenr in random_lines:
-            cols = range(20)
+            cols = list(range(20))
             random.shuffle(cols)
             for col in cols[:5]:
                 self.treemanager.cursor_reset()
@@ -2056,12 +2056,12 @@ class Test_Undo(Test_Python):
         self.text_compare(programs.connect4)
 
         line_count = len(self.treemanager.lines)
-        random_lines = range(line_count)
+        random_lines = list(range(line_count))
         random.shuffle(random_lines)
 
         start_version = self.treemanager.version
         for linenr in random_lines:
-            cols = range(20)
+            cols = list(range(20))
             random.shuffle(cols)
             for col in cols:
                 self.treemanager.cursor_reset()
@@ -2713,12 +2713,12 @@ class Test_Undo(Test_Python):
         self.text_compare(programs.connect4)
 
         line_count = len(self.treemanager.lines)
-        random_lines = range(line_count)
+        random_lines = list(range(line_count))
         random.shuffle(random_lines)
 
         start_version = self.treemanager.version
         for linenr in random_lines:
-            cols = range(20)
+            cols = list(range(20))
             random.shuffle(cols)
             for col in cols:
                 print("self.treemanager.cursor_reset()")
@@ -2770,12 +2770,12 @@ class Test_Undo(Test_Python):
         self.text_compare(programs.pythonsmall)
 
         line_count = len(self.treemanager.lines)
-        random_lines = range(line_count)
+        random_lines = list(range(line_count))
         random.shuffle(random_lines)
 
         start_version = self.treemanager.version
         for linenr in random_lines:
-            cols = range(10)
+            cols = list(range(10))
             random.shuffle(cols)
             for col in cols:
                 print("self.treemanager.cursor_reset()")
@@ -2930,25 +2930,25 @@ class Test_Undo(Test_Python):
         self.text_compare(p)
 
         line_count = len(self.treemanager.lines)
-        random_lines = range(line_count)
+        random_lines = list(range(line_count))
         random.shuffle(random_lines)
 
         start_version = self.treemanager.version
         for linenr in random_lines[:2]:
-            cols = range(20)
+            cols = list(range(20))
             random.shuffle(cols)
             for col in cols[:1]: # add one newline per line
                 self.treemanager.cursor_reset()
-                print "self.move(DOWN, %s)" % linenr
-                print "self.move(RIGHT, %s)" % col
-                print "self.treemanager.key_normal(\"\r\")"
+                print("self.move(DOWN, %s)" % linenr)
+                print("self.move(RIGHT, %s)" % col)
+                print("self.treemanager.key_normal(\"\r\")")
                 self.move(DOWN, linenr)
                 self.move(RIGHT, col)
                 x = self.treemanager.key_normal("\r")
                 if x == "eos":
                     continue
             self.treemanager.undo_snapshot()
-            print "self.treemanager.undo_snapshot()"
+            print("self.treemanager.undo_snapshot()")
 
         end_version = self.treemanager.version
         broken = self.treemanager.export_as_text()
@@ -2995,7 +2995,7 @@ class Test_Undo(Test_Python):
         self.text_compare(p)
 
         line_count = len(self.treemanager.lines)
-        random_lines = range(line_count)
+        random_lines = list(range(line_count))
         random.shuffle(random_lines)
 
         start_version = self.treemanager.version
@@ -3081,7 +3081,7 @@ class Test_Undo(Test_Python):
         self.text_compare(p)
 
         line_count = len(self.treemanager.lines)
-        random_lines = range(line_count)
+        random_lines = list(range(line_count))
         random.shuffle(random_lines)
 
         start_version = self.treemanager.version
@@ -3211,12 +3211,12 @@ class Test_Undo(Test_Python):
         self.text_compare(programs.connect4)
 
         line_count = len(self.treemanager.lines)
-        random_lines = range(line_count)
+        random_lines = list(range(line_count))
         random.shuffle(random_lines)
 
         start_version = self.treemanager.version
         for linenr in random_lines:
-            cols = range(20)
+            cols = list(range(20))
             random.shuffle(cols)
             for col in cols:
                 print("self.treemanager.cursor_reset()")
@@ -3729,12 +3729,12 @@ class Test_Undo(Test_Python):
         self.text_compare(program)
 
         line_count = len(self.treemanager.lines)
-        random_lines = range(line_count)
+        random_lines = list(range(line_count))
         random.shuffle(random_lines)
 
         start_version = self.treemanager.version
         for linenr in random_lines:
-            cols = range(5)
+            cols = list(range(5))
             random.shuffle(cols)
             for col in cols:
                 last_was_undo = False

@@ -20,10 +20,10 @@
 # IN THE SOFTWARE.
 
 from grammar_parser.gparser import Parser, Nonterminal, Terminal
-from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
-from stategraph import StateGraph
-from constants import LR0, LALR
-from astree import AST, Node
+from .syntaxtable import SyntaxTable, FinishSymbol, Reduce, Goto, Accept, Shift
+from .stategraph import StateGraph
+from .constants import LR0, LALR
+from .astree import AST, Node
 
 class LRParser(object):
 

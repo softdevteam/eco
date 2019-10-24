@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from __future__ import print_function
+
 import subprocess, sys
 
 try:
@@ -131,7 +131,7 @@ class ParseView(QMainWindow):
         editor = self.window.getEditor()
         self.version = editor.tm.version
         self.ui.comboBox.clear()
-        for v in xrange(editor.tm.get_max_version()):
+        for v in range(editor.tm.get_max_version()):
             self.ui.comboBox.addItem(str(v+1))
         self.ui.comboBox.setCurrentIndex(editor.tm.get_max_version()-1)
         self.redraw()
@@ -534,7 +534,7 @@ class LanguageView(QDialog):
         d = {}
         self.d = d
         for l in newfile_langs:
-            if d.has_key(l.base):
+            if l.base in d:
                 d[l.base].append(l)
             else:
                 d[l.base] = [l]
@@ -1378,7 +1378,7 @@ class Window(QMainWindow):
         if self.debugging:
             if self.debug_t.isRunning():
                 self.debug_t.quit()
-        for i in reversed(range(self.ui.tabWidget.count())):
+        for i in reversed(list(range(self.ui.tabWidget.count()))):
             self.ui.tabWidget.setCurrentIndex(i)
             self.closeTab(i)
         if self.ui.tabWidget.count() == 0:
@@ -1413,7 +1413,7 @@ class Window(QMainWindow):
                     l = nested.get(lbox_terminal.parent_lbox, [])
                     l.append((parser,lexer,lang))
                     nested[lbox_terminal.parent_lbox] = l
-                except AttributeError,e:
+                except AttributeError as e:
                     print(e)
                     return
             else:
@@ -1432,7 +1432,7 @@ class Window(QMainWindow):
     def updateASTOutline(self):
         self.ui.tw_astoutline.clear()
         aa = self.getEditor().tm.parsers[0][3]
-        if aa.data.has_key("class"):
+        if "class" in aa.data:
             for uri in aa.data["class"]:
                 if not uri.path or (uri.path and uri.path[0].name is None and len(uri.path) == 1):
                     self.addToASTOutline(aa, uri, self.ui.tw_astoutline)
@@ -1447,7 +1447,7 @@ class Window(QMainWindow):
             self.addToASTOutline(aa, n, qtreeitem)
 
     def add_parsingstatus(self, nested, root, parent):
-        if not nested.has_key(root):
+        if root not in nested:
             return
         for parser, lexer, lang in nested[root]:
             status = parser.last_status
