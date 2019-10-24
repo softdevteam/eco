@@ -1,18 +1,12 @@
 language: python
-python: "2.7"
-
-virtualenv:
-  system_site_packages: true
+python: "3.7"
 
 cache:
   directories:
     - lib/eco/pickle
 
-addons:
-  apt:
-    packages:
-    - python-sip
-    - python-qt4
+install:
+    pip install sip pyqt5
 
 script:
 - cd lib/eco;
