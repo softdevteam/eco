@@ -31,7 +31,7 @@ from incparser.annotation import HUDEval, HUDTypes, HUDCallgraph
 from incparser.astree import EOS
 from grammar_parser.gparser import MagicTerminal, IndentationTerminal
 
-from PyQt4.QtCore import QSettings
+from PyQt5.QtCore import QSettings
 
 
 class JRubyCallGraph(Annotation):

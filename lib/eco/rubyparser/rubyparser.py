@@ -3,7 +3,7 @@ from incparser.astree import AST, BOS, EOS, TextNode
 from incparser.syntaxtable import FinishSymbol
 from grammars.grammars import EcoFile
 from grammar_parser.gparser import Terminal, Nonterminal
-from PyQt4.QtCore import QSettings
+from PyQt5.QtCore import QSettings
 
 import subprocess
 import tempfile

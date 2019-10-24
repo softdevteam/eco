@@ -27,7 +27,7 @@ from incparser.astree import BOS, EOS, TextNode, MultiTextNode
 from grammar_parser.gparser import MagicTerminal, Terminal
 from utils import KEY_UP as UP, KEY_DOWN as DOWN, KEY_LEFT as LEFT, KEY_RIGHT as RIGHT
 
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 
 import programs
 

@@ -39,11 +39,12 @@ More detailed install instructions for py can be found at:
 """)
     sys.exit(1)
 
-from PyQt4 import QtCore
-from PyQt4.QtCore import *
-from PyQt4 import QtGui
-from PyQt4.QtGui import *
-from PyQt4 import uic
+from PyQt5 import QtCore
+from PyQt5.QtCore import *
+from PyQt5 import QtGui
+from PyQt5.QtGui import *
+from PyQt5 import uic
+from PyQt5.QtWidgets import *
 
 if not QtGui.QIcon.hasThemeIcon("document-new"):
     # attempt to fall back on generic icon theme
@@ -101,20 +102,20 @@ class GlobalFont(object):
         self.fontwt = self.fontm.width(" "*99)/99.0
         self.fontd = self.fontm.descent()
 
-class ParseView(QtGui.QMainWindow):
+class ParseView(QMainWindow):
     def __init__(self, window):
-        QtGui.QMainWindow.__init__(self, window)
+        QMainWindow.__init__(self, window)
         self.ui = Ui_ParseTree()
         self.ui.setupUi(self)
 
-        self.connect(self.ui.cb_fit_ast, SIGNAL("clicked()"), self.refresh)
-        self.connect(self.ui.cb_toggle_ast, SIGNAL("clicked()"), self.refresh)
-        self.connect(self.ui.cb_toggle_ws, SIGNAL("clicked()"), self.refresh)
-        self.connect(self.ui.bt_show_sel_ast, SIGNAL("clicked()"), self.showAstSelection)
-        self.connect(self.ui.rb_view_parsetree, SIGNAL("clicked()"), self.refresh)
-        self.connect(self.ui.rb_view_linetree, SIGNAL("clicked()"), self.refresh)
-        self.connect(self.ui.rb_view_ast, SIGNAL("clicked()"), self.refresh)
-        self.connect(self.ui.comboBox, SIGNAL("activated(const QString&)"), self.change_version)
+        self.ui.cb_fit_ast.clicked.connect(self.refresh)
+        self.ui.cb_toggle_ast.clicked.connect(self.refresh)
+        self.ui.cb_toggle_ws.clicked.connect(self.refresh)
+        self.ui.bt_show_sel_ast.clicked.connect(self.showAstSelection)
+        self.ui.rb_view_parsetree.clicked.connect(self.refresh)
+        self.ui.rb_view_linetree.clicked.connect(self.refresh)
+        self.ui.rb_view_ast.clicked.connect(self.refresh)
+        self.ui.comboBox.activated.connect(self.change_version)
 
         self.viewer = Viewer("pydot")
         self.ui.graphicsView.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform | QPainter.TextAntialiasing)
@@ -131,7 +132,7 @@ class ParseView(QtGui.QMainWindow):
         self.version = editor.tm.version
         self.ui.comboBox.clear()
         for v in xrange(editor.tm.get_max_version()):
-            self.ui.comboBox.addItem(QString(str(v+1)))
+            self.ui.comboBox.addItem(str(v+1))
         self.ui.comboBox.setCurrentIndex(editor.tm.get_max_version()-1)
         self.redraw()
 
@@ -193,16 +194,16 @@ class ParseView(QtGui.QMainWindow):
             self.viewer.get_tree_image(parent, [start, end], whitespaces, nodes)
             self.showImage(self.ui.graphicsView, self.viewer.image)
 
-class StateView(QtGui.QMainWindow):
+class StateView(QMainWindow):
     def __init__(self, window):
-        QtGui.QMainWindow.__init__(self)
+        QMainWindow.__init__(self)
         self.ui = Ui_StateView()
         self.ui.setupUi(self)
 
         self.viewer = Viewer("pydot")
 
-        self.connect(self.ui.btShowSingleState, SIGNAL("clicked()"), self.showSingleState)
-        self.connect(self.ui.btShowWholeGraph, SIGNAL("clicked()"), self.showWholeGraph)
+        self.ui.btShowSingleState.clicked.connect(self.showSingleState)
+        self.ui.btShowWholeGraph.clicked.connect(self.showWholeGraph)
 
         self.window = window
 
@@ -223,39 +224,39 @@ class StateView(QtGui.QMainWindow):
         graphicsview.setScene(scene)
         graphicsview.resetMatrix()
 
-class SettingsView(QtGui.QMainWindow):
+class SettingsView(QMainWindow):
     def __init__(self, window):
-        QtGui.QMainWindow.__init__(self)
+        QMainWindow.__init__(self)
         self.ui = Ui_Settings()
         self.ui.setupUi(self)
 
-        self.connect(self.ui.buttonBox, SIGNAL("accepted()"), self.accept)
-        self.connect(self.ui.buttonBox, SIGNAL("rejected()"), self.reject)
+        self.ui.buttonBox.accepted.connect(self.accept)
+        self.ui.buttonBox.rejected.connect(self.reject)
         # Appearance pane.
-        self.connect(self.ui.app_foreground, SIGNAL("clicked()"), self.pick_color)
-        self.connect(self.ui.app_background, SIGNAL("clicked()"), self.pick_color)
+        self.ui.app_foreground.clicked.connect(self.pick_color)
+        self.ui.app_background.clicked.connect(self.pick_color)
         # Profiling pane.
-        self.connect(self.ui.heatmap_low, SIGNAL("clicked()"), self.pick_color)
-        self.connect(self.ui.heatmap_high, SIGNAL("clicked()"), self.pick_color)
+        self.ui.heatmap_low.clicked.connect(self.pick_color)
+        self.ui.heatmap_high.clicked.connect(self.pick_color)
         # PyHyp pane.
-        self.connect(self.ui.btpyhyp, SIGNAL("clicked()"), self.choose_file_or_dir)
-        self.connect(self.ui.btpypyprefix, SIGNAL("clicked()"), self.choose_file_or_dir)
+        self.ui.btpyhyp.clicked.connect(self.choose_file_or_dir)
+        self.ui.btpypyprefix.clicked.connect(self.choose_file_or_dir)
         # Unipycation pane.
-        self.connect(self.ui.btunipycation, SIGNAL("clicked()"), self.choose_file_or_dir)
+        self.ui.btunipycation.clicked.connect(self.choose_file_or_dir)
         # L-Space pane.
-        self.connect(self.ui.btlspaceroot, SIGNAL("clicked()"), self.choose_file_or_dir)
+        self.ui.btlspaceroot.clicked.connect(self.choose_file_or_dir)
         # JRuby pane.
-        self.connect(self.ui.btjruby, SIGNAL("clicked()"), self.choose_file_or_dir)
-        self.connect(self.ui.btjruby_load, SIGNAL("clicked()"), self.choose_file_or_dir)
-        self.connect(self.ui.btruby_parser, SIGNAL("clicked()"), self.set_ruby_parser)
+        self.ui.btjruby.clicked.connect(self.choose_file_or_dir)
+        self.ui.btjruby_load.clicked.connect(self.choose_file_or_dir)
+        self.ui.btruby_parser.clicked.connect(self.set_ruby_parser)
         # GraalVM pane.
-        self.connect(self.ui.btgraalvm, SIGNAL("clicked()"), self.choose_file_or_dir)
+        self.ui.btgraalvm.clicked.connect(self.choose_file_or_dir)
         # Truffle pane.
-        self.connect(self.ui.btsljar, SIGNAL("clicked()"), self.choose_file_or_dir)
-        self.connect(self.ui.btjsjar, SIGNAL("clicked()"), self.choose_file_or_dir)
-        self.connect(self.ui.bttrufflejar, SIGNAL("clicked()"), self.choose_file_or_dir)
+        self.ui.btsljar.clicked.connect(self.choose_file_or_dir)
+        self.ui.btjsjar.clicked.connect(self.choose_file_or_dir)
+        self.ui.bttrufflejar.clicked.connect(self.choose_file_or_dir)
         # Tab switcher.
-        self.connect(self.ui.listWidget, SIGNAL("currentRowChanged(int)"), self.switch_view)
+        self.ui.listWidget.currentRowChanged.connect(self.switch_view)
         # Defaults.
         self.foreground = None
         self.background = None
@@ -273,13 +274,13 @@ class SettingsView(QtGui.QMainWindow):
 
     def _get_path_from_user(self, setting, is_file=True):
         settings = QSettings("softdev", "Eco")
-        dir_ = os.path.dirname(str(settings.value(setting, "").toString()))
+        dir_ = os.path.dirname(str(settings.value(setting, "", type=str)))
         if not dir_:
             dir_ = os.path.expanduser("~")
         if is_file:
-            path = QFileDialog.getOpenFileName(self, "Choose file", directory=dir_)
+            path, _ = QFileDialog.getOpenFileName(self, "Choose file", directory=dir_)
         else:
-            path = QFileDialog.getExistingDirectory(self, "Choose directory",
+            path, _ = QFileDialog.getExistingDirectory(self, "Choose directory",
                                                     directory=dir_)
         if path:
             self.ui.__getattribute__(setting).setText(path)
@@ -316,49 +317,49 @@ class SettingsView(QtGui.QMainWindow):
     def loadSettings(self):
         settings = QSettings("softdev", "Eco")
         # General pane.
-        self.ui.gen_showconsole.setCheckState(settings.value("gen_showconsole", 0).toInt()[0])
-        self.ui.gen_showparsestatus.setCheckState(settings.value("gen_showparsestatus", 2).toInt()[0])
-        self.ui.gen_showhud.setCheckState(settings.value("gen_showhud", 0).toInt()[0])
-        self.ui.gen_showoutline.setCheckState(settings.value("gen_showoutline", 0).toInt()[0])
+        self.ui.gen_showconsole.setCheckState(settings.value("gen_showconsole", 0, type=int))
+        self.ui.gen_showparsestatus.setCheckState(settings.value("gen_showparsestatus", 2, type=int))
+        self.ui.gen_showhud.setCheckState(settings.value("gen_showhud", 0, type=int))
+        self.ui.gen_showoutline.setCheckState(settings.value("gen_showoutline", 0, type=int))
         # Appearance pane.
-        family = settings.value("font-family").toString()
-        size = settings.value("font-size").toInt()[0]
+        family = settings.value("font-family", type=str)
+        size = settings.value("font-size", type=int)
         self.ui.app_fontfamily.setCurrentFont(QtGui.QFont(family, size))
         self.ui.app_fontsize.setValue(size)
-        self.ui.app_theme.setCurrentIndex(settings.value("app_themeindex", 0).toInt()[0])
-        self.ui.app_custom.setChecked(settings.value("app_custom", False).toBool())
-        self.foreground = settings.value("app_foreground", "#000000").toString()
-        self.background = settings.value("app_background", "#ffffff").toString()
+        self.ui.app_theme.setCurrentIndex(settings.value("app_themeindex", 0, type=int))
+        self.ui.app_custom.setChecked(settings.value("app_custom", False, type=bool))
+        self.foreground = settings.value("app_foreground", "#000000", type=str)
+        self.background = settings.value("app_background", "#ffffff", type=str)
         self.change_color(self.ui.app_foreground, self.foreground)
         self.change_color(self.ui.app_background, self.background)
         # Profiling pane.
-        tool_info_family = settings.value("tool-font-family").toString()
-        tool_info_size = settings.value("tool-font-size").toInt()[0]
+        tool_info_family = settings.value("tool-font-family", type=str)
+        tool_info_size = settings.value("tool-font-size", type=int)
         self.ui.tool_info_fontfamily.setCurrentFont(QtGui.QFont(tool_info_family, tool_info_size))
         self.ui.tool_info_fontsize.setValue(tool_info_size)
-        self.heatmap_low = settings.value("heatmap_low", "#deebf7").toString()
-        self.heatmap_high = settings.value("heatmap_high", "#3182bd").toString()
-        self.ui.heatmap_alpha.setValue(settings.value("heatmap_alpha", 100).toInt()[0])
-        self.ui.graalvm_pic_size.setValue(settings.value("graalvm_pic_size", 2).toInt()[0])
+        self.heatmap_low = settings.value("heatmap_low", "#deebf7", type=str)
+        self.heatmap_high = settings.value("heatmap_high", "#3182bd", type=str)
+        self.ui.heatmap_alpha.setValue(settings.value("heatmap_alpha", 100, type=int))
+        self.ui.graalvm_pic_size.setValue(settings.value("graalvm_pic_size", 2, type=int))
         self.change_color(self.ui.heatmap_low, self.heatmap_low)
         self.change_color(self.ui.heatmap_high, self.heatmap_high)
         # PyHyp pane.
-        self.ui.env_pyhyp.setText(settings.value("env_pyhyp", "").toString())
+        self.ui.env_pyhyp.setText(settings.value("env_pyhyp", "", type=str))
         # Unipycation pane.
-        self.ui.env_unipycation.setText(settings.value("env_unipycation", "").toString())
-        self.ui.env_pypyprefix.setText(settings.value("env_pypyprefix", "").toString())
+        self.ui.env_unipycation.setText(settings.value("env_unipycation", "", type=str))
+        self.ui.env_pypyprefix.setText(settings.value("env_pypyprefix", "", type=str))
         # L-Space pane.
-        self.ui.env_lspaceroot.setText(settings.value("env_lspaceroot", "").toString())
+        self.ui.env_lspaceroot.setText(settings.value("env_lspaceroot", "", type=str))
         # JRuby pane.
-        self.ui.env_jruby.setText(settings.value("env_jruby", "").toString())
-        self.ui.env_jruby_load.setText(settings.value("env_jruby_load", "").toString())
-        self.ui.env_ruby_parser.setText(settings.value("env_ruby_parser", "").toString())
+        self.ui.env_jruby.setText(settings.value("env_jruby", "", type=str))
+        self.ui.env_jruby_load.setText(settings.value("env_jruby_load", "", type=str))
+        self.ui.env_ruby_parser.setText(settings.value("env_ruby_parser", "", type=str))
         # GraalVM pane.
-        self.ui.env_graalvm.setText(settings.value("env_graalvm", "").toString())
+        self.ui.env_graalvm.setText(settings.value("env_graalvm", "", type=str))
         # Truffle pane.
-        self.ui.env_sl_jar.setText(settings.value("env_sl_jar", "").toString())
-        self.ui.env_js_jar.setText(settings.value("env_js_jar", "").toString())
-        self.ui.env_truffle_jar.setText(settings.value("env_truffle_jar", "").toString())
+        self.ui.env_sl_jar.setText(settings.value("env_sl_jar", "", type=str))
+        self.ui.env_js_jar.setText(settings.value("env_js_jar", "", type=str))
+        self.ui.env_truffle_jar.setText(settings.value("env_truffle_jar", "", type=str))
 
     def saveSettings(self):
         settings = QSettings("softdev", "Eco")
@@ -408,9 +409,9 @@ class SettingsView(QtGui.QMainWindow):
         settings = QSettings("softdev", "Eco")
 
         gfont = QApplication.instance().gfont
-        gfont.setfont(QFont(settings.value("font-family").toString(), settings.value("font-size").toInt()[0]))
+        gfont.setfont(QFont(settings.value("font-family", type=str), settings.value("font-size", type=int)))
         tool_info_font = QApplication.instance().tool_info_font
-        tool_info_font.setfont(QFont(settings.value("tool-font-family").toString(), settings.value("tool-font-size").toInt()[0]))
+        tool_info_font.setfont(QFont(settings.value("tool-font-family", type=str), settings.value("tool-font-size", type=int)))
 
         app = QApplication.instance()
         app.heatmap_low = settings.value("heatmap_low")
@@ -443,35 +444,35 @@ class SettingsView(QtGui.QMainWindow):
         """
         widget.setStyleSheet("background-color: %s" % (color))
 
-class InputLogView(QtGui.QDialog):
+class InputLogView(QDialog):
     def __init__(self, parent):
         self.parent = parent
-        QtGui.QDialog.__init__(self, parent)
+        QDialog.__init__(self, parent)
         self.ui = Ui_InputLog()
         self.ui.setupUi(self)
 
-        self.connect(self.ui.pushButton, SIGNAL("pressed()"), self.apply_log)
+        self.ui.pushButton.pressed.connect(self.apply_log)
 
     def apply_log(self):
         log = self.ui.textEdit_2.toPlainText()
         self.tm.apply_inputlog(str(log))
         self.accept()
 
-class AboutView(QtGui.QDialog):
+class AboutView(QDialog):
     def __init__(self, parent):
         self.parent = parent
-        QtGui.QDialog.__init__(self, parent)
+        QDialog.__init__(self, parent)
         self.ui = Ui_About()
         self.ui.setupUi(self)
 
-class PreviewDialog(QtGui.QDialog):
+class PreviewDialog(QDialog):
     def __init__(self, parent):
         self.parent = parent
-        QtGui.QDialog.__init__(self, parent)
+        QDialog.__init__(self, parent)
         self.ui = Ui_Preview()
         self.ui.setupUi(self)
 
-        self.connect(self.ui.comboBox, SIGNAL("currentIndexChanged(const QString&)"), self.change)
+        self.ui.comboBox.currentIndexChanged.connect(self.change)
 
     def change(self, index):
         if index == "Text":
@@ -483,10 +484,10 @@ class PreviewDialog(QtGui.QDialog):
                 text = ""
             self.ui.textEdit.setText(text)
 
-class FindDialog(QtGui.QDialog):
+class FindDialog(QDialog):
     def __init__(self, parent):
         self.parent = parent
-        QtGui.QDialog.__init__(self)
+        QDialog.__init__(self)
         self.ui = Ui_FindDialog()
         self.ui.setupUi(self)
         self.ui.buttonBox.button(QDialogButtonBox.Ok).setText("Find")
@@ -499,16 +500,16 @@ class FindDialog(QtGui.QDialog):
         self.ui.leText.setFocus(True)
         self.ui.leText.selectAll()
 
-class BreakpointDialog(QtGui.QDialog):
+class BreakpointDialog(QDialog):
     def __init__(self, parent):
-        QtGui.QMainWindow.__init__(self)
+        QMainWindow.__init__(self)
         self.parent = parent
-        QtGui.QDialog.__init__(self)
+        QDialog.__init__(self)
         self.ui = Ui_Breakpoint()
         self.ui.setupUi(self)
         self.line_number = 0
-        self.connect(self.ui.buttonBox, SIGNAL("accepted()"), self.accept)
-        self.connect(self.ui.buttonBox, SIGNAL("rejected()"), self.reject)
+        self.ui.buttonBox.accepted.connect(self.accept)
+        self.ui.buttonBox.rejected.connect(self.reject)
 
     def accept(self):
         make_temp =  self.ui.bp_type.currentText() == 'Temporary'
@@ -519,10 +520,10 @@ class BreakpointDialog(QtGui.QDialog):
     def reject(self):
         self.hide()
 
-class LanguageView(QtGui.QDialog):
+class LanguageView(QDialog):
     def __init__(self, parent, languages):
         self.parent = parent
-        QtGui.QDialog.__init__(self)
+        QDialog.__init__(self)
         self.ui = Ui_LanguageDialog()
         self.ui.setupUi(self)
 
@@ -546,7 +547,7 @@ class LanguageView(QtGui.QDialog):
             self.addLangItem(self.ui.listWidget_2, l)
         self.ui.listWidget_2.item(0).setSelected(True)
 
-        self.connect(self.ui.listWidget, SIGNAL("currentRowChanged(int)"), self.row_changed)
+        self.ui.listWidget.currentRowChanged.connect(self.row_changed)
 
     def row_changed(self, index):
         self.ui.listWidget_2.clear()
@@ -582,10 +583,10 @@ class LanguageView(QtGui.QDialog):
 
 
 from optparse import OptionParser
-class Window(QtGui.QMainWindow):
+class Window(QMainWindow):
 
     def __init__(self):
-        QtGui.QMainWindow.__init__(self)
+        QMainWindow.__init__(self)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
@@ -596,68 +597,68 @@ class Window(QtGui.QMainWindow):
         self.previewdialog = PreviewDialog(self)
         self.breakpointdialog = BreakpointDialog(self)
 
-        self.connect(self.ui.actionImport, SIGNAL("triggered()"), self.importfile)
-        self.connect(self.ui.actionOpen, SIGNAL("triggered()"), self.openfile)
-        self.connect(self.ui.actionSave, SIGNAL("triggered()"), self.savefile)
-        self.connect(self.ui.actionSave_as, SIGNAL("triggered()"), self.savefileAs)
-        self.connect(self.ui.actionExport, SIGNAL("triggered()"), self.export)
-        self.connect(self.ui.actionExportAs, SIGNAL("triggered()"), self.exportAs)
-        self.connect(self.ui.actionRun, SIGNAL("triggered()"), self.run_subprocess)
-        self.connect(self.ui.actionDebug, SIGNAL("triggered()"), self.debug_subprocess)
-        self.connect(self.ui.actionProfile, SIGNAL("triggered()"), self.profile_subprocess)
+        self.ui.actionImport.triggered.connect(self.importfile)
+        self.ui.actionOpen.triggered.connect(self.openfile)
+        self.ui.actionSave.triggered.connect(self.savefile)
+        self.ui.actionSave_as.triggered.connect(self.savefileAs)
+        self.ui.actionExport.triggered.connect(self.export)
+        self.ui.actionExportAs.triggered.connect(self.exportAs)
+        self.ui.actionRun.triggered.connect(self.run_subprocess)
+        self.ui.actionDebug.triggered.connect(self.debug_subprocess)
+        self.ui.actionProfile.triggered.connect(self.profile_subprocess)
 
         try:
             import pydot
-            self.connect(self.ui.actionParse_Tree, SIGNAL("triggered()"), self.showParseView)
-            self.connect(self.ui.actionStateGraph, SIGNAL("triggered()"), self.showStateView)
+            self.ui.actionParse_Tree.triggered.connect(self.showParseView)
+            self.ui.actionStateGraph.triggered.connect(self.showStateView)
         except ImportError:
             sys.stderr.write("Warning: pydot not installed, so viewing of trees is disabled.\n")
             self.ui.actionParse_Tree.setEnabled(False)
             self.ui.actionStateGraph.setEnabled(False)
-        self.connect(self.ui.actionPvShow, SIGNAL("triggered()"), self.showPygameTree)
+        self.ui.actionPvShow.triggered.connect(self.showPygameTree)
 
-        self.connect(self.ui.actionSettings, SIGNAL("triggered()"), self.showSettingsView)
-        self.connect(self.ui.actionAbout, SIGNAL("triggered()"), self.showAboutView)
-        self.connect(self.ui.actionPreview, SIGNAL("triggered()"), self.showPreviewDialog)
-        self.connect(self.ui.actionUndo, SIGNAL("triggered()"), self.undo)
-        self.connect(self.ui.actionRedo, SIGNAL("triggered()"), self.redo)
-        self.connect(self.ui.actionSelect_all, SIGNAL("triggered()"), self.select_all)
-        self.connect(self.ui.actionCopy, SIGNAL("triggered()"), self.copy)
-        self.connect(self.ui.actionCut, SIGNAL("triggered()"), self.cut)
-        self.connect(self.ui.actionPaste, SIGNAL("triggered()"), self.paste)
-        self.connect(self.ui.actionFind, SIGNAL("triggered()"), self.find)
-        self.connect(self.ui.actionFind_next, SIGNAL("triggered()"), self.find_next)
-        self.connect(self.ui.actionAdd_language_box, SIGNAL("triggered()"), self.show_lbox_menu)
-        self.connect(self.ui.actionSelect_next_language_box, SIGNAL("triggered()"), self.select_next_lbox)
-        self.connect(self.ui.actionNew, SIGNAL("triggered()"), self.newfile)
-        self.connect(self.ui.actionExit, SIGNAL("triggered()"), self.quit)
-        self.connect(self.ui.tabWidget, SIGNAL("tabCloseRequested(int)"), self.closeTab)
-        self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.tabChanged)
-        self.connect(self.ui.actionCode_complete, SIGNAL("triggered()"), self.show_code_completion)
-        #self.connect(self.ui.actionFull_reparse, SIGNAL("triggered()"), self.full_reparse)
-        self.connect(self.ui.treeWidget, SIGNAL("itemDoubleClicked(QTreeWidgetItem *, int)"), self.click_parsers)
-        self.connect(self.ui.actionShow_language_boxes, SIGNAL("triggered()"), self.update_editor)
-        self.connect(self.ui.actionShow_namebinding, SIGNAL("triggered()"), self.update_editor)
-        self.connect(self.ui.actionShow_indentation, SIGNAL("triggered()"), self.toogle_indentation)
-        self.connect(self.ui.actionAutolboxFind, SIGNAL("triggered()"), self.toggle_find_autolboxes)
-        self.connect(self.ui.actionAutolboxInsert, SIGNAL("triggered()"), self.toggle_insert_autolboxes)
-        self.connect(self.ui.actionShow_lspaceview, SIGNAL("triggered()"), self.view_in_lspace)
-        self.connect(self.ui.menuChange_language_box, SIGNAL("aboutToShow()"), self.showEditMenu)
-        self.connect(self.ui.actionRemove_language_box, SIGNAL("triggered()"), self.remove_languagebox)
-        self.connect(self.ui.actionLock_Unlock_language_box, SIGNAL("triggered()"), self.toggle_lock_languagebox)
-        self.connect(self.ui.menuRecent_files, SIGNAL("aboutToShow()"), self.showRecentFiles)
-        self.connect(self.ui.actionInput_log, SIGNAL("triggered()"), self.show_input_log)
+        self.ui.actionSettings.triggered.connect(self.showSettingsView)
+        self.ui.actionAbout.triggered.connect(self.showAboutView)
+        self.ui.actionPreview.triggered.connect(self.showPreviewDialog)
+        self.ui.actionUndo.triggered.connect(self.undo)
+        self.ui.actionRedo.triggered.connect(self.redo)
+        self.ui.actionSelect_all.triggered.connect(self.select_all)
+        self.ui.actionCopy.triggered.connect(self.copy)
+        self.ui.actionCut.triggered.connect(self.cut)
+        self.ui.actionPaste.triggered.connect(self.paste)
+        self.ui.actionFind.triggered.connect(self.find)
+        self.ui.actionFind_next.triggered.connect(self.find_next)
+        self.ui.actionAdd_language_box.triggered.connect(self.show_lbox_menu)
+        self.ui.actionSelect_next_language_box.triggered.connect(self.select_next_lbox)
+        self.ui.actionNew.triggered.connect(self.newfile)
+        self.ui.actionExit.triggered.connect(self.quit)
+        self.ui.tabWidget.tabCloseRequested.connect(self.closeTab)
+        self.ui.tabWidget.currentChanged.connect(self.tabChanged)
+        self.ui.actionCode_complete.triggered.connect(self.show_code_completion)
+        #self.ui.actionFull_reparse.triggered.connect(self.full_reparse)
+        self.ui.treeWidget.itemDoubleClicked.connect(self.click_parsers)
+        self.ui.actionShow_language_boxes.triggered.connect(self.update_editor)
+        self.ui.actionShow_namebinding.triggered.connect(self.update_editor)
+        self.ui.actionShow_indentation.triggered.connect(self.toogle_indentation)
+        self.ui.actionAutolboxFind.triggered.connect(self.toggle_find_autolboxes)
+        self.ui.actionAutolboxInsert.triggered.connect(self.toggle_insert_autolboxes)
+        self.ui.actionShow_lspaceview.triggered.connect(self.view_in_lspace)
+        self.ui.menuChange_language_box.aboutToShow.connect(self.showEditMenu)
+        self.ui.actionRemove_language_box.triggered.connect(self.remove_languagebox)
+        self.ui.actionLock_Unlock_language_box.triggered.connect(self.toggle_lock_languagebox)
+        self.ui.menuRecent_files.aboutToShow.connect(self.showRecentFiles)
+        self.ui.actionInput_log.triggered.connect(self.show_input_log)
 
         # Debug buttons
-        self.connect(self.ui.actionContinue, SIGNAL("triggered()"), self.debug_continue)
-        self.connect(self.ui.actionStop, SIGNAL("triggered()"), self.debug_stop)
-        self.connect(self.ui.actionStepInto, SIGNAL("triggered()"), self.debug_step_into)
-        self.connect(self.ui.actionStepOver, SIGNAL("triggered()"), self.debug_step_over)
+        self.ui.actionContinue.triggered.connect(self.debug_continue)
+        self.ui.actionStop.triggered.connect(self.debug_stop)
+        self.ui.actionStepInto.triggered.connect(self.debug_step_into)
+        self.ui.actionStepOver.triggered.connect(self.debug_step_over)
 
         # Make sure the Project -> Profile and Project -> Run with Debugger menu items
         # only appear for languages that support it.
-        self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.set_profiler_enabled)
-        self.connect(self.ui.tabWidget, SIGNAL("currentChanged(int)"), self.set_debugger_enabled)
+        self.ui.tabWidget.currentChanged.connect(self.set_profiler_enabled)
+        self.ui.tabWidget.currentChanged.connect(self.set_debugger_enabled)
 
         self.ui.menuWindow.addAction(self.ui.dockWidget.toggleViewAction())
         self.ui.menuWindow.addAction(self.ui.dockWidget_2.toggleViewAction())
@@ -665,16 +666,16 @@ class Window(QtGui.QMainWindow):
         self.ui.menuWindow.addAction(self.ui.dockWidget_4.toggleViewAction())
 
         self.ui.teConsole.setFont(QApplication.instance().gfont.font)
-        self.connect(self.ui.teConsole, SIGNAL("customContextMenuRequested(QPoint)"), self.consoleContextMenu)
+        self.ui.teConsole.customContextMenuRequested.connect(self.consoleContextMenu)
         self.ui.teConsole.setContextMenuPolicy(Qt.CustomContextMenu)
 
         # Set up HUD radio buttons.
         self.ui.hud_off_button.setChecked(True)
-        self.connect(self.ui.hud_off_button, SIGNAL("clicked()"), self.hud_off_toggle)
-        self.connect(self.ui.hud_callgraph_button, SIGNAL("clicked()"), self.hud_callgraph_toggle)
-        self.connect(self.ui.hud_eval_button, SIGNAL("clicked()"), self.hud_eval_toggle)
-        self.connect(self.ui.hud_types_button, SIGNAL("clicked()"), self.hud_types_toggle)
-        self.connect(self.ui.hud_heat_map_button, SIGNAL("clicked()"), self.hud_heat_map_toggle)
+        self.ui.hud_off_button.clicked.connect(self.hud_off_toggle)
+        self.ui.hud_callgraph_button.clicked.connect(self.hud_callgraph_toggle)
+        self.ui.hud_eval_button.clicked.connect(self.hud_eval_toggle)
+        self.ui.hud_types_button.clicked.connect(self.hud_types_toggle)
+        self.ui.hud_heat_map_button.clicked.connect(self.hud_heat_map_toggle)
         self.ui.hud_callgraph_button.setDisabled(True)
         self.ui.hud_eval_button.setDisabled(True)
         self.ui.hud_types_button.setDisabled(True)
@@ -695,13 +696,13 @@ class Window(QtGui.QMainWindow):
 
         # apply settings
         settings = QSettings("softdev", "Eco")
-        if not settings.value("gen_showconsole", False).toBool():
+        if not settings.value("gen_showconsole", False, type=bool):
             self.ui.dockWidget.hide()
-        if not settings.value("gen_showparsestatus", True).toBool():
+        if not settings.value("gen_showparsestatus", True, type=bool):
             self.ui.dockWidget_2.hide()
-        if not settings.value("gen_showhud", False).toBool():
+        if not settings.value("gen_showhud", False, type=bool):
             self.ui.dockWidget_3.hide()
-        if not settings.value("gen_showoutline", False).toBool():
+        if not settings.value("gen_showoutline", False, type=bool):
             self.ui.dockWidget_4.hide()
 
         # hardcoded key bindings for OS X
@@ -805,7 +806,7 @@ class Window(QtGui.QMainWindow):
         if lbox is not None:
             menu.addAction(self.ui.actionRemove_language_box)
             lockaction = QAction(QIcon.fromTheme("lock"), "Lock language box", menu)
-            self.connect(lockaction, SIGNAL("triggered()"), self.toggle_lock_languagebox)
+            lockaction.triggered.connect(self.toggle_lock_languagebox)
             menu.addAction(lockaction)
             if not lbox.tbd:
                 lockaction.setText("Unlock language box")
@@ -820,7 +821,7 @@ class Window(QtGui.QMainWindow):
         if not action:
             return
 
-        self.getEditor().sublanguage = action.data().toPyObject()
+        self.getEditor().sublanguage = action.data()
         self.getEditor().edit_rightnode = True
         if action.parentWidget() is newmenu:
             self.getEditor().create_languagebox()
@@ -851,15 +852,15 @@ class Window(QtGui.QMainWindow):
             self.getEditor().createSubgrammarMenu(self.ui.menuChange_language_box)
             self.ui.menuChange_language_box.update()
             for a in self.ui.menuChange_language_box.actions():
-                self.connect(a, SIGNAL("triggered()"), self.actionChangeLBoxMenu)
+                a.triggered.connect(self.actionChangeLBoxMenu)
 
     def showRecentFiles(self):
         settings = QSettings("softdev", "Eco")
-        rf = settings.value("recent_files", []).toList()
+        rf = settings.value("recent_files", [], type=list)
         self.ui.menuRecent_files.clear()
         for f in rf:
-            n = os.path.basename(str(f.toString()))
-            fullname = f.toString()
+            n = os.path.basename(f)
+            fullname = f
             action = QAction(n, self.ui.menuRecent_files)
             action.triggered.connect(makelambda(self.openfile, fullname))
             self.ui.menuRecent_files.addAction(action)
@@ -867,7 +868,7 @@ class Window(QtGui.QMainWindow):
     def actionChangeLBoxMenu(self):
         action = self.sender()
         if action:
-            self.getEditor().sublanguage = action.data().toPyObject()
+            self.getEditor().sublanguage = action.data()
             self.getEditor().edit_rightnode = True
             self.getEditor().change_languagebox()
             self.getEditor().update()
@@ -909,7 +910,7 @@ class Window(QtGui.QMainWindow):
             return
         if len(args) > 0:
             for f in args:
-                self.openfile(QString(f))
+                self.openfile(str(f))
 
 
     def preload(self):
@@ -975,7 +976,7 @@ class Window(QtGui.QMainWindow):
 
     def view_in_lspace(self):
         settings = QSettings("softdev", "Eco")
-        lspace_root = str(settings.value("env_lspaceroot").toString())
+        lspace_root = str(settings.value("env_lspaceroot", type=str))
         lspace_root = lspace_root if lspace_root != "" else None
         ed = self.getEditorTab()
         if not ed:
@@ -1002,7 +1003,7 @@ class Window(QtGui.QMainWindow):
         self.ui.dockWidget.show()
         self.ui.expressionBox.show()
         self.debug_t.start()
-        self.emit(self.debugger.signal_start)
+        self.debugger.signal_start.emit()
         self.debugging = True
         self.getEditorTab().is_debugging(True)
 
@@ -1191,7 +1192,7 @@ class Window(QtGui.QMainWindow):
         if not ed:
             return
         self.delete_swap()
-        filename = QFileDialog.getSaveFileName(self, "Save File", self.get_last_dir(), "Eco files (*.eco *.nb);; All files (*.*)")
+        filename, _ = QFileDialog.getSaveFileName(self, "Save File", self.get_last_dir(), "Eco files (*.eco *.nb);; All files (*.*)")
         if filename:
             self.save_last_dir(str(filename))
             self.add_to_recent_files(str(filename))
@@ -1227,7 +1228,7 @@ class Window(QtGui.QMainWindow):
         if not ed:
             return
         if not ed.export_path:
-            ed.export_path = QFileDialog.getSaveFileName()
+            ed.export_path, _ = QFileDialog.getSaveFileName()
         if ed.export_path:
             result = self.getEditor().tm.export(ed.export_path, source=ed.filename)
             if result is False:
@@ -1237,7 +1238,7 @@ class Window(QtGui.QMainWindow):
         ed = self.getEditorTab()
         if not ed:
             return
-        path = QFileDialog.getSaveFileName(self, "Export file", self.get_last_dir())
+        path, _ = QFileDialog.getSaveFileName(self, "Export file", self.get_last_dir())
         if path:
             self.save_last_dir(str(path))
             ed.export_path = path
@@ -1253,7 +1254,7 @@ class Window(QtGui.QMainWindow):
 
     def get_last_dir(self):
         settings = QSettings("softdev", "Eco")
-        last_dir = settings.value("last_dir").toString()
+        last_dir = settings.value("last_dir", type=str)
         if last_dir:
             return last_dir
         return QDir.currentPath()
@@ -1264,7 +1265,7 @@ class Window(QtGui.QMainWindow):
 
     def add_to_recent_files(self, filename):
         settings = QSettings("softdev", "Eco")
-        prev = settings.value("recent_files", []).toList()
+        prev = settings.value("recent_files", [], type=str)
         if filename in prev:
             prev.remove(filename)
         prev.insert(0, filename)
@@ -1274,11 +1275,11 @@ class Window(QtGui.QMainWindow):
 
     def openfile(self, filename=None):
         if not filename:
-            filename = QFileDialog.getOpenFileName(self, "Open File", self.get_last_dir(), "Eco files (*.eco *.nb *.eco.bak);; All files (*.*)")
+            filename, _ = QFileDialog.getOpenFileName(self, "Open File", self.get_last_dir(), "Eco files (*.eco *.nb *.eco.bak);; All files (*.*)")
         if filename:
             self.save_last_dir(str(filename))
             self.add_to_recent_files(str(filename))
-            if filename.endsWith(".eco") or filename.endsWith(".nb") or filename.endsWith(".eco.bak") or filename.endsWith(".eco.swp"):
+            if filename.endswith(".eco") or filename.endswith(".nb") or filename.endswith(".eco.bak") or filename.endswith(".eco.swp"):
                 ret = self.show_backup_msgbox(filename + ".swp")
                 if ret == "abort":
                     return
@@ -1451,7 +1452,7 @@ class Window(QtGui.QMainWindow):
         for parser, lexer, lang in nested[root]:
             status = parser.last_status
             qtreeitem = QTreeWidgetItem(parent)
-            qtreeitem.setText(0, QString(lang))
+            qtreeitem.setText(0, lang)
             if status:
                 qtreeitem.setIcon(0, QIcon("gui/accept.png"))
             else:
@@ -1501,16 +1502,16 @@ class Window(QtGui.QMainWindow):
             self.ui.actionStateGraph.setEnabled(enabled)
 
     def debug_continue(self):
-        self.emit(self.debugger.signal_command, "c")
+        self.debugger.signal_command.emit("c")
 
     def debug_stop(self):
-        self.emit(self.debugger.signal_command, "q")
+        self.debugger.signal_command.emit("q")
 
     def debug_step_into(self):
-        self.emit(self.debugger.signal_command, "s")
+        self.debugger.signal_command.emit("s")
 
     def debug_step_over(self):
-        self.emit(self.debugger.signal_command, "n")
+        self.debugger.signal_command.emit("n")
 
     def debug_toggle_buttons(self, enable):
         self.ui.actionContinue.setEnabled(enable)
@@ -1579,8 +1580,8 @@ class Window(QtGui.QMainWindow):
             self.ui.expressionBox.clear()
 
     def set_breakpoint_signals(self, etab):
-        self.connect(etab, SIGNAL("breakpoint"), self.debug_breakpoint)
-        self.connect(etab, SIGNAL("breakcondition"), self.debug_breakpoint_condition)
+        etab.breakpoint.connect(self.debug_breakpoint)
+        etab.breakcondition.connect(self.debug_breakpoint_condition)
 
     def keyPressEvent(self, event):
         if self.debugging:
@@ -1608,7 +1609,7 @@ class Window(QtGui.QMainWindow):
         self.ui.expressionBox.setText(self.expression_list[self.expression_num])
 
 def main():
-    app = QtGui.QApplication(sys.argv)
+    app = QApplication(sys.argv)
     app.setStyle('gtk')
 
     settings = QSettings("softdev", "Eco")
@@ -1619,8 +1620,8 @@ def main():
         settings.setValue("tool-font-family", "Monospace")
         settings.setValue("tool-font-size", 9)
 
-    app.gfont = GlobalFont(settings.value("font-family").toString(), settings.value("font-size").toInt()[0])
-    app.tool_info_font = GlobalFont(settings.value("tool-font-family").toString(), settings.value("tool-font-size").toInt()[0])
+    app.gfont = GlobalFont(settings.value("font-family", type=str), settings.value("font-size", type=int))
+    app.tool_info_font = GlobalFont(settings.value("tool-font-family", type=str), settings.value("tool-font-size", type=int))
 
     if not settings.contains("heatmap_low"):
         settings.setValue("heatmap_low", QColor(222, 235, 247))
@@ -1648,20 +1649,18 @@ def main():
     window.debugger.moveToThread(window.debug_t)
 
     window.profile_throbber = Throbber(window.ui.tabWidget)
-    window.connect(window, window.debugger.signal_command, window.debugger.run_command)
-    window.connect(window, window.debugger.signal_start, window.debugger.start_pdb)
-    window.connect(window.debugger, window.debugger.signal_output, window.show_output)
-    window.connect(window.debugger, window.debugger.signal_done, window.debug_finished)
-    window.connect(window.debugger, window.debugger.signal_toggle_buttons, window.debug_toggle_buttons)
-    window.connect(window.debugger, window.debugger.signal_execute_fail, window.show_execution_fail_message)
+    window.debugger.signal_command.connect(window.debugger.run_command)
+    window.debugger.signal_start.connect(window.debugger.start_pdb)
+    window.debugger.signal_output.connect(window.show_output)
+    window.debugger.signal_done.connect(window.debug_finished)
+    window.debugger.signal_toggle_buttons.connect(window.debug_toggle_buttons)
+    window.debugger.signal_execute_fail.connect(window.show_execution_fail_message)
 
-    window.connect(window.thread, t.signal_execute_fail, window.show_execution_fail_message)
-    window.connect(window.thread, t.signal, window.show_output)
-    window.connect(window.thread_prof, window.thread_prof.signal, window.show_output)
+    t.signal_execute_fail.connect(window.show_execution_fail_message)
+    t.signal.connect(window.show_output)
+    window.thread_prof.signal.connect(window.show_output)
     # Connect the profiler (tool) thread to the throbber.
-    window.connect(window.thread_prof,
-                   window.thread_prof.signal_done,
-                   window.profiler_finished)
+    window.thread_prof.signal_done.connect(window.profiler_finished)
 
     window.parse_options()
     window.show()
@@ -1669,11 +1668,12 @@ def main():
     sys.exit(app.exec_())
 
 class SubProcessThread(QThread):
+    signal = pyqtSignal(str)
+    signal_execute_fail = pyqtSignal(str)
+
     def __init__(self, window, parent):
         QThread.__init__(self, parent=parent)
         self.window = window
-        self.signal = QtCore.SIGNAL("output")
-        self.signal_execute_fail = QtCore.SIGNAL("executefail")
 
     def run(self):
         from treemanager import ExecutionError
@@ -1682,23 +1682,24 @@ class SubProcessThread(QThread):
             p = self.window.getEditor().export(run=True, source=str(ed.filename))
             lang = self.window.getEditor().get_mainlanguage()
             if p is False:
-                self.emit(self.signal_execute_fail, "program syntactically invalid")
+                self.signal_execute_fail.emit("program syntactically invalid")
             else:
                 for line in iter(p.stdout.readline, b''):
                     if lang == "PHP + Python" and line.startswith("  <?php{ "):
                             line = "  " + line[9:]
-                    self.emit(self.signal, line.rstrip())
+                    self.signal.emit(line.rstrip())
         except ExecutionError as e:
-            self.emit(self.signal_execute_fail, e.message)
+            self.signal_execute_fail.emit(e.message)
 
 class ProfileThread(QThread):
+    signal_done = pyqtSignal()
+    signal = pyqtSignal()
+    signal_overlay = pyqtSignal(dict)
+    signal_execute_fail = pyqtSignal()
+
     def __init__(self, window, parent):
         QThread.__init__(self, parent=parent)
         self.window = window
-        self.signal_done = QtCore.SIGNAL("finished")
-        self.signal = QtCore.SIGNAL("output")
-        self.signal_overlay = QtCore.SIGNAL("profile_overlay")
-        self.signal_execute_fail = QtCore.SIGNAL("executefail")
 
     def run(self):
         ed = self.window.getEditorTab()
@@ -1707,12 +1708,12 @@ class ProfileThread(QThread):
         # often includes blank lines in the middle of the output.
         if p:
             text = p.stdout.read()
-            self.emit(self.signal, text.strip())
-            self.emit(self.signal_overlay, self.window.getEditor().tm.profile_data)
+            self.signal.emit(text.strip())
+            self.signal_overlay.emit(self.window.getEditor().tm.profile_data)
         else:
-            self.emit(self.signal_overlay, None)
-            self.emit(self.signal_execute_fail)
-        self.emit(self.signal_done, None)
+            self.signal_overlay.emit(None)
+            self.signal_execute_fail.emit()
+        self.signal_done.emit(None)
 
 
 class Throbber(QLabel):

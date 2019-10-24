@@ -25,7 +25,7 @@ from incparser.astree import BOS, EOS, TextNode, ImageNode, MultiTextNode
 try:
     import __pypy__
 except ImportError:
-    from PyQt4.QtGui import QImage
+    from PyQt5.QtGui import QImage
 import re, os
 
 class IncrementalLexer(object):

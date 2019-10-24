@@ -27,8 +27,8 @@ from grammar_parser.gparser import Terminal, MagicTerminal, IndentationTerminal,
 try:
     import __pypy__
 except ImportError:
-    from PyQt4.QtGui import QApplication
-    from PyQt4.QtCore import QSettings
+    from PyQt5.QtWidgets import QApplication
+    from PyQt5.QtCore import QSettings
     from export.jruby import JRubyExporter
     from export.jruby_simple_language import JRubySimpleLanguageExporter
     from export.jruby_javascript import JRubyJavaScriptExporter
@@ -43,7 +43,7 @@ import math, os
 
 def debug_trace():
   '''Set a tracepoint in the Python debugger that works with Qt'''
-  from PyQt4.QtCore import pyqtRemoveInputHook
+  from PyQt5.QtCore import pyqtRemoveInputHook
 
   # Or for Qt5
   #from PyQt5.QtCore import pyqtRemoveInputHook

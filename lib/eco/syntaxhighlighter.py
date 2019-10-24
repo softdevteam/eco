@@ -19,8 +19,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from PyQt4.Qt import QPalette
-from PyQt4.QtCore import QSettings
+from PyQt5.Qt import QPalette
+from PyQt5.QtCore import QSettings
 
 class SyntaxHighlighter(object):
     colors = {

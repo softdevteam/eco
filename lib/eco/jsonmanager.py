@@ -27,7 +27,7 @@ from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol, MultiT
 try:
     import __pypy__
 except ImportError:
-    from PyQt4.QtGui import QImage
+    from PyQt5.QtGui import QImage
 
 class JsonManager(object):
     def __init__(self, unescape=False):

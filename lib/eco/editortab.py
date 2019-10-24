@@ -19,10 +19,11 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from PyQt4 import QtCore
-from PyQt4.QtCore import *
-from PyQt4 import QtGui
-from PyQt4.QtGui import *
+from PyQt5 import QtCore
+from PyQt5.QtCore import *
+from PyQt5 import QtGui
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
 from nodeeditor import NodeEditor
 from grammars.grammars import Language, EcoGrammar, EcoFile
@@ -37,8 +38,12 @@ BODY_FONT = "Monospace"
 BODY_FONT_SIZE = 9
 
 class EditorTab(QWidget):
+
+    breakpoint = pyqtSignal(bool, int, bool)
+    breakcondition = pyqtSignal(int)
+
     def __init__(self, parent=None):
-        QtGui.QWidget.__init__(self, parent)
+        QWidget.__init__(self, parent)
         boxlayout = QHBoxLayout(self)
         self.scrollarea = ScopeScrollArea(self)
         self.editor = NodeEditor(self)
@@ -59,12 +64,12 @@ class EditorTab(QWidget):
         boxlayout.addWidget(self.linenumbers)
         boxlayout.addWidget(self.scrollarea)
 
-        self.connect(self.scrollarea.verticalScrollBar(), SIGNAL("valueChanged(int)"), self.editor.sliderChanged)
-        self.connect(self.scrollarea.horizontalScrollBar(), SIGNAL("valueChanged(int)"), self.editor.sliderXChanged)
-        self.connect(self.editor, SIGNAL("painted()"), self.painted)
-        self.connect(self.editor, SIGNAL("keypress(QKeyEvent)"), self.keypress)
-        self.connect(self.linenumbers, SIGNAL("breakpoint"), self.toggle_breakpoint)
-        self.connect(self.linenumbers, SIGNAL("breakcondition"), self.set_breakpoint_condition)
+        self.scrollarea.verticalScrollBar().valueChanged.connect(self.editor.sliderChanged)
+        self.scrollarea.horizontalScrollBar().valueChanged.connect(self.editor.sliderXChanged)
+        self.editor.sig_painted.connect(self.painted)
+        self.editor.sig_keypress.connect(self.keypress)
+        self.linenumbers.breakpoint.connect(self.toggle_breakpoint)
+        self.linenumbers.breakcondition.connect(self.set_breakpoint_condition)
 
         self.filename = self.export_path = None
         self.debugging = False
@@ -118,10 +123,10 @@ class EditorTab(QWidget):
             incparser.setup_autolbox(lang.name, inclexer)
 
     def toggle_breakpoint(self, isTemp, number, from_click):
-        self.emit(SIGNAL("breakpoint"), isTemp, number, from_click)
+        self.breakpoint.emit(isTemp, number, from_click)
 
     def set_breakpoint_condition(self, number):
-        self.emit(SIGNAL("breakcondition"), number)
+        self.breakcondition.emit(number)
 
     def is_debugging(self, isDebugging):
         self.debugging = isDebugging;
@@ -131,7 +136,7 @@ class EditorTab(QWidget):
     def set_breakpoints(self, bps):
         self.breakpoints = bps
 
-class ScopeScrollArea(QtGui.QAbstractScrollArea):
+class ScopeScrollArea(QAbstractScrollArea):
 
     def update(self):
         QWidget.update(self)
@@ -180,7 +185,7 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
         self.widget = widget
         self.viewport().setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        anotherbox = QtGui.QVBoxLayout(self.viewport())
+        anotherbox = QVBoxLayout(self.viewport())
         anotherbox.addWidget(widget)
         anotherbox.setSpacing(0)
         anotherbox.setContentsMargins(3,0,0,0)
@@ -188,7 +193,7 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
     def update_theme(self):
         settings = QSettings("softdev", "Eco")
         pal = self.viewport().palette()
-        if settings.value("app_custom", False).toBool():
+        if settings.value("app_custom", False, type=bool):
             fg = settings.value("app_foreground", "#000000")
             bg = settings.value("app_background", "#ffffff")
             pal.setColor(QPalette.Base, QColor(bg))
@@ -227,6 +232,10 @@ class ScopeScrollArea(QtGui.QAbstractScrollArea):
         self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() - step)
 
 class LineNumbers(QFrame):
+
+    breakpoint = pyqtSignal(bool, int, bool)
+    breakcondition = pyqtSignal(int)
+
     def mouseDoubleClickEvent(self, event):
         if not self.parent().debugging:
             return None;
@@ -235,7 +244,7 @@ class LineNumbers(QFrame):
         line_clicked = self.findLineNumberAt(event.y())
         if line_clicked <= len(editor.lines):
             event.accept()
-            self.emit(SIGNAL("breakpoint"), False, line_clicked, True)
+            self.breakpoint.emit(False, line_clicked, True)
 
     def contextMenuEvent(self, event):
         """This event is fired when line numbers are right clicked"""
@@ -253,11 +262,11 @@ class LineNumbers(QFrame):
         bcAction = menu.addAction("Set breakpoint with condition at "+str(line_clicked))
         action = menu.exec_(self.mapToGlobal(event.pos()))
         if action == bAction:
-            self.emit(SIGNAL("breakpoint"), False, line_clicked, False)
+            self.breakpoint.emit(False, line_clicked, False)
         elif action == tbAction:
-            self.emit(SIGNAL("breakpoint"), True, line_clicked, False)
+            self.breakpoint.emit(True, line_clicked, False)
         elif action == bcAction:
-            self.emit(SIGNAL("breakcondition"), line_clicked)
+            self.breakcondition.emit(line_clicked)
 
     def findLineNumberAt(self, y):
         gfont = QApplication.instance().gfont
@@ -381,7 +390,7 @@ class AutoLBoxComplete(QFrame):
                 menu.addAction(item)
             action = menu.exec_(self.mapToGlobal(event.pos()))
             if action:
-                s, e, l, split = action.data().toPyObject()
+                s, e, l, split = action.data()
                 if type(s.symbol) is MagicTerminal:
                     self.parent().editor.tm.expand_languagebox(s, e, manual=True)
                 else:

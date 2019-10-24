@@ -29,8 +29,9 @@ except ImportError:
     has_mipy = False
 from incparser.astree import TextNode, EOS  #BOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import IndentationTerminal # BOS, MagicTerminal, Nonterminal
-from PyQt4 import QtCore
-from PyQt4.QtGui import QPen, QColor, QImage, QApplication
+from PyQt5 import QtCore
+from PyQt5.QtGui import QPen, QColor, QImage
+from PyQt5.QtWidgets import QApplication
 
 import math, os
 
