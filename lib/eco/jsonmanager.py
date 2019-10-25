@@ -98,9 +98,6 @@ class JsonManager(object):
 
         symbol = node_symbol()
         symbol.name = jsnode["text"]
-        if self.unescape:
-            symbol.name = jsnode["text"].encode("ascii")
-            symbol.name = symbol.name.decode("unicode-escape")
         if node_class is not MultiTextNode:
             node = node_class(symbol)
             assert node.symbol is symbol
