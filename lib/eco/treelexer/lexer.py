@@ -354,6 +354,7 @@ class RegexParser(object):
         import re
         pos = 0
         while pos < len(pattern):
+            last_pos = pos
             for name, regex in self.lrules:
                 r = re.match(regex, pattern[pos:])
                 if r:
@@ -363,6 +364,8 @@ class RegexParser(object):
                     bos = n
                     pos += len(r.group(0))
                     break
+            if last_pos == pos:
+                raise Exception("Could not lex pattern.")
 
     def compile(self, pattern):
         self.load(pattern)

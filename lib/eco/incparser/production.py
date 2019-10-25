@@ -43,5 +43,5 @@ class Production(object):
         l = []
         for e in self.right:
             l.append(e.name)
-        return "%s ::= %s {%s}" % (self.left.name, " ".join(l), self.annotation)
+        return "%s ::= %s {%s}" % (self.left.name if self.left else "None", " ".join(l), self.annotation)
         #return "Production(%s, %s)" % (self.left, self.right)

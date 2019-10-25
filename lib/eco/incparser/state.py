@@ -231,6 +231,9 @@ class LR1Element(State):
     def __eq__(self, other):
         return State.__eq__(self, other)# and self.lookahead == other.lookahead
 
+    def __hash__(self):
+        return hash(self.p) ^ hash(self.d)
+
     def equal_with_la(self, other):
         return State.__eq__(self, other) and self.lookahead == other.lookahead
 

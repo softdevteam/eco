@@ -134,15 +134,15 @@ class Test_PatternMatcher(object):
 
     def test_escaped(self):
         assert PatternMatcher().match(self.cmp("[a-z]"), "-") is None
-        assert PatternMatcher().match(self.cmp("[a\-z]"), "-") == "-"
-        assert PatternMatcher().match(self.cmp("#[^\-]*"), "-") is None
-        assert PatternMatcher().match(self.cmp("[\[]*"), "[") == "["
-        assert PatternMatcher().match(self.cmp("[\.]"), ".") == "."
-        assert PatternMatcher().match(self.cmp("\."), ".") == "."
-        assert PatternMatcher().match(self.cmp("\["), "[") == "["
-        assert PatternMatcher().match(self.cmp("\[\]"), "[]") == "[]"
-        assert PatternMatcher().match(self.cmp("\*"), "*") == "*"
-        assert PatternMatcher().match(self.cmp("\+"), "+") == "+"
+        assert PatternMatcher().match(self.cmp(r"[a\-z]"), "-") == "-"
+        assert PatternMatcher().match(self.cmp(r"#[^\-]*"), "-") is None
+        assert PatternMatcher().match(self.cmp(r"[\[]*"), "[") == "["
+        assert PatternMatcher().match(self.cmp(r"[\.]"), ".") == "."
+        assert PatternMatcher().match(self.cmp(r"\."), ".") == "."
+        assert PatternMatcher().match(self.cmp(r"\["), "[") == "["
+        assert PatternMatcher().match(self.cmp(r"\[\]"), "[]") == "[]"
+        assert PatternMatcher().match(self.cmp(r"\*"), "*") == "*"
+        assert PatternMatcher().match(self.cmp(r"\+"), "+") == "+"
         assert PatternMatcher().match(self.cmp("\\+"), "+") == "+"
         assert PatternMatcher().match(self.cmp("\'"), "\'") == "'"
         assert PatternMatcher().match(self.cmp("\\'"), "\'") == "'"
@@ -162,20 +162,20 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("#[^\\r]*"), "# abc") == "# abc"
         assert PatternMatcher().match(self.cmp("#[^\r]*"), "# abc \r") == "# abc "
 
-        assert PatternMatcher().match(self.cmp("([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "123.456") == "123.456"
-        assert PatternMatcher().match(self.cmp("([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "1e23") == "1e23"
+        assert PatternMatcher().match(self.cmp(r"([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "123.456") == "123.456"
+        assert PatternMatcher().match(self.cmp(r"([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "1e23") == "1e23"
         assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a string 123!'") == "'this is a string 123!'"
         assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a with a newline \r string 123!'") is None
 
         assert PatternMatcher().match(self.cmp("/"), "/") == "/"
-        assert PatternMatcher().match(self.cmp("\*"), "*") == "*"
-        assert PatternMatcher().match(self.cmp("/\*"), "/*") == "/*"
-        assert PatternMatcher().match(self.cmp("/\*\*/"), "/**/") == "/**/"
-        assert PatternMatcher().match(self.cmp("/\*[a-z]*\*/"), "/*foo*/") == "/*foo*/"
-        assert PatternMatcher().match(self.cmp("/\*([^\*])*\*/"), "/*foo*/") == "/*foo*/"
-        assert PatternMatcher().match(self.cmp("/\*.*?\*/"), "/***/") == "/***/"
-        assert PatternMatcher().match(self.cmp("/\*.*?\*/"), "/* abc** def */") == "/* abc** def */"
-        assert PatternMatcher().match(self.cmp("/\*.*?\*/"), "/* abc */ * def */") == "/* abc */"
+        assert PatternMatcher().match(self.cmp(r"\*"), "*") == "*"
+        assert PatternMatcher().match(self.cmp(r"/\*"), "/*") == "/*"
+        assert PatternMatcher().match(self.cmp(r"/\*\*/"), "/**/") == "/**/"
+        assert PatternMatcher().match(self.cmp(r"/\*[a-z]*\*/"), "/*foo*/") == "/*foo*/"
+        assert PatternMatcher().match(self.cmp(r"/\*([^\*])*\*/"), "/*foo*/") == "/*foo*/"
+        assert PatternMatcher().match(self.cmp(r"/\*.*?\*/"), "/***/") == "/***/"
+        assert PatternMatcher().match(self.cmp(r"/\*.*?\*/"), "/* abc** def */") == "/* abc** def */"
+        assert PatternMatcher().match(self.cmp(r"/\*.*?\*/"), "/* abc */ * def */") == "/* abc */"
 
         # Python
         assert PatternMatcher().match(self.cmp("#[^\\r]*"), "# hello world") == "# hello world"
@@ -186,9 +186,9 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("\\"), "\\") == "\\"
         assert PatternMatcher().match(self.cmp("\\"), "range") is None
         assert PatternMatcher().match(self.cmp("[\\n\\r]"), "\r") == "\r"
-        assert PatternMatcher().match(self.cmp("\."), ".") == "."
+        assert PatternMatcher().match(self.cmp(r"\."), ".") == "."
         assert PatternMatcher().match(self.cmp("&="), "&=") == "&="
-        assert PatternMatcher().match(self.cmp("0[xX][\da-fA-F]+"), "0xAB") == "0xAB"
+        assert PatternMatcher().match(self.cmp(r"0[xX][\da-fA-F]+"), "0xAB") == "0xAB"
         assert PatternMatcher().match(self.cmp("0[oO][0-7]+"), "0o67") == "0o67"
         assert PatternMatcher().match(self.cmp("0[bB][01]+"), "0b10101") == "0b10101"
         assert PatternMatcher().match(self.cmp('\"([^\"\r\\\\]|\\\\")*\"'), '"escaped\\"quote"') == '"escaped\\"quote"'
@@ -202,15 +202,15 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("[A-Z_]([a-zA-Z0-9]|_)*|_"), "var") is None
         assert PatternMatcher().match(self.cmp("(0|[1-9][0-9]*)"), "0") == "0"
         assert PatternMatcher().match(self.cmp("(0|[1-9][0-9]*)"), "12345") == "12345"
-        assert PatternMatcher().match(self.cmp("(0|[1-9][0-9]*)(\.[0-9]+)([eE][-+]?[0-9]+)?"), "1213.89e+23") == "1213.89e+23"
+        assert PatternMatcher().match(self.cmp(r"(0|[1-9][0-9]*)(\.[0-9]+)([eE][-+]?[0-9]+)?"), "1213.89e+23") == "1213.89e+23"
         assert PatternMatcher().match(self.cmp("([a-z]([a-zA-Z0-9]|_)*)"), "aH8_") == "aH8_"
         assert PatternMatcher().match(self.cmp("('[^']*')"), "'quoted'") == "'quoted'"
-        assert PatternMatcher().match(self.cmp("\[\]"), "[]") == "[]"
+        assert PatternMatcher().match(self.cmp(r"\[\]"), "[]") == "[]"
         assert PatternMatcher().match(self.cmp("!"), "!") == "!"
-        assert PatternMatcher().match(self.cmp("\+"), "+") == "+"
-        assert PatternMatcher().match(self.cmp("\-"), "-") == "-"
-        assert PatternMatcher().match(self.cmp("\{\}"), "{}") == "{}"
-        assert PatternMatcher().match(self.cmp("([a-z]([a-zA-Z0-9]|_)*)|('[^']*')|\[\]|!|\+|\-|\{\}"), "aH8_") == "aH8_"
+        assert PatternMatcher().match(self.cmp(r"\+"), "+") == "+"
+        assert PatternMatcher().match(self.cmp(r"\-"), "-") == "-"
+        assert PatternMatcher().match(self.cmp(r"\{\}"), "{}") == "{}"
+        assert PatternMatcher().match(self.cmp(r"([a-z]([a-zA-Z0-9]|_)*)|('[^']*')|\[\]|!|\+|\-|\{\}"), "aH8_") == "aH8_"
         assert PatternMatcher().match(self.cmp("\"[^\"]*\""), '"a string"') == '"a string"'
 
         # Eco grammar
@@ -219,13 +219,13 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp('\\"([^\\\\"]|\\\\\\")*\\"'), '"\\"[a-z]\\""') == '"\\"[a-z]\\""'
         assert PatternMatcher().match(self.cmp('\\"([^\\\\"]|\\\\\\")*\\"'), '"\\"[a"-z]\\""') == '"\\"[a"'
         assert PatternMatcher().match(self.cmp('"([^\\"\\\\r]|\\\\\")*"'), '"\\"[a-z]\\""') == '"\\"[a-z]\\""'
-        assert PatternMatcher().match(self.cmp('\\"([^\\"\\\\]|\\\\.)*\\"'), '"\+"') == '"\+"'
+        assert PatternMatcher().match(self.cmp( '\\"([^\\"\\\\]|\\\\.)*\\"'), '"\\+"') == '"\\+"'
         assert PatternMatcher().match(self.cmp('\\"([^\\"\\\\]|\\\\.)*\\"'), '"escaped\\"quote"') == '"escaped\\"quote"'
         assert PatternMatcher().match(self.cmp('\\"([^\\"\\\\]|\\\\.)*\\"'), "\"escaped\\\"quote\"") == '"escaped\\"quote"'
         assert PatternMatcher().match(self.cmp('\\"([^\\"\\\\]|\\\\.)*\\"'), '"\\"[a"-z]\\""') == '"\\"[a"'
 
         # Lua
-        assert PatternMatcher().match(self.cmp('--\[\[.*?\]\]'), '--[[te\nst]]') == '--[[te\nst]]'
+        assert PatternMatcher().match(self.cmp(r'--\[\[.*?\]\]'), '--[[te\nst]]') == '--[[te\nst]]'
 
     def test_exactmatch(self):
         pm = PatternMatcher()
@@ -326,8 +326,8 @@ class Test_IncrementalLexing(object):
     def setup_class(cls):
         rules = []
         rules.append(("INT", "[0-9]+"))
-        rules.append(("plus", "\+"))
-        rules.append(("mul", "\*"))
+        rules.append(("plus", "\\+"))
+        rules.append(("mul", "\\*"))
         rules.append(("string", "\'[^\']*\'"))
         cls.lexer = Lexer(rules)
 
@@ -514,7 +514,7 @@ class Test_LuaComments(object):
 
     def setup_class(cls):
         rules = []
-        rules.append(("mcomment", '--\[\[.*?\]\]'))
+        rules.append(("mcomment", r'--\[\[.*?\]\]'))
         rules.append(("minus", '-'))
         rules.append(("scomment", '--[^\r]*'))
         cls.lexer = Lexer(rules)
