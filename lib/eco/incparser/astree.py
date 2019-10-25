@@ -104,7 +104,7 @@ class AST(object):
         return "\n".join(output)
 
 class Node(object):
-    __slots__ = ["symbol", "state", "parent", "left", "right", "prev_term", "next_term", "magic_parent", "children", "annotations"]
+    __slots__ = ["symbol", "state", "parent", "left", "right", "prev_term", "next_term", "magic_parent", "children", "annotations", "log", "max_version"]
     def __init__(self, symbol, state, children):
         self.symbol = symbol
         self.state = state
@@ -453,6 +453,9 @@ class Node(object):
         if isinstance(other, Node):
             return other.symbol == self.symbol and other.state == self.state and other.children == self.children
         return False
+
+    def __hash__(self):
+        return hash(id(self))
 
 import string
 lowercase = set(list(string.ascii_lowercase))

@@ -84,17 +84,18 @@ class EcoFile(object):
             manager = JsonManager(unescape=True)
             root, language, whitespaces = manager.load(self.filename)[0]
 
-            pickle_id = hash(self)
             bootstrap = BootstrapParser(lr_type=1, whitespaces=whitespaces)
             bootstrap.ast = root
             bootstrap.extra_alternatives = self.alts
             bootstrap.change_startrule = self.extract
             bootstrap.read_options()
+            whitespace = bootstrap.implicit_ws()
+
+            pickle_id = self.pickleid(whitespace)
 
             bootstrap.parse_both()
             bootstrap.create_parser(pickle_id)
             bootstrap.create_lexer(buildlexer)
-            whitespace = bootstrap.implicit_ws()
 
             _cache[self.name + "::lexer"] = bootstrap.inclexer
             _cache[self.name + "::json"] = (root, language, whitespaces)
@@ -168,11 +169,15 @@ class EcoFile(object):
             return False
         return True
 
-    def __hash__(self):
-        h1 = hash(file(self.filename, "r").read())
-        h2 = hash(repr(self.alts))
-        h3 = hash(str(self.extract))
-        return h1 ^ h2 ^ h3
+    def pickleid(self, whitespace):
+        import hashlib
+        with open(self.filename, "r", encoding="latin-1") as f:
+            m = hashlib.md5()
+            m.update(f.read().encode("latin-1"))
+            m.update(repr(self.alts).encode("latin-1"))
+            m.update(str(self.extract).encode("latin-1"))
+            m.update(str(whitespace).encode("latin-1"))
+            return m.hexdigest()
 
 languages = []
 newfile_langs = []

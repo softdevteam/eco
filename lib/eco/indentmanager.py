@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 
 from grammar_parser.gparser import IndentationTerminal
-from incparser.astree import TextNode
+from incparser.astree import TextNode, BOS
 
 def println(node):
     l = []
@@ -76,6 +76,8 @@ class IndentationManager:
             if ws is None and bol.prev_term and bol.prev_term.symbol.name != "\\":
                 bol = self.next_line(bol)
                 continue
+            if ws is None:
+                return self.changed
             if ws > current_ws:
                 self.indentation[bol] = current_indent + 1
             if ws == current_ws:
@@ -109,6 +111,8 @@ class IndentationManager:
         line given by bol accordingly."""
         # calculate indentation by scanning previous lines
         ws = self.count_whitespace(bol)
+        if ws is None:
+            return
         temp = bol
         found_smaller = False
         while bol is not self.bos:
@@ -143,6 +147,8 @@ class IndentationManager:
             while bol is not self.bos and not self.is_logical_line(bol):
                 bol = self.prev_line(bol)
             prev_ws = self.count_whitespace(bol)
+            if prev_ws is None and type(bol) is BOS:
+                prev_ws = 0
 
             if prev_ws == this_ws:
                 self.indentation[temp] = self.get_indentation(bol) # this is only needed when calling fix_tokens separately (e.g. import)

@@ -300,8 +300,8 @@ class GraphDisplay(Display):
                         return forcestr(text) # return encoded unicode
                     elif e.key == K_BACKSPACE:
                         text = text[:-1]
-                    elif e.str and ord(e.str) >= ord(' '):
-                        text += e.str
+                    elif e.unicode and ord(e.unicode) >= ord(' '):
+                        text += e.unicode
             if text != old_text:
                 draw(prompt + text)
 
@@ -696,8 +696,8 @@ class GraphDisplay(Display):
     def process_KeyDown(self, event):
         mod = event.mod & self.key_mask
         method, args = self.key_cache.get((event.key, mod), (None, None))
-        if method is None and event.str:
-            char = event.str.lower()
+        if method is None and event.unicode:
+            char = event.unicode.lower()
             mod = mod & ~ KMOD_SHIFT
             method, args = self.ascii_key_cache.get((char, mod), (None, None))
         if method is not None:
