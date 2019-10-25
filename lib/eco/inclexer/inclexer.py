@@ -27,7 +27,6 @@ try:
 except ImportError:
     from PyQt4.QtGui import QImage
 import re, os
-#from cflexer.lexer import LexingError
 
 class IncrementalLexer(object):
     """Deprecated incremental lexer."""
