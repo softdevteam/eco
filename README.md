@@ -7,18 +7,19 @@ distributed under a BSD/MIT license.
 ### Install ###
 At a minimum you will need to install:
 
-* Python 2.7 https://www.python.org/download/
-* PyQT4 http://www.riverbankcomputing.co.uk/software/pyqt/download
+* Python 3 https://www.python.org/download/
+* PyQt5 http://www.riverbankcomputing.co.uk/software/pyqt/download5
 * Py http://py.readthedocs.io/en/latest/install.html
 
 On Unix machines, you can reasonably expect your distribution to have packages
-for Python and PyQT4. You may need to install Py using Pip or similar (see the
+for Python and PyQt. You may need to install Py using Pip or similar (see the
 link above).
 
 If you wish to see visualisations of parse trees, you may optionally install:
 
 * GraphViz http://www.graphviz.org/Download.php
 * PyDot https://code.google.com/p/pydot/
+* Pygame https://www.pygame.org/
 
 
 ### Running Eco ###
