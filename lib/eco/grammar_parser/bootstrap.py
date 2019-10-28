@@ -49,19 +49,19 @@ class BootstrapParser(object):
         self.prod_ids = {}
 
     def implicit_ws(self):
-        if self.options.has_key("implicit_ws"):
+        if "implicit_ws" in self.options:
             if self.options["implicit_ws"] == "true":
                 return True
         return False
 
     def implicit_newlines(self):
-        if self.options.has_key("implicit_newlines"):
+        if "implicit_newlines" in self.options:
             if self.options["implicit_newlines"] == "false":
                 return False
         return True
 
     def indentation_based(self):
-        if self.options.has_key("indentation"):
+        if "indentation" in self.options:
             if self.options["indentation"] == "true":
                 return True
         return False
@@ -222,7 +222,7 @@ class BootstrapParser(object):
             ws_rule.symbol = Nonterminal("WS")
             ws_rule.add_alternative([Nonterminal("WS"), Terminal("<ws>")])
             # get comment rule
-            if self.options.has_key('comment_rule'):
+            if 'comment_rule' in self.options:
                 cmt_rules = self.options['comment_rule']
                 for cmt_rule in cmt_rules:
                     if Nonterminal(cmt_rule) in self.rules:
@@ -269,7 +269,7 @@ class BootstrapParser(object):
             r.add_alternative(a[0], a[1], a[2])
             self.prod_ids[Production(symbol, a[0])] = len(self.prod_ids)
         # add additional alternatives to the grammar (grammar extension feature, e.g. languageboxes)
-        if self.extra_alternatives.has_key(symbol.name):
+        if symbol.name in self.extra_alternatives:
             for n in self.extra_alternatives[symbol.name]:
                 a = [MagicTerminal(n), Nonterminal("WS")]
                 r.add_alternative(a)
@@ -513,7 +513,7 @@ class AstNode(object):
         return object.__getattribute__(self, name)
 
     def get(self, name):
-        if self.children.has_key(name):
+        if name in self.children:
             return self.children[name]
 
 class Expr(object):

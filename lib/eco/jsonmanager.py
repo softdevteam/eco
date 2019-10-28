@@ -27,7 +27,7 @@ from incparser.astree import TextNode, BOS, EOS, ImageNode, FinishSymbol, MultiT
 try:
     import __pypy__
 except ImportError:
-    from PyQt4.QtGui import QImage
+    from PyQt5.QtGui import QImage
 
 class JsonManager(object):
     def __init__(self, unescape=False):
@@ -42,13 +42,13 @@ class JsonManager(object):
         main["language"] = language
         main["whitespaces"] = whitespaces
 
-        z = gzip.open(str(filename), "w")
-        z.write(json.dumps(main))
+        z = gzip.open(str(filename), "wb")
+        z.write(json.dumps(main).encode("ascii"))
         z.close()
 
     def load(self, filename):
         try:
-            z = gzip.open(str(filename), "r")
+            z = gzip.open(str(filename), "rb")
             main = json.loads(z.read())
             z.close()
         except IOError:
@@ -97,9 +97,7 @@ class JsonManager(object):
         node_symbol = globals()[jsnode["symbol"]]
 
         symbol = node_symbol()
-        symbol.name = jsnode["text"].encode("utf-8")
-        if self.unescape:
-            symbol.name = symbol.name.decode("string-escape")
+        symbol.name = jsnode["text"]
         if node_class is not MultiTextNode:
             node = node_class(symbol)
             assert node.symbol is symbol

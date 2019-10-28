@@ -50,7 +50,7 @@ class PriorityLexer(object):
                 print("Not a regular expression:", rule)
 
     def priority(self, text):
-        for k in self.rules.keys():
+        for k in list(self.rules.keys()):
             m = re.match("^"+k+"$", text)
             if m:
                 return self.rules[k][0]
@@ -58,7 +58,7 @@ class PriorityLexer(object):
 
     def name(self, text):
         rules = []
-        for k in self.rules.keys():
+        for k in list(self.rules.keys()):
             regex = k
             lookup = self.rules[k][1]
             pos = self.rules[k][0]
@@ -73,14 +73,14 @@ class PriorityLexer(object):
         return ""
 
     def regex(self, text):
-        for k in self.rules.keys():
+        for k in list(self.rules.keys()):
             m = self.compiled_regex[k].match(text)
             if m:
                 return k
         return ""
 
     def matches(self, text, cls):
-        for k in self.rules.keys():
+        for k in list(self.rules.keys()):
             #m = re.match("^("+k+")$", text)
             m = self.compiled_regex[k].match(text)
             if m:

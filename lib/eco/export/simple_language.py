@@ -22,7 +22,7 @@
 import tempfile
 import subprocess
 
-from PyQt4.QtCore import QSettings
+from PyQt5.QtCore import QSettings
 
 
 class SimpleLanguageExporter(object):

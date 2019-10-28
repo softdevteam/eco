@@ -127,7 +127,7 @@ class PythonIndent(object):
     def incparse_from_dict(self, rules):
         if not rules:
             print("Warning: incparser has not access to comment tokens")
-        elif rules.has_key(Nonterminal("comment")):
+        elif Nonterminal("comment") in rules:
             rule = rules[Nonterminal("comment")]
             for a in rule.alternatives:
                 if len(a) > 0:
@@ -173,7 +173,7 @@ class PythonIndent(object):
         # update indentation tokens with new values or insert new ones
         for e in needed:
             try:
-                ne = it.next()
+                ne = next(it)
                 if e.symbol == ne.symbol:
                     last = ne
                     continue
@@ -189,7 +189,7 @@ class PythonIndent(object):
         # delete all leftovers
         while True:
             try:
-                x = it.next()
+                x = next(it)
                 self.deleted.add(x)
                 x.mark_changed()
             except StopIteration:

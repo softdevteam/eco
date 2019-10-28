@@ -42,7 +42,7 @@ class ATerms:
         s = []
         s.append(node.name)
         s.append("(")
-        s.append(self.collect_children(node.children.values()))
+        s.append(self.collect_children(list(node.children.values())))
         s.append(")")
         return "".join(s)
 

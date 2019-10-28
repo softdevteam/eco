@@ -171,7 +171,7 @@ class Viewer(object):
             pydotgraph.add_node(dotnode)
             i += 1
 
-        for key in graph.edges.keys():
+        for key in list(graph.edges.keys()):
             start = key[0]
             end = graph.edges[key]
             pydotgraph.add_edge(pydot.Edge(pydot.Node(start), pydot.Node(end), label=key[1].name))
@@ -204,7 +204,7 @@ class Viewer(object):
             i += 1
 
         # create edges
-        for key in graph.edges.keys():
+        for key in list(graph.edges.keys()):
             start = key[0]
             end = graph.edges[key]
             s.append("%s->%s [label=\"%s\"]" % (start, end, key[1].name.strip("\"")))

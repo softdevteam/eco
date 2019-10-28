@@ -29,8 +29,9 @@ except ImportError:
     has_mipy = False
 from incparser.astree import TextNode, EOS  #BOS, ImageNode, FinishSymbol
 from grammar_parser.gparser import IndentationTerminal # BOS, MagicTerminal, Nonterminal
-from PyQt4 import QtCore
-from PyQt4.QtGui import QPen, QColor, QImage, QApplication
+from PyQt5 import QtCore
+from PyQt5.QtGui import QPen, QColor, QImage
+from PyQt5.QtWidgets import QApplication
 
 import math, os
 
@@ -156,7 +157,7 @@ else:
                             while not listener.finished:
                                 krn.poll(-1)
                             text = str(listener.result)
-                    except Exception, e:
+                    except Exception as e:
                         text = e.message
                     paint.drawText(QtCore.QPointF(x+100, self.fontht + y*self.fontht), " | "+text)
                 return dx, dy

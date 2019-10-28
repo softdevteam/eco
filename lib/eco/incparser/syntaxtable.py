@@ -19,9 +19,9 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from production import Production
+from .production import Production
 from grammar_parser.gparser import Terminal, Nonterminal, Epsilon
-from constants import LR0, LR1, LALR
+from .constants import LR0, LR1, LALR
 
 class SyntaxTableElement(object):
 
@@ -90,7 +90,7 @@ class SyntaxTable(object):
                             lookahead = symbols
                         for s in lookahead:
                             newaction = Reduce(state.p)
-                            if self.table[i].has_key(s):
+                            if s in self.table[i]:
                                 oldaction = self.table[i][s]
                                 newaction = self.resolve_conflict(i, s, oldaction, newaction, precedences)
                             if newaction:
@@ -105,7 +105,7 @@ class SyntaxTable(object):
                         action = Shift(dest)
                     if isinstance(s, Nonterminal):
                         action = Goto(dest)
-                    if self.table[i].has_key(s):
+                    if s in self.table[i]:
                         action = self.resolve_conflict(i, s, self.table[i][s], action, precedences)
                     if action:
                         self.table[i][s] = action

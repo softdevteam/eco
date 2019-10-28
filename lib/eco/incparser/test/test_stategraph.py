@@ -70,7 +70,7 @@ def test_state_0():
     s.add(S_Sb)
     s.add(S_bAa)
 
-    assert graph.state_sets[0] == s
+    assert s in graph.state_sets
 
 def test_state_1():
     # State 1
@@ -80,7 +80,7 @@ def test_state_1():
     s.add(move_dot(None_S, 1))
     s.add(move_dot(S_Sb, 1))
 
-    assert graph.state_sets[1] == s
+    assert s in graph.state_sets
 
 def test_state_2():
     # State 2
@@ -94,7 +94,7 @@ def test_state_2():
     s.add(A_a)
     s.add(A_aSb)
 
-    assert graph.state_sets[2] == s
+    assert s in graph.state_sets
 
 def test_edges():
     pytest.skip("Graph building algorithm changed")

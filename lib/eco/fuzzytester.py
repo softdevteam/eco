@@ -46,7 +46,7 @@ class FuzzyTester():
         tree_compare, but less accurate."""
         original = original.replace("\r", "").split("\n")
         current = self.treemanager.export_as_text("/dev/null").replace("\r", "").split("\n")
-        for i in xrange(len(current)):
+        for i in range(len(current)):
             assert original[i] == current[i]
 
     def next_node(self, node):
@@ -77,7 +77,7 @@ class FuzzyTester():
 
     def random_deletion(self):
         """Delete random characters within a program."""
-        print "Running random_deletion on {}".format(self.filename)
+        print("Running random_deletion on {}".format(self.filename))
         program = self.program
 
         self.treemanager.import_file(program)
@@ -86,13 +86,13 @@ class FuzzyTester():
         self.text_compare(program)
 
         line_count = len(self.treemanager.lines)
-        random_lines = range(line_count)
+        random_lines = list(range(line_count))
         random.shuffle(random_lines)
         random_lines = random_lines[:20] # restrict to 20 lines to reduce runtime
 
         start_version = self.treemanager.version
         for linenr in random_lines:
-            cols = range(20)
+            cols = list(range(20))
             random.shuffle(cols)
             for col in cols:
                 self.treemanager.cursor_reset()
@@ -140,7 +140,7 @@ class FuzzyTester():
 
     def random_insertion(self):
         """Insert random characters at random locations within a program."""
-        print "Running random_insert on {}".format(self.filename)
+        print("Running random_insert on {}".format(self.filename))
         self.reset()
 
         self.treemanager.import_file(self.program)
@@ -149,12 +149,12 @@ class FuzzyTester():
         self.text_compare(self.program)
 
         line_count = len(self.treemanager.lines)
-        random_lines = range(line_count)
+        random_lines = list(range(line_count))
         random.shuffle(random_lines)
 
         start_version = self.treemanager.version
         for linenr in random_lines:
-            cols = range(20)
+            cols = list(range(20))
             random.shuffle(cols)
             for col in cols:
                 self.log.append("self.treemanager.cursor_reset()")
@@ -199,7 +199,7 @@ class FuzzyTester():
     def random_insertdelete(self):
         """Insert and delete random characters at random locations within a
         program."""
-        print "Running random_insertdelete on {}".format(self.filename)
+        print("Running random_insertdelete on {}".format(self.filename))
         self.reset()
 
         self.treemanager.import_file(self.program)
@@ -208,13 +208,13 @@ class FuzzyTester():
         self.text_compare(self.program)
 
         line_count = len(self.treemanager.lines)
-        random_lines = range(line_count)
+        random_lines = list(range(line_count))
         random.shuffle(random_lines)
         random_lines = random_lines[:20] # restrict to 20 lines to reduce runtime
 
         start_version = self.treemanager.version
         for linenr in random_lines:
-            cols = range(20)
+            cols = list(range(20))
             random.shuffle(cols)
             for col in cols:
                 self.log.append("self.treemanager.cursor_reset()")
@@ -271,13 +271,13 @@ class FuzzyTester():
             ft.random_insertdelete()
         except Exception as e:
             traceback.print_exc()
-            print "Written log to 'fuzzy.log'."
+            print("Written log to 'fuzzy.log'.")
             with open("fuzzy.log", "w") as f:
                 for l in self.log:
                     f.write(l)
                     f.write("\n")
         else:
-            print "Passed."
+            print("Passed.")
 
 if __name__ == "__main__":
     filename = sys.argv[1]

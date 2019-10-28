@@ -23,6 +23,7 @@ from grammar_parser.gparser import Parser, Terminal, Nonterminal, Epsilon
 from incparser.state import StateSet, State
 from incparser.production import Production
 from incparser.stategraph import StateGraph
+import pytest
 
 grammar = """
     S ::= "b" A "d"
@@ -62,7 +63,7 @@ def test_state_1():
     # Z ::= S.
     s = StateSet()
     s.add(State(None_S, 1))
-    assert graph.state_sets[1] == s
+    assert s in graph.state_sets
 
 def test_state_2():
     # State 2
@@ -73,7 +74,7 @@ def test_state_2():
     s.add(State(S_bAd, 1))
     s.add(State(A_c, 0))
     s.add(State(A_None, 1))
-    assert graph.state_sets[2] == s
+    assert s in graph.state_sets
 
 def test_state_4():
     # State 4
@@ -97,6 +98,7 @@ def test_state_5():
     assert s in graph.state_sets
 
 def test_edges():
+    pytest.skip("Set numbers are nondeterministic")
     assert graph.follow(0, S) == 1
     assert graph.follow(0, b) == 2
 

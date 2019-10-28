@@ -21,7 +21,7 @@
 
 
 import re
-import helper
+from . import helper
 
 
 class Outer_HTML(helper.Generic):

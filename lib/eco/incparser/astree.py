@@ -21,7 +21,7 @@
 
 import re
 from grammar_parser.gparser import Nonterminal, Terminal, IndentationTerminal
-from syntaxtable import FinishSymbol
+from .syntaxtable import FinishSymbol
 
 class AST(object):
     def __init__(self, parent=None):
@@ -104,7 +104,7 @@ class AST(object):
         return "\n".join(output)
 
 class Node(object):
-    __slots__ = ["symbol", "state", "parent", "left", "right", "prev_term", "next_term", "magic_parent", "children", "annotations"]
+    __slots__ = ["symbol", "state", "parent", "left", "right", "prev_term", "next_term", "magic_parent", "children", "annotations", "log", "max_version"]
     def __init__(self, symbol, state, children):
         self.symbol = symbol
         self.state = state
@@ -264,7 +264,7 @@ class Node(object):
         raise AttributeError("Attribute %s for version %s not found." % (attr, version))
 
     def remove_child(self, child, remove=False):
-        for i in xrange(len(self.children)):
+        for i in range(len(self.children)):
             if self.children[i] is child:
                 removed_child = child
                 removed_child.deleted = True
@@ -454,6 +454,9 @@ class Node(object):
             return other.symbol == self.symbol and other.state == self.state and other.children == self.children
         return False
 
+    def __hash__(self):
+        return hash(id(self))
+
 import string
 lowercase = set(list(string.ascii_lowercase))
 uppercase = set(list(string.ascii_uppercase))
@@ -641,7 +644,7 @@ class MultiTextNode(TextNode):
         node.parent = self
 
     def update_children(self):
-        for i in xrange(len(self.children)):
+        for i in range(len(self.children)):
             c = self.children[i]
             if i == 0:
                 c.left = None
@@ -655,7 +658,7 @@ class MultiTextNode(TextNode):
                 c.next_term = None
 
     def insert_after_node(self, node, newnode):
-        for i in xrange(len(self.children)):
+        for i in range(len(self.children)):
             if self.children[i] is node:
                 self.children.insert(i+1, newnode)
                 newnode.parent = self
@@ -663,7 +666,7 @@ class MultiTextNode(TextNode):
                 return
 
     def remove_child(self, child, version=None):
-        for i in xrange(len(self.children)):
+        for i in range(len(self.children)):
             if self.children[i] is child:
                 self.children.pop(i)
                 if i > 0:

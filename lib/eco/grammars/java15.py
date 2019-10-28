@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from grammars import Language
+from .grammars import Language
 
 java15 = Language("Java 1.5","""
 goal ::=    compilation_unit

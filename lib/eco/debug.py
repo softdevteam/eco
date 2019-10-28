@@ -1,23 +1,25 @@
 from time import sleep
 import telnetlib
 
-from PyQt4.QtCore import QObject, SIGNAL
+from PyQt5.QtCore import QObject, pyqtSignal
 from fcntl import fcntl, F_GETFL, F_SETFL
 from os import O_NONBLOCK
 from socket import error as socket_error
 
 class Debugger(QObject):
+
+    # incoming signals
+    signal_command = pyqtSignal(str)
+    signal_start = pyqtSignal()
+    # outgoing signals
+    signal_done = pyqtSignal()
+    signal_output = pyqtSignal(str)
+    signal_toggle_buttons = pyqtSignal(bool)
+    signal_execute_fail = pyqtSignal()
+
     def __init__(self, window):
         QObject.__init__(self)
         self.window = window
-        # incoming signals
-        self.signal_command = SIGNAL("command")
-        self.signal_start = SIGNAL("start")
-        # outgoing signals
-        self.signal_done = SIGNAL("finished")
-        self.signal_output = SIGNAL("output")
-        self.signal_toggle_buttons = SIGNAL("disablebuttons")
-        self.signal_execute_fail = SIGNAL("executefail")
         self.telnet = None
 
     def start_pdb(self):
@@ -25,7 +27,7 @@ class Debugger(QObject):
         self.line_read_until = '(Pdb)'
         self.process = self.window.getEditor().tm.export(debug=True)
         if not self.process:
-            self.emit(self.signal_execute_fail)
+            self.signal_execute_fail.emit()
             self.exit()
             return
         flags = fcntl(self.process.stdout, F_GETFL)
@@ -38,7 +40,7 @@ class Debugger(QObject):
                 self.telnet = telnetlib.Telnet("localhost", 8210)
             except socket_error:
                 if attempt > 3:
-                    self.emit(self.signal_output, "Telnet connection failed, cannot debug")
+                    self.signal_output.emit("Telnet connection failed, cannot debug")
                     self.exit()
                     return None
                 attempt += 1
@@ -46,12 +48,13 @@ class Debugger(QObject):
         while not output:
             sleep(0.1)
             output = self.telnet.read_until(self.line_read_until)
-        self.emit(self.signal_toggle_buttons, True)
-        self.emit(self.signal_output, output)
+        self.signal_toggle_buttons.emit(True)
+        self.signal_output.emit(output)
 
     # Run command and wait for response
     def run_command(self, command):
-        self.emit(self.signal_toggle_buttons, False)
+        command = command.encode("ascii", "ignore")
+        self.signal_toggle_buttons.emit(False)
         try:
             self.telnet.write(command + "\n")
         except AttributeError:
@@ -63,7 +66,7 @@ class Debugger(QObject):
         ot = self.output_debug()
         # If ot is empty then debugging is finished
         if ot and self.window.debugging:
-            self.emit(self.signal_toggle_buttons, True)
+            self.signal_toggle_buttons.emit(True)
             self.window.getEditorTab().set_breakpoints(self.get_breakpoints())
         return ot
 
@@ -81,14 +84,14 @@ class Debugger(QObject):
                 self.exit()
                 return None
         self.print_program_output()
-        self.emit(self.signal_output, output)
+        self.signal_output.emit(output)
         return output
 
     def print_program_output(self):
         try:
             if self.process:
                 program_output = self.process.stdout.read()
-                self.emit(self.signal_output, program_output.strip())
+                self.signal_output.emit(program_output.strip())
         except (OSError, IOError):
             pass
         return
@@ -165,5 +168,5 @@ class Debugger(QObject):
         if self.window.debugging:
             if self.telnet:
                 self.telnet.close()
-                self.emit(self.signal_output, "Debugging finished.")
-            self.emit(self.signal_done)
+                self.signal_output.emit("Debugging finished.")
+            self.signal_done.emit()

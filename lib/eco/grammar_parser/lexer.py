@@ -71,17 +71,17 @@ class Lexer(object):
         self.regex = make_groups(expressions)
 
     def lex(self):
-        token = self.next()
+        token = next(self)
         while token is not None:
             self.pos += len(token.value)
             if token.name != "Whitespace":
                 self.tokens.append(token)
-            token = self.next()
+            token = next(self)
         if self.pos == len(self.code):
             return True
         return False
 
-    def next(self):
+    def __next__(self):
         """Returns the next token (consisting of a name and a value) from the stream."""
         m = re.match(self.regex, self.code[self.pos:])
         if m:

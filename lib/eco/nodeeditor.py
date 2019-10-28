@@ -19,10 +19,11 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from PyQt4 import QtCore
-from PyQt4.QtCore import *
-from PyQt4 import QtGui
-from PyQt4.QtGui import *
+from PyQt5 import QtCore
+from PyQt5.QtCore import *
+from PyQt5 import QtGui
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
 BODY_FONT = "Monospace"
 BODY_FONT_SIZE = 9
@@ -44,7 +45,7 @@ import renderers
 
 import logging
 
-whitelist = set(u"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!\"$%^&*()_-+=;:'@#~[]{},.<>/?|\\`\r ")
+whitelist = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!\"$%^&*()_-+=;:'@#~[]{},.<>/?|\\`\r ")
 
 def debug_trace():
   '''Set a tracepoint in the Python debugger that works with Qt'''
@@ -62,8 +63,11 @@ class NodeEditor(QFrame):
 
     # ========================== init stuff ========================== #
 
+    sig_painted = pyqtSignal()
+    sig_keypress = pyqtSignal(QKeyEvent)
+
     def __init__(self, parent=None):
-        QtGui.QWidget.__init__(self, parent)
+        QWidget.__init__(self, parent)
 
         self.viewport_y = 0 # top visible line
         self.imagemode = False
@@ -74,15 +78,15 @@ class NodeEditor(QFrame):
 
         self.timer = QTimer(self)
         self.backuptimer = QTimer(self)
-        self.connect(self.timer, SIGNAL("timeout()"), self.analysis_timer)
-        self.connect(self.backuptimer, SIGNAL("timeout()"), self.backup_timer)
+        self.timer.timeout.connect(self.analysis_timer)
+        self.backuptimer.timeout.connect(self.backup_timer)
         self.backuptimer.start(30000)
         self.undotimer = QTimer(self)
-        self.connect(self.undotimer, SIGNAL("timeout()"), self.trigger_undotimer)
+        self.undotimer.timeout.connect(self.trigger_undotimer)
 
         self.blinktimer = QTimer(self)
         self.blinktimer.start(500)
-        self.connect(self.blinktimer, SIGNAL("timeout()"), self.trigger_blinktimer)
+        self.blinktimer.timeout.connect(self.trigger_blinktimer)
         self.show_cursor = True
 
         self.boxcolors = [QColor("#DC322F"), QColor("#268BD2"), QColor("#2Ac598"), QColor("#D33682"), QColor("#B58900"), QColor("#859900")]
@@ -284,7 +288,7 @@ class NodeEditor(QFrame):
         self.fontwt = gfont.fontwt
         self.fontht = gfont.fontht
         self.fontd  = gfont.fontd
-        QtGui.QFrame.paintEvent(self, event)
+        QFrame.paintEvent(self, event)
         paint = QtGui.QPainter()
         if self.imagemode:
             self.image = QImage()
@@ -316,7 +320,7 @@ class NodeEditor(QFrame):
         railroad_annotations = self.tm.get_all_annotations_with_hint(Railroad)
         self.overlay.add_railroad_data(railroad_annotations)
 
-        self.emit(SIGNAL("painted()"))
+        self.sig_painted.emit()
 
     # paint lines using new line manager
     def paintLines(self, paint, startline):
@@ -357,16 +361,16 @@ class NodeEditor(QFrame):
 
         settings = QSettings("softdev", "Eco")
         colors = self.boxcolors
-        if settings.value("app_theme", "Light").toString() in ["Dark"]:
+        if settings.value("app_theme", "Light", type=str) in ["Dark"]:
             alpha = 100
             self.highlight_line_color = QColor(250,250,250,20)
-        elif settings.value("app_theme", "Light").toString() in ["Gruvbox"]:
+        elif settings.value("app_theme", "Light", type=str) in ["Gruvbox"]:
             alpha = 100
             self.highlight_line_color = QColor(250,250,250,20)
         else:
             alpha = 60
             self.highlight_line_color = QColor(0,0,0,10)
-        self.show_highlight_line = settings.value("highlight_line", False).toBool()
+        self.show_highlight_line = settings.value("highlight_line", False, type=bool)
 
         first_node = node
         selected_language = self.tm.mainroot
@@ -410,7 +414,7 @@ class NodeEditor(QFrame):
 
             # check if node is connected to auto lbox
             if node.autobox:
-                if self.autolboxlines.has_key(line):
+                if line in self.autolboxlines:
                     for box in node.autobox:
                         # Avoid duplicate suggestions by comparing the
                         # identities of language box candidates
@@ -892,7 +896,7 @@ class NodeEditor(QFrame):
                 # text is a char array, so we need the first letter
                 # to match it against the set
                 text = e.text()
-                if text.isEmpty() or text.toUtf8()[0] not in whitelist:
+                if text == "" or text[0] not in whitelist:
                     logging.debug("Key %s not supported" % text)
                     return
             self.tm.key_normal(text)
@@ -900,7 +904,7 @@ class NodeEditor(QFrame):
         if reparse:
             self.getWindow().btReparse([])
         self.update()
-        self.emit(SIGNAL("keypress(QKeyEvent)"), e)
+        self.sig_keypress.emit(e)
         self.getWindow().showLookahead()
 
         if startundotimer:
@@ -1029,7 +1033,7 @@ class NodeEditor(QFrame):
             menu.addAction(item)
 
         # Finally add another submenu with all remaining languages
-        other_langs = QtGui.QMenu("Other", self)
+        other_langs = QMenu("Other", self)
         for l in sorted(languages, key=lambda x: x.name):
             if l not in comp_langs and l not in valid_langs:
                 item = QAction(str(l), other_langs)
@@ -1042,12 +1046,12 @@ class NodeEditor(QFrame):
         return menu
 
     def showSubgrammarMenu(self):
-        menu = QtGui.QMenu("Language", self)
+        menu = QMenu("Language", self)
         self.createSubgrammarMenu(menu)
         x,y = self.cursor_to_coordinate()
         action = menu.exec_(self.mapToGlobal(QPoint(0,0)) + QPoint(3 + x, y + self.fontht))
         if action:
-            self.sublanguage = action.data().toPyObject()
+            self.sublanguage = action.data()
             self.edit_rightnode = True
 
     def _set_icon(self, mitem, lang):
@@ -1062,9 +1066,9 @@ class NodeEditor(QFrame):
         mitem.setIcon(icon)
 
     def showCodeCompletionMenu(self, l):
-        menu = QtGui.QMenu( self )
+        menu = QMenu( self )
         # Create actions
-        toolbar = QtGui.QToolBar()
+        toolbar = QToolBar()
         for n in l:
             path = []
             for p in n.path:
@@ -1128,7 +1132,7 @@ class NodeEditor(QFrame):
         manager.save(root, language, whitespaces, filename)
         if not swap:
             self.tm.changed = False
-            self.emit(SIGNAL("painted()"))
+            self.sig_painted.emit()
 
     def loadFromJson(self, filename):
         manager = JsonManager()

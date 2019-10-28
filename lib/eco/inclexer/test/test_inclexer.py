@@ -84,7 +84,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         new = TextNode(Terminal("1+2*3"))
         bos.insert_after(new)
 
-        next_token = self.lexer.lexer.get_token_iter(new).next
+        next_token = self.lexer.lexer.get_token_iter(new).__next__
         assert next_token() == ("1", "INT", 1, [TextNode(Terminal("1+2*3"))], -4)
         assert next_token() == ("+", "plus", 0, [TextNode(Terminal("1+2*3"))], -3)
         assert next_token() == ("2", "INT", 1, [TextNode(Terminal("1+2*3"))], -2)
@@ -100,7 +100,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         bos.insert_after(new)
         new.insert_after(new2)
 
-        next_token = self.lexer.lexer.get_token_iter(new).next
+        next_token = self.lexer.lexer.get_token_iter(new).__next__
         assert next_token() == ("1234", "INT", 1, [TextNode(Terminal("12")), TextNode(Terminal("34"))], 0)
 
     def test_token_iter_lbox(self):
@@ -117,7 +117,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         new.insert_after(new2)
         new2.insert_after(new3)
 
-        next_token = lexer.lexer.get_token_iter(new).next
+        next_token = lexer.lexer.get_token_iter(new).__next__
         assert next_token() == ("12", "INT", 1, [TextNode(Terminal("12"))], 0)
         assert next_token() == (lbph, "", 0, [TextNode(MagicTerminal("<SQL>"))], 0)
         assert next_token() == ("34", "INT", 1, [TextNode(Terminal("34"))], 0)
@@ -137,7 +137,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         new.insert_after(new2)
         new2.insert_after(new3)
 
-        next_token = lexer.lexer.get_token_iter(new).next
+        next_token = lexer.lexer.get_token_iter(new).__next__
         assert next_token() == (["\"abc",lbph,"def\""], "STRING", 0, [TextNode(Terminal("\"abc")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("def\""))], 0)
 
     def test_token_iter_lbox_x80(self):
@@ -155,7 +155,7 @@ class Test_CalcLexer(Test_IncrementalLexer):
         new.insert_after(new2)
         new2.insert_after(new3)
 
-        next_token = lexer.lexer.get_token_iter(new).next
+        next_token = lexer.lexer.get_token_iter(new).__next__
         assert next_token() == ("\"abc\x80def\"", "STRING", 0, [TextNode(Terminal("\"abc")), TextNode(Terminal("\x80")), TextNode(Terminal("def\""))], 0)
 
     def test_relex(self):

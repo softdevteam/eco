@@ -1,4 +1,4 @@
-from grammars import EcoGrammar
+from .grammars import EcoGrammar
 
 
 grammar = """

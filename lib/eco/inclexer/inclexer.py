@@ -25,7 +25,7 @@ from incparser.astree import BOS, EOS, TextNode, ImageNode, MultiTextNode
 try:
     import __pypy__
 except ImportError:
-    from PyQt4.QtGui import QImage
+    from PyQt5.QtGui import QImage
 import re, os
 
 class IncrementalLexer(object):
@@ -395,12 +395,12 @@ class IncrementalLexerCF(object):
                 self.indentation_based = True
 
     def from_name_and_regex(self, names, regexs):
-        self.lexer = Lexer(zip(names, regexs))
+        self.lexer = Lexer(list(zip(names, regexs)))
 
     def createDFA(self, rules):
         # lex lexing rules
         pl = PriorityLexer(rules)
-        rules = sorted(pl.rules.items(), key=lambda node: node[1][0]) # sort by priority
+        rules = sorted(list(pl.rules.items()), key=lambda node: node[1][0]) # sort by priority
 
         # create lexer automaton from rules
         regexs = []
@@ -409,7 +409,7 @@ class IncrementalLexerCF(object):
             name = pl.rules[regex][1]
             regexs.append(regex)
             names.append(name)
-        self.lexer = Lexer(zip(names, regexs))
+        self.lexer = Lexer(list(zip(names, regexs)))
 
     def is_indentation_based(self):
         return self.indentation_based
@@ -492,7 +492,7 @@ class IncrementalLexerCF(object):
         pos = 0  # read tokens
         read = 0 # generated tokens
         current_node = node
-        next_token = self.lexer.get_token_iter(node).next
+        next_token = self.lexer.get_token_iter(node).__next__
 
         combos = []
         last_read = None
@@ -573,7 +573,7 @@ class IncrementalLexerCF(object):
                     # inserted node (startnode) try to continue lexing from
                     # startnode onwards.
                     # See Test_Relexing::test_newline_after_error
-                    next_token = self.lexer.get_token_iter(startnode).next
+                    next_token = self.lexer.get_token_iter(startnode).__next__
                     past_startnode = True
                     continue
                 break
@@ -677,8 +677,8 @@ class IncrementalLexerCF(object):
         it_gen = self.iter_gen(tokens)
         it_read = self.iter_read(read)
 
-        gen = it_gen.next()
-        read = it_read.next()
+        gen = next(it_gen)
+        read = next(it_read)
 
         totalr = 0
         totalg = 0
@@ -690,12 +690,12 @@ class IncrementalLexerCF(object):
         while True:
             while read is not None and isinstance(read.symbol, IndentationTerminal):
                 read.remove()
-                read = it_read.next()
+                read = next(it_read)
             if gen is None and read is None:
                 break
 
             if read and read.deleted:
-                read = it_read.next()
+                read = next(it_read)
                 continue
 
             if gen is None:
@@ -712,12 +712,12 @@ class IncrementalLexerCF(object):
                 current_mt.lookup = gen[1]
                 current_mt.lookahead = gen[2]
                 self.relexed.add(current_mt)
-                gen = it_gen.next()
+                gen = next(it_gen)
                 continue
             elif gen[0] == "finish mt":
                 reused.add(current_mt)
                 lastread = current_mt
-                gen = it_gen.next()
+                gen = next(it_gen)
                 current_mt.update_children()
                 current_mt = None
                 continue
@@ -742,7 +742,7 @@ class IncrementalLexerCF(object):
                     lastread.insert_after(new)
                 lastread = new
                 totalg += lengen
-                gen = it_gen.next()
+                gen = next(it_gen)
             elif totalr + getlength(read) <= totalg:
                 changed = True
                 # Multiple nodes have been combined into less nodes. Delete old
@@ -750,7 +750,7 @@ class IncrementalLexerCF(object):
                 read.remove()
                 self.remove_check(read)
                 totalr += getlength(read)
-                read = it_read.next()
+                read = next(it_read)
             else:
                 # Overwrite old nodes with updated values. Move nodes in or out
                 # of multinodes if needed.
@@ -794,8 +794,8 @@ class IncrementalLexerCF(object):
                             lastread.insert_after(read)
                         changed = True
                 lastread = read
-                read = it_read.next()
-                gen = it_gen.next()
+                read = next(it_read)
+                gen = next(it_gen)
 
         return changed
 
@@ -830,7 +830,7 @@ class StringWrapper(object):
     def __init__(self, startnode, relexnode):
         self.node = startnode
         self.relexnode = relexnode
-        self.length = sys.maxint
+        self.length = sys.maxsize
         self.last_node = None
 
     def __len__(self):
@@ -902,7 +902,7 @@ class StringWrapper(object):
         skip = 0
 
         if end == -1:
-            end = sys.maxint
+            end = sys.maxsize
 
         mtokens = []
 
@@ -975,7 +975,7 @@ class StringWrapper(object):
         length = 0
         for t in mtokens:
             if type(t) == str:
-                newmtokens.extend(filter(None, r.split(t)))
+                newmtokens.extend([_f for _f in r.split(t) if _f])
             else:
                 newmtokens.append(t)
             length += getlength(t)

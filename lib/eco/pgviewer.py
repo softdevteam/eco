@@ -80,7 +80,7 @@ class PGViewer(object):
         else:
             self.add_node(self.root, graph)
 
-        lines = graph.create_dot("plain").splitlines(True)
+        lines = str(graph.create_dot("plain"), "utf-8").splitlines(True)
 
         _, scale, width, height = lines[0].strip("\n").split(" ")
         self.gl.scale = float(scale)

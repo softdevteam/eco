@@ -25,7 +25,7 @@ import os.path
 import tempfile
 import subprocess
 
-from PyQt4.QtCore import QSettings
+from PyQt5.QtCore import QSettings
 from incparser.astree import EOS
 from export.jruby import JRubyCallgraphProcessor
 from grammar_parser.gparser import MagicTerminal, IndentationTerminal

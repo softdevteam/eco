@@ -1,4 +1,4 @@
-from lexer import Lexer, PatternMatcher, RegexParser, LexingError, RE_CHAR, RE_OR, RE_STAR, RE_PLUS, lbph
+from .lexer import Lexer, PatternMatcher, RegexParser, LexingError, RE_CHAR, RE_OR, RE_STAR, RE_PLUS, lbph
 import pytest
 
 class Test_RegexParser(object):
@@ -134,15 +134,15 @@ class Test_PatternMatcher(object):
 
     def test_escaped(self):
         assert PatternMatcher().match(self.cmp("[a-z]"), "-") is None
-        assert PatternMatcher().match(self.cmp("[a\-z]"), "-") == "-"
-        assert PatternMatcher().match(self.cmp("#[^\-]*"), "-") is None
-        assert PatternMatcher().match(self.cmp("[\[]*"), "[") == "["
-        assert PatternMatcher().match(self.cmp("[\.]"), ".") == "."
-        assert PatternMatcher().match(self.cmp("\."), ".") == "."
-        assert PatternMatcher().match(self.cmp("\["), "[") == "["
-        assert PatternMatcher().match(self.cmp("\[\]"), "[]") == "[]"
-        assert PatternMatcher().match(self.cmp("\*"), "*") == "*"
-        assert PatternMatcher().match(self.cmp("\+"), "+") == "+"
+        assert PatternMatcher().match(self.cmp(r"[a\-z]"), "-") == "-"
+        assert PatternMatcher().match(self.cmp(r"#[^\-]*"), "-") is None
+        assert PatternMatcher().match(self.cmp(r"[\[]*"), "[") == "["
+        assert PatternMatcher().match(self.cmp(r"[\.]"), ".") == "."
+        assert PatternMatcher().match(self.cmp(r"\."), ".") == "."
+        assert PatternMatcher().match(self.cmp(r"\["), "[") == "["
+        assert PatternMatcher().match(self.cmp(r"\[\]"), "[]") == "[]"
+        assert PatternMatcher().match(self.cmp(r"\*"), "*") == "*"
+        assert PatternMatcher().match(self.cmp(r"\+"), "+") == "+"
         assert PatternMatcher().match(self.cmp("\\+"), "+") == "+"
         assert PatternMatcher().match(self.cmp("\'"), "\'") == "'"
         assert PatternMatcher().match(self.cmp("\\'"), "\'") == "'"
@@ -162,20 +162,20 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("#[^\\r]*"), "# abc") == "# abc"
         assert PatternMatcher().match(self.cmp("#[^\r]*"), "# abc \r") == "# abc "
 
-        assert PatternMatcher().match(self.cmp("([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "123.456") == "123.456"
-        assert PatternMatcher().match(self.cmp("([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "1e23") == "1e23"
+        assert PatternMatcher().match(self.cmp(r"([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "123.456") == "123.456"
+        assert PatternMatcher().match(self.cmp(r"([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?"), "1e23") == "1e23"
         assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a string 123!'") == "'this is a string 123!'"
         assert PatternMatcher().match(self.cmp("\'[^\'\r]*\'"), "'this is a with a newline \r string 123!'") is None
 
         assert PatternMatcher().match(self.cmp("/"), "/") == "/"
-        assert PatternMatcher().match(self.cmp("\*"), "*") == "*"
-        assert PatternMatcher().match(self.cmp("/\*"), "/*") == "/*"
-        assert PatternMatcher().match(self.cmp("/\*\*/"), "/**/") == "/**/"
-        assert PatternMatcher().match(self.cmp("/\*[a-z]*\*/"), "/*foo*/") == "/*foo*/"
-        assert PatternMatcher().match(self.cmp("/\*([^\*])*\*/"), "/*foo*/") == "/*foo*/"
-        assert PatternMatcher().match(self.cmp("/\*.*?\*/"), "/***/") == "/***/"
-        assert PatternMatcher().match(self.cmp("/\*.*?\*/"), "/* abc** def */") == "/* abc** def */"
-        assert PatternMatcher().match(self.cmp("/\*.*?\*/"), "/* abc */ * def */") == "/* abc */"
+        assert PatternMatcher().match(self.cmp(r"\*"), "*") == "*"
+        assert PatternMatcher().match(self.cmp(r"/\*"), "/*") == "/*"
+        assert PatternMatcher().match(self.cmp(r"/\*\*/"), "/**/") == "/**/"
+        assert PatternMatcher().match(self.cmp(r"/\*[a-z]*\*/"), "/*foo*/") == "/*foo*/"
+        assert PatternMatcher().match(self.cmp(r"/\*([^\*])*\*/"), "/*foo*/") == "/*foo*/"
+        assert PatternMatcher().match(self.cmp(r"/\*.*?\*/"), "/***/") == "/***/"
+        assert PatternMatcher().match(self.cmp(r"/\*.*?\*/"), "/* abc** def */") == "/* abc** def */"
+        assert PatternMatcher().match(self.cmp(r"/\*.*?\*/"), "/* abc */ * def */") == "/* abc */"
 
         # Python
         assert PatternMatcher().match(self.cmp("#[^\\r]*"), "# hello world") == "# hello world"
@@ -186,9 +186,9 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("\\"), "\\") == "\\"
         assert PatternMatcher().match(self.cmp("\\"), "range") is None
         assert PatternMatcher().match(self.cmp("[\\n\\r]"), "\r") == "\r"
-        assert PatternMatcher().match(self.cmp("\."), ".") == "."
+        assert PatternMatcher().match(self.cmp(r"\."), ".") == "."
         assert PatternMatcher().match(self.cmp("&="), "&=") == "&="
-        assert PatternMatcher().match(self.cmp("0[xX][\da-fA-F]+"), "0xAB") == "0xAB"
+        assert PatternMatcher().match(self.cmp(r"0[xX][\da-fA-F]+"), "0xAB") == "0xAB"
         assert PatternMatcher().match(self.cmp("0[oO][0-7]+"), "0o67") == "0o67"
         assert PatternMatcher().match(self.cmp("0[bB][01]+"), "0b10101") == "0b10101"
         assert PatternMatcher().match(self.cmp('\"([^\"\r\\\\]|\\\\")*\"'), '"escaped\\"quote"') == '"escaped\\"quote"'
@@ -202,15 +202,15 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp("[A-Z_]([a-zA-Z0-9]|_)*|_"), "var") is None
         assert PatternMatcher().match(self.cmp("(0|[1-9][0-9]*)"), "0") == "0"
         assert PatternMatcher().match(self.cmp("(0|[1-9][0-9]*)"), "12345") == "12345"
-        assert PatternMatcher().match(self.cmp("(0|[1-9][0-9]*)(\.[0-9]+)([eE][-+]?[0-9]+)?"), "1213.89e+23") == "1213.89e+23"
+        assert PatternMatcher().match(self.cmp(r"(0|[1-9][0-9]*)(\.[0-9]+)([eE][-+]?[0-9]+)?"), "1213.89e+23") == "1213.89e+23"
         assert PatternMatcher().match(self.cmp("([a-z]([a-zA-Z0-9]|_)*)"), "aH8_") == "aH8_"
         assert PatternMatcher().match(self.cmp("('[^']*')"), "'quoted'") == "'quoted'"
-        assert PatternMatcher().match(self.cmp("\[\]"), "[]") == "[]"
+        assert PatternMatcher().match(self.cmp(r"\[\]"), "[]") == "[]"
         assert PatternMatcher().match(self.cmp("!"), "!") == "!"
-        assert PatternMatcher().match(self.cmp("\+"), "+") == "+"
-        assert PatternMatcher().match(self.cmp("\-"), "-") == "-"
-        assert PatternMatcher().match(self.cmp("\{\}"), "{}") == "{}"
-        assert PatternMatcher().match(self.cmp("([a-z]([a-zA-Z0-9]|_)*)|('[^']*')|\[\]|!|\+|\-|\{\}"), "aH8_") == "aH8_"
+        assert PatternMatcher().match(self.cmp(r"\+"), "+") == "+"
+        assert PatternMatcher().match(self.cmp(r"\-"), "-") == "-"
+        assert PatternMatcher().match(self.cmp(r"\{\}"), "{}") == "{}"
+        assert PatternMatcher().match(self.cmp(r"([a-z]([a-zA-Z0-9]|_)*)|('[^']*')|\[\]|!|\+|\-|\{\}"), "aH8_") == "aH8_"
         assert PatternMatcher().match(self.cmp("\"[^\"]*\""), '"a string"') == '"a string"'
 
         # Eco grammar
@@ -219,13 +219,13 @@ class Test_PatternMatcher(object):
         assert PatternMatcher().match(self.cmp('\\"([^\\\\"]|\\\\\\")*\\"'), '"\\"[a-z]\\""') == '"\\"[a-z]\\""'
         assert PatternMatcher().match(self.cmp('\\"([^\\\\"]|\\\\\\")*\\"'), '"\\"[a"-z]\\""') == '"\\"[a"'
         assert PatternMatcher().match(self.cmp('"([^\\"\\\\r]|\\\\\")*"'), '"\\"[a-z]\\""') == '"\\"[a-z]\\""'
-        assert PatternMatcher().match(self.cmp('\\"([^\\"\\\\]|\\\\.)*\\"'), '"\+"') == '"\+"'
+        assert PatternMatcher().match(self.cmp( '\\"([^\\"\\\\]|\\\\.)*\\"'), '"\\+"') == '"\\+"'
         assert PatternMatcher().match(self.cmp('\\"([^\\"\\\\]|\\\\.)*\\"'), '"escaped\\"quote"') == '"escaped\\"quote"'
         assert PatternMatcher().match(self.cmp('\\"([^\\"\\\\]|\\\\.)*\\"'), "\"escaped\\\"quote\"") == '"escaped\\"quote"'
         assert PatternMatcher().match(self.cmp('\\"([^\\"\\\\]|\\\\.)*\\"'), '"\\"[a"-z]\\""') == '"\\"[a"'
 
         # Lua
-        assert PatternMatcher().match(self.cmp('--\[\[.*?\]\]'), '--[[te\nst]]') == '--[[te\nst]]'
+        assert PatternMatcher().match(self.cmp(r'--\[\[.*?\]\]'), '--[[te\nst]]') == '--[[te\nst]]'
 
     def test_exactmatch(self):
         pm = PatternMatcher()
@@ -326,8 +326,8 @@ class Test_IncrementalLexing(object):
     def setup_class(cls):
         rules = []
         rules.append(("INT", "[0-9]+"))
-        rules.append(("plus", "\+"))
-        rules.append(("mul", "\*"))
+        rules.append(("plus", "\\+"))
+        rules.append(("mul", "\\*"))
         rules.append(("string", "\'[^\']*\'"))
         cls.lexer = Lexer(rules)
 
@@ -339,13 +339,13 @@ class Test_IncrementalLexing(object):
         bos.insert_after(new)
 
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ("1", "INT", 1, [TextNode(Terminal("1+2*3"))], -4)
-        assert it.next() == ("+", "plus", 0, [TextNode(Terminal("1+2*3"))], -3)
-        assert it.next() == ("2", "INT", 1, [TextNode(Terminal("1+2*3"))], -2)
-        assert it.next() == ("*", "mul", 0, [TextNode(Terminal("1+2*3"))], -1)
-        assert it.next() == ("3", "INT", 1, [TextNode(Terminal("1+2*3"))], 0)
+        assert next(it) == ("1", "INT", 1, [TextNode(Terminal("1+2*3"))], -4)
+        assert next(it) == ("+", "plus", 0, [TextNode(Terminal("1+2*3"))], -3)
+        assert next(it) == ("2", "INT", 1, [TextNode(Terminal("1+2*3"))], -2)
+        assert next(it) == ("*", "mul", 0, [TextNode(Terminal("1+2*3"))], -1)
+        assert next(it) == ("3", "INT", 1, [TextNode(Terminal("1+2*3"))], 0)
         with pytest.raises(StopIteration):
-            it.next()
+            next(it)
 
     def test_lexingerror(self):
         ast = AST()
@@ -355,9 +355,9 @@ class Test_IncrementalLexing(object):
         bos.insert_after(new)
 
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ("1", "INT", 1, [TextNode(Terminal("1b"))], -1)
+        assert next(it) == ("1", "INT", 1, [TextNode(Terminal("1b"))], -1)
         with pytest.raises(LexingError):
-            it.next()
+            next(it)
 
     def test_token_iter_lbox(self):
         ast = AST()
@@ -371,11 +371,11 @@ class Test_IncrementalLexing(object):
         new2.insert_after(new3)
 
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ("12", "INT", 1, [TextNode(Terminal("12"))], 0)
-        assert it.next() == (lbph, "", 0, [TextNode(MagicTerminal("<SQL>"))], 0)
-        assert it.next() == ("34", "INT", 1, [TextNode(Terminal("34"))], 0)
+        assert next(it) == ("12", "INT", 1, [TextNode(Terminal("12"))], 0)
+        assert next(it) == (lbph, "", 0, [TextNode(MagicTerminal("<SQL>"))], 0)
+        assert next(it) == ("34", "INT", 1, [TextNode(Terminal("34"))], 0)
         with pytest.raises(Exception):
-            it.next()
+            next(it)
 
     def test_token_iter_lbox2(self):
         ast = AST()
@@ -391,10 +391,10 @@ class Test_IncrementalLexing(object):
         new3.insert_after(new4)
 
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ("12", "INT", 1, [TextNode(Terminal("12"))], 0)
-        assert it.next() == (["'string with", lbph, "inside'"], "string", 0, [TextNode(Terminal("'string with")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("inside'"))], 0)
+        assert next(it) == ("12", "INT", 1, [TextNode(Terminal("12"))], 0)
+        assert next(it) == (["'string with", lbph, "inside'"], "string", 0, [TextNode(Terminal("'string with")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("inside'"))], 0)
         with pytest.raises(StopIteration):
-            it.next()
+            next(it)
 
     def test_token_iter_lbox3(self):
         ast = AST()
@@ -412,9 +412,9 @@ class Test_IncrementalLexing(object):
         new4.insert_after(new5)
 
         it = self.lexer.get_token_iter(new1)
-        assert it.next() == (["'a", lbph, "b", lbph, "c'"], "string", 0, [TextNode(Terminal("'a")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))], 0)
+        assert next(it) == (["'a", lbph, "b", lbph, "c'"], "string", 0, [TextNode(Terminal("'a")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))], 0)
         with pytest.raises(StopIteration):
-            it.next()
+            next(it)
 
     def test_token_iter_newline(self):
         ast = AST()
@@ -428,9 +428,9 @@ class Test_IncrementalLexing(object):
         new2.insert_after(new3)
 
         it = self.lexer.get_token_iter(new1)
-        assert it.next() == (["'a", "\r", "b'"], "string", 0, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b'"))], 0)
+        assert next(it) == (["'a", "\r", "b'"], "string", 0, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b'"))], 0)
         with pytest.raises(StopIteration):
-            it.next()
+            next(it)
 
     def test_token_iter_newline_lbox(self):
         ast = AST()
@@ -448,9 +448,9 @@ class Test_IncrementalLexing(object):
         new4.insert_after(new5)
 
         it = self.lexer.get_token_iter(new1)
-        assert it.next() == (["'a", "\r", "b", lbph, "c'"], "string", 0, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))], 0)
+        assert next(it) == (["'a", "\r", "b", lbph, "c'"], "string", 0, [TextNode(Terminal("'a")), TextNode(Terminal("\r")), TextNode(Terminal("b")), TextNode(MagicTerminal("<SQL>")), TextNode(Terminal("c'"))], 0)
         with pytest.raises(StopIteration):
-            it.next()
+            next(it)
 
 class Test_TripleQuote(object):
 
@@ -467,7 +467,7 @@ class Test_TripleQuote(object):
         new = TextNode(Terminal('"""abc"""'))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ('"""abc"""', "MLS", 0, [TextNode(Terminal('"""abc"""'))], 0)
+        assert next(it) == ('"""abc"""', "MLS", 0, [TextNode(Terminal('"""abc"""'))], 0)
 
     def test_simple2(self):
         ast = AST()
@@ -475,7 +475,7 @@ class Test_TripleQuote(object):
         new = TextNode(Terminal('""'))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ('""', "dstring", 1, [TextNode(Terminal('""'))], 0)
+        assert next(it) == ('""', "dstring", 1, [TextNode(Terminal('""'))], 0)
 
     def test_simple3(self):
         ast = AST()
@@ -483,7 +483,7 @@ class Test_TripleQuote(object):
         new = TextNode(Terminal('"""'))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ('""', "dstring", 2, [TextNode(Terminal('"""'))], -1)
+        assert next(it) == ('""', "dstring", 2, [TextNode(Terminal('"""'))], -1)
 
     def test_simple4(self):
         ast = AST()
@@ -491,8 +491,8 @@ class Test_TripleQuote(object):
         new = TextNode(Terminal('"""abc""d'))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ('""', "dstring", 7, [TextNode(Terminal('"""abc""d'))], -7)
-        assert it.next() == ('"abc"', "dstring", 0, [TextNode(Terminal('"""abc""d'))], -2)
+        assert next(it) == ('""', "dstring", 7, [TextNode(Terminal('"""abc""d'))], -7)
+        assert next(it) == ('"abc"', "dstring", 0, [TextNode(Terminal('"""abc""d'))], -2)
 
 class Test_Keyword(object):
 
@@ -508,13 +508,13 @@ class Test_Keyword(object):
         new = TextNode(Terminal("asd"))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ("asd", "NAME", 1, [TextNode(Terminal("asd"))], 0)
+        assert next(it) == ("asd", "NAME", 1, [TextNode(Terminal("asd"))], 0)
 
 class Test_LuaComments(object):
 
     def setup_class(cls):
         rules = []
-        rules.append(("mcomment", '--\[\[.*?\]\]'))
+        rules.append(("mcomment", r'--\[\[.*?\]\]'))
         rules.append(("minus", '-'))
         rules.append(("scomment", '--[^\r]*'))
         cls.lexer = Lexer(rules)
@@ -525,7 +525,7 @@ class Test_LuaComments(object):
         new = TextNode(Terminal('--[[testtest]]'))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ('--[[testtest]]', "mcomment", 0, [TextNode(Terminal('--[[testtest]]'))], 0)
+        assert next(it) == ('--[[testtest]]', "mcomment", 0, [TextNode(Terminal('--[[testtest]]'))], 0)
 
     def test_lookahead(self):
         ast = AST()
@@ -533,7 +533,7 @@ class Test_LuaComments(object):
         new = TextNode(Terminal('--[[test\rtest'))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        assert it.next() == ('--[[test', "scomment", 6, [TextNode(Terminal('--[[test\rtest'))], -5)
+        assert next(it) == ('--[[test', "scomment", 6, [TextNode(Terminal('--[[test\rtest'))], -5)
 
     def test_multi(self):
         ast = AST()
@@ -541,4 +541,4 @@ class Test_LuaComments(object):
         new = TextNode(Terminal('--[[test\rtest]]'))
         ast.parent.children[0].insert_after(new)
         it = self.lexer.get_token_iter(new)
-        assert it.next() == (['--[[test', '\r', 'test]]'], "mcomment", 0, [TextNode(Terminal('--[[test\rtest]]'))], 0)
+        assert next(it) == (['--[[test', '\r', 'test]]'], "mcomment", 0, [TextNode(Terminal('--[[test\rtest]]'))], 0)

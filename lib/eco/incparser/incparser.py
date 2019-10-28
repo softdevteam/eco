@@ -19,22 +19,22 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from __future__ import print_function
+
 
 try:
-    import cPickle as pickle
+    import pickle as pickle
 except:
     import pickle
 
 import time, os
 
 from grammar_parser.gparser import Parser, Nonterminal, Terminal, Epsilon, IndentationTerminal, MagicTerminal
-from syntaxtable import SyntaxTable, FinishSymbol, Reduce, Accept, Shift
-from stategraph import StateGraph
-from constants import LR0, LALR
-from astree import AST, TextNode, BOS, EOS
+from .syntaxtable import SyntaxTable, FinishSymbol, Reduce, Accept, Shift
+from .stategraph import StateGraph
+from .constants import LR0, LALR
+from .astree import AST, TextNode, BOS, EOS
 from ip_plugins.plugin import PluginManager
-from error_recovery import RecoveryManager
+from .error_recovery import RecoveryManager
 from autolboxdetector import NewAutoLboxDetector
 
 import logging
@@ -67,7 +67,7 @@ class IncParser(object):
             filename = "".join([os.path.dirname(__file__), "/../pickle/", str(hash(grammar) ^ hash(whitespaces)), ".pcl"])
             try:
                 logging.debug("Try to unpickle former stategraph")
-                f = open(filename, "r")
+                f = open(filename, "rb")
                 start = time.time()
                 self.graph = pickle.load(f)
                 end = time.time()
@@ -79,7 +79,7 @@ class IncParser(object):
                 logging.debug("Building Stategraph")
                 self.graph.build()
                 logging.debug("Pickling")
-                pickle.dump(self.graph, open(filename, "w"))
+                pickle.dump(self.graph, open(filename, "wb"))
 
             if lr_type == LALR:
                 self.graph.convert_lalr()
@@ -116,10 +116,10 @@ class IncParser(object):
         self.graph = None
         self.syntaxtable = None
         if pickle_id:
-            filename = "".join([os.path.dirname(__file__), "/../pickle/", str(pickle_id ^ hash(whitespaces)), ".pcl"])
+            filename = "".join([os.path.dirname(__file__), "/../pickle/", str(pickle_id), ".pcl"])
             try:
-                f = open(filename, "r")
-                self.syntaxtable = pickle.load(f)
+                with open(filename, "rb") as f:
+                    self.syntaxtable = pickle.load(f)
             except IOError:
                 pass
         if self.syntaxtable is None:
@@ -128,7 +128,8 @@ class IncParser(object):
             self.syntaxtable = SyntaxTable(prod_ids, lr_type)
             self.syntaxtable.build(self.graph, precedences)
             if pickle_id:
-                pickle.dump(self.syntaxtable, open(filename, "w"))
+                with open(filename, "wb") as f:
+                    pickle.dump(self.syntaxtable, f)
 
         self.whitespaces = whitespaces
 
@@ -669,7 +670,7 @@ class IncParser(object):
         goto = self.syntaxtable.lookup(self.current_state, element.action.left)
         if goto is None:
             raise Exception("Reduction error on %s in state %s: goto is None" % (element, self.current_state))
-        assert goto != None
+        assert goto is not None
 
         # save childrens parents state
         has_errors = False
@@ -923,7 +924,7 @@ class IncParser(object):
         return AST(root)
 
     def get_next_possible_symbols(self, state_id):
-        return self.syntaxtable.table[state_id].iterkeys()
+        return iter(self.syntaxtable.table[state_id].keys())
 
     def get_next_symbols_list(self, state = -1):
         if state == -1:

@@ -3,11 +3,11 @@ A custom graphic renderer for the '.plain' files produced by dot.
 
 """
 
-from __future__ import generators
+
 import re, os, math
 import pygame
 from pygame.locals import *
-from strunicode import forceunicode
+from .strunicode import forceunicode
 
 
 this_dir = os.path.dirname(os.path.abspath(__file__))
@@ -77,7 +77,7 @@ class GraphLayout:
         self.edges.append(Edge(self.nodes, *args))
 
     def get_display(self):
-        from graphdisplay import GraphDisplay
+        from .graphdisplay import GraphDisplay
         self.gdisplay = GraphDisplay(self)
         return self.gdisplay
 
@@ -228,7 +228,11 @@ class Edge:
             self.cachedarrowhead = result
         return result
 
-def beziercurve((x0,y0), (x1,y1), (x2,y2), (x3,y3), resolution=8):
+def beziercurve(c0, c1, c2, c3, resolution=8):
+    (x0,y0) = c0
+    (x1,y1) = c1
+    (x2,y2) = c2
+    (x3,y3) = c3
     result = []
     f = 1.0/(resolution-1)
     append = result.append
@@ -242,8 +246,11 @@ def beziercurve((x0,y0), (x1,y1), (x2,y2), (x3,y3), resolution=8):
                 y0*t0 + y1*t1 + y2*t2 + y3*t3))
     return result
 
-def segmentdistance((x0,y0), (x1,y1), (x,y)):
+def segmentdistance(c0, c1, c2):
     "Distance between the point (x,y) and the segment (x0,y0)-(x1,y1)."
+    (x0,y0) = c0
+    (x1,y1) = c1
+    (x,y) = c2
     vx = x1-x0
     vy = y1-y0
     try:
@@ -388,7 +395,7 @@ class GraphRenderer:
         del self.visiblenodes[:]
         del self.visibleedges[:]
         w, h = self.screen.get_size()
-        for node in self.graphlayout.nodes.values():
+        for node in list(self.graphlayout.nodes.values()):
             x, y = self.map(node.x, node.y)
             nw2 = int(node.w * self.scale)//2
             nh2 = int(node.h * self.scale)//2
@@ -640,31 +647,33 @@ class GraphRenderer:
     def findall(self, searchstr):
         """Return an iterator for all nodes and edges that contain a searchstr.
         """
-        for item in self.graphlayout.nodes.itervalues():
+        for item in self.graphlayout.nodes.values():
             if item.label and searchstr in item.label:
                 yield item
         for item in self.graphlayout.edges:
             if item.label and searchstr in item.label:
                 yield item
 
-    def at_position(self, (x, y)):
+    def at_position(self, pos):
         """Figure out the word under the cursor."""
+        (x, y) = pos
         for rx, ry, rw, rh, word in self.textzones:
             if rx <= x < rx+rw and ry <= y < ry+rh:
                 return word
         return None
 
-    def node_at_position(self, (x, y)):
+    def node_at_position(self, pos):
         """Return the Node under the cursor."""
+        (x, y) = pos
         x, y = self.revmap(x, y)
         for node in self.visiblenodes:
             if 2.0*abs(x-node.x) <= node.w and 2.0*abs(y-node.y) <= node.h:
                 return node
         return None
 
-    def edge_at_position(self, (x, y), distmax=14):
+    def edge_at_position(self, pos, distmax=14):
         """Return the Edge near the cursor."""
-        # XXX this function is very CPU-intensive and makes the display kinda sluggish
+        (x, y) = pos
         distmax /= self.scale
         xy = self.revmap(x, y)
         closest_edge = None

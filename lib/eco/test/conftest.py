@@ -18,3 +18,6 @@ def pytest_configure(config):
     if config.getoption('--logs'):
         import logging
         logging.getLogger().setLevel(logging.DEBUG)
+    config.addinivalue_line(
+        "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
+    )

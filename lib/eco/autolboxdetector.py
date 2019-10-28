@@ -349,7 +349,7 @@ class Recognizer(object):
         if not ppmode:
             self.reset()
 
-        self.tokeniter = self.lexer.get_token_iter(startnode).next
+        self.tokeniter = self.lexer.get_token_iter(startnode).__next__
         token = self.next_token()
         minversion = startnode.version
         if not ppmode and not self.valid_start(token):
@@ -434,7 +434,7 @@ class Recognizer(object):
                 return False
 
     def parse_lex_single(self, node):
-        self.tokeniter = self.lexer.get_token_iter(node).next
+        self.tokeniter = self.lexer.get_token_iter(node).__next__
         token = self.next_token()
         while True:
             if not self.temp_parse(self.state, token):
