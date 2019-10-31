@@ -24,7 +24,7 @@ import subprocess, sys
 
 try:
     import __pypy__
-    print("Warning: PyQt4 is currently not supported in PyPy. Some features thus have been disabled.")
+    print("Warning: PyQt is currently not supported in PyPy. Some features thus have been disabled.")
 except ImportError:
     pass
 
@@ -611,11 +611,12 @@ class Window(QMainWindow):
             import pydot
             self.ui.actionParse_Tree.triggered.connect(self.showParseView)
             self.ui.actionStateGraph.triggered.connect(self.showStateView)
+            self.ui.actionPvShow.triggered.connect(self.showPygameTree)
         except ImportError:
-            sys.stderr.write("Warning: pydot not installed, so viewing of trees is disabled.\n")
+            sys.stderr.write("Warning: pydot not installed. Viewing of parse trees/graphs disabled.\n")
             self.ui.actionParse_Tree.setEnabled(False)
+            self.ui.actionPvShow.setEnabled(False)
             self.ui.actionStateGraph.setEnabled(False)
-        self.ui.actionPvShow.triggered.connect(self.showPygameTree)
 
         self.ui.actionSettings.triggered.connect(self.showSettingsView)
         self.ui.actionAbout.triggered.connect(self.showAboutView)
@@ -833,6 +834,14 @@ class Window(QMainWindow):
         self.btReparse([])
 
     def showPygameTree(self):
+        os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+        try:
+            import pygame
+        except ImportError:
+            sys.stderr.write("Warning: pygame not installed. Interactive viewing of parse trees disabled.\n")
+            self.ui.actionPvShow.setEnabled(False)
+            return
+
         if not self.pgviewer:
             editor = self.getEditor()
             tree = editor.tm.main_lbox
@@ -1491,6 +1500,7 @@ class Window(QMainWindow):
             self.ui.actionParse_Tree.setEnabled(enabled)
         except ImportError:
             pass
+        self.ui.actionPvShow.setEnabled(enabled)
         self.ui.actionCode_complete.setEnabled(enabled)
         self.ui.menuChange_language_box.setEnabled(enabled)
         self.ui.actionPreview.setEnabled(enabled)

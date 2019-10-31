@@ -853,6 +853,9 @@
    <property name="text">
     <string>TreeView (Pygame)</string>
    </property>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
   </action>
   <action name="actionAutomatic_language_box_detection">
    <property name="checkable">
