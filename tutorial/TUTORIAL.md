@@ -5,15 +5,16 @@ This tutorial will help you explore a simple use case for Eco.
 ### Installation
 
 Depending on how your version of Python was built, you may need to install
-SQLite separately. To determine whether you need to do so, type "python2.7" at
-the command line and then "import sqlite3". If that does not produce an error,
-you can skip installation. Otherwise, you will need to install SQLite from
-http://www.sqlite.org/download.html
+SQLite separately. To determine whether you need to do so, run `python3 -c "import sqlite3"`
+on your command line. On success, nothing shall be printed. On failure, you probably
+get an error messaging indicating that SQLite on your system is missing. In the latter case,
+you will need to install SQLite from http://www.sqlite.org/download.html or your OS's package
+manager.
 
-You will then to generate a test database by executing these commands:
+You will then need to generate a test database by executing these commands:
 ```
   $ wget https://bitbucket.org/softdevteam/eco/downloads/gendb.py
-  $ python2.7 gendb.py
+  $ python3 gendb.py
 ```
 You can then run Eco in the normal way.
 
@@ -92,8 +93,10 @@ Now we can export our program using "File->Export" and saving it as "web.py"
 (make sure it is saved in the same location where you stored and executed
 'gendb.py'). Afterwards we can run it:
 ```
-    python2.7 web.py > web.html
+    python2 web.py > web.html
 ```
+Note that we need Python 2 here as Eco still generated Python 2 files.
+
 Opening the resulting file "web.html" in a browser should now list people from
 the SQL database.
 
