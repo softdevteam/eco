@@ -7,7 +7,7 @@ distributed under a BSD/MIT license.
 ### Install ###
 At a minimum you will need to install:
 
-* Python 3 https://www.python.org/download/
+* Python 2 **and** 3 https://www.python.org/download/
 * PyQt5 http://www.riverbankcomputing.co.uk/software/pyqt/download5
 * Py http://py.readthedocs.io/en/latest/install.html
 
@@ -26,8 +26,8 @@ If you wish to see visualisations of parse trees, you may optionally install:
 The above dependencies can be installed as follows on command line:
 
 ```
-# Get Python3 if you haven't already
-sudo apt-get install python3
+# Get Python 2 *and* 3 if you haven't already
+sudo apt-get install python python3
 
 python3 -m pip install --user PyQt5 py
 
