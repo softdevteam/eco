@@ -21,6 +21,24 @@ If you wish to see visualisations of parse trees, you may optionally install:
 * PyDot https://code.google.com/p/pydot/
 * Pygame https://www.pygame.org/
 
+#### On Ubuntu (including Windows Subsysten for Linux) ####
+
+The above dependencies can be installed as follows on command line:
+
+```
+# Get Python3 if you haven't already
+sudo apt-get install python3
+
+python3 -m pip install --user PyQt5 py
+
+# I couldn't run Eco without it because Qt couldn't find a platform plugin
+# Solution from https://forum.qt.io/topic/99562/qt-5-12-1-cannot-load-library-opt-qt-5-12-1-gcc_64-plugins-platforms-libqxcb-so-libxkbcommon-x11-so-0-cannot-open-shared-object-file-no-such-file-or-directory
+sudo apt-get install libxkbcommon-x11-0
+
+# Optional dependencies if you want to visualize parse trees
+sudo apt-get install graphviz 
+python3 -m pip install --user pydot pygame
+```
 
 ### Running Eco ###
 
