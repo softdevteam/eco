@@ -2057,10 +2057,11 @@ class TreeManager(object):
                 f = (os.open(d + "/" + f, os.O_RDWR|os.O_CREAT), d + "/" + f)
             else:
                 f = tempfile.mkstemp(dir=d)
-            os.write(f[0], PHPPython.export(self.get_bos(), os.path.basename(source)))
+            with open(f[0], "w") as fw:
+                fw.write(PHPPython.export(self.get_bos(), os.path.basename(source)))
             settings = QSettings("softdev", "Eco")
-            prefixpath = str(settings.value("env_pypyprefix", "").toString())
-            pyhyppath = str(settings.value("env_pyhyp", "").toString())
+            prefixpath = settings.value("env_pypyprefix", "")
+            pyhyppath = settings.value("env_pyhyp", "")
             if pyhyppath:
                 if prefixpath:
                     env = os.environ.copy()

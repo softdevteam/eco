@@ -1695,9 +1695,9 @@ class SubProcessThread(QThread):
                 self.signal_execute_fail.emit("program syntactically invalid")
             else:
                 for line in iter(p.stdout.readline, b''):
-                    if lang == "PHP + Python" and line.startswith("  <?php{ "):
-                            line = "  " + line[9:]
-                    self.signal.emit(line.rstrip())
+                    if lang == "PHP + Python" and line.startswith(b"  <?php{ "):
+                        line = b"  " + line[9:]
+                    self.signal.emit(line.rstrip().decode("utf-8"))
         except ExecutionError as e:
             self.signal_execute_fail.emit(e.message)
 
