@@ -39,6 +39,8 @@ from indentmanager import IndentationManager
 from export import HTMLPythonSQL, PHPPython, ATerms
 from export.cpython import CPythonExporter
 
+from autolboxdetector import IncrementalRecognizer
+
 import math, os
 
 def debug_trace():
@@ -2183,6 +2185,7 @@ class TreeManager(object):
                     if not self.lbox_expand_test(lbox):
                         self.lbox_shrink_test(lbox)
 
+        for temp in parsers:
             # apply language boxes if there is only one choice
             for n in p.error_nodes:
                 if not n.deleted and n.autobox and len(n.autobox) == 1:
@@ -2241,7 +2244,6 @@ class TreeManager(object):
     def lbox_shrink_test(self, lbox):
         """Checks if an invalid language box can be shrunken by moving the
         error (and following tokens) within the box into the outer language."""
-        from autolboxdetector import IncrementalRecognizer
         outer_lang = lbox.get_root().name
         p = self.get_parser(lbox.symbol.ast)
         l = self.get_lexer(lbox.symbol.ast)
@@ -2273,7 +2275,6 @@ class TreeManager(object):
         the contents can be parsed as well as the nodes following the old box)
         2) The languagebox is invalid and its contents can be parsed in the
         outside language (note: the context doesn't have to be valid)"""
-        from autolboxdetector import IncrementalRecognizer
         outer_root = lbox.get_root()
         outer_lang = outer_root.name
         outer_parser, outer_lexer = lang_dict[outer_lang].load() # get preloaded one
