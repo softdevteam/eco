@@ -1502,10 +1502,12 @@ class TreeManager(object):
         lbox = root.get_magicterminal()
         if lbox:
             self.save_current_version()
+            pv = self.get_parser(root).prev_version
             self.delete_parser(root)
 
             incparser, inclexer = self.get_parser_lexer_for_language(language, True)
             incparser.previous_version.parent = root
+            incparser.prev_version = pv
             self.add_parser(incparser, inclexer, language.name)
             lbox.symbol.name = "<%s>" % language
 
