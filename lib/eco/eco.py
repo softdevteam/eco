@@ -714,7 +714,7 @@ class Window(QMainWindow):
         # adjust icon size depending on DPI
         dpi = QApplication.desktop().physicalDpiX()
         if dpi > 96:
-            iconsize = dpi / 96 * 16
+            iconsize = int(dpi / 96 * 16)
             self.ui.toolBar.setIconSize(QtCore.QSize(iconsize, iconsize))
 
     def hud_callgraph_toggle(self):
