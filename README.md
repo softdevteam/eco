@@ -21,13 +21,31 @@ If you wish to see visualisations of parse trees, you may optionally install:
 * PyDot https://code.google.com/p/pydot/
 * Pygame https://www.pygame.org/
 
-
 ### Running Eco ###
 
 To run Eco, use the bin/eco file:
 
   `$ bin/eco`
-  
+
 ### Tutorial ###
 
 A small tutorial to get you started with the basics of Eco can be found [here](tutorial/TUTORIAL.md).
+
+### Troubleshooting ###
+
+#### Windows Subsystem for Linux running Ubuntu ####
+
+If you are having trouble running Eco on the Windows Subsystem running Ubuntu,
+follow these instructions:
+
+```
+# Install Python3
+sudo apt-get install python3 libxkbcommon-x11-0
+
+# Install dependencies via pip
+python3 -m pip install --user PyQt5 py
+
+# Optional dependencies to visualise parse trees
+sudo apt-get install graphviz
+python3 -m pip install --user pydot pygame
+```
