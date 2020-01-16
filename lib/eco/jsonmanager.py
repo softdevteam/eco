@@ -48,12 +48,12 @@ class JsonManager(object):
 
     def load(self, filename):
         try:
-            z = gzip.open(str(filename), "rb")
+            z = gzip.open(str(filename), "rt", encoding="utf-8")
             main = json.loads(z.read())
             z.close()
         except IOError:
             # backwards compatibility
-            fp = open(filename, "r")
+            fp = open(filename, "r", encoding="utf-8")
             main = json.load(fp)
             fp.close()
 
