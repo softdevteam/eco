@@ -1284,7 +1284,9 @@ class Window(QMainWindow):
 
     def openfile(self, filename=None):
         if not filename:
-            filename, _ = QFileDialog.getOpenFileName(self, "Open File", self.get_last_dir(), "Eco files (*.eco *.nb *.eco.bak);; All files (*.*)")
+            options = QFileDialog.Options()
+            options |= QFileDialog.DontUseNativeDialog
+            filename, _ = QFileDialog.getOpenFileName(self, "Open File", self.get_last_dir(), "Eco files (*.eco *.nb *.eco.bak);; All files (*.*)", options=options)
         if filename:
             self.save_last_dir(str(filename))
             self.add_to_recent_files(str(filename))
