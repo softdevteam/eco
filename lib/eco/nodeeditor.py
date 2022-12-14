@@ -670,10 +670,12 @@ class NodeEditor(QFrame):
         colorhex = self.palette().color(QPalette.Text)
         pen.setColor(QColor(colorhex))
         paint.setPen(pen)
-        draw_cursor_at = QRect(x, y, 0, self.fontht - 3)
+        draw_cursor_at = QRect(int(x), int(y), 0, self.fontht - 3)
         paint.drawRect(draw_cursor_at)
 
     def draw_vertical_squiggly_line(self, paint, x, y):
+        x = int(x)
+        y = int(y)
         paint.setPen(Qt.CustomDashLine)
         pen = paint.pen()
         pen.setColor(QColor("red"))
@@ -690,6 +692,9 @@ class NodeEditor(QFrame):
         paint.setPen(Qt.SolidLine)
 
     def draw_squiggly_line(self, paint, x, y, length, color):
+        x = int(x)
+        y = int(y)
+        length = int(length)
         paint.setPen(Qt.CustomDashLine)
         pen = paint.pen()
         pen.setColor(QColor(color))
@@ -729,7 +734,7 @@ class NodeEditor(QFrame):
             width = max(self.fontwt, self.tm.lines[line1].width*self.fontwt)
             paint.fillRect(QRectF(x1, 3 + y1 * self.fontht, width - x1, self.fontht), QColor(0,0,255,100))
             y = y1 + self.tm.lines[line1].height
-            for i in range(line1+1, line2):
+            for i in range(int(line1+1), int(line2)):
                 width = self.tm.lines[i].width*self.fontwt
                 if width == 0:
                     width = self.fontwt
@@ -800,7 +805,7 @@ class NodeEditor(QFrame):
             y += l.height * self.fontht
         x = self.tm.cursor.get_x() * self.fontwt
         y = y - self.getScrollArea().verticalScrollBar().value() * self.fontht
-        return (x,y)
+        return (int(x),int(y))
 
     def coordinate_to_cursor(self, x, y):
         mouse_y = y / self.fontht

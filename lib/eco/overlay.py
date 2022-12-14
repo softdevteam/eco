@@ -61,9 +61,9 @@ class Overlay(QWidget):
         for _ in range(1000):
             hue = rangen.random() + GOLDEN_RATIO
             hue %= 1
-            rgb = [col * 255 for col in hsv_to_rgb(hue, SATURATION, VALUE)]
+            rgb = [int(col * 255) for col in hsv_to_rgb(hue, SATURATION, VALUE)]
             self._random_colours.append(QColor(*rgb))
-            rgb = [col * 255 for col in hsv_to_rgb(hue, SATURATION / 2.0, VALUE)]
+            rgb = [int(col * 255) for col in hsv_to_rgb(hue, SATURATION / 2.0, VALUE)]
             self._random_colours_outdated.append(QColor(*rgb))
 
     @property

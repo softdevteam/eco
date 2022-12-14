@@ -140,9 +140,9 @@ class ScopeScrollArea(QAbstractScrollArea):
 
     def update(self):
         QWidget.update(self)
-        self.verticalScrollBar().setMaximum(self.parent().editor.scroll_height)
+        self.verticalScrollBar().setMaximum(int(self.parent().editor.scroll_height))
         self.verticalScrollBar().setPageStep(50)
-        self.horizontalScrollBar().setMaximum(self.parent().editor.scroll_width)
+        self.horizontalScrollBar().setMaximum(int(self.parent().editor.scroll_width))
         self.horizontalScrollBar().setPageStep(50)
 
 
@@ -334,7 +334,7 @@ class LineNumbers(QFrame):
         breakpoint_space = 0
         if self.parent().debugging:
             breakpoint_space = 10
-        self.setMinimumWidth(gfont.fontwt * (digits + 1) + breakpoint_space)
+        self.setMinimumWidth(int(gfont.fontwt * (digits + 1) + breakpoint_space))
         QFrame.update(self)
 
 class AutoLBoxComplete(QFrame):
